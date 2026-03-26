@@ -1,0 +1,5 @@
+{
+  "name": "AquaGrow",
+  "description": "Smart Shrimp Farming Assistant for optimizing yields and managing farm health.",
+  "requestFramePermissions": ["camera"]
+}

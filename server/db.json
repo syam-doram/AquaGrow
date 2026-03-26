@@ -1,0 +1,239 @@
+{
+  "users": [
+    {
+      "name": "Syam Kumar",
+      "phoneNumber": "+91 7382279533",
+      "password": "Syam@73822",
+      "location": "Bhimavaram, AP",
+      "role": "farmer",
+      "farmSize": 0,
+      "language": "English",
+      "subscriptionStatus": "pro",
+      "_id": "id_1774338673854_9qevp",
+      "createdAt": "2026-03-24T07:51:13.854Z",
+      "updatedAt": "2026-03-26T18:30:29.088Z",
+      "notifications": {
+        "water": true,
+        "feed": true,
+        "market": true
+      },
+      "fcmToken": "fZFmaOPC56v8SjyD6lYl20:APA91bF71efq86W28lASUWnt2DdyjAH67Klygrz9fp0mU39_Zaa1-e8T00C8Rs27JgXmK0QIJg16jkO3I-zTdHZWx1t-LBQzxS4WQK-6g74iHoNwABsU5oo"
+    },
+    {
+      "name": "Syam Kumar",
+      "phoneNumber": "+91 7382279533",
+      "password": "Syam@73822",
+      "location": "Bhimavaram, AP",
+      "role": "provider",
+      "farmSize": 0,
+      "language": "English",
+      "subscriptionStatus": "free",
+      "_id": "id_1774377320806_vcri7",
+      "createdAt": "2026-03-24T18:35:20.807Z"
+    },
+    {
+      "name": "Syam Kumar",
+      "phoneNumber": "+91 7382279533",
+      "password": "Syam@73822",
+      "location": "Bhimavaram, AP",
+      "role": "provider",
+      "farmSize": 0,
+      "language": "English",
+      "subscriptionStatus": "free",
+      "_id": "id_1774378131730_d6cr7",
+      "createdAt": "2026-03-24T18:48:51.731Z"
+    }
+  ],
+  "subscriptions": [
+    {
+      "userId": "id_1774338673854_9qevp",
+      "planName": "pro_silver",
+      "status": "active",
+      "features": [
+        "basic_dashboard",
+        "pond_management"
+      ],
+      "_id": "id_1774338673858_eqtw7",
+      "createdAt": "2026-03-24T07:51:13.858Z",
+      "endDate": "2026-04-25T18:30:29.083Z",
+      "updatedAt": "2026-03-26T18:30:29.084Z"
+    },
+    {
+      "userId": "id_1774377320806_vcri7",
+      "planName": "free",
+      "status": "active",
+      "features": [
+        "basic_dashboard",
+        "pond_management"
+      ],
+      "_id": "id_1774377320815_q7c3y",
+      "createdAt": "2026-03-24T18:35:20.815Z"
+    },
+    {
+      "userId": "id_1774378131730_d6cr7",
+      "planName": "free",
+      "status": "active",
+      "features": [
+        "basic_dashboard",
+        "pond_management"
+      ],
+      "_id": "id_1774378131739_ijrxd",
+      "createdAt": "2026-03-24T18:48:51.739Z"
+    }
+  ],
+  "ponds": [
+    {
+      "userId": "preview_user",
+      "name": "Pond 1",
+      "size": 1,
+      "species": "Vannamei",
+      "seedCount": 100000,
+      "stockingDate": "2026-03-25",
+      "status": "active",
+      "seedSource": "Local Hatchery",
+      "_id": "id_1774409616171_vflqd",
+      "createdAt": "2026-03-25T03:33:36.171Z"
+    },
+    {
+      "userId": "preview_user",
+      "name": "Pond 2",
+      "size": 1,
+      "species": "Vannamei",
+      "seedCount": 100000,
+      "stockingDate": "22026-02-25",
+      "status": "active",
+      "seedSource": "Local Hatchery",
+      "_id": "id_1774409709790_c5nul",
+      "createdAt": "2026-03-25T03:35:09.790Z"
+    },
+    {
+      "userId": "id_1774338673854_9qevp",
+      "name": "Pond-1",
+      "size": 3,
+      "species": "Vannamei",
+      "seedCount": 500000,
+      "stockingDate": "2026-03-25",
+      "status": "active",
+      "seedSource": "Local Hatchery",
+      "_id": "id_1774462250846_cvezn",
+      "createdAt": "2026-03-25T18:10:50.846Z"
+    },
+    {
+      "userId": "id_1774338673854_9qevp",
+      "name": "North Pond",
+      "size": 3,
+      "species": "Vannamei",
+      "seedCount": 300000,
+      "stockingDate": "2026-03-26",
+      "status": "active",
+      "seedSource": "Local Hatchery",
+      "_id": "id_1774544914093_mj7uv",
+      "createdAt": "2026-03-26T17:08:34.094Z"
+    },
+    {
+      "userId": "id_1774338673854_9qevp",
+      "name": "East Pond",
+      "size": 4,
+      "species": "Vannamei",
+      "seedCount": 600000,
+      "stockingDate": "2026-03-26",
+      "status": "active",
+      "seedSource": "Local Hatchery",
+      "_id": "id_1774551562406_77x34",
+      "createdAt": "2026-03-26T18:59:22.406Z"
+    }
+  ],
+  "feedLogs": [],
+  "medicineLogs": [
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26T19:05:45.025Z",
+      "name": "Gut Probiotic (Daily)",
+      "dosage": "5–10 g/kg feed",
+      "doc": 1,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774551945041_k3dzr",
+      "createdAt": "2026-03-26T19:05:45.041Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26T19:05:45.027Z",
+      "name": "Friday → Mineral",
+      "dosage": "As per SOP",
+      "doc": 1,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774551945055_9lxv3",
+      "createdAt": "2026-03-26T19:05:45.055Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26T19:05:51.511Z",
+      "name": "Gut Probiotic (Daily)",
+      "dosage": "5–10 g/kg feed",
+      "doc": 1,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774551951526_u929g",
+      "createdAt": "2026-03-26T19:05:51.526Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26T19:05:51.512Z",
+      "name": "Friday → Mineral",
+      "dosage": "As per SOP",
+      "doc": 1,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774551951538_fhf12",
+      "createdAt": "2026-03-26T19:05:51.538Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26T19:07:58.903Z",
+      "name": "Gut Probiotic (Daily)",
+      "dosage": "5–10 g/kg feed",
+      "doc": 1,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774552078919_1h3fp",
+      "createdAt": "2026-03-26T19:07:58.919Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26T19:07:58.905Z",
+      "name": "Friday → Mineral",
+      "dosage": "As per SOP",
+      "doc": 1,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774552078931_6rjq8",
+      "createdAt": "2026-03-26T19:07:58.931Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26",
+      "name": "Infectious Myonecrosis Virus (IMNV) Recovery",
+      "dosage": "Clinical Treatment",
+      "isSynced": true,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774557304340_38088",
+      "createdAt": "2026-03-26T20:35:04.340Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26",
+      "name": "Infectious Myonecrosis Virus (IMNV) Recovery",
+      "dosage": "Clinical Treatment",
+      "isSynced": true,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774557312384_l5lzy",
+      "createdAt": "2026-03-26T20:35:12.384Z"
+    },
+    {
+      "pondId": "id_1774462250846_cvezn",
+      "date": "2026-03-26",
+      "name": "Infectious Myonecrosis Virus (IMNV) Recovery",
+      "dosage": "Clinical Treatment",
+      "isSynced": true,
+      "userId": "id_1774338673854_9qevp",
+      "_id": "id_1774557313347_pyk7x",
+      "createdAt": "2026-03-26T20:35:13.347Z"
+    }
+  ]
+}

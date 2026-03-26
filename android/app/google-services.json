@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451031188680",
+    "project_id": "aquagrow-37a3e",
+    "storage_bucket": "aquagrow-37a3e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451031188680:android:8e717ff665262b9a5591fd",
+        "android_client_info": {
+          "package_name": "com.aquagrow.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjdYJ9176qgWCD3ApEaeWUPFPR1qMRkNQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-primary: #4A2C2A;
+  --color-primary-light: #C78200;
+  --color-accent: #C78200;
+  --color-paper: #FFFDF5;
+  --color-ink: #4A2C2A;
+  --color-line: rgba(74, 44, 42, 0.08);
+  
+  --color-vibrant-blue: #C78200;
+  --color-vibrant-green: #D48806;
+  --color-vibrant-purple: #AD6800;
+  --color-vibrant-pink: #FFD700;
+  --color-vibrant-orange: #C78200;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 rounded-[2.5rem] shadow-xl shadow-primary/5;
+  }
+  
+  .premium-shadow {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+  }
+  
+  .vibrant-gradient-1 {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+  }
+  
+  .vibrant-gradient-2 {
+    background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+  }
+  
+  .vibrant-gradient-3 {
+    background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+  }
+
+  .vibrant-gradient-4 {
+    background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%);
+  }
+
+  .nav-blur {
+    @apply bg-white/80 backdrop-blur-md border-t border-line;
+  }
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/40;
+}
