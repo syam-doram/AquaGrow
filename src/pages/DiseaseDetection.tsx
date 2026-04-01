@@ -8,7 +8,8 @@ import {
   Sparkles, 
   Waves,
   ChevronLeft,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -241,19 +242,27 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                analysis.severity === 'Warning' ? 'bg-[#C78200] shadow-amber-500/20' : 
                'bg-emerald-500 shadow-emerald-500/20'
             )}>
+              <div className="absolute top-4 right-8 z-20">
+                 {analysis.verifiedSchema && (
+                   <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 flex items-center gap-2">
+                      <ShieldCheck size={14} className="text-white" />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Verified SOP</span>
+                   </div>
+                 )}
+              </div>
               <div className="absolute top-0 right-0 p-8 opacity-20">
                 <Sparkles size={120} />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 pt-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">{t.analysisResult || 'Analysis Result'}</p>
                 <h2 className="text-3xl font-black tracking-tighter mb-6">{analysis.disease}</h2>
                 <div className="flex gap-6">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">{t.confidence || 'Confidence'}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">{t.confidence || 'AI Confidence'}</p>
                     <p className="text-xl font-black">{analysis.confidence}%</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">{t.severity || 'Severity'}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">{t.severity || 'Status'}</p>
                     <p className="text-xl font-black">{analysis.severity}</p>
                   </div>
                 </div>
@@ -261,9 +270,20 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
             </div>
 
             <div className="mt-8 space-y-4">
-              <h3 className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-[0.3em] ml-2">{t.correctiveActions || 'Treatment Protocol'}</h3>
+              <h3 className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-[0.3em] ml-2">Visual Markers & Logic</h3>
               <div className="bg-white p-6 rounded-[2.5rem] border border-black/5">
-                <p className="text-[#4A2C2A] text-xs font-bold leading-relaxed mb-4">{analysis.action}</p>
+                <p className="text-[#4A2C2A]/60 text-[10px] font-bold leading-relaxed mb-4">{analysis.markerAnalysis || analysis.reasoning}</p>
+                {analysis.markerAnalysis && (
+                  <div className="pt-4 border-t border-black/5">
+                     <p className="text-[#4A2C2A]/40 text-[8px] font-black uppercase tracking-widest mb-1">Diagnostic Context</p>
+                     <p className="text-[#4A2C2A]/80 text-[10px] font-bold italic">{analysis.reasoning}</p>
+                  </div>
+                )}
+              </div>
+
+              <h3 className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-[0.3em] ml-2">{t.correctiveActions || 'Treatment SOP'}</h3>
+              <div className="bg-white p-6 rounded-[2.5rem] border border-black/5">
+                <p className="text-[#4A2C2A] text-xs font-black leading-relaxed mb-6">"{analysis.action}"</p>
                 
                 {/* Apply Button */}
                 <button 

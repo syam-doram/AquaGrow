@@ -1,5 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD_iW71nzdyxqLi0RjYlg6lKYHdyvPAgOw",
@@ -13,6 +16,27 @@ const firebaseConfig = {
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
+
+// Initialize Firebase Auth
+export const auth = getAuth(app);
+
+// Initialize Firestore
+export const db = getFirestore(app);
+
+// Initialize Firebase Functions
+export const functions = getFunctions(app);
+
+// Use local emulator in development
+if (typeof window !== 'undefined' && 
+   (window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname.startsWith('172.20.'))
+) {
+  const host = window.location.hostname;
+  connectFunctionsEmulator(functions, host, 5001);
+  connectAuthEmulator(auth, `http://${host}:9099`);
+  connectFirestoreEmulator(db, host, 8080);
+}
 
 // Initialize Firebase Cloud Messaging
 // Only initialized on client-side

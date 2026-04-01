@@ -50,6 +50,20 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(() => {
+    const saved = localStorage.getItem('aqua_tokens');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const getAuthHeaders = (overrideTokens?: { access: string }) => {
+    const headers: any = { 'Content-Type': 'application/json' };
+    const activeToken = overrideTokens?.access || tokens?.access;
+    if (activeToken) {
+      headers['Authorization'] = `Bearer ${activeToken}`;
+    }
+    return headers;
+  };
+
   const isExpired = user?.subscriptionExpiry ? new Date(user.subscriptionExpiry) < new Date() : false;
   const isPro = !isExpired && (
                  user?.subscriptionStatus === 'pro' ||
@@ -58,9 +72,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                  user?.subscriptionStatus === 'pro_diamond'
                 );
 
-  const fetchUserPonds = async (userId: string) => {
+  const fetchUserPonds = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/ponds`);
+      const response = await fetch(`${API_BASE_URL}/user/${userId}/ponds`, {
+        headers: getAuthHeaders(overrideTokens)
+      });
       if (response.ok) {
         const data = await response.json();
         setPonds(data.map((p: any) => ({ ...p, id: p._id || p.id })));
@@ -70,9 +86,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const fetchSubscription = async (userId: string) => {
+  const fetchSubscription = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/subscription`);
+      const response = await fetch(`${API_BASE_URL}/user/${userId}/subscription`, {
+        headers: getAuthHeaders(overrideTokens)
+      });
       if (response.ok) {
         const data = await response.json();
         setSubscription(data);
@@ -82,9 +100,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const fetchFeedLogs = async (userId: string) => {
+  const fetchFeedLogs = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/feed-logs`);
+      const response = await fetch(`${API_BASE_URL}/user/${userId}/feed-logs`, {
+        headers: getAuthHeaders(overrideTokens)
+      });
       if (response.ok) {
         const data = await response.json();
         setFeedLogs(data.map((l: any) => ({ ...l, id: l._id })));
@@ -94,9 +114,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const fetchMedicineLogs = async (userId: string) => {
+  const fetchMedicineLogs = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/medicine-logs`);
+      const response = await fetch(`${API_BASE_URL}/user/${userId}/medicine-logs`, {
+        headers: getAuthHeaders(overrideTokens)
+      });
       if (response.ok) {
         const data = await response.json();
         setMedicineLogs(data.map((l: any) => ({ ...l, id: l._id })));
@@ -112,6 +134,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (savedUser && savedUser !== 'null') {
         const u = JSON.parse(savedUser);
         if (u) {
+          const t = JSON.parse(localStorage.getItem('aqua_tokens') || 'null');
+          
+          // Re-generate tokens for preview user if missing
+          let activeTokens = t;
+          if (u.id === 'preview_user' && !activeTokens) {
+            activeTokens = { access: 'mock_access_token', refresh: 'mock_refresh_token' };
+            localStorage.setItem('aqua_tokens', JSON.stringify(activeTokens));
+          }
+          if (activeTokens) setTokens(activeTokens);
+
           // Fallback for existing pro users who don't have an expiry set yet
           if (u.subscriptionStatus !== 'free' && !u.subscriptionExpiry) {
             const exp = new Date();
@@ -121,10 +153,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
           }
           setUserState(u);
           await Promise.all([
-            fetchUserPonds(u.id || u._id),
-            fetchSubscription(u.id || u._id),
-            fetchFeedLogs(u.id || u._id),
-            fetchMedicineLogs(u.id || u._id)
+            fetchUserPonds(u.id || u._id, activeTokens),
+            fetchSubscription(u.id || u._id, activeTokens),
+            fetchFeedLogs(u.id || u._id, activeTokens),
+            fetchMedicineLogs(u.id || u._id, activeTokens)
           ]);
         }
       } else {
@@ -145,7 +177,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             farmSize: 5
           };
           setUserState(mockUser);
+          const mockTokens = { access: 'mock_access_token', refresh: 'mock_refresh_token' };
+          setTokens(mockTokens);
           localStorage.setItem('aqua_user', JSON.stringify(mockUser));
+          localStorage.setItem('aqua_tokens', JSON.stringify(mockTokens));
         } else {
           setUserState(null);
         }
@@ -158,21 +193,28 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     init();
   }, []);
 
-  const setUser = (newUser: User | null) => {
+  const setUser = (newUser: User | null, newTokens?: { access: string; refresh: string }) => {
     const isNewLogin = !user || (newUser && ((newUser.id || (newUser as any)._id) !== (user.id || (user as any)._id)));
     setUserState(newUser);
     if (newUser) {
       localStorage.setItem('aqua_user', JSON.stringify(newUser));
       localStorage.removeItem('aqua_logged_out');
+      if (newTokens) {
+        setTokens(newTokens);
+        localStorage.setItem('aqua_tokens', JSON.stringify(newTokens));
+      }
       if (isNewLogin) {
         const uid = newUser.id || (newUser as any)._id;
-        fetchUserPonds(uid);
-        fetchSubscription(uid);
-        fetchFeedLogs(uid);
+        const currentTokens = newTokens || tokens;
+        fetchUserPonds(uid, currentTokens);
+        fetchSubscription(uid, currentTokens);
+        fetchFeedLogs(uid, currentTokens);
       }
     } else {
       localStorage.removeItem('aqua_user');
+      localStorage.removeItem('aqua_tokens');
       localStorage.setItem('aqua_logged_out', 'true');
+      setTokens(null);
       setSubscription(null);
       setPonds([]);
     }
@@ -197,8 +239,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (!response.ok) {
         return { success: false, error: data.error || 'Registration failed' };
       }
-      const registeredUser = { ...data.user, id: data.user._id };
-      setUser(registeredUser);
+      const registeredUser = { ...data.user, id: data.user._id || data.user.id };
+      setUser(registeredUser, { access: data.access_token, refresh: data.refresh_token });
       setSubscription(data.subscription);
       return { success: true };
     } catch (error: any) {
@@ -218,8 +260,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (!response.ok) {
         return { success: false, error: data.error || 'Login failed' };
       }
-      const loggedUser = { ...data.user, id: data.user._id };
-      setUser(loggedUser);
+      const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
       setSubscription(data.subscription);
       return { success: true, user: loggedUser };
     } catch (error: any) {
@@ -250,7 +292,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/ponds`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ...pond, userId: user?.id || (user as any)?._id })
       });
       if (response.ok) {
@@ -271,7 +313,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     setPonds(prev => prev.filter(p => (p.id !== id && (p as any)._id !== id)));
     try {
       await fetch(`${API_BASE_URL}/ponds/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
     } catch (error) {
       console.error("Delete pond error:", error);
@@ -282,7 +325,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/feed-logs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ...log, userId: user?.id || (user as any)?._id })
       });
       if (response.ok) {
@@ -298,7 +341,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/medicine-logs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ...log, userId: user?.id || (user as any)?._id })
       });
       if (response.ok) {
@@ -332,7 +375,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/subscription/upgrade`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ userId: user?.id || (user as any)?._id, planName })
       });
       if (response.ok) {

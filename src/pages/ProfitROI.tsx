@@ -265,6 +265,25 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
     );
   }
 
+  // Check if any ponds exist (active or otherwise)
+  if (ponds.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FE] flex flex-col items-center justify-center p-10 text-center">
+        <div className="w-20 h-20 bg-[#C78200]/10 rounded-[2rem] flex items-center justify-center mb-6">
+          <Fish size={40} className="text-[#C78200]" />
+        </div>
+        <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">No Ponds Found</h2>
+        <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-8 max-w-[260px]">You need at least one pond to calculate ROI and view financial analytics. Add your first pond to get started.</p>
+        <button 
+          onClick={() => navigate('/ponds')} 
+          className="bg-[#C78200] text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+        >
+          Add Your First Pond
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-[180px] bg-[#F8F9FE] min-h-[100dvh] font-sans">
       <Header title="Farm Financials" showBack onMenuClick={onMenuClick} />

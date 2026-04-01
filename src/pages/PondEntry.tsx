@@ -55,6 +55,7 @@ export const PondEntry = ({ t }: { t: Translations }) => {
         size: parseFloat(formData.size),
         species: formData.species as 'Vannamei' | 'Tiger',
         seedCount: parseInt(formData.seedCount.replace(/,/g, '')),
+        plAge: parseInt(formData.plAge),
         stockingDate: formData.stockingDate,
         status: 'active',
         seedSource: 'Local Hatchery'

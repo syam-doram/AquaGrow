@@ -41,7 +41,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   const { ponds, deletePond, waterRecords } = useData();
   const pond = ponds.find(p => p.id === id);
 
-  if (!pond) return <div className="p-10 text-center text-[#4A2C2A] font-black uppercase tracking-widest bg-white min-h-screen">Pond not found</div>;
+  if (!pond) return <div className="p-10 text-center text-[#4A2C2A] font-black uppercase tracking-widest bg-white min-h-screen">{t.pondNotFound}</div>;
 
   const currentDoc = calculateDOC(pond.stockingDate);
   const dayOfWeek = new Date().getDay();
@@ -87,7 +87,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   };
 
   const handleLevelDelete = () => {
-    if (confirm('Are you sure you want to delete this pond? This action cannot be undone.')) {
+    if (confirm(t.deletePondConfirm)) {
       deletePond(pond.id);
       navigate('/ponds');
     }
@@ -159,22 +159,22 @@ export const PondDetail = ({ t }: { t: Translations }) => {
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Today's Conditions</p>
-                <p className="text-[#4A2C2A] font-black text-sm tracking-tight">Water Quality — {today}</p>
+                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">{t.currentConditions}</p>
+                <p className="text-[#4A2C2A] font-black text-sm tracking-tight">{t.waterQuality} — {today}</p>
               </div>
               <button
                 onClick={() => navigate(`/ponds/${pond.id}/monitor`)}
                 className="text-[9px] font-black text-[#C78200] bg-[#C78200]/10 px-3 py-1.5 rounded-xl uppercase tracking-widest hover:bg-[#C78200]/20 transition-colors"
               >
-                Full Monitor →
+                {t.fullMarket.split(' ')[0]} {t.monitor} →
               </button>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[
                 { icon: FlaskConical,  label: 'pH',   value: todayRecord.ph,          unit: '',      warn: todayRecord.ph < 7.5 || todayRecord.ph > 8.5 },
                 { icon: Waves,         label: 'DO',   value: todayRecord.do,          unit: 'mg/L',  warn: todayRecord.do < 5 },
-                { icon: Thermometer,   label: 'Temp', value: todayRecord.temperature, unit: '°C',    warn: todayRecord.temperature > 32 || todayRecord.temperature < 24 },
-                { icon: Droplets,      label: 'Sal',  value: todayRecord.salinity,    unit: 'ppt',   warn: todayRecord.salinity < 10 || todayRecord.salinity > 20 },
+                { icon: Thermometer,   label: t.temperature.substring(0,4), value: todayRecord.temperature, unit: '°C',    warn: todayRecord.temperature > 32 || todayRecord.temperature < 24 },
+                { icon: Droplets,      label: t.salinity.substring(0,3),  value: todayRecord.salinity,    unit: 'ppt',   warn: todayRecord.salinity < 10 || todayRecord.salinity > 20 },
               ].map((item, i) => (
                 <div key={i} className={cn(
                   'rounded-2xl p-3 text-center border',
@@ -190,8 +190,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
               <div className="mt-3 bg-red-50 rounded-2xl px-4 py-3 flex items-center gap-2 border border-red-100">
                 <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
                 <p className="text-red-600 text-[10px] font-bold leading-snug">
-                  {todayRecord.do < 5 ? '🚨 DO critical — run aerators immediately, stop feeding' :
-                   todayRecord.ammonia > 0.05 ? '⚠️ Ammonia high — apply probiotic + zeolite today' : ''}
+                  {todayRecord.do < 5 ? `🚨 ${t.dissolvedO2} ${t.urgent} — run aerators immediately` :
+                   todayRecord.ammonia > 0.05 ? `⚠️ ${t.ammonia} high — apply probiotic + zeolite today` : ''}
                 </p>
               </div>
             )}
@@ -208,12 +208,12 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                 <Droplets size={22} />
               </div>
               <div className="text-left">
-                <p className="font-black text-sm text-[#4A2C2A] tracking-tight">Log Today's Conditions</p>
-                <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest mt-0.5">pH · DO · Temp · Ammonia · more</p>
+                <p className="font-black text-sm text-[#4A2C2A] tracking-tight">{t.logTodaysConditions}</p>
+                <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest mt-0.5">pH · DO · {t.temperature} · {t.ammonia} · more</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[8px] font-black text-amber-700 bg-amber-200 px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">Not logged</span>
+              <span className="text-[8px] font-black text-amber-700 bg-amber-200 px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">{t.notLogged}</span>
               <ArrowRight size={18} className="text-amber-500 group-hover:translate-x-1 transition-transform" />
             </div>
           </motion.button>
@@ -222,9 +222,9 @@ export const PondDetail = ({ t }: { t: Translations }) => {
         {/* ── QUICK ACTION ROW ── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { icon: BarChart2,   label: 'Monitor',   sublabel: 'Analysis', path: `/ponds/${pond.id}/monitor`, bg: 'bg-indigo-900', text: 'text-white' },
-            { icon: Droplets,    label: 'Water Log',  sublabel: 'Daily log', path: `/ponds/${pond.id}/water-log`, bg: 'bg-blue-50', text: 'text-blue-600' },
-            { icon: CheckCircle2,label: 'Checklist',  sublabel: 'SOP tasks', path: `/ponds/${pond.id}/entry`, bg: 'bg-[#C78200]/10', text: 'text-[#C78200]' },
+            { icon: BarChart2,   label: t.monitor,   sublabel: 'Analysis', path: `/ponds/${pond.id}/monitor`, bg: 'bg-indigo-900', text: 'text-white' },
+            { icon: Droplets,    label: t.waterLog,  sublabel: t.dailyLogTitle.split(' ')[0], path: `/ponds/${pond.id}/water-log`, bg: 'bg-blue-50', text: 'text-blue-600' },
+            { icon: CheckCircle2,label: t.checklist,  sublabel: t.sopTasks, path: `/ponds/${pond.id}/entry`, bg: 'bg-[#C78200]/10', text: 'text-[#C78200]' },
           ].map((item, i) => (
             <button
               key={i}
@@ -273,11 +273,11 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                  <h2 className="text-[#4A2C2A] font-black text-lg tracking-tight flex items-center gap-2">
                     <Stethoscope size={20} className="text-[#C78200]" /> {t.expertMentor}
                  </h2>
-                 <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">Live Culture Oversight</p>
+                 <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{t.liveCultureOversight}</p>
               </div>
               <div className="bg-[#C78200]/10 text-[#C78200] px-3 py-1.5 rounded-full flex items-center gap-2">
                  <ShieldCheck size={14} />
-                 <span className="text-[8px] font-black uppercase">Protected Mode</span>
+                 <span className="text-[8px] font-black uppercase">{t.protectedMode}</span>
               </div>
            </div>
 
@@ -304,7 +304,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                          <div>
                             <div className="flex items-center gap-2">
                                <h3 className={cn("text-sm font-black tracking-tight", item.type === 'LUNAR' ? "text-white" : "text-[#4A2C2A]")}>{item.title}</h3>
-                               {item.priority === 'HIGH' && <span className="text-[6px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest">Urgent</span>}
+                               {item.priority === 'HIGH' && <span className="text-[6px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest">{t.urgent}</span>}
                             </div>
                             <p className={cn("text-[10px] font-black tracking-tight leading-relaxed mt-1.5", item.type === 'LUNAR' ? "text-white/60" : "text-[#4A2C2A]/60")}>
                                {item.description}
@@ -333,19 +333,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                 </div>
               ))}
               
-              <button 
-                onClick={() => navigate(`/ponds/${pond.id}/entry`)}
-                className="w-full p-6 bg-white border border-black/5 rounded-[2.2rem] flex items-center justify-between group active:scale-95 transition-all shadow-sm"
-              >
-                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-[#C78200]/10 text-[#C78200] rounded-xl flex items-center justify-center">
-                       <CheckCircle2 size={20} />
-                    </div>
-                    <span className="text-sm font-black text-[#4A2C2A] tracking-tight">{t.viewChecklist}</span>
-                 </div>
-                 <ArrowRight size={20} className="text-[#C78200] group-hover:translate-x-1 transition-transform" />
-              </button>
-           </div>
+            </div>
         </section>
 
         {/* Standard Timeline dates */}
@@ -356,17 +344,18 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{t.dailyStats}</p>
             </div>
           </div>
-          <div className="space-y-3">
-             {getTimelineDates().slice(0, 5).map((date, i) => {
+          <div className="max-h-[480px] overflow-y-auto scrollbar-hide pr-1 space-y-3 pb-8">
+             {getTimelineDates().slice(0, 30).map((date, i) => {
                 const dateStr = date.toISOString().split('T')[0];
                 const rec = pondRecords.find(r => r.date === dateStr);
                 const dayDoc = currentDoc - i;
-                const dayWeight = Math.max(0, currentWeight - (i * 0.45));
+                const weightDecr = i * 0.45;
+                const dayWeight = Math.max(0, currentWeight - weightDecr);
                 return (
                   <div
                     key={i}
-                    onClick={() => navigate(`/ponds/${pond.id}/monitor`)}
-                    className="bg-white p-5 rounded-[2.2rem] shadow-sm flex items-center justify-between border border-black/5 cursor-pointer hover:border-emerald-200 transition-all"
+                    onClick={() => navigate(`/ponds/${pond.id}/water-log/${dateStr}`)}
+                    className="bg-white p-5 rounded-[2.2rem] shadow-sm flex items-center justify-between border border-black/5 cursor-pointer hover:border-emerald-200 transition-all active:scale-[0.98]"
                   >
                     <div className="flex items-center gap-4">
                       <div className={cn(
@@ -378,7 +367,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                       </div>
                       <div>
                         <p className="text-[#4A2C2A] font-black text-sm tracking-tight">
-                          {i === 0 ? "Today" : `DOC ${dayDoc}`}
+                          {i === 0 ? t.today : `DOC ${dayDoc}`}
                         </p>
                         {rec ? (
                           <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500 mt-1 flex items-center gap-1">
@@ -386,7 +375,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                           </p>
                         ) : (
                           <p className="text-[8px] font-black uppercase tracking-widest text-amber-400 mt-1">
-                            Not logged yet
+                            {t.notLoggedYet}
                           </p>
                         )}
                       </div>
@@ -412,7 +401,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                  </div>
                  <div>
                     <h3 className="font-black text-sm tracking-tight">{t.cultureSOP}</h3>
-                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mt-1">Golden Rules & Schedule</p>
+                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mt-1">{t.goldenRulesSchedule}</p>
                  </div>
               </div>
               <ChevronLeft size={20} className="rotate-180 opacity-40 group-hover:translate-x-1 transition-transform" />

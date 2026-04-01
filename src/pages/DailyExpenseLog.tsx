@@ -19,21 +19,23 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils/cn';
 import { useData } from '../context/DataContext';
+import { Translations } from '../translations';
 
-const CATEGORIES = [
-  { id: 'feed',     label: 'Pellet Feed',     icon: Wheat,    color: 'bg-[#C78200]',    unit: 'Bags' },
-  { id: 'medicine', label: 'Medicine & Bio',  icon: Pill,     color: 'bg-blue-500',     unit: 'Liters/Kg' },
-  { id: 'diesel',   label: 'Diesel Fuel',     icon: Droplets, color: 'bg-orange-500',   unit: 'Liters' },
-  { id: 'power',    label: 'Grid Power Bill', icon: Zap,      color: 'bg-emerald-500',  unit: 'Units (kWh)' },
-  { id: 'labor',    label: 'Labor & Wages',   icon: Users,    color: 'bg-purple-500',   unit: 'Days/Heads' },
-  { id: 'other',    label: 'Other & Testing', icon: Box,      color: 'bg-slate-500',    unit: 'Items' }
-];
-
-export const DailyExpenseLog = () => {
+export const DailyExpenseLog = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { ponds } = useData();
+
   const activePonds = ponds.filter(p => p.status === 'active');
   
+  const CATEGORIES = [
+    { id: 'feed',     label: t.pelletFeed,     icon: Wheat,    color: 'bg-[#C78200]',    unit: 'Bags' },
+    { id: 'medicine', label: t.medicineProbiotics,  icon: Pill,     color: 'bg-blue-500',     unit: 'Liters/Kg' },
+    { id: 'diesel',   label: t.dieselFuel,     icon: Droplets, color: 'bg-orange-500',   unit: 'Liters' },
+    { id: 'power',    label: t.gridPowerBill, icon: Zap,      color: 'bg-emerald-500',  unit: 'Units (kWh)' },
+    { id: 'labor',    label: t.laborWages,   icon: Users,    color: 'bg-purple-500',   unit: 'Days/Heads' },
+    { id: 'other',    label: t.otherTesting, icon: Box,      color: 'bg-slate-500',    unit: 'Items' }
+  ];
+
   const [pondId, setPondId] = useState(activePonds[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -92,17 +94,17 @@ export const DailyExpenseLog = () => {
              >
                 <CheckCircle2 size={64} />
              </motion.div>
-             <h3 className="text-3xl font-black tracking-tighter mb-2">Expense Logged</h3>
-             <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Updating financial trajectory...</p>
+             <h3 className="text-3xl font-black tracking-tighter mb-2">{t.expenseLogged}</h3>
+             <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{t.updatingFinancialTrajectory}</p>
              
              <div className="mt-8 bg-white/5 border border-white/5 rounded-2xl p-4 flex gap-4 text-left min-w-[200px]">
                <div>
-                  <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Added</p>
+                  <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.added}</p>
                   <p className="font-black text-xl text-[#C78200]">₹{amtNum.toLocaleString()}</p>
                </div>
                <div className="w-px h-full bg-white/10" />
                <div>
-                  <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">+ Daily Traj.</p>
+                  <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">+ {t.dailyTraj}</p>
                   <p className="font-black text-xl text-red-400">₹{Math.round(runRateImpact).toLocaleString()}</p>
                </div>
              </div>
@@ -115,8 +117,8 @@ export const DailyExpenseLog = () => {
           <ChevronLeft size={24} />
         </button>
         <div className="text-center">
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-tighter uppercase tracking-[0.1em]">Log Live Expense</h1>
-          <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">Daily OPEX Entry</p>
+          <h1 className="text-sm font-black text-[#4A2C2A] tracking-tighter uppercase tracking-[0.1em]">{t.logLiveExpense}</h1>
+          <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">{t.dailyOpexEntry}</p>
         </div>
         <div className="w-10" />
       </header>
@@ -130,14 +132,14 @@ export const DailyExpenseLog = () => {
                  <Wallet size={24} className="text-[#C78200]" />
               </div>
               <div>
-                 <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mb-1">Operating Expense</p>
-                 <h2 className="text-2xl font-black tracking-tighter leading-none">Daily Tracker</h2>
+                 <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.operatingExpense}</p>
+                 <h2 className="text-2xl font-black tracking-tighter leading-none">{t.dailyTracker}</h2>
               </div>
            </div>
            
            <div className="mt-6 pt-5 border-t border-white/10 flex items-end justify-between">
               <div>
-                 <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">Amount</p>
+                 <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">{t.totalAmount}</p>
                  <p className="font-black text-4xl tracking-tighter text-[#C78200]">
                     <span className="text-2xl opacity-50 mr-1">₹</span>
                     {amount ? parseInt(amount).toLocaleString() : '0'}
@@ -145,7 +147,7 @@ export const DailyExpenseLog = () => {
               </div>
               <div className="bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 flex items-center gap-1.5">
                  <TrendingDown size={12} className="text-red-400" />
-                 <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Outflow</span>
+                 <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">{t.outflow}</span>
               </div>
            </div>
            <div className="absolute right-[-10%] top-[-10%] opacity-5 rotate-12 pointer-events-none">
@@ -159,7 +161,7 @@ export const DailyExpenseLog = () => {
            {/* Pond Select */}
            <div className="space-y-3">
               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-2 flex items-center gap-1.5">
-                <Tag size={12} /> Select Culture Pond
+                <Tag size={12} /> {t.selectCulturePond}
               </label>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
                 {activePonds.length > 0 ? activePonds.map(p => (
@@ -174,7 +176,7 @@ export const DailyExpenseLog = () => {
                     )}
                   >{p.name}</button>
                 )) : (
-                  <p className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">No active ponds</p>
+                  <p className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{t.noActivePonds}</p>
                 )}
               </div>
            </div>
@@ -182,7 +184,7 @@ export const DailyExpenseLog = () => {
            {/* Date & Cost */}
            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-2">Date</label>
+                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-2">{t.date}</label>
                  <div className="relative">
                     <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4A2C2A]/30" />
                     <input 
@@ -194,7 +196,7 @@ export const DailyExpenseLog = () => {
                  </div>
               </div>
               <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-red-500 px-2">Total Paid (₹)</label>
+                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-red-500 px-2">{t.totalAmount} (₹)</label>
                  <input 
                    type="number" 
                    value={amount}
@@ -208,7 +210,7 @@ export const DailyExpenseLog = () => {
            {/* Category & Units */}
            <div className="space-y-3">
               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-2 flex items-center gap-1.5">
-                <Box size={12} /> Expense Category
+                <Box size={12} /> {t.expenseCategory}
               </label>
               <div className="grid grid-cols-2 gap-3">
                  {CATEGORIES.map(cat => (
@@ -234,13 +236,13 @@ export const DailyExpenseLog = () => {
            {/* Invoice details */}
            <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm space-y-4">
               <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A2C2A]/40 px-1">{category.unit} Purchased</label>
+                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A2C2A]/40 px-1">{category.unit} {t.purchased}</label>
                  <div className="relative">
                     <input 
                       type="number" 
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      placeholder={`Total ${category.unit.toLowerCase()}...`}
+                      placeholder={`${t.total} ${category.unit.toLowerCase()}...`}
                       className="w-full bg-slate-50 border border-black/5 rounded-[1.2rem] py-3 pl-4 pr-16 text-sm font-black text-[#4A2C2A] outline-none focus:border-black/10 transition-all"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">
@@ -251,19 +253,19 @@ export const DailyExpenseLog = () => {
               
               {unitPrice > 0 && (
                 <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between">
-                   <p className="text-[8px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">Calculated Unit Price</p>
+                   <p className="text-[8px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">{t.calculatedUnitPrice}</p>
                    <p className="font-black text-sm text-[#4A2C2A]">₹{unitPrice.toLocaleString()}<span className="text-[10px] text-[#4A2C2A]/40"> / {category.unit.split('/')[0]}</span></p>
                 </div>
               )}
 
               <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A2C2A]/40 px-1">Merchant / Notes</label>
+                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A2C2A]/40 px-1">{t.merchantNotes}</label>
                  <div className="relative">
                     <FileText size={16} className="absolute left-4 top-4 text-[#4A2C2A]/20" />
                     <textarea 
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="e.g. Godrej Agrovet Dealer..."
+                      placeholder={t.merchantNotesPlaceholder}
                       className="w-full bg-slate-50 border border-black/5 rounded-[1.2rem] py-3 pl-11 pr-4 text-sm font-bold text-[#4A2C2A] outline-none focus:border-black/10 transition-all h-20 resize-none"
                     />
                  </div>
@@ -281,7 +283,7 @@ export const DailyExpenseLog = () => {
                : "bg-slate-200 text-white cursor-not-allowed"
           )}
         >
-           <Plus size={18} strokeWidth={3} /> Submit Expense
+           <Plus size={18} strokeWidth={3} /> {t.submitExpense}
         </button>
       </div>
     </div>

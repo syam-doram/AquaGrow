@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 // Capacitor Plugins
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { SplashScreen as CapSplash } from '@capacitor/splash-screen';
 import { Capacitor } from '@capacitor/core';
 
 // Components
@@ -31,6 +32,7 @@ import { SubscriptionPlan } from './pages/SubscriptionPlan';
 import { SystemSettings } from './pages/SystemSettings';
 import { AuthScreen } from './pages/AuthScreen';
 import { SplashScreen } from './pages/SplashScreen';
+import { OnboardingScreen } from './pages/OnboardingScreen';
 import { FeedManagement } from './pages/FeedManagement';
 import { DiseaseDetection } from './pages/DiseaseDetection';
 import { LiveMonitor } from './pages/LiveMonitor';
@@ -78,6 +80,7 @@ const AppContent = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [lang, setLang] = useState<Language>('English');
   const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const t = translations[lang];
 
   useEffect(() => {
@@ -115,7 +118,33 @@ const AppContent = () => {
   }, [location, user]);
 
   if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+    return (
+      <SplashScreen
+        onComplete={() => {
+          setShowSplash(false);
+          // Hide native Android splash now that our React splash has finished
+          if (Capacitor.isNativePlatform()) {
+            CapSplash.hide({ fadeOutDuration: 300 });
+          }
+          // Show onboarding only once (first install)
+          const seen = localStorage.getItem('aquagrow_onboarded');
+          if (!seen) {
+            setShowOnboarding(true);
+          }
+        }}
+      />
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <OnboardingScreen
+        onComplete={() => {
+          localStorage.setItem('aquagrow_onboarded', '1');
+          setShowOnboarding(false);
+        }}
+      />
+    );
   }
 
   if (loading) {
@@ -171,7 +200,7 @@ const AppContent = () => {
             <Route path="/ponds/:id/sop" element={<CultureSOP t={t} />} />
             <Route path="/ponds/:id/entry" element={<DailySOPLog t={t} />} />
             <Route path="/ponds/:id/monitor" element={<PondMonitor t={t} />} />
-            <Route path="/ponds/:id/water-log" element={<DailyConditionsLog t={t} />} />
+            <Route path="/ponds/:id/water-log/:date?" element={<DailyConditionsLog t={t} />} />
             <Route path="/ponds/:id/feeding" element={<PondFeedingLog t={t} />} />
             <Route path="/monitor" element={<WaterMonitoring t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
             <Route path="/market" element={<MarketPrices t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
@@ -192,10 +221,10 @@ const AppContent = () => {
             <Route path="/learn" element={<LearningCenter t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
             <Route path="/notifications" element={<Notifications t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
             <Route path="/water-logs/:pondId/:date" element={<WaterLogDetail t={t} />} />
-            <Route path="/harvest-revenue" element={<HarvestRevenue onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/expense-report" element={<ExpenseReport onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/roi-entry" element={<ROIEntry />} />
-            <Route path="/daily-expense" element={<DailyExpenseLog />} />
+            <Route path="/harvest-revenue" element={<HarvestRevenue t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
+            <Route path="/expense-report" element={<ExpenseReport t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
+            <Route path="/roi-entry" element={<ROIEntry t={t} />} />
+            <Route path="/daily-expense" element={<DailyExpenseLog t={t} />} />
             <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
 
             {/* Provider Routes */}

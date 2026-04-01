@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#C78200</color>
+    <color name="colorPrimaryDark">#8B5A00</color>
+    <color name="colorAccent">#E09400</color>
+    <color name="aquagrow_amber">#C78200</color>
+    <color name="aquagrow_deep">#8B5A00</color>
+</resources>

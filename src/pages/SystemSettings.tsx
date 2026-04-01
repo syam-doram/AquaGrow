@@ -113,13 +113,12 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
       color: 'text-emerald-500',
       items: [
         { 
-          label: 'Gemini API Key', 
-          isInput: true, 
-          value: localStorage.getItem('aqua_gemini_key') || '', 
-          onSave: (val: string) => {
-            localStorage.setItem('aqua_gemini_key', val);
-            alert('AI Credentials Updated!');
-          }
+          label: 'AI Service Status', 
+          isButton: true,
+          btnLabel: 'Secure Cloud Managed',
+          btnColor: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
+          disabled: true,
+          onClick: () => {}
         }
       ]
     },

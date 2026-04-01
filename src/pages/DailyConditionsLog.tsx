@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft, Droplets, Thermometer, Waves, AlertTriangle,
-  CheckCircle2, ArrowRight, Zap, Wind, FlaskConical,
+  CheckCircle2, ArrowRight, Zap, Wind, FlaskConical, ShieldCheck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -145,9 +145,36 @@ const buildActions = (params: Param[], form: FormData): string[] => {
 
 export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const { ponds, addWaterRecord } = useData();
+  const { id, date: urlDate } = useParams<{ id: string, date?: string }>();
+  const { ponds, addWaterRecord, waterRecords } = useData();
   const pond = ponds.find(p => p.id === id) || ponds[0];
+
+  // Logic to determine the active date (Today or from Timeline)
+  const today = new Date().toISOString().split('T')[0];
+  const activeDate = urlDate || today;
+
+  const [isExistingRecord, setIsExistingRecord] = useState(false);
+  const [isModified, setIsModified] = useState(false);
+
+  // Check if a record already exists for this date to pre-fill (Edit mode)
+  React.useEffect(() => {
+    const existingRec = waterRecords.find(r => r.pondId === pond?.id && r.date === activeDate);
+    if (existingRec) {
+      setIsExistingRecord(true);
+      setForm({
+        ph: existingRec.ph?.toString() || '',
+        do: existingRec.do?.toString() || '',
+        temperature: existingRec.temperature?.toString() || '',
+        salinity: existingRec.salinity?.toString() || '',
+        ammonia: existingRec.ammonia?.toString() || '',
+        alkalinity: existingRec.alkalinity?.toString() || '',
+        turbidity: existingRec.turbidity?.toString() || '',
+        mortality: existingRec.mortality?.toString() || '',
+      });
+    } else {
+      setIsExistingRecord(false);
+    }
+  }, [pond?.id, activeDate, waterRecords]);
 
   const [form, setForm] = useState<FormData>({
     ph: '', do: '', temperature: '', salinity: '',
@@ -156,8 +183,14 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const [saved, setSaved] = useState(false);
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
 
+  const handleInputChange = (key: keyof FormData, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+    setIsModified(true);
+  };
+
   const doc = pond ? calculateDOC(pond.stockingDate) : 0;
-  const today = new Date().toISOString().split('T')[0];
+  // Adjust DOC for historical dates
+  const adjustedDoc = activeDate === today ? doc : calculateDOC(pond.stockingDate, activeDate);
 
   const healthScore = useMemo(() => calcHealthScore(PARAMS, form), [form]);
   const actions = useMemo(() => buildActions(PARAMS, form), [form]);
@@ -175,12 +208,15 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
     const sal = parseFloat(form.salinity) || 15;
     const amm = parseFloat(form.ammonia) || 0.03;
     const alk = parseFloat(form.alkalinity) || 120;
+    const turb = parseFloat(form.turbidity) || 30;
+    const mort = parseFloat(form.mortality) || 0;
 
     addWaterRecord({
       pondId: pond.id,
-      date: today,
+      date: activeDate,
       ph, do: doVal, temperature: temp,
       salinity: sal, ammonia: amm, alkalinity: alk,
+      turbidity: turb, mortality: mort
     });
     setSaved(true);
     setTimeout(() => navigate(`/ponds/${pond.id}/monitor`), 1600);
@@ -217,7 +253,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
         <div className="text-center">
           <h1 className="text-sm font-black text-[#4A2C2A] tracking-[0.1em] uppercase">Daily Conditions</h1>
           <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">
-            {pond?.name} • DOC {doc} • {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            {pond?.name} • DOC {adjustedDoc} • {new Date(activeDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
           </p>
         </div>
         <div className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center">
@@ -353,15 +389,23 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
         {/* Save Button */}
         <button
           onClick={handleSave}
-          disabled={!hasAnyValue || !pond}
+          disabled={(!hasAnyValue || !pond) || (isExistingRecord && !isModified)}
           className={cn(
             'w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3',
-            hasAnyValue && pond
+            (hasAnyValue && pond) && !(isExistingRecord && !isModified)
               ? 'bg-[#0D523C] text-white shadow-2xl shadow-emerald-900/20 active:scale-95'
               : 'bg-[#F0F0F0] text-[#4A2C2A]/20 cursor-not-allowed'
           )}
         >
-          <CheckCircle2 size={18} /> Save Daily Log <ArrowRight size={18} />
+          {isExistingRecord ? (
+            isModified ? (
+              <><CheckCircle2 size={18} /> Update Existing Log <ArrowRight size={18} /></>
+            ) : (
+              <><ShieldCheck size={18} /> Already Logged</>
+            )
+          ) : (
+            <><CheckCircle2 size={18} /> Save Daily Log <ArrowRight size={18} /></>
+          )}
         </button>
       </div>
     </div>

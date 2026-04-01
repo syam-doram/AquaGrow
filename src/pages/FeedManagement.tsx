@@ -87,24 +87,24 @@ const getSopData = (doc: number) => {
   return { survivalPct, avgWeightG, feedRatePct, staticKg, slotCount };
 };
 
-const buildFeedSlots = (count: number) => {
+const buildFeedSlots = (count: number, t: Translations) => {
   if (count === 5) return [
-    { time: '06:00 AM', hour: 6, label: 'Morning 1' },
-    { time: '09:30 AM', hour: 9, label: 'Morning 2' },
-    { time: '01:00 PM', hour: 13, label: 'Afternoon' },
-    { time: '04:30 PM', hour: 16, label: 'Evening 1' },
-    { time: '08:00 PM', hour: 20, label: 'Evening 2' }
+    { time: '06:00 AM', hour: 6, label: t.morning1 },
+    { time: '09:30 AM', hour: 9, label: t.morning2 },
+    { time: '01:00 PM', hour: 13, label: t.afternoon },
+    { time: '04:30 PM', hour: 16, label: t.evening1 },
+    { time: '08:00 PM', hour: 20, label: t.evening2 }
   ];
   if (count === 4) return [
-    { time: '06:00 AM', hour: 6, label: 'Morning 1' },
-    { time: '10:00 AM', hour: 10, label: 'Morning 2' },
-    { time: '02:00 PM', hour: 14, label: 'Afternoon' },
-    { time: '06:00 PM', hour: 18, label: 'Evening' }
+    { time: '06:00 AM', hour: 6, label: t.morning1 },
+    { time: '10:00 AM', hour: 10, label: t.morning2 },
+    { time: '03:00 PM', hour: 15, label: t.afternoon },
+    { time: '07:00 PM', hour: 19, label: t.evening1 }
   ];
-  return [ // 3 slots
-    { time: '06:30 AM', hour: 6, label: 'Morning' },
-    { time: '12:30 PM', hour: 12, label: 'Mid-day' },
-    { time: '05:30 PM', hour: 17, label: 'Evening' }
+  return [
+    { time: '07:00 AM', hour: 7, label: t.morning1 },
+    { time: '12:00 PM', hour: 12, label: t.afternoon },
+    { time: '05:00 PM', hour: 17, label: t.evening1 }
   ];
 };
 
@@ -145,7 +145,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   
   // Real-time SOP Logic
   const sop = useMemo(() => getSopData(currentDoc), [currentDoc]);
-  const feedSlots = useMemo(() => buildFeedSlots(sop.slotCount), [sop.slotCount]);
+  const feedSlots = useMemo(() => buildFeedSlots(sop.slotCount, t), [sop.slotCount, t]);
   
   const nextFeedSlot = useMemo(() => {
     const h = now.getHours();
@@ -164,8 +164,8 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
   const seedCount = selectedPond?.seedCount || 200000;
   const stockingDateStr = selectedPond?.stockingDate || '2025-01-20';
-  // Standard initial PL stock age is usually PL-15
-  const estimatedPlAge = 15 + currentDoc;
+  // Standard initial PL stock age is usually PL-12 to PL-15
+  const estimatedPlAge = (selectedPond?.plAge || 12) + currentDoc;
   
   // Total surviving shrimp
   const survivingShrimpCount = Math.floor(seedCount * sop.survivalPct);
@@ -197,7 +197,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         <div className="text-center">
           <h1 className="text-sm font-black text-[#4A2C2A] tracking-[0.1em] uppercase">{t.feedManagement}</h1>
           {selectedPond && (
-            <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{selectedPond.name} • DOC {currentDoc}</p>
+            <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{selectedPond.name} • {t.doc} {currentDoc}</p>
           )}
         </div>
         <div className="w-10"></div>
@@ -220,26 +220,24 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           </div>
         )}
 
-        {/* ── EMPTY STATE VERIFICATION ── */}
         {!selectedPond ? (
            <div className="bg-white rounded-[2.5rem] p-8 text-center border border-black/5 shadow-sm mt-8">
              <div className="w-20 h-20 bg-[#F8F9FE] rounded-[2rem] flex items-center justify-center mx-auto mb-5 border border-black/5">
                 <Waves size={32} className="text-[#0D523C]/30" />
              </div>
-             <h2 className="text-xl font-black text-[#4A2C2A] tracking-tighter mb-2">No Active Ponds</h2>
-             <p className="text-xs font-black text-[#4A2C2A]/40 tracking-tight leading-relaxed mb-6">You must establish a pond first to generate a scientific data-driven feed schedule.</p>
+             <h2 className="text-xl font-black text-[#4A2C2A] tracking-tighter mb-2">{t.noActivePonds}</h2>
+             <p className="text-xs font-black text-[#4A2C2A]/40 tracking-tight leading-relaxed mb-6">{t.addFirstPondDesc}</p>
              <button onClick={() => navigate('/ponds')} className="bg-[#0D523C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-[#0D523C]/20 hover:scale-105 transition-transform">
-               Create Pond
+               {t.addPond}
              </button>
            </div>
         ) : (
           <>
-            {/* ── LIVE CONDITIONS STRIP ── */}
             <div className="grid grid-cols-4 gap-2">
               {[
-                { icon: Thermometer, label: 'Temp', value: `${weather.temp}°C`, color: weather.temp >= 34 ? 'text-red-500' : 'text-amber-500' },
-                { icon: Droplets, label: 'Humidity', value: `${weather.humidity}%`, color: 'text-blue-500' },
-                { icon: Wind, label: 'Wind', value: `${weather.windSpeed}km/h`, color: 'text-slate-500' },
+                { icon: Thermometer, label: t.temperature.substring(0,4), value: `${weather.temp}°C`, color: weather.temp >= 34 ? 'text-red-500' : 'text-amber-500' },
+                { icon: Droplets, label: t.humidity, value: `${weather.humidity}%`, color: 'text-blue-500' },
+                { icon: Wind, label: t.wind, value: `${weather.windSpeed}km/h`, color: 'text-slate-500' },
                 { icon: Waves, label: 'DO', value: weather.doLevel, color: weather.doLevel === 'LOW' ? 'text-red-500' : weather.doLevel === 'MEDIUM' ? 'text-amber-500' : 'text-emerald-500' },
               ].map((item, i) => (
                 <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5 shadow-sm">
@@ -250,35 +248,33 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               ))}
             </div>
 
-        {/* ── NEXT FEED COUNTDOWN ── */}
         <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-black/5 overflow-hidden relative">
           <div className="flex justify-between items-center mb-5">
             <div>
-              <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest bg-[#C78200]/10 px-3 py-1 rounded-xl w-max mb-1">Schedule Sync</p>
-              <p className="text-[#4A2C2A] font-black text-2xl tracking-tighter">Next Feed</p>
+              <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest bg-[#C78200]/10 px-3 py-1 rounded-xl w-max mb-1">{t.scheduleSync}</p>
+              <p className="text-[#4A2C2A] font-black text-2xl tracking-tighter">{t.nextFeed}</p>
             </div>
             <div className="flex gap-2">
               <div className="bg-[#F8F9FE] px-4 py-2 rounded-2xl text-center border border-black/5">
                 <p className="text-2xl font-black tracking-tighter text-[#0D523C]">{countdownH.toString().padStart(2, '0')}</p>
-                <p className="text-[7px] font-black text-black/30 uppercase tracking-widest">Hrs</p>
+                <p className="text-[7px] font-black text-black/30 uppercase tracking-widest">{t.hrs}</p>
               </div>
               <div className="bg-[#F8F9FE] px-4 py-2 rounded-2xl text-center border border-black/5">
                 <p className="text-2xl font-black tracking-tighter text-[#0D523C]">{countdownM.toString().padStart(2, '0')}</p>
-                <p className="text-[7px] font-black text-black/30 uppercase tracking-widest">Min</p>
+                <p className="text-[7px] font-black text-black/30 uppercase tracking-widest">{t.min}</p>
               </div>
             </div>
           </div>
-          <p className="text-center font-black text-sm text-[#4A2C2A]">{nextFeedSlot.label} ({nextFeedSlot.time}) — <span className="text-[#C78200]">{kgPerSlot} kg dose</span></p>
+          <p className="text-center font-black text-sm text-[#4A2C2A]">{nextFeedSlot.label} ({nextFeedSlot.time}) — <span className="text-[#C78200]">{kgPerSlot} kg {t.dose}</span></p>
         </div>
 
-        {/* ── SMART ADJUSTMENT BANNER ── */}
         {adjustments.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] p-5 border overflow-hidden bg-red-50 border-red-200">
             <div className="flex items-center gap-3 mb-3">
               <AlertTriangle size={20} className="text-red-500" />
               <div>
-                <p className="font-black text-red-900 text-sm tracking-tight">Weather / Lunar Adjustments Active</p>
-                <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">{Math.round((1 - combinedFactor) * 100)}% Feed Reduction Applied</p>
+                <p className="font-black text-red-900 text-sm tracking-tight">{t.adjustmentsActive}</p>
+                <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">{Math.round((1 - combinedFactor) * 100)}% {t.feedReductionApplied}</p>
               </div>
             </div>
           </motion.div>
@@ -295,7 +291,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 activeTab === tab ? 'bg-[#0D523C] text-white shadow-md' : 'text-[#4A2C2A]/40'
               )}
             >
-              {tab === 'schedule' ? 'DOC Feed Plan' : 'Metrics & FCR'}
+              {tab === 'schedule' ? t.docFeedPlan : t.metricsFcr}
             </button>
           ))}
         </div>
@@ -307,18 +303,18 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               
               {/* Exact Stocking Metrics Breakdown */}
               <div className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm space-y-4">
-                 <p className="text-[#0D523C] text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><Info size={12}/> Pond Stocking Profile</p>
+                 <p className="text-[#0D523C] text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><Info size={12}/> {t.pondStockingProfile}</p>
                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-[#F8F9FE] p-3 rounded-2xl border border-black/5">
-                       <p className="text-[#4A2C2A]/40 text-[7px] font-black uppercase tracking-widest mb-1">Stocking Date</p>
+                       <p className="text-[#4A2C2A]/40 text-[7px] font-black uppercase tracking-widest mb-1">{t.stockingDate}</p>
                        <p className="font-black text-xs text-[#4A2C2A]">{stockingDateStr}</p>
                     </div>
                     <div className="bg-[#F8F9FE] p-3 rounded-2xl border border-black/5">
-                       <p className="text-[#4A2C2A]/40 text-[7px] font-black uppercase tracking-widest mb-1">Seed Count</p>
-                       <p className="font-black text-xs text-[#0D523C]">{(seedCount/100000).toFixed(1)} Lakh</p>
+                       <p className="text-[#4A2C2A]/40 text-[7px] font-black uppercase tracking-widest mb-1">{t.seedCount}</p>
+                       <p className="font-black text-xs text-[#0D523C]">{(seedCount/100000).toFixed(1)} {t.lakh}</p>
                     </div>
                     <div className="bg-[#F8F9FE] p-3 rounded-2xl border border-black/5">
-                       <p className="text-[#4A2C2A]/40 text-[7px] font-black uppercase tracking-widest mb-1">PL Age / DOC</p>
+                       <p className="text-[#4A2C2A]/40 text-[7px] font-black uppercase tracking-widest mb-1">{t.plAge} / {t.doc}</p>
                        <p className="font-black text-xs text-[#C78200]">PL-{estimatedPlAge} / {currentDoc}d</p>
                     </div>
                  </div>
@@ -328,35 +324,35 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               <div className="bg-gradient-to-br from-[#051F19] to-[#0D523C] p-6 rounded-[2.5rem] shadow-xl text-white space-y-5">
                  <div className="flex justify-between items-start border-b border-white/10 pb-4">
                     <div>
-                       <p className="text-emerald-400/80 text-[8px] font-black uppercase tracking-[0.2em] mb-1 flex items-center gap-1"><Scale size={10}/> Estimated Biomass</p>
+                       <p className="text-emerald-400/80 text-[8px] font-black uppercase tracking-[0.2em] mb-1 flex items-center gap-1"><Scale size={10}/> {t.estimatedBiomass}</p>
                        <p className="text-3xl font-black tracking-tighter">{biomassKg.toLocaleString()} <span className="text-lg text-emerald-400">kg</span></p>
                     </div>
                     <div className="text-right">
-                       <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">Est. Surviving Count</p>
-                       <p className="font-black text-sm text-emerald-400">{(survivingShrimpCount/1000).toFixed(1)}K <span className="text-[9px] text-white/40 font-bold uppercase tracking-widest">({(sop.survivalPct*100).toFixed(0)}% S.R.)</span></p>
+                       <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">{t.estSurvivingCount}</p>
+                       <p className="font-black text-sm text-emerald-400">{(survivingShrimpCount/1000).toFixed(1)}K <span className="text-[9px] text-white/40 font-bold uppercase tracking-widest">({(sop.survivalPct*100).toFixed(0)}% {t.survivalRate_short})</span></p>
                     </div>
                  </div>
                  
                  <div className="space-y-3">
-                    <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">Application Formula</p>
+                    <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">{t.applicationFormula}</p>
                     <div className="flex items-center gap-3">
                        <div className="bg-[#02130F] p-3 rounded-2xl border border-white/5 flex-1 text-center">
                           <p className="text-white font-black text-lg">{biomassKg}</p>
-                          <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">Base (kg)</p>
+                          <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">{t.baseKg}</p>
                        </div>
                        <span className="text-white/20 font-black">×</span>
                        <div className="bg-[#02130F] p-3 rounded-2xl border border-white/5 flex-1 text-center relative overflow-hidden">
                           {sop.feedRatePct === 0 ? (
-                             <p className="text-[#C78200] font-black text-lg text-center w-full">Fixed</p>
+                             <p className="text-[#C78200] font-black text-lg text-center w-full">{t.fixed}</p>
                           ) : (
                              <p className="text-emerald-400 font-black text-lg">{sop.feedRatePct}%</p>
                           )}
-                          <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">Rate</p>
+                          <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">{t.rate}</p>
                        </div>
                        <span className="text-white/20 font-black">=</span>
                        <div className="bg-[#C78200] p-3 rounded-2xl flex-1 text-center shadow-lg shadow-[#C78200]/20">
                           <p className="text-white font-black text-lg">{rawDailyKg}</p>
-                          <p className="text-white/60 text-[7px] font-black uppercase tracking-widest">Gross Kg</p>
+                          <p className="text-white/60 text-[7px] font-black uppercase tracking-widest">{t.grossKg}</p>
                        </div>
                     </div>
                  </div>
@@ -364,20 +360,20 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
               {/* Feed Rules */}
               <div className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm space-y-4">
-                 <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><ShieldCheck size={12}/> Daily Execution Rules</p>
+                 <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><ShieldCheck size={12}/> {t.dailyExecutionRules}</p>
                  <ul className="text-[10px] font-black uppercase tracking-widest text-[#4A2C2A]/60 space-y-2">
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Apply <span className="text-[#4A2C2A]">{sop.slotCount} meals</span> per day</li>
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#C78200]" /> {requiresTrayCheck ? 'Monitor feed trays 1h post-feed' : 'Blind feeding currently active (Starter)'}</li>
-                    <li className="flex items-center gap-2 line-clamp-1"><div className="w-1.5 h-1.5 rounded-full bg-red-400" /> Adjust next slot if tray &gt;20% full</li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t.applyAction} <span className="text-[#4A2C2A]">{sop.slotCount} {t.mealsPerDay}</span></li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#C78200]" /> {requiresTrayCheck ? t.monitorTrays : t.blindFeedingActive}</li>
+                    <li className="flex items-center gap-2 line-clamp-1"><div className="w-1.5 h-1.5 rounded-full bg-red-400" /> {t.adjustNextSlot}</li>
                  </ul>
               </div>
 
               {/* Today's Feed Plan (Slots) */}
               <div className="space-y-3 pt-3">
                  <div className="flex items-center justify-between px-1 mb-2">
-                   <h2 className="text-[#4A2C2A] font-black text-xl tracking-tighter">Today's Sequence</h2>
+                   <h2 className="text-[#4A2C2A] font-black text-xl tracking-tighter">{t.todaysSequence}</h2>
                    <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest">
-                     Net: {adjustedDailyKg} kg / day
+                     {t.netPerDay}: {adjustedDailyKg} kg / day
                    </div>
                  </div>
 
@@ -407,14 +403,81 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
             </motion.div>
           )}
 
-          {/* ── METRICS TAB ── */}
+          {/* ── METRICS TAB (FCR & PERFORMANCE) ── */}
           {activeTab === 'fcr' && (
-            <motion.div key="fcr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white rounded-[2.5rem] p-10 text-center border border-dashed border-[#C78200]/30 shadow-sm">
-                <div className="w-16 h-16 bg-[#C78200]/10 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp size={32} className="text-[#C78200]" />
-                </div>
-                <h3 className="text-[#4A2C2A] font-black text-lg tracking-tighter mb-2">Metrics Central</h3>
-                <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-6">Real-time FCR and total consumption analytics are locked depending on hardware integrations.</p>
+            <motion.div key="fcr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              
+              {(() => {
+                const pondFeedLogs = feedLogs.filter(l => l.pondId === selectedPondId);
+                const totalFeedConsumed = pondFeedLogs.reduce((acc, l) => acc + l.quantity, 0);
+                    const currentFcr = biomassKg > 0 ? (totalFeedConsumed / biomassKg).toFixed(2) : '0.00';
+                    const fcrStatus = parseFloat(currentFcr) < 1.2 ? t.super : parseFloat(currentFcr) <= 1.5 ? t.optimal : t.high;
+                    const fcrColor = parseFloat(currentFcr) < 1.2 ? 'text-emerald-500' : parseFloat(currentFcr) <= 1.5 ? 'text-blue-500' : 'text-amber-500';
+
+                    return (
+                      <>
+                        {/* FCR GAUGE CARD */}
+                        <div className="bg-[#051F19] p-8 rounded-[2.8rem] text-center shadow-2xl relative overflow-hidden">
+                           <div className="relative z-10 flex flex-col items-center">
+                              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] mb-4">{t.feedConversionRatio}</p>
+                              <div className={cn("text-7xl font-black tracking-tighter mb-2 transition-colors", fcrColor)}>
+                                 {currentFcr}
+                              </div>
+                              <div className={cn("px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest", fcrColor.replace('text-', 'bg-').replace('500', '500/10'), fcrColor.replace('text-', 'border-').replace('500', '500/20'))}>
+                                 {fcrStatus} {t.efficiency}
+                              </div>
+                          
+                          <div className="grid grid-cols-2 w-full gap-4 mt-10 pt-6 border-t border-white/5">
+                             <div>
+                                <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">{t.totalFeed}</p>
+                                <p className="text-white font-black text-xl">{totalFeedConsumed} <span className="text-[10px] opacity-40">kg</span></p>
+                             </div>
+                             <div>
+                                <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">{t.estimatedBiomass}</p>
+                                <p className="text-white font-black text-xl">{biomassKg} <span className="text-[10px] opacity-40">kg</span></p>
+                             </div>
+                          </div>
+                       </div>
+                       <div className="absolute right-[-20%] bottom-[-20%] w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full"></div>
+                    </div>
+
+                    {/* EFFICIENCY ANALYTICS */}
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mb-4">
+                             <Calculator size={20} />
+                          </div>
+                          <p className="text-[#4A2C2A]/40 text-[8px] font-black uppercase tracking-widest mb-1">{t.avgMealsDay}</p>
+                          <p className="text-[#4A2C2A] font-black text-xl tracking-tight">{sop.slotCount}</p>
+                       </div>
+                       <div className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm">
+                          <div className="w-10 h-10 bg-[#C78200]/10 rounded-2xl flex items-center justify-center text-[#C78200] mb-4">
+                             <RefreshCw size={20} />
+                          </div>
+                          <p className="text-[#4A2C2A]/40 text-[8px] font-black uppercase tracking-widest mb-1">{t.feedLogs}</p>
+                          <p className="text-[#4A2C2A] font-black text-xl tracking-tight">{pondFeedLogs.length}</p>
+                       </div>
+                    </div>
+
+                    {/* PERFORMANCE TIP */}
+                    <div className="bg-amber-50 border border-amber-100 rounded-[2rem] p-6 flex items-start gap-4">
+                       <div className="w-10 h-10 bg-amber-500 rounded-2xl flex items-center justify-center text-white shrink-0">
+                          <TrendingUp size={20} />
+                       </div>
+                       <div>
+                          <p className="text-amber-900 font-black text-xs tracking-tight mb-1">{t.performanceInsight}</p>
+                          <p className="text-[10px] text-amber-800/70 font-bold leading-relaxed">
+                             {parseFloat(currentFcr) > 1.6 
+                                ? t.fcrHighMessage
+                                : t.fcrOptimalMessage
+                             }
+                          </p>
+                       </div>
+                    </div>
+                  </>
+                );
+              })()}
+
             </motion.div>
           )}
 

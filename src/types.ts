@@ -29,6 +29,7 @@ export interface Pond {
   size: number; // acres
   stockingDate: string;
   seedCount: number;
+  plAge: number; // Age of PL at stocking (e.g. 10, 15)
   seedSource: string;
   species: 'Vannamei' | 'Tiger';
   status: 'active' | 'harvested' | 'archive';

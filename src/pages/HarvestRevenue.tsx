@@ -19,9 +19,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils/cn';
+import { Translations } from '../translations';
 
 // ─── SETTLEMENT DETAIL SHEET ───────────────────────────────────────────────
-const SettlementDetailSheet = ({ entry, onClose }: { entry: any, onClose: () => void }) => {
+const SettlementDetailSheet = ({ entry, onClose, t }: { entry: any, onClose: () => void, t: Translations }) => {
   const n = (v: any) => parseFloat(v) || 0;
   return (
     <motion.div 
@@ -46,35 +47,35 @@ const SettlementDetailSheet = ({ entry, onClose }: { entry: any, onClose: () => 
               <CheckCircle2 size={24} />
            </div>
            <div>
-              <p className="text-emerald-500/60 text-[9px] font-black uppercase tracking-[0.2em] mb-1">Settled & Verified</p>
-              <h3 className="text-white text-xl font-black tracking-tighter">Harvest Payment</h3>
+              <p className="text-emerald-500/60 text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.settledAndVerified}</p>
+              <h3 className="text-white text-xl font-black tracking-tighter">{t.harvest} {t.payment}</h3>
            </div>
         </div>
 
         <div className="bg-[#02130F] rounded-[2rem] p-6 border border-white/5 mb-6">
-           <p className="text-white/30 text-[9px] font-black uppercase tracking-widest text-center mb-1">Total Received Amount</p>
+           <p className="text-white/30 text-[9px] font-black uppercase tracking-widest text-center mb-1">{t.totalReceivedAmount}</p>
            <p className="text-4xl font-black text-[#EAB308] tracking-tighter text-center">₹{n(entry.totalRevenue).toLocaleString()}</p>
         </div>
 
         <div className="space-y-4 mb-8">
            <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Buyer Entity</span>
+              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.buyerEntity}</span>
               <span className="text-white text-sm font-black">{entry.buyerName || 'Local Trader'}</span>
            </div>
            <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Sale Date</span>
+              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.saleDate}</span>
               <span className="text-white text-sm font-black">{entry.harvestDate}</span>
            </div>
            <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Total Weight</span>
+              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.totalHarvestWeight}</span>
               <span className="text-emerald-500 text-sm font-black">{n(entry.harvestWeightKg).toLocaleString()} kg</span>
            </div>
            <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Count Size</span>
+              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.countSize}</span>
               <span className="text-[#EAB308] text-sm font-black">{entry.countPerKg || '--'} /kg</span>
            </div>
            <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Agreed Rate</span>
+              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.baseRate}</span>
               <span className="text-white text-sm font-black">₹{n(entry.pricePerKg).toLocaleString()}/kg</span>
            </div>
         </div>
@@ -83,7 +84,7 @@ const SettlementDetailSheet = ({ entry, onClose }: { entry: any, onClose: () => 
           onClick={onClose}
           className="w-full py-5 bg-white/5 text-white rounded-[1.8rem] border border-white/5 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"
         >
-          Close Ledger
+          {t.closeLedger}
         </button>
       </motion.div>
     </motion.div>
@@ -91,7 +92,7 @@ const SettlementDetailSheet = ({ entry, onClose }: { entry: any, onClose: () => 
 };
 
 // ─── MAIN PAGE COMPONENT ───────────────────────────────────────────────────
-export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) => {
+export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClick?: () => void }) => {
   const navigate = useNavigate();
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
 
@@ -124,8 +125,8 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
            <ChevronLeft size={22} />
         </button>
         <div className="flex flex-col items-center">
-           <h1 className="text-sm font-black text-white tracking-tight">Harvest Revenue</h1>
-           <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mt-0.5">Yield Ledger</p>
+           <h1 className="text-sm font-black text-white tracking-tight">{t.harvestRevenue}</h1>
+           <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mt-0.5">{t.yieldLedger}</p>
         </div>
         <div className="w-12" />
       </header>
@@ -133,7 +134,7 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
       {/* DETAIL SHEET */}
       <AnimatePresence>
          {selectedEntry && (
-            <SettlementDetailSheet entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+            <SettlementDetailSheet entry={selectedEntry} onClose={() => setSelectedEntry(null)} t={t} />
          )}
       </AnimatePresence>
 
@@ -148,35 +149,35 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
            <div className="relative z-10">
               <div className="bg-emerald-500/20 w-max px-4 py-1.5 rounded-full flex items-center gap-2 mb-8 border border-emerald-500/30">
                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                 <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">Latest Harvest Settlement</span>
+                 <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">{t.latestHarvestSettlement}</span>
               </div>
               
               <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <IndianRupee size={12} /> Total Net Earnings
+                 <IndianRupee size={12} /> {t.totalNetEarnings}
               </p>
               <div className="flex items-baseline gap-2 mb-8">
                  <h3 className="text-5xl font-black tracking-tighter">₹{(netEarnings / 100000).toFixed(2)}<span className="text-2xl text-white/40">L</span></h3>
                  <div className="flex flex-col">
                     <span className="text-emerald-400 text-xs font-black">+4.2%</span>
-                    <span className="text-emerald-400/40 text-[7px] font-bold uppercase tracking-widest">Premium Margin</span>
+                    <span className="text-emerald-400/40 text-[7px] font-bold uppercase tracking-widest">{t.premiumMargin}</span>
                  </div>
               </div>
 
               <div className="grid grid-cols-2 gap-y-6 gap-x-4 border-t border-white/10 pt-6">
                  <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Scale size={10} /> Harvest Wt</p>
+                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Scale size={10} /> {t.totalHarvestWeight}</p>
                     <p className="text-lg font-black">{totalWeight.toLocaleString()} <span className="text-white/40 text-[10px]">kg</span></p>
                  </div>
                  <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Fish size={10} /> Count Size</p>
+                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Fish size={10} /> {t.countPerKgSize}</p>
                     <p className="text-lg font-black text-[#EAB308]">{countSize} <span className="text-white/40 text-[10px]">/kg</span></p>
                  </div>
                  <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><TrendingUp size={10} /> Base Rate</p>
+                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><TrendingUp size={10} /> {t.baseRate}</p>
                     <p className="text-lg font-black">₹{priceKg.toLocaleString()} <span className="text-white/40 text-[10px]">/kg</span></p>
                  </div>
                  <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Clock size={10} /> Settled Date</p>
+                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Clock size={10} /> {t.settledDate}</p>
                     <p className="text-sm font-black">{date}</p>
                  </div>
               </div>
@@ -190,16 +191,16 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
         {/* EARNINGS BREAKDOWN */}
         <div className="bg-[#051F19] rounded-[2.5rem] p-6 border border-white/5 space-y-6">
            <div className="flex items-center justify-between">
-              <p className="text-emerald-500 text-[9px] font-black uppercase tracking-[0.2em]">Revenue Composition</p>
+              <p className="text-emerald-500 text-[9px] font-black uppercase tracking-[0.2em]">{t.revenueComposition}</p>
               <div className="bg-white/5 px-2 py-1 rounded-md">
-                 <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">Total Income</span>
+                 <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">{t.totalAmount}</span>
               </div>
            </div>
            
            <div className="space-y-6">
               <div>
                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">Base Biomass Sales</span>
+                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{t.baseBiomassSales}</span>
                     <span className="text-white text-base font-black">₹{baseRevenue.toLocaleString()}</span>
                  </div>
                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -209,7 +210,7 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
               
               <div>
                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><Star size={10} className="text-[#EAB308]" /> Bonus / Subsidies</span>
+                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><Star size={10} className="text-[#EAB308]" /> {t.bonusSubsidies}</span>
                     <span className="text-[#EAB308] text-base font-black">₹{subsidyAmount.toLocaleString()}</span>
                  </div>
                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -222,9 +223,9 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
         {/* SETTLEMENT HISTORY */}
         <div className="space-y-4 pt-4">
            <div className="flex items-center justify-between px-2 mb-2">
-              <h3 className="text-white text-lg font-black tracking-tight">Settlement Audit</h3>
+              <h3 className="text-white text-lg font-black tracking-tight">{t.settlementAudit}</h3>
               <button className="text-emerald-500 text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-                PDF Statement
+                {t.pdfStatement}
               </button>
            </div>
            
@@ -253,7 +254,7 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
                        <div className="text-right flex flex-col items-end gap-1.5">
                           <p className="text-sm font-black tracking-tighter text-white">₹{n(entry.totalRevenue).toLocaleString()}</p>
                           <span className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 flex items-center gap-1">
-                             <CheckCircle2 size={8} /> Settled
+                             <CheckCircle2 size={8} /> {t.settled}
                           </span>
                        </div>
                     </div>
@@ -285,8 +286,8 @@ export const HarvestRevenue = ({ onMenuClick }: { onMenuClick?: () => void }) =>
 };
 
 // Internal Mock Ledger Item generator
-const LedgerItem = ({ company, date, amount, status, onTap }: any) => (
-  <div onClick={onTap} className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all">
+const LedgerItem = ({ company, date, amount, status }: any) => (
+  <div className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all">
      <div className="flex items-center gap-4">
         <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
            <ShieldCheck size={20} />

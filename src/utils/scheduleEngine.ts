@@ -80,27 +80,59 @@ export const getDailySchedule = (doc: number): DailyTask[] => {
  * Main Execution Function
  * Can be run purely in background via Cron, Node.js server, or invoked by any component.
  */
-export const runScheduleEngine = (pondDoc: number, pondSeedCount: number, isHarvested: boolean): EngineResult | null => {
+export const runScheduleEngine = (
+  pondDoc: number, 
+  pondSeedCount: number, 
+  isHarvested: boolean,
+  latestWater?: { do: number; ph: number; temp: number; ammonia: number }
+): EngineResult | null => {
    if (isHarvested) {
-      // If harvest is done then don't give suggestions/alerts for that pond
       return null; 
    }
 
    const weather = fetchCurrentConditions();
-   // Calculate dynamic alerts
    const alerts: ScheduleAlert[] = [];
    
-   if (weather.doLevel < 5) alerts.push({ title: 'Increase aeration immediately', trigger: `DO < 5 (${weather.doLevel} ppm)`, type: 'critical' });
-   if (pondDoc >= 30 && pondDoc <= 45) alerts.push({ title: 'Disease risk extremely high', trigger: `DOC = ${pondDoc}`, type: 'warning' });
-   if (weather.isRaining) alerts.push({ title: 'Stop feeding temporarily & check salinity', trigger: 'Rain forecast', type: 'critical' });
-   if (weather.temp < 25) alerts.push({ title: 'Reduce feed + check shrimp stress', trigger: 'Temperature drop', type: 'warning' });
+   // 1. Water Quality & Real-time Sensor Alerts
+   if (latestWater) {
+      if (latestWater.do < 4.0) {
+        alerts.push({ title: 'CRITICAL: DO Level Dangerous', trigger: `DO at ${latestWater.do} mg/L (Min 4.0)`, type: 'critical' });
+      } else if (latestWater.do < 5.0) {
+        alerts.push({ title: 'Low Oxygen Warning', trigger: `DO at ${latestWater.do} mg/L`, type: 'warning' });
+      }
 
-   // 🕒 Time-Based SOP Alerts (Feed Tray Checks)
+      if (latestWater.ph < 7.5 || latestWater.ph > 8.5) {
+        alerts.push({ title: 'pH Instability Detected', trigger: `pH at ${latestWater.ph} (Optimum: 7.5-8.2)`, type: 'warning' });
+      }
+
+      if (latestWater.ammonia > 0.5) {
+        alerts.push({ title: 'CRITICAL: Ammonia Toxicity', trigger: `Ammonia at ${latestWater.ammonia} ppm`, type: 'critical' });
+      }
+   } else {
+     // Fallback to weather-based environmental alerts if no sensor data
+     if (weather.doLevel < 5) alerts.push({ title: 'Low DO Environment Forecast', trigger: `Est. DO < 5 (${weather.doLevel} ppm)`, type: 'warning' });
+   }
+
+   // 2. SOP & Life-cycle Criticality
+   if (pondDoc >= 32 && pondDoc <= 48) {
+     alerts.push({ title: 'CRITICAL PHASE: White Spot Risk', trigger: `DOC ${pondDoc} (Peak Risk Window)`, type: 'critical' });
+   }
+
+   // 3. Environment & Weather
+   if (weather.isRaining) {
+     alerts.push({ title: 'Heavy Rain: Adjust Ration', trigger: 'Rainfall detected', type: 'critical' });
+   }
+
+   if (weather.temp > 33) {
+     alerts.push({ title: 'High Temp Stress', trigger: `Temp ${weather.temp}°C`, type: 'warning' });
+   }
+
+   // 4. Time-Based Consumption Windows
    const currentHour = new Date().getHours();
    if (currentHour >= 9 && currentHour <= 11) {
      alerts.push({ 
        title: 'Check Feed Trays Now!', 
-       trigger: 'SOP Consumption Verification Window', 
+       trigger: 'Consumption Window (9-11 AM)', 
        type: 'warning' 
      });
    }

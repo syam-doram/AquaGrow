@@ -31,6 +31,7 @@ import {
 } from 'recharts';
 import { motion } from 'motion/react';
 import { cn } from '../utils/cn';
+import { Translations } from '../translations';
 
 // ─── HELPER COMPONENTS ────────────────────────────────────────────────────────
 const CategoryProgressCard = ({ icon: Icon, label, value, progress, color, bg }: any) => (
@@ -81,7 +82,7 @@ const LineItem = ({ icon: Icon, title, desc, amount, tag, tagColor }: any) => (
 );
 
 // ─── MAIN EXPENSE REPORT PAGE ────────────────────────────────────────────────
-export const ExpenseReport = () => {
+export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick?: () => void }) => {
   const navigate = useNavigate();
 
   // Load from local storage if available, else use a realistic active cycle mock
@@ -130,8 +131,8 @@ export const ExpenseReport = () => {
           <ChevronLeft size={22} />
         </button>
         <div className="flex flex-col items-center">
-           <h1 className="text-sm font-black text-white tracking-tight">Active Cycle Audit</h1>
-           <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">DOC {currentDoc} · Live Tracking</p>
+           <h1 className="text-sm font-black text-white tracking-tight">{t.activeCycleAudit}</h1>
+           <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">{t.doc} {currentDoc} · {t.liveTracking}</p>
         </div>
         <div className="w-12" />
       </header>
@@ -146,18 +147,18 @@ export const ExpenseReport = () => {
            <div className="relative z-10 text-center">
               <div className="flex items-center justify-center gap-2 mb-6 text-[#C78200]">
                  <div className="w-2 h-2 rounded-full bg-[#C78200] animate-pulse" />
-                 <p className="text-[9px] font-black uppercase tracking-[0.3em]">Total Cycle Spend</p>
+                 <p className="text-[9px] font-black uppercase tracking-[0.3em]">{t.totalCycleSpend}</p>
               </div>
               <h3 className="text-5xl font-black tracking-tighter text-white mb-6">₹{(totalSpend / 100000).toFixed(2)}<span className="text-2xl text-white/40">L</span></h3>
               
               <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-6 mt-2">
                  <div>
-                    <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mb-1">Avg Run Rate</p>
+                    <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mb-1">{t.avgRunRate}</p>
                     <p className="text-white font-black text-base tracking-tighter">₹{Math.round(dailyRunRate).toLocaleString()}<span className="text-[9px] text-white/40 ml-1">/day</span></p>
                  </div>
                  <div>
-                    <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mb-1">Forecast Target</p>
-                    <p className="text-emerald-500 font-black text-base tracking-tighter">On Budget</p>
+                    <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mb-1">{t.forecastTarget}</p>
+                    <p className="text-emerald-500 font-black text-base tracking-tighter">{t.onBudget}</p>
                  </div>
               </div>
            </div>
@@ -167,11 +168,11 @@ export const ExpenseReport = () => {
         <div className="bg-[#051F19] rounded-[2.5rem] p-6 border border-white/5 space-y-6">
            <div className="flex items-center justify-between">
               <div>
-                 <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] mb-1">14-Day Trajectory</p>
-                 <h3 className="text-white font-black tracking-tight">Daily Expenses</h3>
+                 <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.fourteenDayTrajectory}</p>
+                 <h3 className="text-white font-black tracking-tight">{t.dailyExpenses}</h3>
               </div>
               <div className="bg-white/5 border border-white/5 px-3 py-1.5 rounded-xl text-[8px] font-black text-white/40 uppercase tracking-widest">
-                 Live
+                 {t.live}
               </div>
            </div>
 
@@ -186,26 +187,26 @@ export const ExpenseReport = () => {
                     <Tooltip 
                        cursor={{ fill: 'rgba(255,255,255,0.02)' }} 
                        contentStyle={{ backgroundColor: '#02130F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
-                       formatter={(val: number) => [`₹${val.toLocaleString()}`, 'Cost']}
+                       formatter={(val: number) => [`₹${val.toLocaleString()}`, t.cost]}
                        labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
                     />
                     <ReferenceLine y={dailyRunRate} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
                  </BarChart>
               </ResponsiveContainer>
            </div>
-           <p className="text-[8px] font-bold text-white/30 text-center uppercase tracking-widest">Dashed line represents average daily run rate (₹{Math.round(dailyRunRate).toLocaleString()})</p>
+           <p className="text-[8px] font-bold text-white/30 text-center uppercase tracking-widest">{t.dashedLineRunRate} (₹{Math.round(dailyRunRate).toLocaleString()})</p>
         </div>
 
         {/* CATEGORY PROGRESS GRID */}
         <div>
            <div className="flex items-center justify-between px-2 mb-4">
-              <h3 className="text-white font-black tracking-tight">Category Breakdown</h3>
-              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">% of Total Spend</span>
+              <h3 className="text-white font-black tracking-tight">{t.categoryBreakdown}</h3>
+              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.pctOfTotalSpend}</span>
            </div>
            <div className="grid grid-cols-2 gap-3">
               <CategoryProgressCard 
                  icon={Wheat} 
-                 label="Pellet Feed" 
+                 label={t.pelletFeed} 
                  value={feedCost} 
                  progress={pct(feedCost)} 
                  color={{ bg: 'bg-[#C78200]/10', text: 'text-[#C78200]', fill: 'bg-[#C78200]' }} 
@@ -213,7 +214,7 @@ export const ExpenseReport = () => {
               />
               <CategoryProgressCard 
                  icon={Fish} 
-                 label="Seed / PLs" 
+                 label={t.seedPlsCost} 
                  value={seedCost} 
                  progress={pct(seedCost)} 
                  color={{ bg: 'bg-emerald-500/10', text: 'text-emerald-500', fill: 'bg-emerald-500' }} 
@@ -221,7 +222,7 @@ export const ExpenseReport = () => {
               />
               <CategoryProgressCard 
                  icon={Zap} 
-                 label="Diesel & Grid" 
+                 label={t.gridPowerBill} 
                  value={utilitiesCost} 
                  progress={pct(utilitiesCost)} 
                  color={{ bg: 'bg-orange-500/10', text: 'text-orange-500', fill: 'bg-orange-500' }} 
@@ -229,7 +230,7 @@ export const ExpenseReport = () => {
               />
               <CategoryProgressCard 
                  icon={Pill} 
-                 label="Bio & Medicine" 
+                 label={t.medicineProbiotics} 
                  value={medicineCost} 
                  progress={pct(medicineCost)} 
                  color={{ bg: 'bg-blue-500/10', text: 'text-blue-500', fill: 'bg-blue-500' }} 
@@ -241,8 +242,8 @@ export const ExpenseReport = () => {
         {/* RECENTS / TOP LIST */}
         <div className="space-y-4 pt-4">
            <div className="flex items-center justify-between px-2 mb-2">
-              <h3 className="text-white font-black tracking-tight">Major Expenses</h3>
-              <button className="text-[#C78200] text-[9px] font-black uppercase tracking-widest bg-[#C78200]/10 px-3 py-1.5 rounded-xl">View PDF Log</button>
+              <h3 className="text-white font-black tracking-tight">{t.majorExpenses}</h3>
+              <button className="text-[#C78200] text-[9px] font-black uppercase tracking-widest bg-[#C78200]/10 px-3 py-1.5 rounded-xl">{t.viewPdfLog}</button>
            </div>
            
            <div className="bg-[#051F19] rounded-[2.5rem] p-5 border border-white/5">
@@ -288,7 +289,7 @@ export const ExpenseReport = () => {
            onClick={() => navigate('/daily-expense')}
            className="w-full bg-[#C78200] text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-[#C78200]/20 flex items-center justify-center gap-3 active:scale-95 transition-all outline-none"
          >
-           <Plus size={20} /> Log Daily Expense
+           <Plus size={20} /> {t.logDailyExpense}
          </button>
       </div>
     </div>

@@ -1,7 +1,8 @@
-export const calculateDOC = (date?: string) => {
-  if (!date) return 0;
+export const calculateDOC = (stockingDate?: string, asOfDate?: string) => {
+  if (!stockingDate) return 0;
   try {
-    const diff = Date.now() - new Date(date).getTime();
+    const end = asOfDate ? new Date(asOfDate).getTime() : Date.now();
+    const diff = end - new Date(stockingDate).getTime();
     return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
   } catch (e) {
     return 0;
