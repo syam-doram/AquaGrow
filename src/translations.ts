@@ -252,6 +252,38 @@ export interface Translations {
   verifyAndJoin: string;
   getVerified: string;
   signInPrompt: string;
+  temperature: string;
+  salinity: string;
+  ammonia: string;
+  dissolvedO2: string;
+  pondNotFound: string;
+  deletePondConfirm: string;
+  growthMilestones: string;
+  weightLabel: string;
+  currentConditions: string;
+  fullMarket: string;
+  logTodaysConditions: string;
+  notLogged: string;
+  checklist: string;
+  sopTasks: string;
+  scanShrimpDesc: string;
+  liveCultureOversight: string;
+  protectedMode: string;
+  cultureTimeline: string;
+  dailyStats: string;
+  today: string;
+  notLoggedYet: string;
+  goldenRulesSchedule: string;
+  waterLog: string;
+  morning1: string;
+  morning2: string;
+  afternoon: string;
+  evening1: string;
+  evening2: string;
+  optimal: string;
+  pondPerformance_short: string;
+  feedLogs: string;
+  backToDashboard_desc: string;
 }
 
 const English: Translations = {
@@ -484,6 +516,38 @@ const English: Translations = {
   verifyAndJoin: 'VERIFY & JOIN',
   getVerified: 'GET VERIFIED',
   signInPrompt: 'SIGN IN',
+  temperature: 'Temperature',
+  salinity: 'Salinity',
+  ammonia: 'Ammonia',
+  dissolvedO2: 'Dissolved O2',
+  pondNotFound: 'Pond not found',
+  deletePondConfirm: 'Are you sure you want to delete this pond? All data will be lost.',
+  growthMilestones: 'Growth Milestones',
+  weightLabel: 'Target Weight (g)',
+  currentConditions: 'Current Conditions',
+  fullMarket: 'Full Market',
+  logTodaysConditions: "Log Today's Conditions",
+  notLogged: 'Not Logged',
+  checklist: 'Checklist',
+  sopTasks: 'SOP Tasks',
+  scanShrimpDesc: 'Scan shrimp for early signs of disease',
+  liveCultureOversight: 'Live Culture Oversight',
+  protectedMode: 'Protected Mode',
+  cultureTimeline: 'Culture Timeline',
+  dailyStats: 'Daily Statistics',
+  today: 'Today',
+  notLoggedYet: 'Not logged yet',
+  goldenRulesSchedule: 'Golden Rules & Schedule',
+  waterLog: 'Water Log',
+  morning1: 'Slot 1',
+  morning2: 'Slot 2',
+  afternoon: 'Slot 3',
+  evening1: 'Slot 4',
+  evening2: 'Slot 5',
+  optimal: 'Optimal',
+  pondPerformance_short: 'Perf',
+  feedLogs: 'Feed Logs',
+  backToDashboard_desc: 'Return to overview',
 };
 
 const Telugu: Translations = {
@@ -566,11 +630,43 @@ const Telugu: Translations = {
   fullName: 'పూర్తి పేరు',
   phoneNumber: 'ఫోన్ నంబర్',
   password: 'పాస్‌వర్డ్',
-  ecosystemForFarmers: 'ఆక్వా రైతులకు ప్రతిష్టాత్మక వేదిక',
+  ecosystemForFarmers: 'ఆక్వా రైతులకు ప్రతిష్టాష్టాత్మక వేదిక',
   registrationFailed: 'నమోదు విఫలమైంది. మళ్ళీ ప్రయత్నించండి.',
   verifyAndJoin: 'ధృవీకరించండి & చేరండి',
   getVerified: 'ధృవీకరణ పొందండి',
   signInPrompt: 'లాగిన్ చేయండి',
+  temperature: 'ఉష్ణోగ్రత',
+  salinity: 'ఉప్పు సాంద్రత',
+  ammonia: 'అమ్మోనియా',
+  dissolvedO2: 'కరిగిన ఆక్సిజన్',
+  pondNotFound: 'చెరువు కనుగొనబడలేదు',
+  deletePondConfirm: 'మీరు ఈ చెరువును తొలగించాలనుకుంటున్నారా? మొత్తం డేటా పోతుంది.',
+  growthMilestones: 'పెరుగుదల మైలురాళ్ళు',
+  weightLabel: 'లక్ష్య బరువు (గ్రా)',
+  currentConditions: 'ప్రస్తుత పరిస్థితులు',
+  fullMarket: 'పూర్తి మార్కెట్',
+  logTodaysConditions: 'నేటి పరిస్థితులను నమోదు చేయండి',
+  notLogged: 'నమోదు చేయలేదు',
+  checklist: 'చెక్లిస్ట్',
+  sopTasks: 'SOP పనులు',
+  scanShrimpDesc: 'వ్యాధి లక్షణాల కోసం రొయ్యలను స్కాన్ చేయండి',
+  liveCultureOversight: 'ప్రత్యక్ష సాగు పర్యవేక్షణ',
+  protectedMode: 'రక్షిత మోడ్',
+  cultureTimeline: 'సాగు టైమ్‌లైన్',
+  dailyStats: 'రోజువారీ గణాంకాలు',
+  today: 'నేడు',
+  notLoggedYet: 'ఇంకా నమోదు చేయలేదు',
+  goldenRulesSchedule: 'గోల్డెన్ రూల్స్ & షెడ్యూల్',
+  waterLog: 'నీటి లాగ్',
+  morning1: 'స్లాట్ 1',
+  morning2: 'స్లాట్ 2',
+  afternoon: 'స్లాట్ 3',
+  evening1: 'స్లాట్ 4',
+  evening2: 'స్లాట్ 5',
+  optimal: 'సరైనది',
+  pondPerformance_short: 'పనితీరు',
+  feedLogs: 'మేత లాగ్‌లు',
+  backToDashboard_desc: 'డాష్‌బోర్డ్‌కు తిరిగి వెళ్ళండి',
   doc: 'రోజు (DOC)',
   growthStage: 'పెరుగుదల దశ',
   count: 'కౌంట్',

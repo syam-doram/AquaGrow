@@ -195,8 +195,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
               {[
                 { icon: FlaskConical,  label: 'pH',   value: todayRecord.ph,          unit: '',      warn: todayRecord.ph < 7.5 || todayRecord.ph > 8.5 },
                 { icon: Waves,         label: 'DO',   value: todayRecord.do,          unit: 'mg/L',  warn: todayRecord.do < 5 },
-                { icon: Thermometer,   label: t.temperature.substring(0,4), value: todayRecord.temperature, unit: '°C',    warn: todayRecord.temperature > 32 || todayRecord.temperature < 24 },
-                { icon: Droplets,      label: t.salinity.substring(0,3),  value: todayRecord.salinity,    unit: 'ppt',   warn: todayRecord.salinity < 10 || todayRecord.salinity > 20 },
+                { icon: Thermometer,   label: (t.temperature || 'Temp').substring(0,4), value: todayRecord.temperature, unit: '°C',    warn: todayRecord.temperature > 32 || todayRecord.temperature < 24 },
+                { icon: Droplets,      label: (t.salinity || 'Sal').substring(0,3),  value: todayRecord.salinity,    unit: 'ppt',   warn: todayRecord.salinity < 10 || todayRecord.salinity > 20 },
               ].map((item, i) => (
                 <div key={i} className={cn(
                   'rounded-2xl p-3 text-center border',
