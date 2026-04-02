@@ -17,7 +17,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
 
 app.use(express.json({ limit: '50kb' }));
-app.use(cors({ origin: process.env.APP_URL || '*', credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 
 // ─── Refresh token store (in-memory; swap for Redis in prod) ─────────────────
 const refreshTokenStore = new Set();
