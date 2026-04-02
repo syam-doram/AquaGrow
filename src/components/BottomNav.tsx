@@ -18,7 +18,7 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   ];
 
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md nav-blur px-4 py-3 flex justify-between items-center z-50 rounded-[24px] border border-line shadow-2xl">
+    <nav className="fixed bottom-2 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] nav-blur px-2 py-2 flex justify-between items-center z-50 rounded-[20px] border border-line shadow-xl">
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;
         return (

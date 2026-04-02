@@ -98,7 +98,6 @@ const AppContent = () => {
   useEffect(() => {
     // ─── ANDROID / MOBILE SYSTEM SETUP ───
     if (Capacitor.isNativePlatform()) {
-      // 1. Hardware Back Button Handling
       const backListener = CapApp.addListener('backButton', ({ canGoBack }: any) => {
         if (!canGoBack || location.pathname === '/dashboard' || location.pathname === '/provider/dashboard' || !user) {
           CapApp.exitApp();
@@ -107,15 +106,27 @@ const AppContent = () => {
         }
       });
 
-      // 2. Status Bar Customization (Matching Emerald UI)
-      StatusBar.setStyle({ style: Style.Dark });
-      StatusBar.setBackgroundColor({ color: '#012B1D' }); // Emerald 900
+      // ――― Dynamic Status Bar Matching ―――
+      const updateStatusBar = async () => {
+        const isAuth = !user || location.pathname === '/' || location.pathname === '/onboarding';
+        if (isAuth) {
+           // Light Theme for Auth/Onboarding (White BG, Dark Icons)
+           await StatusBar.setStyle({ style: Style.Light });
+           await StatusBar.setBackgroundColor({ color: '#FFFDF5' });
+        } else {
+           // Emerald Theme for Main Interface (Dark Green BG, Light Icons)
+           await StatusBar.setStyle({ style: Style.Dark });
+           await StatusBar.setBackgroundColor({ color: '#012B1D' });
+        }
+      };
+
+      updateStatusBar();
 
       return () => {
         backListener.then(l => l.remove());
       };
     }
-  }, [location, user]);
+  }, [location.pathname, user]);
 
   if (showSplash) {
     return (
