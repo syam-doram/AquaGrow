@@ -1,7 +1,32 @@
 import { Language } from './types';
 
 export interface Translations {
-  // Feed & ROI Basics
+  // Navigation & Headers
+  dashboard: string;
+  home: string;
+  ponds: string;
+  feed: string;
+  medicine: string;
+  roi: string;
+  monitor: string;
+  market: string;
+  profile: string;
+  backToDashboard: string;
+  backToDashboard_desc: string;
+  settings: string;
+  systemSettings: string;
+  logout: string;
+
+  // Greetings & Status
+  systemLive: string;
+  systemActive: string;
+  goodMorning: string;
+  goodAfternoon: string;
+  goodEvening: string;
+  welcome: string;
+  activePonds: string;
+
+  // Feed & ROI Metrics
   nextFeed: string;
   fcrCalculator: string;
   feedConversionRatio: string;
@@ -14,27 +39,192 @@ export interface Translations {
   brand: string;
   qty: string;
   scheduledFor: string;
-  
-  // Navigation & Headers
-  dashboard: string;
-  home: string;
-  ponds: string;
-  feed: string;
-  medicine: string;
-  roi: string;
-  monitor: string;
-  market: string;
-  profile: string;
-  backToDashboard: string;
-  
-  // Greetings & Status
-  systemLive: string;
-  goodMorning: string;
-  goodAfternoon: string;
-  goodEvening: string;
-  welcome: string;
+  heatStress: string;
+  warmDay: string;
+  rainEvent: string;
+  highWind: string;
+  amavasyaFactor: string;
+  lowDOAdjustment: string;
+  kgPerSlot: string;
+  fcrEfficiency: string;
+  mealsPerDay: string;
+  feedReductionApplied: string;
+  adjustmentsActive: string;
+  dose: string;
+  fcrHighMessage: string;
+  fcrOptimalMessage: string;
+  efficiency: string;
+  super: string;
+  optimal: string;
+  high: string;
+  medium: string;
+  low: string;
+  avgMealsDay: string;
+  performanceInsight: string;
+  biomass: string;
+  grossKg: string;
+  baseKg: string;
+  formula: string;
+  rate: string;
+  fixed: string;
+  netPerDay: string;
+  todaysSequence: string;
+  dailyExecutionRules: string;
+  applicationFormula: string;
+  pondStockingProfile: string;
+  doc: string;
+  lakh: string;
+  estSurvivingCount: string;
+  estimatedBiomass: string;
+  survivalRate_short: string;
+  monitorTrays: string;
+  blindFeedingActive: string;
+  applyAction: string;
+  adjustNextSlot: string;
+  totalFeed: string;
+  noActivePonds: string;
+  humidity: string;
+  wind: string;
+  hrs: string;
+  min: string;
 
-  // Lunar & SOP
+  // System Settings & Profile
+  smartFarmAlerts: string;
+  measurementUnit: string;
+  units: string;
+  appTheme: string;
+  notifications: string;
+  waterQualityAlerts: string;
+  feedingReminders: string;
+  scheduleSync: string;
+  docFeedPlan: string;
+  metricsFcr: string;
+  aiDiagnostics: string;
+  aiServiceStatus: string;
+  secureCloudManaged: string;
+  region: string;
+  editProfile: string;
+  securityPrivacy: string;
+  subscriptionPlan: string;
+  saveChanges: string;
+  fullName: string;
+  phoneNumber: string;
+  emailAddress: string;
+  experience: string;
+  language: string;
+  selectLanguage: string;
+  farmDetails: string;
+  pondName: string;
+  pondSize: string;
+  stockingDate: string;
+  seedCount: string;
+  species: string;
+  plAge: string;
+  status: string;
+  waterQuality: string;
+  feedManagement: string;
+  healthCheck: string;
+  harvest: string;
+  addPond: string;
+  addFirstPond: string;
+  addFirstPondDesc: string;
+  save: string;
+  cancel: string;
+  kg: string;
+  acres: string;
+  hectares: string;
+  revenue: string;
+  netProfit: string;
+  totalInvested: string;
+  costPerKg: string;
+  pricePerKgLabel: string;
+  profitPerKg: string;
+  back: string;
+  next: string;
+  close: string;
+  loading: string;
+  error: string;
+  success: string;
+  proFeature: string;
+  unlockPro: string;
+  subscription: string;
+  premiumModel: string;
+  projectedEfficiency: string;
+  diseaseAlert: string;
+  diagnoseNow: string;
+  opaqueMuscleSign: string;
+  softShellSign: string;
+  surfaceBubbleSign: string;
+  harvestHistory: string;
+  noRoiProfiles: string;
+  logFirstHarvest: string;
+  compilingReport: string;
+  aggregatingDatasets: string;
+  recentCyclePerformance: string;
+  pondPerformance: string;
+  cyclesLogged: string;
+  annualFiscalReport: string;
+  investedVsRevenue: string;
+  netMargin: string;
+  opexInvested: string;
+  totalReceipts: string;
+  gradeAYield: string;
+  gradeBYield: string;
+  marketSubsidy: string;
+  saveROIProfile: string;
+  good: string;
+  fair: string;
+  poor: string;
+  excellent: string;
+  stable: string;
+  urgent: string;
+  dailyFeedCost: string;
+  estFeedCostPerKg: string;
+  allTasksDone: string;
+  viewAllPonds: string;
+  disease: string;
+  learn: string;
+  sop: string;
+  growthStage: string;
+  count: string;
+  ultraHigh: string;
+  liveMarketRates: string;
+
+  // Auth & Registration
+  login: string;
+  register: string;
+  enterOtp: string;
+  verifyOtp: string;
+  location: string;
+  pondCount: string;
+  otpSent: string;
+  invalidOtp: string;
+  totalAcres: string;
+  numberOfPonds: string;
+  farmLocation: string;
+  english: string;
+  telugu: string;
+  bengali: string;
+  odia: string;
+  gujarati: string;
+  tamil: string;
+  malayalam: string;
+  loginFailed: string;
+  fillAllFields: string;
+  otpVerified: string;
+  resendOtp: string;
+  alreadyHaveAccount: string;
+  dontHaveAccount: string;
+  farmer: string;
+  provider: string;
+  password: string;
+  ecosystemForFarmers: string;
+  registrationFailed: string;
+  verifyAndJoin: string;
+  getVerified: string;
+  signInPrompt: string;
+
+  // Lunar & Water
   amavasyaWarning: string;
   ashtamiWarning: string;
   moonPhaseTitle: string;
@@ -82,176 +272,6 @@ export interface Translations {
   productionExpectation: string;
   logMedication: string;
   dailySOP: string;
-  
-  // Dashboard Sections
-  todaysTasks: string;
-  viewSchedule: string;
-  activePonds: string;
-  marketPrice: string;
-  weather: string;
-  aiDisease: string;
-  profitCalculator: string;
-  learningCenter: string;
-  community: string;
-  support: string;
-  upgradeToPro: string;
-  proBadge: string;
-  language: string;
-  selectLanguage: string;
-  
-  // Pond & Farm Details
-  farmDetails: string;
-  pondName: string;
-  pondSize: string;
-  stockingDate: string;
-  seedCount: string;
-  species: string;
-  plAge: string;
-  status: string;
-  waterQuality: string;
-  feedManagement: string;
-  healthCheck: string;
-  harvest: string;
-  addPond: string;
-  addFirstPond: string;
-  addFirstPondDesc: string;
-  save: string;
-  cancel: string;
-  
-  // Units & Economics
-  kg: string;
-  acres: string;
-  hectares: string;
-  lakh: string;
-  revenue: string;
-  netProfit: string;
-  totalInvested: string;
-  costPerKg: string;
-  pricePerKgLabel: string;
-  profitPerKg: string;
-  
-  // Generic
-  back: string;
-  next: string;
-  close: string;
-  loading: string;
-  error: string;
-  success: string;
-  
-  // Pro Features
-  proFeature: string;
-  unlockPro: string;
-  subscription: string;
-  premiumModel: string;
-  projectedEfficiency: string;
-  
-  // Disease
-  diseaseAlert: string;
-  diagnoseNow: string;
-  opaqueMuscleSign: string;
-  softShellSign: string;
-  surfaceBubbleSign: string;
-  
-  // History & ROI Detail
-  harvestHistory: string;
-  noRoiProfiles: string;
-  logFirstHarvest: string;
-  compilingReport: string;
-  aggregatingDatasets: string;
-  recentCyclePerformance: string;
-  pondPerformance: string;
-  cyclesLogged: string;
-  annualFiscalReport: string;
-  investedVsRevenue: string;
-  netMargin: string;
-  opexInvested: string;
-  totalReceipts: string;
-  gradeAYield: string;
-  gradeBYield: string;
-  marketSubsidy: string;
-  saveROIProfile: string;
-
-  good: string;
-  fair: string;
-  poor: string;
-  excellent: string;
-  stable: string;
-  high: string;
-  medium: string;
-  low: string;
-  urgent: string;
-  efficiency: string;
-  performanceInsight: string;
-  fcrHighMessage: string;
-  fcrOptimalMessage: string;
-  dailyFeedCost: string;
-  estFeedCostPerKg: string;
-  allTasksDone: string;
-  viewAllPonds: string;
-  disease: string;
-  learn: string;
-  sop: string;
-  doc: string;
-  growthStage: string;
-  count: string;
-  ultraHigh: string;
-  liveMarketRates: string;
-  mealsPerDay: string;
-  monitorTrays: string;
-  blindFeedingActive: string;
-  adjustNextSlot: string;
-  todaysSequence: string;
-  netPerDay: string;
-  totalFeed: string;
-  avgMealsDay: string;
-  super: string;
-  applyAction: string;
-  estimatedBiomass: string;
-  estSurvivingCount: string;
-  survivalRate_short: string;
-  applicationFormula: string;
-  baseKg: string;
-  rate: string;
-  grossKg: string;
-  fixed: string;
-  dailyExecutionRules: string;
-  pondStockingProfile: string;
-  login: string;
-  register: string;
-  enterOtp: string;
-  verifyOtp: string;
-  location: string;
-  pondCount: string;
-  otpSent: string;
-  invalidOtp: string;
-  totalAcres: string;
-  numberOfPonds: string;
-  farmLocation: string;
-  english: string;
-  telugu: string;
-  bengali: string;
-  odia: string;
-  gujarati: string;
-  tamil: string;
-  malayalam: string;
-  logout: string;
-  systemActive: string;
-  loginFailed: string;
-  fillAllFields: string;
-  otpVerified: string;
-  resendOtp: string;
-  alreadyHaveAccount: string;
-  dontHaveAccount: string;
-  farmer: string;
-  provider: string;
-  fullName: string;
-  phoneNumber: string;
-  password: string;
-  ecosystemForFarmers: string;
-  registrationFailed: string;
-  verifyAndJoin: string;
-  getVerified: string;
-  signInPrompt: string;
   temperature: string;
   salinity: string;
   ammonia: string;
@@ -280,10 +300,8 @@ export interface Translations {
   afternoon: string;
   evening1: string;
   evening2: string;
-  optimal: string;
   pondPerformance_short: string;
   feedLogs: string;
-  backToDashboard_desc: string;
   sopEngineAlert: string;
   autoEngineAlert: string;
   startYourFirstPond: string;
@@ -295,9 +313,33 @@ export interface Translations {
   survivalEst: string;
   pondDocProgress: string;
   days: string;
+  weather: string;
+  todaysTasks: string;
+  viewSchedule: string;
 }
 
 const English: Translations = {
+  dashboard: 'Dashboard',
+  home: 'Home',
+  ponds: 'Ponds',
+  feed: 'Feed',
+  medicine: 'Medicine',
+  roi: 'ROI',
+  monitor: 'Monitor',
+  market: 'Market',
+  profile: 'Profile',
+  backToDashboard: 'Back to Dashboard',
+  backToDashboard_desc: 'Return to overview',
+  settings: 'Settings',
+  systemSettings: 'System Settings',
+  logout: 'Logout',
+  systemLive: 'System Live',
+  systemActive: 'System Active',
+  goodMorning: 'Good Morning,',
+  goodAfternoon: 'Good Afternoon,',
+  goodEvening: 'Good Evening,',
+  welcome: 'Welcome,',
+  activePonds: 'Active Ponds',
   nextFeed: 'Next Feed',
   fcrCalculator: 'FCR Calculator',
   feedConversionRatio: 'Feed Conversion Ratio',
@@ -310,21 +352,186 @@ const English: Translations = {
   brand: 'Brand',
   qty: 'Qty (kg)',
   scheduledFor: 'Scheduled',
-  dashboard: 'Dashboard',
-  home: 'Home',
-  ponds: 'Ponds',
-  feed: 'Feed',
-  medicine: 'Medicine',
-  roi: 'ROI',
-  monitor: 'Monitor',
-  market: 'Market',
-  profile: 'Profile',
-  backToDashboard: 'Back to Dashboard',
-  systemLive: 'System Live',
-  goodMorning: 'Good Morning,',
-  goodAfternoon: 'Good Afternoon,',
-  goodEvening: 'Good Evening,',
-  welcome: 'Welcome,',
+  heatStress: 'Heat Stress',
+  warmDay: 'Warm Day',
+  rainEvent: 'Rain Event',
+  highWind: 'High Wind',
+  amavasyaFactor: 'Amavasya',
+  lowDOAdjustment: 'Low DO',
+  kgPerSlot: 'kg per slot',
+  fcrEfficiency: 'FCR Efficiency',
+  mealsPerDay: 'meals per day',
+  feedReductionApplied: 'Feed Reduction Applied',
+  adjustmentsActive: 'Adjustments Active',
+  dose: 'dose',
+  fcrHighMessage: 'FCR is high. Monitor feed trays and reduce wasted feed.',
+  fcrOptimalMessage: 'FCR is within optimal range. Maintaining good growth.',
+  efficiency: 'Efficiency',
+  super: 'Super',
+  optimal: 'Optimal',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+  avgMealsDay: 'Avg Meals/Day',
+  performanceInsight: 'Performance Insight',
+  biomass: 'Biomass',
+  grossKg: 'Gross KG',
+  baseKg: 'Base KG',
+  formula: 'Formula',
+  rate: 'Rate',
+  fixed: 'Fixed',
+  netPerDay: 'Net Per Day',
+  todaysSequence: "Today's Sequence",
+  dailyExecutionRules: 'Daily Execution Rules',
+  applicationFormula: 'Application Formula',
+  pondStockingProfile: 'Pond Stocking Profile',
+  doc: 'DOC',
+  lakh: 'Lakh',
+  estSurvivingCount: 'Est. Surviving Count',
+  estimatedBiomass: 'Estimated Biomass',
+  survivalRate_short: 'Survival',
+  monitorTrays: 'Monitor check-trays closely',
+  blindFeedingActive: 'Blind feeding active (DOC < 10)',
+  applyAction: 'Apply',
+  adjustNextSlot: 'Adjust next slot based on trays',
+  totalFeed: 'Total Feed',
+  noActivePonds: 'No Active Ponds',
+  humidity: 'Humidity',
+  wind: 'Wind',
+  hrs: 'hrs',
+  min: 'min',
+  smartFarmAlerts: 'Smart Farm Alerts',
+  measurementUnit: 'Measurement Unit',
+  units: 'Units',
+  appTheme: 'App Theme',
+  notifications: 'Notifications',
+  waterQualityAlerts: 'Water Quality Alerts',
+  feedingReminders: 'Feeding Reminders',
+  scheduleSync: 'Schedule Sync',
+  docFeedPlan: 'DOC Feed Plan',
+  metricsFcr: 'FCR Metrics',
+  aiDiagnostics: 'AI & Diagnostics',
+  aiServiceStatus: 'AI Service Status',
+  secureCloudManaged: 'Secure Cloud Managed',
+  region: 'Region',
+  editProfile: 'Edit Profile',
+  securityPrivacy: 'Security & Privacy',
+  subscriptionPlan: 'Subscription Plan',
+  saveChanges: 'Save Changes',
+  fullName: 'Full Name',
+  phoneNumber: 'Phone Number',
+  emailAddress: 'Email Address',
+  experience: 'Experience',
+  language: 'Language',
+  selectLanguage: 'Select Language',
+  farmDetails: 'Farm Details',
+  pondName: 'Pond Name',
+  pondSize: 'Pond Size',
+  stockingDate: 'Stocking Date',
+  seedCount: 'Seed Count',
+  species: 'Species',
+  plAge: 'PL Age',
+  status: 'Status',
+  waterQuality: 'Water Quality',
+  feedManagement: 'Feed Management',
+  healthCheck: 'Health Check',
+  harvest: 'Harvest',
+  addPond: 'Add Pond',
+  addFirstPond: 'Add First Pond',
+  addFirstPondDesc: 'Add your first pond to begin tracking.',
+  save: 'Save',
+  cancel: 'Cancel',
+  kg: 'kg',
+  acres: 'Acres',
+  hectares: 'Hectares',
+  revenue: 'Revenue',
+  netProfit: 'Net Profit',
+  totalInvested: 'Total Invested',
+  costPerKg: 'Cost/kg',
+  pricePerKgLabel: 'Price/kg',
+  profitPerKg: 'Profit/kg',
+  back: 'Back',
+  next: 'Next',
+  close: 'Close',
+  loading: 'Loading...',
+  error: 'Error',
+  success: 'Success',
+  proFeature: 'Pro Feature',
+  unlockPro: 'Unlock Pro Access',
+  subscription: 'Subscription',
+  premiumModel: 'Premium Model',
+  projectedEfficiency: 'Projected Efficiency',
+  diseaseAlert: 'Disease Alert',
+  diagnoseNow: 'Diagnose Now',
+  opaqueMuscleSign: 'Opaque Muscle',
+  softShellSign: 'Soft Shell',
+  surfaceBubbleSign: 'Surface Bubble',
+  harvestHistory: 'Harvest History',
+  noRoiProfiles: 'No ROI Profiles Yet',
+  logFirstHarvest: '+ Log First Harvest',
+  compilingReport: 'Compiling Report...',
+  aggregatingDatasets: 'Aggregating all P&L datasets',
+  recentCyclePerformance: 'Recent Cycle Performance',
+  pondPerformance: 'Pond Performance',
+  cyclesLogged: 'Cycles Logged',
+  annualFiscalReport: 'Annual Fiscal Report',
+  investedVsRevenue: 'Invested vs Revenue',
+  netMargin: 'Net Margin',
+  opexInvested: 'OpEx Invested',
+  totalReceipts: 'Total Receipts',
+  gradeAYield: 'Grade-A Yield (%)',
+  gradeBYield: 'Grade-B Yield (%)',
+  marketSubsidy: 'Market Subsidy',
+  saveROIProfile: 'Save ROI Profile',
+  good: 'Good',
+  fair: 'Fair',
+  poor: 'Poor',
+  excellent: 'Excellent',
+  stable: 'Stable',
+  urgent: 'Urgent',
+  dailyFeedCost: 'Daily Feed Cost',
+  estFeedCostPerKg: '@ ₹55/kg est.',
+  allTasksDone: 'All tasks completed',
+  viewAllPonds: 'View All Ponds',
+  disease: 'Disease',
+  learn: 'Learn',
+  sop: 'SOP',
+  growthStage: 'Growth Stage',
+  count: 'Count',
+  ultraHigh: 'Ultra High',
+  liveMarketRates: 'Live Market Rates',
+  login: 'Login',
+  register: 'Register',
+  enterOtp: 'Enter OTP',
+  verifyOtp: 'Verify OTP',
+  location: 'Location',
+  pondCount: 'Pond Count',
+  otpSent: 'OTP Sent',
+  invalidOtp: 'Invalid OTP',
+  totalAcres: 'Total Acres',
+  numberOfPonds: 'Number of Ponds',
+  farmLocation: 'Farm Location',
+  english: 'English',
+  telugu: 'Telugu',
+  bengali: 'Bengali',
+  odia: 'Odia',
+  gujarati: 'Gujarati',
+  tamil: 'Tamil',
+  malayalam: 'Malayalam',
+  loginFailed: 'Login Failed',
+  fillAllFields: 'Please fill all fields',
+  otpVerified: 'OTP Verified',
+  resendOtp: 'Resend OTP',
+  alreadyHaveAccount: 'Already have an account? Sign In',
+  dontHaveAccount: "Don't have an account? Get Verified",
+  farmer: 'Farmer',
+  provider: 'Service Provider',
+  password: 'Password',
+  ecosystemForFarmers: 'ELITE ECOSYSTEM FOR AQUA FARMERS',
+  registrationFailed: 'Registration Failed. Please try again.',
+  verifyAndJoin: 'VERIFY & JOIN',
+  getVerified: 'GET VERIFIED',
+  signInPrompt: 'SIGN IN',
   amavasyaWarning: 'Amavasya (New Moon) - High Risk Period',
   ashtamiWarning: 'Ashtami / Navami - Moderate Risk Days',
   moonPhaseTitle: 'Lunar Cycle Alert',
@@ -372,161 +579,6 @@ const English: Translations = {
   productionExpectation: 'Yield Forecast',
   logMedication: 'Log Medication',
   dailySOP: 'Daily SOP Tracker',
-  todaysTasks: "Today's Tasks",
-  viewSchedule: 'View Schedule',
-  activePonds: 'Active Ponds',
-  marketPrice: 'Market Price',
-  weather: 'Weather',
-  aiDisease: 'AI Disease Detection',
-  profitCalculator: 'Profit Calculator',
-  learningCenter: 'Learning Center',
-  community: 'Community',
-  support: 'Support',
-  upgradeToPro: 'Upgrade to Pro',
-  proBadge: 'Pro',
-  language: 'Language',
-  selectLanguage: 'Select Language',
-  farmDetails: 'Farm Details',
-  pondName: 'Pond Name',
-  pondSize: 'Pond Size',
-  stockingDate: 'Stocking Date',
-  seedCount: 'Seed Count',
-  species: 'Species',
-  plAge: 'PL Age',
-  status: 'Status',
-  waterQuality: 'Water Quality',
-  feedManagement: 'Feed Management',
-  healthCheck: 'Health Check',
-  harvest: 'Harvest',
-  addPond: 'Add Pond',
-  addFirstPond: 'Add First Pond',
-  addFirstPondDesc: 'Add your first pond to begin tracking.',
-  save: 'Save',
-  cancel: 'Cancel',
-  kg: 'kg',
-  acres: 'Acres',
-  hectares: 'Hectares',
-  lakh: 'Lakh',
-  revenue: 'Revenue',
-  netProfit: 'Net Profit',
-  totalInvested: 'Total Invested',
-  costPerKg: 'Cost/kg',
-  pricePerKgLabel: 'Price/kg',
-  profitPerKg: 'Profit/kg',
-  back: 'Back',
-  next: 'Next',
-  close: 'Close',
-  loading: 'Loading...',
-  error: 'Error',
-  success: 'Success',
-  proFeature: 'Pro Feature',
-  unlockPro: 'Unlock Pro Access',
-  subscription: 'Subscription',
-  premiumModel: 'Premium Model',
-  projectedEfficiency: 'Projected Efficiency',
-  diseaseAlert: 'Disease Alert',
-  diagnoseNow: 'Diagnose Now',
-  opaqueMuscleSign: 'Opaque Muscle',
-  softShellSign: 'Soft Shell',
-  surfaceBubbleSign: 'Surface Bubble',
-  harvestHistory: 'Harvest History',
-  noRoiProfiles: 'No ROI Profiles Yet',
-  logFirstHarvest: '+ Log First Harvest',
-  compilingReport: 'Compiling Report...',
-  aggregatingDatasets: 'Aggregating all P&L datasets',
-  recentCyclePerformance: 'Recent Cycle Performance',
-  pondPerformance: 'Pond Performance',
-  cyclesLogged: 'Cycles Logged',
-  annualFiscalReport: 'Annual Fiscal Report',
-  investedVsRevenue: 'Invested vs Revenue',
-  netMargin: 'Net Margin',
-  opexInvested: 'OpEx Invested',
-  totalReceipts: 'Total Receipts',
-  gradeAYield: 'Grade-A Yield (%)',
-  gradeBYield: 'Grade-B Yield (%)',
-  marketSubsidy: 'Market Subsidy',
-  saveROIProfile: 'Save ROI Profile',
-  good: 'Good',
-  fair: 'Fair',
-  poor: 'Poor',
-  excellent: 'Excellent',
-  stable: 'Stable',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-  urgent: 'Urgent',
-  efficiency: 'Efficiency',
-  performanceInsight: 'Performance Insight',
-  fcrHighMessage: 'FCR is higher than normal. Check feed trays.',
-  fcrOptimalMessage: 'FCR is in optimal range.',
-  dailyFeedCost: 'Daily Feed Cost',
-  estFeedCostPerKg: '@ ₹55/kg est.',
-  allTasksDone: 'All tasks completed',
-  viewAllPonds: 'View All Ponds',
-  disease: 'Disease',
-  learn: 'Learn',
-  sop: 'SOP',
-  doc: 'DOC',
-  growthStage: 'Growth Stage',
-  count: 'Count',
-  ultraHigh: 'Ultra High',
-  liveMarketRates: 'Live Market Rates',
-  mealsPerDay: 'Meals Per Day',
-  monitorTrays: 'Monitor Trays',
-  blindFeedingActive: 'Blind Feeding Active',
-  adjustNextSlot: 'Adjust Next Slot',
-  todaysSequence: "Today's Sequence",
-  netPerDay: 'Net Per Day',
-  totalFeed: 'Total Feed',
-  avgMealsDay: 'Avg Meals/Day',
-  super: 'Super',
-  applyAction: 'Apply Action',
-  estimatedBiomass: 'Estimated Biomass',
-  estSurvivingCount: 'Est. Surviving Count',
-  survivalRate_short: 'SR',
-  applicationFormula: 'Application Formula',
-  baseKg: 'Base Kg',
-  rate: 'Rate',
-  grossKg: 'Gross Kg',
-  fixed: 'Fixed',
-  dailyExecutionRules: 'Daily Execution Rules',
-  pondStockingProfile: 'Pond Stocking Profile',
-  login: 'Login',
-  register: 'Register',
-  enterOtp: 'Enter OTP',
-  verifyOtp: 'Verify OTP',
-  location: 'Location',
-  pondCount: 'Pond Count',
-  otpSent: 'OTP Sent',
-  invalidOtp: 'Invalid OTP',
-  totalAcres: 'Total Acres',
-  numberOfPonds: 'Number of Ponds',
-  farmLocation: 'Farm Location',
-  english: 'English',
-  telugu: 'Telugu',
-  bengali: 'Bengali',
-  odia: 'Odia',
-  gujarati: 'Gujarati',
-  tamil: 'Tamil',
-  malayalam: 'Malayalam',
-  logout: 'Logout',
-  systemActive: 'System Active',
-  loginFailed: 'Login Failed',
-  fillAllFields: 'Please fill all fields',
-  otpVerified: 'OTP Verified',
-  resendOtp: 'Resend OTP',
-  alreadyHaveAccount: 'Already have an account? Sign In',
-  dontHaveAccount: "Don't have an account? Get Verified",
-  farmer: 'Farmer',
-  provider: 'Service Provider',
-  fullName: 'Full Name',
-  phoneNumber: 'Phone Number',
-  password: 'Password',
-  ecosystemForFarmers: 'ELITE ECOSYSTEM FOR AQUA FARMERS',
-  registrationFailed: 'Registration Failed. Please try again.',
-  verifyAndJoin: 'VERIFY & JOIN',
-  getVerified: 'GET VERIFIED',
-  signInPrompt: 'SIGN IN',
   temperature: 'Temperature',
   salinity: 'Salinity',
   ammonia: 'Ammonia',
@@ -555,10 +607,8 @@ const English: Translations = {
   afternoon: 'Slot 3',
   evening1: 'Slot 4',
   evening2: 'Slot 5',
-  optimal: 'Optimal',
   pondPerformance_short: 'Perf',
   feedLogs: 'Feed Logs',
-  backToDashboard_desc: 'Return to overview',
   sopEngineAlert: 'SOP Engine Alert',
   autoEngineAlert: 'Automated Engine Alert',
   startYourFirstPond: 'Start Your First Pond',
@@ -570,6 +620,9 @@ const English: Translations = {
   survivalEst: 'Survival Estimate',
   pondDocProgress: 'Pond DOC Progress',
   days: 'days',
+  weather: 'Weather',
+  todaysTasks: "Today's Tasks",
+  viewSchedule: 'View Schedule',
 };
 
 const Telugu: Translations = {
@@ -584,23 +637,188 @@ const Telugu: Translations = {
   market: 'మార్కెట్',
   profile: 'ప్రొఫైల్',
   backToDashboard: 'డాష్‌బోర్డ్‌కు వెనుకకు',
+  backToDashboard_desc: 'డాష్‌బోర్డ్‌కు తిరిగి వెళ్ళండి',
+  settings: 'సెట్టింగ్‌లు',
+  systemSettings: 'సిస్టమ్ సెట్టింగ్‌లు',
+  logout: 'లాగ్ అవుట్',
   systemLive: 'సిస్టమ్ లైవ్',
+  systemActive: 'సిస్టమ్ యాక్టివ్',
   goodMorning: 'శుభోదయం,',
   goodAfternoon: 'శుభ మధ్యాహ్నం,',
   goodEvening: 'శుభ సాయంత్రం,',
   welcome: 'స్వాగతం,',
   activePonds: 'క్రియాశీల చెరువులు',
-  marketPrice: 'మార్కెట్ ధర',
-  weather: 'వాతావరణం',
-  aiDisease: 'AI వ్యాధి గుర్తింపు',
-  profitCalculator: 'లాభం & ROI',
-  learningCenter: 'లెర్నింగ్ సెంటర్',
-  community: 'కమ్యూనిటీ',
-  support: 'మద్దతు',
-  upgradeToPro: 'ప్రోకి అప్‌గ్రేడ్ చేయండి',
-  proBadge: 'ప్రో',
+  nextFeed: 'తదుపరి మేత',
+  fcrCalculator: 'FCR కాలిక్యులేటర్',
+  feedConversionRatio: 'మేత మార్పిడి నిష్పత్తి',
+  currentFCR: 'ప్రస్తుత FCR',
+  biomassEst: 'బయోమాస్ అంచనా',
+  recalculateRatio: 'నిష్పత్తిని తిరిగి లెక్కించండి',
+  todaysConsumption: 'నేటి వినియోగం',
+  seeHistory: 'చరిత్రను చూడండి',
+  logFeedEntry: 'మేత నమోదు చేయండి',
+  brand: 'బ్రాండ్',
+  qty: 'పరిమాణం (కిలోలు)',
+  scheduledFor: 'షెడ్యూల్ చేయబడింది',
+  heatStress: 'తీవ్ర ఉష్ణోగ్రత',
+  warmDay: 'వేడి రోజు',
+  rainEvent: 'వర్షం',
+  highWind: 'గాలులు',
+  amavasyaFactor: 'అమావాస్య',
+  lowDOAdjustment: 'తక్కువ DO',
+  kgPerSlot: 'స్లాట్‌కు కిలోలు',
+  fcrEfficiency: 'FCR సామర్థ్యం',
+  mealsPerDay: 'రోజుకు మేతలు',
+  feedReductionApplied: 'మేత తగ్గింపు అన్వయించబడింది',
+  adjustmentsActive: 'సర్దుబాట్లు అమలులో ఉన్నాయి',
+  dose: 'మోతాదు',
+  fcrHighMessage: 'FCR ఎక్కువగా ఉంది. వ్యర్థాలను తగ్గించడానికి మేత ట్రేలను పర్యవేక్షించండి.',
+  fcrOptimalMessage: 'FCR సరైన పరిధిలో ఉంది. పెరుగుదల బాగుంది.',
+  efficiency: 'సామర్థ్యం',
+  super: 'సూపర్',
+  optimal: 'సరైనది',
+  high: 'అధికం',
+  medium: 'మధ్యస్థం',
+  low: 'తక్కువ',
+  avgMealsDay: 'సగటు మేతలు/రోజు',
+  performanceInsight: 'పనితీరు అంతర్దృష్టి',
+  biomass: 'బయోమాస్',
+  grossKg: 'మొత్తం కిలోలు',
+  baseKg: 'బేస్ కిలోలు',
+  formula: 'ఫార్ములా',
+  rate: 'రేటు',
+  fixed: 'స్థిరమైన',
+  netPerDay: 'రోజుకు నికర మేత',
+  todaysSequence: 'నేటి క్రమం',
+  dailyExecutionRules: 'రోజువారీ అమలు నియమాలు',
+  applicationFormula: 'అన్వయ ఫార్ములా',
+  pondStockingProfile: 'చెరువు స్టాకింగ్ ప్రొఫైల్',
+  doc: 'రోజు (DOC)',
+  lakh: 'లక్ష',
+  estSurvivingCount: 'అంచనా వేసిన రొయ్యల సంఖ్య',
+  estimatedBiomass: 'అంచనా వేసిన బయోమాస్',
+  survivalRate_short: 'జీవితకాలం',
+  monitorTrays: 'మేత ట్రేలను జాగ్రత్తగా పర్యవేక్షించండి',
+  blindFeedingActive: 'బ్లైండ్ ఫీడింగ్ (DOC < 10)',
+  applyAction: 'అన్వయించండి',
+  adjustNextSlot: 'ట్రేల ఆధారంగా తదుపరి స్లాట్‌ను సర్దుబాటు చేయండి',
+  totalFeed: 'మొత్తం మేత',
+  noActivePonds: 'క్రియాశీల చెరువులు లేవు',
+  humidity: 'తేమ',
+  wind: 'గాలి',
+  hrs: 'గంటలు',
+  min: 'నిమిషాలు',
+  smartFarmAlerts: 'స్మార్ట్ ఫామ్ హెచ్చరికలు',
+  measurementUnit: 'కొలత యూనిట్',
+  units: 'యూనిట్లు',
+  appTheme: 'యాప్ థీమ్',
+  notifications: 'నోటిఫికేషన్‌లు',
+  waterQualityAlerts: 'నీటి నాణ్యత హెచ్చరికలు',
+  feedingReminders: 'మేత రిమైండర్లు',
+  scheduleSync: 'షెడ్యూల్ సమకాలీకరణ',
+  docFeedPlan: 'DOC మేత ప్రణాళిక',
+  metricsFcr: 'FCR గణాంకాలు',
+  aiDiagnostics: 'AI & డయాగ్నోస్టిక్స్',
+  aiServiceStatus: 'AI సర్వీస్ స్థితి',
+  secureCloudManaged: 'సురక్షిత క్లౌడ్ మేనేజ్డ్',
+  region: 'ప్రాంతం',
+  editProfile: 'ప్రొఫైల్ సవరించండి',
+  securityPrivacy: 'భద్రత & గోప్యత',
+  subscriptionPlan: 'సబ్‌స్క్రిప్షన్ ప్లాన్',
+  saveChanges: 'మార్పులను సేవ్ చేయండి',
+  fullName: 'పూర్తి పేరు',
+  phoneNumber: 'ఫోన్ నంబర్',
+  emailAddress: 'ఈమెయిల్ చిరునామా',
+  experience: 'అనుభవం',
   language: 'భాష',
   selectLanguage: 'భాషను ఎంచుకోండి',
+  farmDetails: 'ఫామ్ వివరాలు',
+  pondName: 'చెరువు పేరు',
+  pondSize: 'చెరువు పరిమాణం',
+  stockingDate: 'స్టాకింగ్ తేదీ',
+  seedCount: 'విత్తనాల సంఖ్య',
+  species: 'జాతులు',
+  plAge: 'PL వయస్సు',
+  status: 'స్థితి',
+  waterQuality: 'నీటి నాణ్యత',
+  feedManagement: 'మేత నిర్వహణ',
+  healthCheck: 'ఆరోగ్య తనిఖీ',
+  harvest: 'కోత',
+  addPond: 'చెరువును జోడించండి',
+  addFirstPond: 'మొదటి చెరువును జోడించండి',
+  addFirstPondDesc: 'ట్రాకింగ్ ప్రారంభించడానికి మీ మొదటి చెరువును జోడించండి.',
+  save: 'సేవ్ చేయండి',
+  cancel: 'రద్దు చేయండి',
+  kg: 'కిలోలు',
+  acres: 'ఎకరాలు',
+  hectares: 'హెక్టార్లు',
+  revenue: 'ఆదాయం',
+  netProfit: 'నికర లాభం',
+  totalInvested: 'మొత్తం పెట్టుబడి',
+  costPerKg: 'కిలో ఖర్చు',
+  pricePerKgLabel: 'కిలో ధర',
+  profitPerKg: 'కిలో లాభం',
+  back: 'వెనుకకు',
+  next: 'తరువాత',
+  close: 'మూసివేయండి',
+  loading: 'లోడ్ అవుతోంది...',
+  error: 'లోపం',
+  success: 'విజయం',
+  proFeature: 'ప్రో ఫీచర్',
+  unlockPro: 'ప్రో యాక్సెస్‌ను అన్‌లాక్ చేయండి',
+  subscription: 'సబ్‌స్క్రిప్షన్',
+  premiumModel: 'ప్రీమియం మోడల్',
+  projectedEfficiency: 'అంచనా వేసిన సామర్థ్యం',
+  diseaseAlert: 'వ్యాధి హెచ్చరిక',
+  diagnoseNow: 'ఇప్పుడే పరీక్షించండి',
+  opaqueMuscleSign: 'అపారదర్శక కండరము',
+  softShellSign: 'మెత్తని పొట్టు',
+  surfaceBubbleSign: 'ఉపరితల బుడగలు',
+  harvestHistory: 'కోత చరిత్ర',
+  noRoiProfiles: 'ఇంకా ROI ప్రొఫైల్‌లు లేవు',
+  logFirstHarvest: '+ మొదటి కోతను నమోదు చేయండి',
+  compilingReport: 'నివేదికను రూపొందిస్తోంది...',
+  aggregatingDatasets: 'అన్ని P&L డేటాను సేకరిస్తోంది',
+  recentCyclePerformance: 'ఇటీవలి సాగు పనితీరు',
+  pondPerformance: 'చెరువు పనితీరు',
+  cyclesLogged: 'నమోదు చేసిన సాగులు',
+  annualFiscalReport: 'వార్షిక ఆర్థిక నివేదిక',
+  investedVsRevenue: 'పెట్టుబడి vs ఆదాయం',
+  netMargin: 'నికర మార్జిన్',
+  opexInvested: 'పెట్టుబడి పెట్టిన వ్యయం',
+  totalReceipts: 'మొత్తం రసీదులు',
+  gradeAYield: 'గ్రేడ్-A దిగుబడి (%)',
+  gradeBYield: 'గ్రేడ్-B దిగుబడి (%)',
+  marketSubsidy: 'మార్కెట్ రాయితీ',
+  saveROIProfile: 'ROI ప్రొఫైల్‌ను సేవ్ చేయండి',
+  good: 'మంచిది',
+  fair: 'సాధారణం',
+  poor: 'తక్కువ',
+  excellent: 'అద్భుతం',
+  stable: 'స్థిరంగా ఉంది',
+  urgent: 'అవసరం',
+  dailyFeedCost: 'రోజువారీ మేత ఖర్చు',
+  estFeedCostPerKg: '@ ₹55/కిలో అంచనా',
+  allTasksDone: 'అన్ని పనులు పూర్తయ్యాయి',
+  viewAllPonds: 'అన్ని చెరువులను చూడండి',
+  disease: 'వ్యాధి',
+  learn: 'నేర్చుకోండి',
+  sop: 'SOP',
+  growthStage: 'పెరుగుదల దశ',
+  count: 'కౌంట్',
+  ultraHigh: 'అత్యంత అధికం',
+  liveMarketRates: 'ప్రత్యక్ష మార్కెట్ ధరలు',
+  login: 'లాగిన్',
+  register: 'నమోదు',
+  enterOtp: 'OTPని నమోదు చేయండి',
+  verifyOtp: 'OTPని ధృవీకరించండి',
+  location: 'స్థానం',
+  pondCount: 'చెరువుల సంఖ్య',
+  otpSent: 'OTP పంపబడింది',
+  invalidOtp: 'తప్పు OTP',
+  totalAcres: 'మొత్తం ఎకరాలు',
+  numberOfPonds: 'చెరువుల సంఖ్య',
+  farmLocation: 'ఫారం స్థానం',
   english: 'ఇంగ్లీష్',
   telugu: 'తెలుగు',
   bengali: 'బెంగాలీ',
@@ -608,49 +826,14 @@ const Telugu: Translations = {
   gujarati: 'గుజరాతీ',
   tamil: 'తమిళం',
   malayalam: 'మలయాళం',
-  logout: 'లాగ్ అవుట్',
-  farmDetails: 'ఫామ్ వివరాలు',
-  pondSize: 'చెరువు పరిమాణం',
-  stockingDate: 'స్టాకింగ్ తేదీ',
-  seedCount: 'విత్తనాల సంఖ్య',
-  species: 'జాతులు',
-  status: 'స్థితి',
-  waterQuality: 'నీటి నాణ్యత',
-  feedManagement: 'మేత నిర్వహణ',
-  healthCheck: 'ఆరోగ్య తనిఖీ',
-  harvest: 'కోత',
-  addPond: 'చెరువును జోడించండి',
-  save: 'సేవ్ చేయండి',
-  cancel: 'రద్దు చేయండి',
-  back: 'వెనుకకు',
-  next: 'తరువాత',
-  todaysTasks: 'నేటి పనులు',
-  viewSchedule: 'షెడ్యూల్ చూడండి',
-  kg: 'కిలోలు',
-  acres: 'ఎకరాలు',
-  lakh: 'లక్ష',
-  revenue: 'ఆదాయం',
-  netProfit: 'నికర లాభం',
-  location: 'స్థానం',
-  pondCount: 'చెరువుల సంఖ్య',
-  verifyOtp: 'OTPని ధృవీకరించండి',
-  enterOtp: 'OTPని నమోదు చేయండి',
-  otpSent: 'OTP పంపబడింది',
-  invalidOtp: 'తప్పు OTP',
-  totalAcres: 'మొత్తం ఎకరాలు',
-  numberOfPonds: 'చెరువుల సంఖ్య',
-  farmLocation: 'ఫారం స్థానం',
-  systemActive: 'సిస్టమ్ యాక్టివ్',
   loginFailed: 'లాగిన్ విఫలమైంది',
   fillAllFields: 'దయచేసి అన్ని విభాగాలను పూరించండి',
   otpVerified: 'OTP ధృవీకరించబడింది',
   resendOtp: 'మళ్ళీ OTP పంపండి',
   alreadyHaveAccount: 'ముందే ఖాతా ఉందా? లాగిన్ చేయండి',
-  dontHaveAccount: 'ఖాతా లేదా? ధృవీకరించండి',
+  dontHaveAccount: 'ఖాతా లేదా? ధృవీకరణ పొందండి',
   farmer: 'రైతు',
   provider: 'సేవా ప్రదాత',
-  fullName: 'పూర్తి పేరు',
-  phoneNumber: 'ఫోన్ నంబర్',
   password: 'పాస్‌వర్డ్',
   ecosystemForFarmers: 'ఆక్వా రైతులకు ప్రతిష్టాష్టాత్మక వేదిక',
   registrationFailed: 'నమోదు విఫలమైంది. మళ్ళీ ప్రయత్నించండి.',
@@ -685,15 +868,8 @@ const Telugu: Translations = {
   afternoon: 'స్లాట్ 3',
   evening1: 'స్లాట్ 4',
   evening2: 'స్లాట్ 5',
-  optimal: 'సరైనది',
   pondPerformance_short: 'పనితీరు',
   feedLogs: 'మేత లాగ్‌లు',
-  backToDashboard_desc: 'డాష్‌బోర్డ్‌కు తిరిగి వెళ్ళండి',
-  doc: 'రోజు (DOC)',
-  growthStage: 'పెరుగుదల దశ',
-  count: 'కౌంట్',
-  ultraHigh: 'అత్యంత అధికం',
-  liveMarketRates: 'ప్రత్యక్ష మార్కెట్ ధరలు',
   sopEngineAlert: 'SOP ఇంజిన్ హెచ్చరిక',
   autoEngineAlert: 'ఆటోమేటెడ్ ఇంజిన్ హెచ్చరిక',
   startYourFirstPond: 'మీ మొదటి చెరువును ప్రారంభించండి',
@@ -705,6 +881,9 @@ const Telugu: Translations = {
   survivalEst: 'జీవితకాల అంచనా',
   pondDocProgress: 'చెరువు DOC పురోగతి',
   days: 'రోజులు',
+  weather: 'వాతావరణం',
+  todaysTasks: 'నేటి పనులు',
+  viewSchedule: 'షెడ్యూల్ చూడండి',
 };
 
 export const translations: Record<Language, Translations> = {

@@ -36,8 +36,9 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const primaryColor = role === 'farmer' ? '#10B981' : '#C78200';
-  const shadowColor = role === 'farmer' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(199, 130, 0, 0.2)';
+  const primaryColor = role === 'farmer' ? '#10B981' : '#F59E0B';
+  const accentColor = role === 'farmer' ? '#059669' : '#D97706';
+  const shadowColor = role === 'farmer' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)';
 
   const handleAction = async () => {
     setError('');
@@ -54,9 +55,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
       
       if (isRegister) {
         setLoading(true);
-        // Save language when starting registration
         if (onLanguageChange) onLanguageChange(lang);
-        // Simulate API call to send OTP
         setTimeout(() => {
           setLoading(false);
           setStep('otp');
@@ -103,42 +102,39 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
   };
 
   return (
-    <div className="min-h-screen bg-[#012B1D] relative overflow-hidden flex flex-col justify-center px-8 transition-colors duration-700">
-      {/* ── ATMOSPHERIC LIGHTING ── */}
-      <motion.div 
-        animate={{ 
-          background: role === 'farmer' 
-            ? 'radial-gradient(circle at 100% 0%, rgba(16,185,129,0.15) 0%, transparent 50%)'
-            : 'radial-gradient(circle at 100% 0%, rgba(199,130,0,0.15) 0%, transparent 50%)'
-        }}
-        className="absolute inset-0 pointer-events-none" 
-      />
+    <div className="h-screen bg-[#021811] relative overflow-hidden flex flex-col items-center font-sans tracking-tight">
       
-      <div className="absolute top-[-10%] right-[-10%] w-[100%] h-[50%] bg-[#0D523C]/30 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[40%] bg-[#C78200]/5 rounded-full blur-[120px] pointer-events-none" />
-      
-      <div className="relative z-10 max-w-sm mx-auto w-full">
-        {/* ── HEADER ── */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10 text-center"
-        >
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-16 h-16 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-2xl rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-2xl group"
-          >
-            <Waves size={32} className="text-white group-hover:animate-pulse" />
-          </motion.div>
-          <h1 className="text-4xl font-serif italic text-white tracking-tighter mb-1 select-none">AquaGrow</h1>
-          <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">
-             {t.ecosystemForFarmers}
-          </p>
-        </motion.div>
+      {/* ── AMBIENT BACKGROUND ── */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] right-[-10%] w-[80%] h-[80%] bg-[#10B981]/10 rounded-full blur-[150px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-[#F59E0B]/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[40%] left-[20%] w-40 h-40 bg-white/5 rounded-full blur-[80px]" />
+      </div>
 
-        {/* ── LANGUAGE SELECTOR ── */}
-        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-full border border-white/10 shadow-lg mb-6 mx-auto w-fit">
+      {/* ── TOP UTILITIES (Language & Auth Toggle) ── */}
+      <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-50">
+        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-white/10 shadow-2xl transition-all hover:bg-white/[0.08]">
+          <button
+            onClick={() => { setIsRegister(false); setStep('form'); setError(''); }}
+            className={cn(
+              "px-5 py-2.5 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+              !isRegister ? "bg-white text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
+            )}
+          >
+            {t.login}
+          </button>
+          <button
+            onClick={() => { setIsRegister(true); setStep('form'); setError(''); }}
+            className={cn(
+              "px-5 py-2.5 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+              isRegister ? "bg-white text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
+            )}
+          >
+            {t.register}
+          </button>
+        </div>
+
+        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-white/10 shadow-2xl transition-all hover:bg-white/[0.08]">
           {(['English', 'Telugu'] as const).map((l) => (
             <button
               key={l}
@@ -147,233 +143,252 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                 if (onLanguageChange) onLanguageChange(l);
               }}
               className={cn(
-                "px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all",
-                lang === l ? "bg-white text-[#012B1D] shadow-xl" : "text-white/30 hover:text-white/60"
+                "px-5 py-2.5 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+                lang === l ? "bg-white text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
               )}
             >
-              {l}
+              {l === 'English' ? 'EN' : 'తె'}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* ── ROLE SELECTOR ── */}
+      {/* ── MAIN CONTENT (Top-Aligned Card with Padding) ── */}
+      <div className="relative z-10 w-full max-w-[420px] px-8 flex-1 flex flex-col justify-start pt-28 pb-8 min-h-0">
+        
+        {/* AUTH CARD */}
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex bg-white/5 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 shadow-2xl mb-8 relative"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white/[0.03] backdrop-blur-3xl rounded-[3rem] p-8 border border-white/10 shadow-2xl relative overflow-hidden flex flex-col max-h-full"
         >
-          {['farmer', 'provider'].map((r) => (
-            <button 
-              key={r}
-              onClick={() => { setRole(r as any); setError(''); }}
-              className={cn(
-                "flex-1 py-3.5 rounded-full flex items-center justify-center gap-2.5 transition-all text-[9.5px] font-black uppercase tracking-widest relative z-10",
-                role === r ? "text-white" : "text-white/30"
-              )}
-            >
-              {role === r && (
-                <motion.div 
-                  layoutId="active-role-pill" 
-                  className="absolute inset-0 rounded-full shadow-lg"
-                  style={{ backgroundColor: primaryColor, boxShadow: `0 8px 25px ${shadowColor}` }}
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }} 
-                />
-              )}
-              {r === 'farmer' ? <UserIcon size={14} className="relative z-10" /> : <Zap size={14} className="relative z-10" />}
-              <span className="relative z-10">{t[r as keyof Translations] as string}</span>
-            </button>
-          ))}
-        </motion.div>
+          {/* Subtle overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
 
-        {/* ── DYNAMIC AUTH FORM ── */}
-        <div className="space-y-4">
-          <AnimatePresence mode="wait">
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="p-4 bg-red-500/10 border border-red-500/20 rounded-[1.8rem] flex items-center gap-3 text-red-400 mb-2"
+          {/* LOGO AREA (Inside Card) */}
+          <motion.div className="text-center mb-8 shrink-0">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-white/10 backdrop-blur-3xl rounded-xl flex items-center justify-center border border-white/10 shadow-2xl group">
+                <Waves size={20} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+              </div>
+              <h1 className="text-2xl font-serif italic text-white tracking-tight">AquaGrow</h1>
+            </div>
+          </motion.div>
+
+          {/* ROLE SELECTOR (Inside Card, Fixed relative to scroll) */}
+          <div className="flex p-1 bg-black/20 backdrop-blur-2xl rounded-[1.8rem] border border-white/5 mb-6 relative z-10 shrink-0">
+            {['farmer', 'provider'].map((r) => (
+              <button 
+                key={r}
+                onClick={() => { setRole(r as any); setError(''); }}
+                className={cn(
+                  "flex-1 py-3 rounded-[1.5rem] flex items-center justify-center gap-2.5 transition-all text-[10px] font-black uppercase tracking-widest relative z-10",
+                  role === r ? "text-white" : "text-white/30"
+                )}
               >
-                <div className="w-8 h-8 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
-                  <AlertCircle size={16} />
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-wider">{error}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="relative">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {step === 'form' ? (
-                <motion.div 
-                  key="form-step"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-3.5"
-                >
-                  {isRegister && (
-                    <div className="relative group">
-                      <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-400 transition-colors pointer-events-none">
-                        <UserIcon size={18} />
-                      </div>
-                      <input 
-                        className="w-full pl-16 pr-6 py-5 rounded-[2.2rem] border border-white/5 bg-white/5 backdrop-blur-md focus:border-emerald-400 focus:bg-white/[0.08] outline-none transition-all text-sm font-bold text-white placeholder:text-white/20 shadow-inner" 
-                        placeholder={t.fullName || "Full Name"}
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="relative group">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-400 transition-colors pointer-events-none">
-                      <Smartphone size={18} />
-                    </div>
-                    <input 
-                      className="w-full pl-16 pr-6 py-5 rounded-[2.2rem] border border-white/5 bg-white/5 backdrop-blur-md focus:border-emerald-400 focus:bg-white/[0.08] outline-none transition-all text-sm font-bold text-white placeholder:text-white/20 shadow-inner" 
-                      placeholder={t.phoneNumber || "Phone Number"} 
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </div>
-
-                  {isRegister && role === 'farmer' && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-3.5 overflow-hidden"
-                    >
-                      <div className="relative group">
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-400 transition-colors pointer-events-none">
-                          <MapPin size={18} />
-                        </div>
-                        <input 
-                          className="w-full pl-16 pr-6 py-5 rounded-[2.2rem] border border-white/5 bg-white/5 backdrop-blur-md focus:border-emerald-400 focus:bg-white/[0.08] outline-none transition-all text-sm font-bold text-white placeholder:text-white/20 shadow-inner" 
-                          placeholder={t.farmLocation || "Farm Village / Mandal"}
-                          value={locationValue}
-                          onChange={(e) => setLocationValue(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="relative group">
-                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-400 transition-colors pointer-events-none">
-                            <Layers size={18} />
-                          </div>
-                          <input 
-                            className="w-full pl-16 pr-6 py-5 rounded-[2.2rem] border border-white/5 bg-white/5 backdrop-blur-md focus:border-emerald-400 focus:bg-white/[0.08] outline-none transition-all text-sm font-bold text-white placeholder:text-white/20 shadow-inner" 
-                            placeholder={t.ponds || "Ponds"}
-                            type="number"
-                            value={pondCount}
-                            onChange={(e) => setPondCount(e.target.value)}
-                          />
-                        </div>
-                        <div className="relative group">
-                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-400 transition-colors pointer-events-none">
-                            <Maximize size={18} />
-                          </div>
-                          <input 
-                            className="w-full pl-16 pr-6 py-5 rounded-[2.2rem] border border-white/5 bg-white/5 backdrop-blur-md focus:border-emerald-400 focus:bg-white/[0.08] outline-none transition-all text-sm font-bold text-white placeholder:text-white/20 shadow-inner" 
-                            placeholder={t.acres || "Acres"}
-                            type="number"
-                            value={acres}
-                            onChange={(e) => setAcres(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  <div className="relative group">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-400 transition-colors pointer-events-none">
-                      <Lock size={18} />
-                    </div>
-                    <input 
-                      className="w-full pl-16 pr-6 py-5 rounded-[2.2rem] border border-white/5 bg-white/5 backdrop-blur-md focus:border-emerald-400 focus:bg-white/[0.08] outline-none transition-all text-sm font-bold text-white placeholder:text-white/20 shadow-inner" 
-                      placeholder={t.password || "Password"} 
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="otp-step"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="space-y-8 text-center py-6"
-                >
-                  <div>
-                     <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-4">{t.otpSent || "Verification code sent to"}</p>
-                     <p className="text-white font-black tracking-widest">+91 {phone}</p>
-                     <div className="flex justify-center gap-4 mt-8">
-                        <div className="w-16 h-16 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center border border-emerald-500/20">
-                          <ShieldCheck size={32} className="text-emerald-400 shadow-glow" />
-                        </div>
-                     </div>
-                  </div>
-                  
-                  <input 
-                    autoFocus
-                    className="w-[200px] mx-auto bg-transparent border-b-2 border-white/10 focus:border-emerald-400 outline-none transition-all text-5xl font-black tracking-[0.4em] text-white text-center pb-2 mb-4" 
-                    maxLength={4}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
+                {role === r && (
+                  <motion.div 
+                    layoutId="role-bg" 
+                    className="absolute inset-0 rounded-[1.5rem] -z-10"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                      boxShadow: `0 8px 30px ${shadowColor}` 
+                    }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }} 
                   />
-
-                  <button 
-                    onClick={() => { setStep('form'); setOtp(''); }}
-                    className="flex items-center gap-2 mx-auto text-emerald-400 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
-                  >
-                    <ArrowLeft size={12} /> {t.back}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                )}
+                {r === 'farmer' ? <UserIcon size={14} /> : <Zap size={14} />}
+                <span>{t[r as keyof Translations] as string}</span>
+              </button>
+            ))}
           </div>
 
+          {/* INTERNAL SCROLLABLE AREA */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 relative z-10 overflow-x-hidden pb-4">
+            <div className="space-y-4">
+              {/* ERROR ALERT */}
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-2"
+                  >
+                    <div className="p-4 bg-red-400/10 border border-red-400/20 rounded-2xl flex items-center gap-3 text-red-400 leading-none">
+                      <AlertCircle size={14} />
+                      <span className="text-[10px] font-black uppercase tracking-wider">{error}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* INPUTS CONTAINER */}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {step === 'form' ? (
+                  <motion.div 
+                    key="form-step"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="space-y-3"
+                  >
+                    {/* Basic Credentials Group */}
+                    <div className="space-y-3">
+                      {isRegister && (
+                        <div className="relative group/input">
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-emerald-400 transition-colors pointer-events-none">
+                            <UserIcon size={16} />
+                          </div>
+                          <input 
+                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                            placeholder={t.fullName || "Full Name"}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="relative group/input">
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-emerald-400 transition-colors pointer-events-none">
+                          <Smartphone size={16} />
+                        </div>
+                        <input 
+                          className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                          placeholder={t.phoneNumber || "Phone Number"} 
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Business Details Group (Only during Register for Farmers) */}
+                    {isRegister && role === 'farmer' && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="space-y-3 pt-1"
+                      >
+                        <div className="relative group/input">
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-emerald-400 transition-colors pointer-events-none">
+                            <MapPin size={16} />
+                          </div>
+                          <input 
+                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                            placeholder={t.farmLocation || "Farm Location"}
+                            value={locationValue}
+                            onChange={(e) => setLocationValue(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="relative flex-1 group/input">
+                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-emerald-400 transition-colors pointer-events-none">
+                              <Layers size={14} />
+                            </div>
+                            <input 
+                              className="w-full pl-12 pr-4 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest shadow-inner" 
+                              placeholder={t.ponds || "Ponds"}
+                              type="number"
+                              value={pondCount}
+                              onChange={(e) => setPondCount(e.target.value)}
+                            />
+                          </div>
+                          <div className="relative flex-1 group/input">
+                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-emerald-400 transition-colors pointer-events-none">
+                              <Maximize size={14} />
+                            </div>
+                            <input 
+                              className="w-full pl-12 pr-4 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest shadow-inner" 
+                              placeholder={t.acres || "Acres"}
+                              type="number"
+                              value={acres}
+                              onChange={(e) => setAcres(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Security Group */}
+                    <div className="pt-1">
+                      <div className="relative group/input text-emerald-400/80 transition-colors">
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
+                          <Lock size={16} />
+                        </div>
+                        <input 
+                          className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/40 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                          placeholder={t.password || "Set Password"} 
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="otp-step"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="space-y-6 text-center"
+                  >
+                    <div className="pt-2">
+                       <h3 className="text-white font-black text-[9px] uppercase tracking-[0.4em] mb-1 opacity-50">{t.verifyOtp}</h3>
+                       <p className="text-white font-black tracking-widest text-lg">****</p>
+                       <div className="mt-8 flex justify-center">
+                          <div className="w-16 h-16 bg-emerald-500/5 rounded-[2rem] flex items-center justify-center border border-emerald-500/20">
+                             <ShieldCheck size={28} className="text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.5)]" />
+                          </div>
+                       </div>
+                    </div>
+                    
+                    <input 
+                      autoFocus
+                      className="bg-transparent border-b border-white/10 focus:border-emerald-400 outline-none transition-all text-5xl font-black tracking-[0.4em] text-white text-center py-2 w-48" 
+                      maxLength={4}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                    />
+
+                    <button 
+                      onClick={() => { setStep('form'); setOtp(''); }}
+                      className="flex items-center gap-2.5 mx-auto text-emerald-400 text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
+                    >
+                      <ArrowLeft size={12} /> {t.back}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* SUBMIT BUTTON (Stay at Bottom) */}
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             disabled={loading}
             onClick={handleAction}
-            className="w-full py-5 rounded-[2.2rem] shadow-2xl transition-all flex items-center justify-center gap-3 mt-6 text-[11px] font-black uppercase tracking-[0.3em] overflow-hidden relative"
-            style={{ 
-              backgroundColor: primaryColor, 
-              color: 'white',
-              boxShadow: `0 15px 40px ${shadowColor}`
-            }}
+            className="shrink-0 w-full py-4.5 rounded-[1.8rem] shadow-2xl transition-all flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white relative overflow-hidden group/btn z-20"
+            style={{ backgroundColor: primaryColor, boxShadow: `0 15px 40px ${shadowColor}` }}
           >
+            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
             {loading ? (
-              <motion.div 
-                animate={{ rotate: 360 }} 
-                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-              >
-                <Waves size={20} />
-              </motion.div>
+              <div className="animate-spin"><Waves size={18} /></div>
             ) : (
               <>
-                {isRegister ? (step === 'otp' ? t.verifyAndJoin : t.getVerified) : t.signInPrompt} 
-                <ChevronRight size={18} />
+                <span className="relative z-10">{isRegister ? (step === 'otp' ? t.verifyAndJoin : t.getVerified) : t.signInPrompt}</span>
+                <ChevronRight size={16} className="relative z-10" />
               </>
             )}
           </motion.button>
+        </motion.div>
 
-          <div className="text-center pt-8 border-t border-white/5 mt-8">
-            <button 
-              onClick={() => { setIsRegister(!isRegister); setStep('form'); setError(''); }}
-              className="text-white/60 text-[10px] uppercase font-black tracking-[0.2em] hover:text-emerald-400 transition-colors"
-            >
-              {isRegister ? (t.alreadyHaveAccount || 'Already have an account? Sign In') : (t.dontHaveAccount || "Don't have an account? Get Verified")}
-            </button>
-          </div>
-        </div>
+        {/* FOOTER MESSAGE */}
+        <p className="text-center mt-6 text-white/10 text-[7.5px] font-black uppercase tracking-[0.4em] px-10 leading-loose shrink-0">
+          Secure, Encrypted & Verified Cloud Service for Modern Aquaculture
+        </p>
       </div>
     </div>
   );

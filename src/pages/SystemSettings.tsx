@@ -108,14 +108,14 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
     {
       id: 'ai_config',
       icon: Sparkles,
-      label: 'AI & Diagnostics',
+      label: t.aiDiagnostics,
       desc: 'Gemini AI Configuration',
       color: 'text-emerald-500',
       items: [
         { 
-          label: 'AI Service Status', 
+          label: t.aiServiceStatus, 
           isButton: true,
-          btnLabel: 'Secure Cloud Managed',
+          btnLabel: t.secureCloudManaged,
           btnColor: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
           disabled: true,
           onClick: () => {}
@@ -149,13 +149,13 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
         )}
       </AnimatePresence>
       
-      <div className="pt-24 px-6 py-8 space-y-12">
-        <div className="bg-[#4A2C2A] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
+      <div className="pt-24 px-5 py-6 space-y-10">
+        <div className="bg-[#4A2C2A] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
           <div className="relative z-10">
-            <h2 className="text-3xl font-black tracking-tighter mb-4">{t.settings}</h2>
-            <p className="text-white/40 text-sm font-medium leading-relaxed max-w-[200px]">Customize your AquaGrow experience to match your farm operations.</p>
+            <h2 className="text-3xl font-black tracking-tighter mb-3">{t.settings}</h2>
+            <p className="text-white/40 text-xs font-semibold leading-relaxed max-w-[180px]">Customize your AquaGrow experience to match your farm operations.</p>
           </div>
-          <Settings size={140} strokeWidth={0.5} className="absolute -right-10 -bottom-10 text-[#C78200]/10 rotate-12" />
+          <Settings size={120} strokeWidth={0.5} className="absolute -right-8 -bottom-8 text-[#C78200]/10 rotate-12" />
         </div>
 
         {settingSections.map((section, idx) => (

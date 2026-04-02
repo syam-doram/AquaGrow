@@ -30,13 +30,13 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
       <Header title={t.profile} onMenuClick={onMenuClick} />
       
       <div className="pt-24 px-4 py-8">
-        <div className="relative mb-12">
-          <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-[#C78200]/10 bg-[#C78200]/5 flex flex-col items-center text-center relative overflow-hidden group">
-            <div className="relative mb-8">
-              <div className="w-40 h-40 rounded-[3.5rem] border-4 border-white shadow-2xl overflow-hidden relative z-10 group-hover:scale-105 transition-transform duration-500">
+        <div className="relative mb-8">
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#C78200]/10 bg-[#C78200]/5 flex flex-col items-center text-center relative overflow-hidden group">
+            <div className="relative mb-6">
+              <div className="w-32 h-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden relative z-10 group-hover:scale-105 transition-transform duration-500">
                 <img src={`https://picsum.photos/seed/${user.name}/400/400`} className="w-full h-full object-cover" alt={user.name} />
               </div>
-              <div className="absolute -inset-4 bg-[#C78200]/10 blur-3xl rounded-full scale-150 group-hover:scale-175 transition-transform"></div>
+              <div className="absolute -inset-4 bg-[#C78200]/10 blur-2xl rounded-full scale-125 group-hover:scale-150 transition-transform"></div>
             </div>
             
             <h2 className="text-3xl font-black text-[#4A2C2A] tracking-tighter mb-2 relative z-10">{user.name}</h2>
@@ -69,39 +69,34 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
         </div>
 
         {/* SUBSCRIPTION STATUS OVERVIEW */}
-        <section className="mb-px px-2">
+        <section className="mb-8 px-2">
            <div className={cn(
-             "rounded-[2.5rem] p-7 flex items-center justify-between border shadow-2xl overflow-hidden relative",
+             "rounded-[2rem] p-6 flex flex-col sm:flex-row items-center justify-between border shadow-xl overflow-hidden relative gap-4",
              isPro ? "bg-[#0D1B17] border-emerald-500/20" : "bg-white border-slate-100"
            )}>
-              {isPro && <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none text-white"><Sparkles size={100} /></div>}
+              {isPro && <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none text-white"><Sparkles size={80} /></div>}
               
-              <div className="flex items-center gap-6 relative z-10">
+              <div className="flex items-center gap-4 relative z-10">
                  <div className={cn(
-                   "w-16 h-16 rounded-2xl flex items-center justify-center border",
+                   "w-14 h-14 rounded-2xl flex items-center justify-center border",
                    isPro ? "bg-emerald-500/10 border-emerald-500/20 text-[#C78200]" : "bg-slate-50 border-slate-100 text-slate-300"
                  )}>
-                    <CreditCard size={28} />
+                    <CreditCard size={24} />
                  </div>
                  <div>
-                    <h3 className={cn("text-lg font-black tracking-tight", isPro ? "text-white" : "text-slate-800")}>
+                    <h3 className={cn("text-base font-black tracking-tight", isPro ? "text-white" : "text-slate-800")}>
                       {isPro ? (user.subscriptionStatus === 'pro_silver' ? 'Aqua 3 (Silver)' : user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : 'Aqua 9 (Diamond)') : 'Aqua Standard'}
                     </h3>
-                    <p className={cn("text-[8px] font-black uppercase tracking-[0.2em] mt-1", isPro ? "text-emerald-500" : "text-slate-400")}>
+                    <p className={cn("text-[7px] font-black uppercase tracking-[0.2em] mt-1", isPro ? "text-emerald-500" : "text-slate-400")}>
                       Capacity: {isPro ? (user.subscriptionStatus === 'pro_silver' ? '3' : user.subscriptionStatus === 'pro_gold' ? '6' : '9') : '1'} Ponds / Year
                     </p>
-                    {isPro && user.subscriptionExpiry && (
-                      <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mt-1">
-                        Expires: {format(new Date(user.subscriptionExpiry), 'MMM d, yyyy')}
-                      </p>
-                    )}
                  </div>
               </div>
               
               <button 
                 onClick={() => navigate('/subscription')}
                 className={cn(
-                  "px-6 py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest transition-all shadow-xl active:scale-95",
+                  "w-full sm:w-auto px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-xl active:scale-95",
                   isPro ? "bg-[#C78200] text-white shadow-[#C78200]/20" : "bg-indigo-500 text-white shadow-indigo-500/20"
                 )}
               >
@@ -193,7 +188,7 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
           
           <button 
             onClick={() => setUser(null)}
-            className="w-full mt-10 bg-red-50 p-6 rounded-[2.5rem] border border-red-100 flex items-center justify-between group hover:bg-red-500 hover:border-red-500 transition-all"
+            className="w-full mt-10 bg-red-50 p-6 rounded-[2rem] border border-red-100 flex items-center justify-between group hover:bg-red-500 hover:border-red-500 transition-all"
           >
             <div className="flex items-center gap-6">
               <div className="p-3 rounded-2xl bg-white text-red-500 shadow-sm transition-transform group-hover:scale-110">

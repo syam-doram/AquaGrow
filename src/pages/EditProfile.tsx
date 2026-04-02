@@ -57,7 +57,7 @@ export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
             placeholder="e.g. Ramesh Kumar"
           />
           <InputGroup 
-            label="Email Address" 
+            label={t.emailAddress} 
             icon={Mail} 
             value={formData.email} 
             onChange={(v) => setFormData({...formData, email: v})} 
@@ -73,14 +73,14 @@ export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
             disabled
           />
           <InputGroup 
-            label="Location" 
+            label={t.location} 
             icon={MapPin} 
             value={formData.location} 
             onChange={(v) => setFormData({...formData, location: v})} 
             placeholder="e.g. Bhimavaram, AP"
           />
           <InputGroup 
-            label="Experience" 
+            label={t.experience} 
             icon={Briefcase} 
             value={formData.experience} 
             onChange={(v) => setFormData({...formData, experience: v})} 

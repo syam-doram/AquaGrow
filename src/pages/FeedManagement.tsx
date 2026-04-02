@@ -111,15 +111,15 @@ const buildFeedSlots = (count: number, t: Translations) => {
 
 // ─── WEATHER × LUNAR ADJUSTMENTS ─────────────────────────────────────────────
 interface Adjustment { factor: number; label: string; reason: string; severity: 'HIGH' | 'MEDIUM' | 'LOW'; color: string; icon: React.ElementType; }
-const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPhase: 'AMAVASYA' | 'ASHTAMI_NAVAMI' | 'NORMAL'): Adjustment[] => {
+const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPhase: 'AMAVASYA' | 'ASHTAMI_NAVAMI' | 'NORMAL', t: Translations): Adjustment[] => {
   const adj: Adjustment[] = [];
-  if (weather.temp >= 34) adj.push({ factor: 0.80, label: 'Heat Stress -20%', reason: `Temp ${weather.temp}°C: shrimp reduce appetite. Uneaten feed rots and drops DO.`, severity: 'HIGH', color: 'text-red-500', icon: Thermometer });
-  else if (weather.temp >= 32) adj.push({ factor: 0.90, label: 'Warm Day -10%', reason: `Temp ${weather.temp}°C: slight appetite suppression.`, severity: 'MEDIUM', color: 'text-amber-500', icon: Thermometer });
-  if (weather.isRaining) adj.push({ factor: 0.85, label: 'Rain Event -15%', reason: 'Rain lowers DO and salinity. Withhold feed until water stabilises.', severity: 'HIGH', color: 'text-blue-500', icon: Droplets });
-  if (weather.windSpeed > 20) adj.push({ factor: 0.95, label: 'High Wind -5%', reason: `Turbulence causes shrimp stress.`, severity: 'LOW', color: 'text-slate-500', icon: Wind });
-  if (lunarPhase === 'AMAVASYA') adj.push({ factor: 0.75, label: '🌑 Amavasya -25%', reason: 'Mass molting night. Shrimp stop feeding during molt.', severity: 'HIGH', color: 'text-indigo-500', icon: Zap });
-  else if (lunarPhase === 'ASHTAMI_NAVAMI') adj.push({ factor: 0.88, label: '🌓 Quarter Moon -12%', reason: 'Partial molting phase. Reduce feed slightly.', severity: 'MEDIUM', color: 'text-violet-500', icon: Zap });
-  if (weather.doLevel === 'LOW') adj.push({ factor: 0.70, label: 'Low DO -30%', reason: 'Dissolved oxygen is low. Feed decomposition further drops DO.', severity: 'HIGH', color: 'text-red-600', icon: Waves });
+  if (weather.temp >= 34) adj.push({ factor: 0.80, label: `${t.heatStress} -20%`, reason: `Temp ${weather.temp}°C: shrimp reduce appetite. Uneaten feed rots and drops DO.`, severity: 'HIGH', color: 'text-red-500', icon: Thermometer });
+  else if (weather.temp >= 32) adj.push({ factor: 0.90, label: `${t.warmDay} -10%`, reason: `Temp ${weather.temp}°C: slight appetite suppression.`, severity: 'MEDIUM', color: 'text-amber-500', icon: Thermometer });
+  if (weather.isRaining) adj.push({ factor: 0.85, label: `${t.rainEvent} -15%`, reason: 'Rain lowers DO and salinity. Withhold feed until water stabilises.', severity: 'HIGH', color: 'text-blue-500', icon: Droplets });
+  if (weather.windSpeed > 20) adj.push({ factor: 0.95, label: `${t.highWind} -5%`, reason: `Turbulence causes shrimp stress.`, severity: 'LOW', color: 'text-slate-500', icon: Wind });
+  if (lunarPhase === 'AMAVASYA') adj.push({ factor: 0.75, label: `🌑 ${t.amavasyaFactor} -25%`, reason: 'Mass molting night. Shrimp stop feeding during molt.', severity: 'HIGH', color: 'text-indigo-500', icon: Zap });
+  else if (lunarPhase === 'ASHTAMI_NAVAMI') adj.push({ factor: 0.88, label: `🌓 Quarter Moon -12%`, reason: 'Partial molting phase. Reduce feed slightly.', severity: 'MEDIUM', color: 'text-violet-500', icon: Zap });
+  if (weather.doLevel === 'LOW') adj.push({ factor: 0.70, label: `${t.lowDOAdjustment} -30%`, reason: 'Dissolved oxygen is low. Feed decomposition further drops DO.', severity: 'HIGH', color: 'text-red-600', icon: Waves });
   return adj;
 };
 const getCombinedFactor = (adjustments: Adjustment[]): number => Math.max(0.50, adjustments.reduce((acc, a) => acc * a.factor, 1.0));
@@ -179,7 +179,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   // Environment Adjustments
   const lunar = getLunarStatus(now);
   const weather = useMemo(() => getSimulatedWeather(), [now.getHours()]);
-  const adjustments = useMemo(() => getAdjustments(weather, lunar.phase), [weather, lunar.phase]);
+  const adjustments = useMemo(() => getAdjustments(weather, lunar.phase, t), [weather, lunar.phase, t]);
   const combinedFactor = getCombinedFactor(adjustments);
   const adjustedDailyKg = Math.round(rawDailyKg * combinedFactor * 10) / 10;
   
@@ -238,15 +238,15 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           <>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { icon: Thermometer, label: t.temperature.substring(0,4), value: `${weather.temp}°C`, color: weather.temp >= 34 ? 'text-red-500' : 'text-amber-500' },
+                { icon: Thermometer, label: t.temperature, value: `${weather.temp}°C`, color: weather.temp >= 34 ? 'text-red-500' : 'text-amber-500' },
                 { icon: Droplets, label: t.humidity, value: `${weather.humidity}%`, color: 'text-blue-500' },
                 { icon: Wind, label: t.wind, value: `${weather.windSpeed}km/h`, color: 'text-slate-500' },
                 { icon: Waves, label: 'DO', value: weather.doLevel, color: weather.doLevel === 'LOW' ? 'text-red-500' : weather.doLevel === 'MEDIUM' ? 'text-amber-500' : 'text-emerald-500' },
               ].map((item, i) => (
-                <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5 shadow-sm">
+                <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5 shadow-sm min-w-0">
                   <item.icon size={14} className={cn('mx-auto mb-1', item.color)} />
-                  <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{item.label}</p>
-                  <p className={cn('text-[10px] font-black mt-0.5', item.color)}>{item.value}</p>
+                  <p className="text-[7px] font-black text-[#4A2C2A]/30 uppercase tracking-widest truncate">{item.label}</p>
+                  <p className={cn('text-[9px] font-black mt-0.5', item.color)}>{item.value}</p>
                 </div>
               ))}
             </div>
