@@ -19,7 +19,7 @@ import { User } from '../types';
 export const AuthScreen = ({ t }: { t: Translations }) => {
   const { register, login } = useData();
   const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
-  const [isRegister, setIsRegister] = useState(true);
+  const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');

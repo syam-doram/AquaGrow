@@ -160,30 +160,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
           ]);
         }
       } else {
-        // ONLY AUTO-LOGIN IF NOT EXPLICITLY LOGGED OUT
-        const hasLoggedOut = localStorage.getItem('aqua_logged_out');
-        if (!hasLoggedOut) {
-          const expiry = new Date();
-          expiry.setFullYear(expiry.getFullYear() + 1);
-          const mockUser: User = {
-            id: 'preview_user',
-            name: 'Premium Farmer',
-            phoneNumber: '9988776655',
-            location: 'Andhra Pradesh',
-            role: 'farmer',
-            language: 'English',
-            subscriptionStatus: 'pro_gold',
-            subscriptionExpiry: expiry.toISOString(),
-            farmSize: 5
-          };
-          setUserState(mockUser);
-          const mockTokens = { access: 'mock_access_token', refresh: 'mock_refresh_token' };
-          setTokens(mockTokens);
-          localStorage.setItem('aqua_user', JSON.stringify(mockUser));
-          localStorage.setItem('aqua_tokens', JSON.stringify(mockTokens));
-        } else {
-          setUserState(null);
-        }
+        setUserState(null);
       }
       
       setMarketPrices(mockMarketPrices);

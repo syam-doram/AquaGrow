@@ -126,9 +126,12 @@ const AppContent = () => {
           if (Capacitor.isNativePlatform()) {
             CapSplash.hide({ fadeOutDuration: 300 });
           }
-          // Show onboarding only once (first install)
+          // Show onboarding only once (first install) and ONLY if not already logged in
           const seen = localStorage.getItem('aquagrow_onboarded');
-          if (!seen) {
+          const isLoggedOut = localStorage.getItem('aqua_logged_out');
+          const hasUser = localStorage.getItem('aqua_user');
+          // If a user exists (auto-login), bypass onboarding completely
+          if (!seen && (!hasUser || isLoggedOut === 'true')) {
             setShowOnboarding(true);
           }
         }}

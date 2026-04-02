@@ -7,6 +7,14 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, connectDB, isMock, MockDB } from './db.js';
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 dotenv.config();
 const app = express();
 app.set('trust proxy', 1);
@@ -23,8 +31,8 @@ app.use(cors({ origin: true, credentials: true }));
 const refreshTokenStore = new Set();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const signAccess  = (p) => jwt.sign(p, JWT_SECRET,  { expiresIn: JWT_EXPIRES_IN });
-const signRefresh = (p) => jwt.sign(p, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN });
+const signAccess  = (p: any) => jwt.sign(p, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+const signRefresh = (p: any) => jwt.sign(p, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions);
 
 // ─── Rate limiters ────────────────────────────────────────────────────────────
 // Auth: 10 req / 15 min  — brute-force protection
@@ -160,7 +168,7 @@ app.post('/api/auth/refresh', authLimiter, (req, res) => {
   if (!refresh_token || !refreshTokenStore.has(refresh_token))
     return res.status(401).json({ error: 'Invalid or missing refresh token' });
   try {
-    const p = jwt.verify(refresh_token, REFRESH_SECRET);
+    const p = jwt.verify(refresh_token, REFRESH_SECRET) as any;
     res.json({ access_token: signAccess({ id: p.id, role: p.role, subscriptionStatus: p.subscriptionStatus }) });
   } catch {
     refreshTokenStore.delete(refresh_token);
