@@ -140,8 +140,12 @@ export const connectDB = async () => {
   } catch (error) {
     console.error('CRITICAL MONGODB ERROR: Failed to connect to your Database!');
     console.error('Make sure your computer IP address is whitelisted in MongoDB Atlas and the password is correct.');
-    console.error('Exact Error Log:', error);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Falling back to local mock DB for development.');
+      isUsingMock = true;
+    } else {
+      process.exit(1);
+    }
   }
 };
 
