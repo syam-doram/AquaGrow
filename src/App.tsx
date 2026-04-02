@@ -74,7 +74,7 @@ export default function App() {
 }
 
 const AppContent = () => {
-  const { user, loading } = useData();
+  const { user, loading, isSyncing } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -186,6 +186,20 @@ const AppContent = () => {
           <PushSyncManager />
           <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} user={user} t={t} />
           
+          <AnimatePresence>
+            {isSyncing && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -20 }}
+                className="fixed top-12 left-1/2 -translate-x-1/2 z-[100] bg-[#02130F]/90 backdrop-blur-md border border-emerald-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-2xl"
+              >
+                <div className="w-3 h-3 border-[1.5px] border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mt-px">Syncing</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
