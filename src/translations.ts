@@ -284,6 +284,17 @@ export interface Translations {
   pondPerformance_short: string;
   feedLogs: string;
   backToDashboard_desc: string;
+  sopEngineAlert: string;
+  autoEngineAlert: string;
+  startYourFirstPond: string;
+  totalPonds: string;
+  totalArea: string;
+  pendingAlerts: string;
+  fcrRatio: string;
+  feedBiomassGain: string;
+  survivalEst: string;
+  pondDocProgress: string;
+  days: string;
 }
 
 const English: Translations = {
@@ -548,6 +559,17 @@ const English: Translations = {
   pondPerformance_short: 'Perf',
   feedLogs: 'Feed Logs',
   backToDashboard_desc: 'Return to overview',
+  sopEngineAlert: 'SOP Engine Alert',
+  autoEngineAlert: 'Automated Engine Alert',
+  startYourFirstPond: 'Start Your First Pond',
+  totalPonds: 'Total Ponds',
+  totalArea: 'Total Area',
+  pendingAlerts: 'Pending Alerts',
+  fcrRatio: 'FCR Ratio',
+  feedBiomassGain: 'Feed vs Biomass Gain',
+  survivalEst: 'Survival Estimate',
+  pondDocProgress: 'Pond DOC Progress',
+  days: 'days',
 };
 
 const Telugu: Translations = {
@@ -672,6 +694,17 @@ const Telugu: Translations = {
   count: 'కౌంట్',
   ultraHigh: 'అత్యంత అధికం',
   liveMarketRates: 'ప్రత్యక్ష మార్కెట్ ధరలు',
+  sopEngineAlert: 'SOP ఇంజిన్ హెచ్చరిక',
+  autoEngineAlert: 'ఆటోమేటెడ్ ఇంజిన్ హెచ్చరిక',
+  startYourFirstPond: 'మీ మొదటి చెరువును ప్రారంభించండి',
+  totalPonds: 'మొత్తం చెరువులు',
+  totalArea: 'మొత్తం వైశాల్యం',
+  pendingAlerts: 'పెండింగ్ హెచ్చరికలు',
+  fcrRatio: 'FCR నిష్పత్తి',
+  feedBiomassGain: 'మేత vs బయోమాస్ పెరుగుదల',
+  survivalEst: 'జీవితకాల అంచనా',
+  pondDocProgress: 'చెరువు DOC పురోగతి',
+  days: 'రోజులు',
 };
 
 export const translations: Record<Language, Translations> = {

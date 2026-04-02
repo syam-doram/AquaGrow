@@ -1,17 +1,11 @@
 import { httpsCallable } from 'firebase/functions';
-import { auth, functions } from '../lib/firebase';
+import { functions } from '../lib/firebase';
 
 export async function analyzeShrimpHealth(base64Image: string, language: string = 'English') {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
-    // 1. Production Security: Double check authentication before calling
-    if (!auth.currentUser) {
-      console.warn("User is not authenticated via Firebase. Cloud Functions may fail.");
-      // In production, we should probably throw an error or redirect to login.
-    }
-
     // Call Firebase Cloud Function instead of direct SDK
     const analyzeShrimpHealthFn = httpsCallable<{ base64Image: string; language: string }, any>(
       functions, 

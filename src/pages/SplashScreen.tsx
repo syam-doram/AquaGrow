@@ -97,25 +97,25 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
 
       {/* ─── MAIN CONTENT CONTAINER ─── */}
       <motion.div
-        className="relative z-20 flex flex-col items-center px-10 text-center"
+        className="relative z-20 flex flex-col items-center px-8 text-center"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={phase === 'done' ? { opacity: 0, scale: 1.1, filter: 'blur(20px)' } : { opacity: 1, scale: 1 }}
         transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* The Premium Icon Asset */}
-        <div className="relative mb-12">
+        <div className="relative mb-8 sm:mb-12">
            <motion.div 
              className="absolute inset-0 bg-emerald-500/20 rounded-full blur-3xl"
              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
              transition={{ duration: 3, repeat: Infinity }}
            />
            <motion.div
-             className="w-44 h-44 rounded-[4rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] bg-white/5 backdrop-blur-3xl"
+             className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl sm:rounded-[4rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] bg-white/5 backdrop-blur-3xl"
              initial={{ rotateX: 45, rotateY: -10 }}
              animate={{ rotateX: 0, rotateY: 0 }}
              transition={{ duration: 2, ease: 'easeOut' }}
            >
-             <Waves size={80} className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]" />
+             <Waves size={60} className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] sm:w-20 sm:h-20" />
              
              {/* Scanning Line Effect */}
              <motion.div 
@@ -127,25 +127,25 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         </div>
 
         {/* Brand Text */}
-        <div className="space-y-2">
+        <div className="space-y-1 sm:space-y-2">
           <motion.h1 
-            className="text-6xl font-serif italic text-white tracking-tighter drop-shadow-2xl"
+            className="text-4xl sm:text-6xl font-serif italic text-white tracking-tighter drop-shadow-2xl"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: phase !== 'logo' ? 1 : 0, y: 0 }}
           >
             AquaGrow
           </motion.h1>
           <motion.div 
-            className="flex items-center justify-center gap-3"
+            className="flex items-center justify-center gap-2 sm:gap-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: phase !== 'logo' ? 1 : 0 }}
             transition={{ delay: 0.2 }}
           >
-             <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-white/20" />
-             <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.6em]">
+             <div className="h-[1px] w-6 sm:w-8 bg-gradient-to-r from-transparent to-white/20" />
+             <p className="text-white/40 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.4em] sm:tracking-[0.6em]">
                Elite Aquaculture
              </p>
-             <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-white/20" />
+             <div className="h-[1px] w-6 sm:w-8 bg-gradient-to-l from-transparent to-white/20" />
           </motion.div>
         </div>
       </motion.div>
@@ -154,7 +154,7 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
       <AnimatePresence>
         {(phase === 'progress' || phase === 'done') && (
           <motion.div
-            className="absolute bottom-20 left-0 right-0 px-12 z-20"
+            className="absolute bottom-12 sm:bottom-20 left-0 right-0 px-8 sm:px-12 z-20"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}

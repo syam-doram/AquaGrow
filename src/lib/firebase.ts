@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -17,8 +17,7 @@ const firebaseConfig = {
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth
-export const auth = getAuth(app);
+
 
 // Initialize Firestore
 export const db = getFirestore(app);
