@@ -368,6 +368,25 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const estRevenueAtHarvest = totalBiomassKg * 450; // ₹450/kg avg at 50 count
   const pendingAlerts = reminders.filter((r: any) => r.status === 'pending').length;
 
+  // ── FCR Calculation (Feed Conversion Ratio) ──
+  const fcrData = useMemo(() => {
+    if (!selectedPond || feedThisWeek.length === 0) return null;
+    const doc = calculateDOC(selectedPond.stockingDate);
+    const wG = Math.min(35, doc * 0.38);
+    const liveCount = safeNum(selectedPond.seedCount, 100000) * 0.80;
+    const biomassGained = (liveCount * wG) / 1000; // kg
+    const totalFeedUsed = feedThisWeek.reduce((a, b) => a + b, 0);
+    const fcr = totalFeedUsed > 0 && biomassGained > 0
+      ? (totalFeedUsed / biomassGained).toFixed(2)
+      : null;
+    return { fcr, totalFeedUsed, biomassGained: biomassGained.toFixed(1) };
+  }, [selectedPond, feedThisWeek]);
+
+  // ── Survival Rate estimate ──
+  const survivalRate = selectedPond
+    ? Math.max(60, 100 - (calculateDOC(selectedPond.stockingDate) * 0.22)).toFixed(1)
+    : '80.0';
+
   // ── Health score ──
   const healthScore = calcPondHealthScore(latestWater);
   const healthColor = healthScore >= 80 ? '#34d399' : healthScore >= 60 ? '#f59e0b' : '#ef4444';
@@ -509,6 +528,49 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 ))}
               </div>
             </motion.div>
+
+            {/* ══ SECTION 2B: SURVIVAL + FCR QUICK STATS ══ */}
+            {selectedPond && (
+              <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.12 }}
+                className="grid grid-cols-2 gap-3">
+                {/* FCR Card */}
+                <div className="bg-gradient-to-br from-[#0D523C] to-[#051F19] rounded-[2rem] p-4 border border-emerald-500/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">FCR Ratio</p>
+                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <Target size={11} className="text-emerald-300" />
+                    </div>
+                  </div>
+                  <p className="text-white font-black text-2xl tracking-tighter">
+                    {fcrData?.fcr ?? '—'}
+                  </p>
+                  <p className="text-[7px] text-white/25 font-black mt-0.5 uppercase tracking-wider">
+                    Feed ÷ Biomass Gain
+                  </p>
+                  <p className={`text-[8px] font-black mt-1.5 ${ fcrData?.fcr && Number(fcrData.fcr) < 1.5 ? 'text-emerald-400' : fcrData?.fcr && Number(fcrData.fcr) < 2.0 ? 'text-amber-400' : 'text-red-400'}`}>
+                    {fcrData?.fcr ? (Number(fcrData.fcr) < 1.5 ? '✓ Excellent' : Number(fcrData.fcr) < 2.0 ? '⚡ Good' : '⚠ Review Feed') : 'Log feed to calculate'}
+                  </p>
+                </div>
+
+                {/* Survival Rate Card */}
+                <div className="bg-gradient-to-br from-[#1a1c40] to-[#0d0f28] rounded-[2rem] p-4 border border-indigo-500/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">Survival Est.</p>
+                    <div className="w-6 h-6 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                      <Fish size={11} className="text-indigo-300" />
+                    </div>
+                  </div>
+                  <p className="text-white font-black text-2xl tracking-tighter">{survivalRate}%</p>
+                  <p className="text-[7px] text-white/25 font-black mt-0.5 uppercase tracking-wider">Estimated Live Count</p>
+                  <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div className="h-full bg-indigo-400 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${survivalRate}%` }}
+                      transition={{ duration: 1.5, ease: 'easeOut' }} />
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* ══ SECTION 3: POND SELECTOR + DOC RINGS ══ */}
             <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.15 }}
@@ -709,6 +771,23 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 <p className="text-[7px] text-white/20 font-black">0T</p>
                 <p className="text-[7px] text-white/20 font-black">Target 5T</p>
               </div>
+
+              {/* Daily Cost Burndown */}
+              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                <div>
+                  <p className="text-[7px] text-white/25 font-black uppercase tracking-widest">Daily Feed Cost</p>
+                  <p className="text-white font-black text-base mt-0.5">
+                    {feedThisWeek.length > 0
+                      ? `₹${(feedThisWeek[feedThisWeek.length-1] * 55).toLocaleString()}`
+                      : '—'}
+                  </p>
+                  <p className="text-[7px] text-white/20 font-black">@ ₹55/kg est. feed cost</p>
+                </div>
+                <button onClick={() => navigate('/roi')}
+                  className="px-3 py-2 bg-emerald-500/15 border border-emerald-500/20 rounded-xl text-emerald-300 text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                  <BarChart2 size={11} /> ROI →
+                </button>
+              </div>
             </motion.div>
 
             {/* ══ SECTION 7: TODAY'S TASKS ══ */}
@@ -845,10 +924,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.45 }}
               className="grid grid-cols-4 gap-2 mt-2">
               {[
-                { label:'Monitor', icon:Activity, path:'/monitor', color:'#0369A1', bg:'#EFF6FF' },
-                { label:'Disease', icon:HeartPulse, path:'/disease-detection', color:'#dc2626', bg:'#FEF2F2' },
-                { label:'Market',  icon:TrendingUp, path:'/market', color:'#059669', bg:'#ECFDF5' },
-                { label:'Feed',    icon:Utensils,  path:'/feed', color:'#C78200', bg:'#FFF8E7' },
+                { label:'Monitor', icon:Activity,   path:'/monitor',           color:'#0369A1', bg:'#EFF6FF' },
+                { label:'Disease', icon:HeartPulse,  path:'/disease-detection', color:'#dc2626', bg:'#FEF2F2' },
+                { label:'Market',  icon:TrendingUp,  path:'/market',            color:'#059669', bg:'#ECFDF5' },
+                { label:'Feed',    icon:Utensils,    path:'/feed',              color:'#C78200', bg:'#FFF8E7' },
+                { label:'Weather', icon:Wind,        path:'/weather',           color:'#6366f1', bg:'#EEF2FF' },
+                { label:'ROI',     icon:BarChart2,   path:'/roi',               color:'#0891b2', bg:'#ECFEFF' },
+                { label:'SOP',     icon:Target,      path: selectedPond ? `/ponds/${selectedPond.id}/sop` : '/ponds', color:'#7c3aed', bg:'#F5F3FF' },
+                { label:'Learn',   icon:ArrowUpRight, path:'/learn',            color:'#b45309', bg:'#FFFBEB' },
               ].map(n => (
                 <button key={n.path} onClick={() => navigate(n.path)}
                   className="bg-white rounded-[1.5rem] p-3 border border-black/5 shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition-all">

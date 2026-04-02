@@ -27,16 +27,16 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app);
 
 // Use local emulator in development
-if (typeof window !== 'undefined' && 
-   (window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' || 
-    window.location.hostname.startsWith('172.20.'))
-) {
-  const host = window.location.hostname;
-  connectFunctionsEmulator(functions, host, 5001);
-  connectAuthEmulator(auth, `http://${host}:9099`);
-  connectFirestoreEmulator(db, host, 8080);
-}
+// if (typeof window !== 'undefined' && 
+//    (window.location.hostname === 'localhost' || 
+//     window.location.hostname === '127.0.0.1' || 
+//     window.location.hostname.startsWith('172.20.'))
+// ) {
+//   const host = window.location.hostname;
+//   connectFunctionsEmulator(functions, host, 5001);
+//   connectAuthEmulator(auth, `http://${host}:9099`);
+//   connectFirestoreEmulator(db, host, 8080);
+// }
 
 // Initialize Firebase Cloud Messaging
 // Only initialized on client-side

@@ -1411,8 +1411,6 @@ const Telugu: Translations = {
   cost: 'ఖర్చు',
   dashedLineRunRate: 'చుక్కల రేఖ సగటు రోజువారీ రన్ రేట్‌ను సూచిస్తుంది',
   pctOfTotalSpend: 'మొత్తం సైకిల్ ఖర్చులో %',
-  payment: 'చెల్లింపు',
-  scheduleSync: 'షెడ్యూల్ సమకాలీకరణ',
   hrs: 'గంటలు',
   min: 'నిమిషాలు',
   dose: 'మోతాదు',

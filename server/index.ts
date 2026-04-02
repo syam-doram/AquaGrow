@@ -9,6 +9,7 @@ import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo
 
 dotenv.config();
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_refresh';
@@ -36,7 +37,7 @@ app.use('/api', apiLimiter);
 // ─── JWT Auth middleware ──────────────────────────────────────────────────────
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (isMock.isMock() && authHeader && authHeader.split(' ')[1] === 'mock_access_token') {
+  if (isMock() && authHeader && authHeader.split(' ')[1] === 'mock_access_token') {
     req.user = { id: 'preview_user', role: 'farmer', subscriptionStatus: 'pro_gold' };
     return next();
   }
@@ -60,9 +61,14 @@ const requireRole = (...roles) => (req, res, next) => {
 
 // Own-resource guard — user can only access their own data (admin bypasses)
 const requireSelf = (req, res, next) => {
-  if (isMock.isMock() && (req.user && (req.user.id === 'preview_user' || req.user.id.startsWith('id_')))) return next();
   const id = req.params.userId || req.body?.userId;
-  if (!req.user || (req.user.id !== id && req.user.role !== 'admin'))
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+  
+  if (isMock() && (req.user.id === 'preview_user' || (req.user.id && req.user.id.startsWith('id_')))) {
+    return next();
+  }
+
+  if (req.user.id !== id && req.user.role !== 'admin')
     return res.status(403).json({ error: 'Cannot access another user data' });
   next();
 };

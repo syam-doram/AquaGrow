@@ -35,6 +35,11 @@ import { calculateDOC } from '../utils/pondUtils';
 import { getSOPGuidance } from '../utils/sopRules';
 import { cn } from '../utils/cn';
 
+const safeNum = (v: any, fallback = 0) => {
+  const n = Number(v);
+  return isNaN(n) ? fallback : n;
+};
+
 export const PondDetail = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -126,7 +131,24 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                  </div>
               </div>
               
-              <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-4 mb-8 pt-4 border-t border-white/10">
+                 <div>
+                    <p className="text-[8px] font-black text-emerald-400/60 uppercase tracking-widest mb-1">Est. Harvest Yield</p>
+                    <p className="text-xl font-black tracking-tight text-white">
+                       {((safeNum(pond.seedCount) * 0.82 * currentWeight) / 1000).toFixed(0)} kg
+                    </p>
+                    <p className="text-[7px] text-white/30 font-black uppercase tracking-widest mt-0.5">@ 82% Survival</p>
+                 </div>
+                 <div>
+                    <p className="text-[8px] font-black text-[#C78200]/60 uppercase tracking-widest mb-1">Weekly Feed Exp.</p>
+                    <p className="text-xl font-black tracking-tight text-white">
+                       ₹{((safeNum(pond.seedCount) * 0.05 * 55) / 100).toLocaleString()}
+                    </p>
+                    <p className="text-[7px] text-white/30 font-black uppercase tracking-widest mt-0.5">Est. Operational Burn</p>
+                 </div>
+              </div>
+
+              <div className="pt-6 border-t border-white/10">
                  <div className="flex items-center justify-between px-2 mb-4">
                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.growthMilestones} Analysis</p>
                     <p className="text-[9px] font-black text-emerald-300 uppercase italic">Goal: 35g Maturity</p>
@@ -137,10 +159,10 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                        return (
                          <div key={i} className="flex flex-col items-center gap-2">
                             <div className={cn(
-                              "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                              achieved ? "bg-emerald-400 border-emerald-400 text-[#0D523C]" : "bg-white/5 border-white/20 text-white/20"
-                            )}>
-                               {achieved ? <CheckCircle2 size={16} /> : <p className="text-[8px] font-black">{step.g.replace('g', '')}</p>}
+                               "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                               achieved ? "bg-emerald-400 border-emerald-400 text-[#0D523C]" : "bg-white/5 border-white/20 text-white/20"
+                             )}>
+                                {achieved ? <CheckCircle2 size={16} /> : <p className="text-[8px] font-black">{step.g.replace('g', '')}</p>}
                             </div>
                             <p className="text-[6px] font-black text-white/40 uppercase">{step.g}</p>
                          </div>
