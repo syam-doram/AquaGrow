@@ -318,6 +318,37 @@ export interface Translations {
   viewSchedule: string;
   inventory: string;
   orders: string;
+  
+  // Market Prices & Locations
+  blackTiger: string;
+  scampi: string;
+  bhimavaram: string;
+  nellore: string;
+  vizag: string;
+  kakinada: string;
+  marketSnapshot: string;
+  dailyExportPriceIndex: string;
+  exportDemand: string;
+  festiveSeason: string;
+  stockAccumulation: string;
+  premium: string;
+  standard: string;
+  priceUp: string;
+  priceDown: string;
+  priceHistory: string;
+  profitMargin: string;
+  recommendationStatus: string;
+  harvestLabel: string;
+  harvestAdvice: string;
+
+  // Additional Common Keys
+  archive: string;
+  noEntries: string;
+  phLevel: string;
+  investmentBreakdown: string;
+  profitCalculator: string;
+  upgradeToPro: string;
+  logEntry: string;
 }
 
 const English: Translations = {
@@ -626,7 +657,38 @@ const English: Translations = {
   todaysTasks: "Today's Tasks",
   viewSchedule: 'View Schedule',
   inventory: 'Inventory',
-  orders: 'Orders'
+  orders: 'Orders',
+
+  // Market Prices & Locations
+  blackTiger: 'Black Tiger',
+  scampi: 'Scampi',
+  bhimavaram: 'Bhimavaram',
+  nellore: 'Nellore',
+  vizag: 'Vizag',
+  kakinada: 'Kakinada',
+  marketSnapshot: 'Market Snapshot',
+  dailyExportPriceIndex: 'Daily Export Price Index',
+  exportDemand: 'Strong Export Demand',
+  festiveSeason: 'Festive Season High',
+  stockAccumulation: 'Local Stock Accumulation',
+  premium: 'Premium',
+  standard: 'Standard',
+  priceUp: 'Price Up',
+  priceDown: 'Price Down',
+  priceHistory: 'Price History',
+  profitMargin: 'Profit Margin',
+  recommendationStatus: 'Rec. Status',
+  harvestLabel: 'HARVEST',
+  harvestAdvice: 'Harvest Advice',
+
+  // Additional Common Keys
+  archive: 'Archive',
+  noEntries: 'No Entries Found',
+  phLevel: 'pH Level',
+  investmentBreakdown: 'Investment Breakdown',
+  profitCalculator: 'Profit Calculator',
+  upgradeToPro: 'Upgrade to Pro',
+  logEntry: 'Log your first harvest to see analytics here.',
 };
 
 const Telugu: Translations = {
@@ -889,7 +951,38 @@ const Telugu: Translations = {
   todaysTasks: 'నేటి పనులు',
   viewSchedule: 'షెడ్యూల్ చూడండి',
   inventory: 'స్టాక్/ఇన్వెంటరీ',
-  orders: 'ఆర్డర్లు'
+  orders: 'ఆర్డర్లు',
+
+  // Market Prices & Locations
+  blackTiger: 'బ్లాక్ టైగర్',
+  scampi: 'స్కామ్పి',
+  bhimavaram: 'భీమవరం',
+  nellore: 'నెల్లూరు',
+  vizag: 'వైజాగ్',
+  kakinada: 'కాకినాడ',
+  marketSnapshot: 'మార్కెట్ స్నాప్‌షాట్',
+  dailyExportPriceIndex: 'రోజువారీ ఎగుమతి ధర సూచిక',
+  exportDemand: 'ఎగుమతి డిమాండ్ ఎక్కువగా ఉంది',
+  festiveSeason: 'పండుగ సీజన్ రద్దీ',
+  stockAccumulation: 'స్థానిక నిల్వలు పెరిగాయి',
+  premium: 'ప్రీమియం',
+  standard: 'స్టాండర్డ్',
+  priceUp: 'ధర పెరిగింది',
+  priceDown: 'ధర తగ్గింది',
+  priceHistory: 'ధర చరిత్ర',
+  profitMargin: 'లాభాల మార్జిన్',
+  recommendationStatus: 'సిఫార్సు స్థితి',
+  harvestLabel: 'కోత',
+  harvestAdvice: 'కోత సలహా',
+
+  // Additional Common Keys
+  archive: 'ఆర్కైవ్',
+  noEntries: 'ఎంట్రీలు ఏవీ లేవు',
+  phLevel: 'pH స్థాయి',
+  investmentBreakdown: 'పెట్టుబడి వివరాలు',
+  profitCalculator: 'లాభాల కాలిక్యులేటర్',
+  upgradeToPro: 'ప్రోకు అప్‌గ్రేడ్ అవ్వండి',
+  logEntry: 'విశ్లేషణలను చూడటానికి మీ మొదటి కోతను నమోదు చేయండి.',
 };
 
 export const translations: Record<Language, Translations> = {

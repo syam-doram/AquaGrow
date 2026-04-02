@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Waves, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -27,7 +27,7 @@ import { Header } from '../components/Header';
 import { Translations } from '../translations';
 import { calculateDOC } from '../utils/pondUtils';
 import { getSOPGuidance, SOPSuggestion } from '../utils/sopRules';
-import { getLunarStatus } from '../utils/lunarUtils';
+import { getLunarStatus, getLunarForecast } from '../utils/lunarUtils';
 import { cn } from '../utils/cn';
 
 // Full SOP cycle overview data (for the "Culture Timeline" card)
@@ -168,10 +168,10 @@ const MOON_META = {
   AMAVASYA: {
     emoji: '🌑',
     label: 'Amavasya — New Moon',
-    sublabel: 'HIGH RISK NIGHT',
-    bg: 'bg-indigo-950',
-    border: 'border-indigo-800/50',
-    textColor: 'text-indigo-300',
+    sublabel: 'CRITICAL HIGH RISK',
+    bg: 'bg-black',
+    border: 'border-indigo-500/50',
+    textColor: 'text-indigo-400',
     badge: 'bg-red-500/20 text-red-300 border-red-400/30',
     rules: [
       '🔴 Reduce feed by 20–30% tonight',
@@ -181,19 +181,35 @@ const MOON_META = {
       '⚠️ Do NOT apply probiotics after 6 PM',
     ],
   },
-  ASHTAMI_NAVAMI: {
+  ASHTAMI: {
     emoji: '🌓',
-    label: 'Ashtami / Navami — Quarter Moon',
-    sublabel: 'MEDIUM RISK',
+    label: 'Ashtami — Molting Begins',
+    sublabel: 'SEQUENCE START: 48HR STRESS',
     bg: 'bg-violet-950',
     border: 'border-violet-800/40',
     textColor: 'text-violet-300',
     badge: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
     rules: [
-      '🟡 Reduce feed by 10–15% today',
-      '🔵 Ensure stable night-time O₂ levels',
-      '💊 Apply Mineral Mix (Medium Dose) — morning',
-      '⚠️ Avoid medicine applications after sunset',
+      '🟡 Initial molting stress begins tonight',
+      '🟡 Reduce feed by 10% today',
+      '🔵 Start intensive aeration (Morning & Night)',
+      '💊 Apply Minerals (Evening) for shell hardening',
+    ],
+  },
+  NAVAMI: {
+    emoji: '🌙',
+    label: 'Navami — Peak Recovery',
+    sublabel: 'CRITICAL VIGILANCE',
+    bg: 'bg-[#0B1A2E]',
+    border: 'border-sky-500/30',
+    textColor: 'text-sky-300',
+    badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+    rules: [
+      '🟠 Maximum vigilance for molting recovery tonight',
+      '🟠 Watch for soft-shell / slow feeders',
+      '🟡 Reduce feed by 15% today if mortality seen',
+      '💊 Apply Immunity boosters (Morning)',
+      '🔵 Maintain Max Aeration through 2 AM',
     ],
   },
   NORMAL: {
@@ -219,7 +235,17 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
   const [completedMeds, setCompletedMeds] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'today' | 'cycle'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'cycle' | 'lunar'>('today');
+
+  // Lunar forecast for the planner
+  const lunarForecast = React.useMemo(() => getLunarForecast(new Date(), 30), []);
+
+  // ─── SYNC ACTIVE POND SELECTION ───────────────────────────────────────────
+  useEffect(() => {
+    if (!selectedPondId && ponds.length > 0) {
+      setSelectedPondId(ponds[0].id);
+    }
+  }, [ponds, selectedPondId]);
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
@@ -275,7 +301,10 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   };
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
+    <div className="pb-40 bg-transparent min-h-screen text-left relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-10 right-[-10%] w-[70%] h-[30%] bg-purple-100/10 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
       {/* Sync Success Overlay */}
       <AnimatePresence>
         {isLogging && (
@@ -305,7 +334,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
         showBack={false} 
         onMenuClick={onMenuClick} 
         rightElement={
-          selectedPond && (
+          selectedPond && currentDoc > 0 && (
             <div className={cn(
               'px-3 py-1.5 rounded-full border',
               currentDoc > 30 && currentDoc <= 45 ? 'bg-red-50 border-red-200' : 'bg-[#FFF8E6] border-[#C78200]/20'
@@ -359,147 +388,169 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
         {ponds.length > 0 && selectedPond && (
           <>
-            {/* ─── LUNAR + WEATHER AWARENESS BANNER ─── */}
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn('rounded-[2rem] overflow-hidden border', moonMeta.bg, moonMeta.border)}
-            >
-              {/* Moon Phase Header */}
-              <div className="px-6 pt-5 pb-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-4xl leading-none">{moonMeta.emoji}</span>
-                  <div>
-                    <p className={cn('font-black text-base tracking-tight', moonMeta.textColor)}>
-                      {moonMeta.label}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className={cn(
-                        'text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
-                        moonMeta.badge
-                      )}>
-                        {moonMeta.sublabel}
-                      </span>
+            {/* ─── SHARED DASHBOARD ELEMENTS (Hiden on Lunar Tab) ─── */}
+            {activeTab !== 'lunar' && (
+              <div className="space-y-4">
+                {/* ─── LUNAR + WEATHER AWARENESS BANNER ─── */}
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn('rounded-[2rem] overflow-hidden border', moonMeta.bg, moonMeta.border)}
+                >
+                  {/* Moon Phase Header */}
+                  <div className="px-6 pt-5 pb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="text-4xl leading-none">{moonMeta.emoji}</span>
+                      <div>
+                        <p className={cn('font-black text-base tracking-tight', moonMeta.textColor)}>
+                          {moonMeta.label}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn(
+                            'text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                            moonMeta.badge
+                          )}>
+                            {moonMeta.sublabel}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Days to Amavasya counter */}
+                    <div className="text-right">
+                      <p className="text-white/20 text-[8px] font-black uppercase tracking-widest">Next Amavasya</p>
+                      <p className="text-white font-black text-xl leading-tight">
+                        {lunar.daysToAmavasya <= 1 ? 'Tonight' : `${lunar.daysToAmavasya}d`}
+                      </p>
+                      <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">
+                        Day {Math.round(lunar.daysSinceAmavasya)}/29
+                      </p>
                     </div>
                   </div>
-                </div>
-                {/* Days to Amavasya counter */}
-                <div className="text-right">
-                  <p className="text-white/20 text-[8px] font-black uppercase tracking-widest">Next Amavasya</p>
-                  <p className="text-white font-black text-xl leading-tight">
-                    {lunar.daysToAmavasya <= 1 ? 'Tonight' : `${lunar.daysToAmavasya}d`}
-                  </p>
-                  <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">
-                    Day {Math.round(lunar.daysSinceAmavasya)}/29
-                  </p>
-                </div>
-              </div>
 
-              {/* Rules List */}
-              <div className="px-6 pb-5 space-y-2 border-t border-white/5 pt-4">
-                {moonMeta.rules.map((rule, i) => (
-                  <p key={i} className="text-white/70 text-[11px] font-bold leading-snug tracking-tight">
-                    {rule}
-                  </p>
-                ))}
-              </div>
+                  {/* Upcoming Sequence (Shown on Normal phase) */}
+                  {lunar.phase === 'NORMAL' && (
+                    <div className="px-6 pb-2.5 flex gap-2 overflow-x-auto scrollbar-none">
+                       {[
+                         { label: 'Ashtami', days: lunar.daysToAshtami, emoji: '🌓', color: 'text-violet-300' },
+                         { label: 'Navami', days: lunar.daysToNavami, emoji: '🌙', color: 'text-sky-300' },
+                         { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: '🌑', color: 'text-indigo-400' },
+                       ].sort((a,b) => a.days - b.days).map((ev, i) => (
+                         <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col items-center min-w-[80px]">
+                            <span className="text-xl mb-1">{ev.emoji}</span>
+                            <p className="text-[7px] font-black uppercase text-white/40 tracking-widest">{ev.label}</p>
+                            <p className={cn("text-[10px] font-black", ev.color)}>{ev.days}d</p>
+                         </div>
+                       ))}
+                    </div>
+                  )}
 
-              {/* Weather Caution Row */}
-              <div className="mx-5 mb-5 bg-white/5 rounded-2xl px-5 py-3.5 flex items-center gap-3 border border-white/5">
-                <Thermometer size={16} className="text-white/40 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-white/80 text-[10px] font-black tracking-tight">Weather × Lunar Interaction</p>
-                  <p className="text-white/40 text-[9px] font-medium mt-0.5">
-                    {lunar.phase === 'AMAVASYA'
-                      ? 'Temp drops amplify DO risk tonight. Run aerators from 9 PM.'
-                      : lunar.phase === 'ASHTAMI_NAVAMI'
-                      ? 'Quarter moon stress + heat stress can compound. Monitor O₂ closely.'
-                      : 'Stable phase. Apply medicines 7–9 AM for best absorption.'}
-                  </p>
-                </div>
-                <Droplets size={16} className="text-white/20 flex-shrink-0" />
-              </div>
-            </motion.div>
-
-            {/* Next Milestone Banner */}
-            {nextMilestone && currentDoc > 0 && (
-              <div className="bg-indigo-900 rounded-[2rem] px-6 py-4 flex items-center justify-between border border-indigo-700/30">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
-                    <Clock size={20} className="text-indigo-300" />
+                  {/* Rules List */}
+                  <div className="px-6 pb-5 space-y-2 border-t border-white/5 pt-4">
+                    {moonMeta.rules.map((rule, i) => (
+                      <p key={i} className="text-white/70 text-[11px] font-bold leading-snug tracking-tight">
+                        {rule}
+                      </p>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-indigo-300/60 text-[8px] font-black uppercase tracking-widest">Next Milestone</p>
-                    <p className="text-white font-black text-sm tracking-tight">{nextMilestone.label}</p>
+
+                  {/* Weather Caution Row */}
+                  <div className="mx-5 mb-5 bg-white/5 rounded-2xl px-5 py-3.5 flex items-center gap-3 border border-white/5">
+                    <Thermometer size={16} className="text-white/40 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-white/80 text-[10px] font-black tracking-tight">Weather × Lunar Interaction</p>
+                      <p className="text-white/40 text-[9px] font-medium mt-0.5">
+                        {lunar.phase === 'AMAVASYA'
+                          ? 'Temp drops amplify DO risk tonight. Run aerators from 9 PM.'
+                          : (lunar.phase === 'ASHTAMI' || lunar.phase === 'NAVAMI')
+                          ? 'Quarter moon stress + heat stress can compound. Monitor O₂ closely.'
+                          : `Stable phase. Next major molting event starts in ${Math.min(lunar.daysToAmavasya, lunar.daysToAshtami, lunar.daysToNavami)} days.`}
+                      </p>
+                    </div>
+                    <Droplets size={16} className="text-white/20 flex-shrink-0" />
                   </div>
-                </div>
-                <div className="bg-white/10 rounded-xl px-3 py-2 text-center">
-                  <p className="text-white font-black text-lg leading-none">+{nextMilestone.doc - currentDoc}</p>
-                  <p className="text-indigo-300/60 text-[8px] font-black uppercase tracking-widest">days</p>
-                </div>
+                </motion.div>
+
+                {/* Next Milestone Banner */}
+                {nextMilestone && currentDoc > 0 && (
+                  <div className="bg-indigo-900 rounded-[2rem] px-6 py-4 flex items-center justify-between border border-indigo-700/30">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
+                        <Clock size={20} className="text-indigo-300" />
+                      </div>
+                      <div>
+                        <p className="text-indigo-300/60 text-[8px] font-black uppercase tracking-widest">Next Milestone</p>
+                        <p className="text-white font-black text-sm tracking-tight">{nextMilestone.label}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl px-3 py-2 text-center">
+                      <p className="text-white font-black text-lg leading-none">+{nextMilestone.doc - currentDoc}</p>
+                      <p className="text-indigo-300/60 text-[8px] font-black uppercase tracking-widest">days</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Phase Status Bar */}
+                {currentDoc > 0 && (
+                  <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[#4A2C2A]/50 text-[9px] font-black uppercase tracking-widest">Current Phase</p>
+                      <span className={cn(
+                        'text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full',
+                        currentPhaseIdx >= 0
+                          ? `${SOP_CYCLE_PHASES[currentPhaseIdx].textColor} ${SOP_CYCLE_PHASES[currentPhaseIdx].bgLight}`
+                          : 'text-[#4A2C2A]/30 bg-[#F8F9FE]'
+                      )}>
+                        {currentPhaseIdx >= 0 ? SOP_CYCLE_PHASES[currentPhaseIdx].label : 'Not started'}
+                      </span>
+                    </div>
+                    {/* Progress Strip */}
+                    <div className="flex gap-1">
+                      {SOP_CYCLE_PHASES.map((phase, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            'flex-1 h-2 rounded-full transition-all',
+                            i < currentPhaseIdx ? 'bg-emerald-400' :
+                            i === currentPhaseIdx ? SOP_CYCLE_PHASES[i].color :
+                            'bg-[#F0F0F0]'
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <span className="text-[7px] font-black text-[#4A2C2A]/20 uppercase tracking-widest">DOC 1</span>
+                      <span className="text-[7px] font-black text-[#4A2C2A]/20 uppercase tracking-widest">DOC 100</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Phase Status Bar */}
-            {currentDoc > 0 && (
-              <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[#4A2C2A]/50 text-[9px] font-black uppercase tracking-widest">Current Phase</p>
-                  <span className={cn(
-                    'text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full',
-                    currentPhaseIdx >= 0
-                      ? `${SOP_CYCLE_PHASES[currentPhaseIdx].textColor} ${SOP_CYCLE_PHASES[currentPhaseIdx].bgLight}`
-                      : 'text-[#4A2C2A]/30 bg-[#F8F9FE]'
-                  )}>
-                    {currentPhaseIdx >= 0 ? SOP_CYCLE_PHASES[currentPhaseIdx].label : 'Not started'}
-                  </span>
-                </div>
-                {/* Progress Strip */}
-                <div className="flex gap-1">
-                  {SOP_CYCLE_PHASES.map((phase, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'flex-1 h-2 rounded-full transition-all',
-                        i < currentPhaseIdx ? 'bg-emerald-400' :
-                        i === currentPhaseIdx ? SOP_CYCLE_PHASES[i].color :
-                        'bg-[#F0F0F0]'
-                      )}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2">
-                  <span className="text-[7px] font-black text-[#4A2C2A]/20 uppercase tracking-widest">DOC 1</span>
-                  <span className="text-[7px] font-black text-[#4A2C2A]/20 uppercase tracking-widest">DOC 100</span>
-                </div>
-              </div>
-            )}
-
-            {/* Tab Switch: Today vs Full Cycle */}
-            <div className="flex gap-3">
-              {(['today', 'cycle'] as const).map(tab => (
+            {/* Tab Switch: Today vs Full Cycle vs Lunar */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {(['today', 'cycle', 'lunar'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    'flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border',
+                    'flex-1 py-4 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
                     activeTab === tab
                       ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
                       : 'bg-white text-[#4A2C2A]/40 border-black/5'
                   )}
                 >
-                  {tab === 'today' ? "Today's SOP" : 'Full Cycle'}
+                  {tab === 'today' ? "Today's SOP" : tab === 'cycle' ? 'Full Cycle' : 'Lunar Planner'}
                 </button>
               ))}
             </div>
 
             <AnimatePresence mode="wait">
-              {activeTab === 'today' ? (
+              {activeTab === 'today' && (
                 <motion.div
                   key="today"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
@@ -632,13 +683,15 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     </>
                   )}
                 </motion.div>
-              ) : (
+              )}
+
+              {activeTab === 'cycle' && (
                 /* Full SOP Cycle View */
                 <motion.div
                   key="cycle"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
                   transition={{ duration: 0.2 }}
                   className="space-y-2"
                 >
@@ -742,10 +795,177 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   })}
                 </motion.div>
               )}
+
+              {/* Lunar Planner Calendar View */}
+              {activeTab === 'lunar' && (
+                <motion.div
+                  key="lunar"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6 pb-10"
+                >
+                  {!selectedPond ? (
+                    <div className="bg-white/80 backdrop-blur-md rounded-[3rem] p-10 text-center border border-black/5 shadow-xl">
+                      <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center text-emerald-500 mx-auto mb-6">
+                        <Waves size={40} />
+                      </div>
+                      <h3 className="text-[#4A2C2A] font-black text-xl tracking-tight mb-2">No Pond Selected</h3>
+                      <p className="text-[#4A2C2A]/40 text-xs font-bold leading-relaxed max-w-[200px] mx-auto">
+                        Please select a pond from the dashboard to see its personalized lunar molting schedule.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-[#051F19] p-7 rounded-[3rem] text-white relative overflow-hidden mb-6">
+                        <div className="relative z-10">
+                           <div className="flex items-center gap-2 mb-2">
+                             <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em]">{selectedPond.name}</p>
+                             <span className="w-1 h-1 rounded-full bg-emerald-400/30" />
+                             <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">DOC {currentDoc}</p>
+                           </div>
+                           <h3 className="text-2xl font-black tracking-tighter mb-4">30-Day Molting Forecast</h3>
+                           <p className="text-white/40 text-[10px] font-medium leading-relaxed">
+                              SOP Integrated: Showing molting triggers for {selectedPond.shrimpType} based on stock date and lunar tides.
+                           </p>
+                        </div>
+                        <div className="absolute right-[-5%] top-[-10%] opacity-10">
+                           <Star size={180} />
+                        </div>
+                      </div>
+
+                      {/* Scrollable Container with 4-row visibility limit */}
+                      <div className="max-h-[460px] overflow-y-auto px-1 pr-2 space-y-4 custom-scrollbar">
+                        <motion.div 
+                          className="grid grid-cols-4 gap-3"
+                          variants={{
+                            show: { transition: { staggerChildren: 0.03 } }
+                          }}
+                          initial="hidden"
+                          animate="show"
+                        >
+                          {lunarForecast.map((day, i) => {
+                            const isToday = i === 0;
+                            const isAmavasya = day.status.phase === 'AMAVASYA';
+                            const isAshtami = day.status.phase === 'ASHTAMI';
+                            const isNavami = day.status.phase === 'NAVAMI';
+                            const isHighRisk = day.status.isHighRisk && !isAmavasya;
+                            
+                            const forecastDoc = currentDoc + i;
+                            const moltCycle = forecastDoc <= 30 ? 4 : forecastDoc <= 60 ? 7 : 12;
+                            const isBiologicalMolt = forecastDoc % moltCycle === 0;
+                            const isLunarMolt = isAmavasya || isNavami || isAshtami;
+                            const isPeakMolt = isBiologicalMolt && isLunarMolt;
+                            const hasMoltRisk = isPeakMolt || isAmavasya || (isBiologicalMolt && day.status.isHighRisk);
+
+                            return (
+                              <motion.div 
+                                key={i}
+                                variants={{
+                                  hidden: { opacity: 0, scale: 0.8 },
+                                  show: { opacity: 1, scale: 1 }
+                                }}
+                                animate={
+                                  (isAmavasya || isAshtami || isNavami) ? { 
+                                    scale: [0.9, 1.05, 1],
+                                    opacity: [0, 1]
+                                  } : { opacity: [0, 1], scale: [0.95, 1] }
+                                }
+                                transition={
+                                  { duration: 0.8, ease: "easeOut", delay: i * 0.02 }
+                                }
+                                className={cn(
+                                  "relative p-3 rounded-[2rem] border flex flex-col items-center justify-between transition-all min-h-[105px]",
+                                  isAmavasya ? "bg-black border-indigo-500 shadow-xl" :
+                                  isAshtami ? "bg-violet-950 border-violet-500/50 shadow-lg" :
+                                  isNavami ? "bg-[#0B1A2E] border-sky-500/30 shadow-lg " :
+                                  isToday ? "bg-emerald-500 border-white shadow-xl shadow-emerald-500/30" :
+                                  "bg-white/80 backdrop-blur-sm border-black/5",
+                                  isHighRisk && "ring-2 ring-indigo-500/10",
+                                  isPeakMolt && "ring-4 ring-amber-500 shadow-xl shadow-amber-500/20 scale-105 z-20"
+                                )}
+                              >
+                                 <div className="w-full flex justify-between items-start mb-1">
+                                    <div className="flex flex-col">
+                                      <span className={cn(
+                                        "text-[7px] font-black uppercase",
+                                        (isAmavasya || isAshtami || isNavami || isToday) ? "text-white/40" : "text-black/10"
+                                      )}>
+                                        {day.date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                                      </span>
+                                      <span className={cn(
+                                        "text-[6px] font-black",
+                                        (isAmavasya || isAshtami || isNavami || isToday) ? "text-white/20" : "text-black/5"
+                                      )}>
+                                        DOC {forecastDoc}
+                                      </span>
+                                    </div>
+                                    {isToday && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                                 </div>
+                                 
+                                 <div className="relative flex flex-col items-center">
+                                   <span className="text-xl mb-0.5">
+                                      {day.status.isExactAmavasya ? '🌑' : 
+                                       day.status.isExactAshtami ? '🌗' : 
+                                       '🌕'}
+                                   </span>
+                                   {hasMoltRisk && (
+                                     <div className={cn(
+                                       "absolute -top-1 -right-3 px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-2xl",
+                                       isPeakMolt ? "bg-amber-500 text-white" : "bg-white text-indigo-900 border border-indigo-100"
+                                     )}>
+                                       <span className="text-[7px] font-black uppercase tracking-widest whitespace-nowrap">
+                                         {isPeakMolt ? '🔥 Peak' : '🦐 Molt'}
+                                       </span>
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 <div className="text-center">
+                                    <p className={cn(
+                                      "text-xs font-black tracking-tight",
+                                      (isAmavasya || isAshtami || isNavami || isToday) ? "text-white" : "text-[#4A2C2A]"
+                                    )}>
+                                      {day.date.getDate()}
+                                    </p>
+                                    <p className={cn(
+                                      "text-[5px] font-black uppercase tracking-widest leading-tight mt-1",
+                                      isAmavasya ? "text-indigo-300" : 
+                                      isAshtami ? "text-violet-300" : 
+                                      isNavami ? "text-purple-300" :
+                                      isToday ? "text-emerald-100" :
+                                      isHighRisk ? "text-indigo-400/60" :
+                                      "text-black/20"
+                                    )}>
+                                      {isAmavasya ? 'AMAVASYA' : isPeakMolt ? 'INTENSIVE' : isAshtami ? 'ASHTAMI' : isNavami ? 'NAVAMI' : isHighRisk ? 'RISK WINDOW' : 'STABLE'}
+                                    </p>
+                                 </div>
+                              </motion.div>
+                            );
+                          })}
+                        </motion.div>
+                      </div>
+
+                      <div className="bg-[#C78200]/5 p-6 rounded-[2.5rem] border border-[#C78200]/10 mt-6">
+                         <div className="flex items-center gap-3 mb-3 text-[#C78200]">
+                            <AlertTriangle size={18} />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest">personalized Planning Tip</h4>
+                         </div>
+                         <p className="text-[#4A2C2A]/60 text-[11px] leading-relaxed font-bold">
+                            Based on your pond's stock date ({selectedPond.shrimpType}), the next heavy molting is predicted across {currentDoc < 45 ? '3-5' : '7-10'} days. 
+                            <span className="text-indigo-900 font-black ml-1">🌕 Full Moon</span> triggers on {lunarForecast.find(d => d.date.getDate() === 17)?.date.toLocaleDateString() || 'cycle peak'}. 
+                            Ensure DO is &gt; 5ppm.
+                         </p>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              )}
             </AnimatePresence>
 
-            {/* Dynamic Disease Alert Section */}
-            {currentDoc > 0 && (
+            {/* Dynamic Disease Alert Section (Hidden on Lunar tab) */}
+            {currentDoc > 0 && activeTab !== 'lunar' && (
               <section className="bg-red-50 rounded-[2.5rem] p-7 border border-red-100 relative overflow-hidden">
                 <div className="flex items-center gap-4 mb-5">
                   <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-500/20">
@@ -796,48 +1016,51 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
               </section>
             )}
 
-            {/* Weekly Model Card */}
-            <section className="bg-white rounded-[2.5rem] p-7 border border-black/5 shadow-sm">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 bg-[#C78200]/10 rounded-2xl flex items-center justify-center text-[#C78200]">
-                  <Calendar size={20} />
+
+            {/* Weekly Model Card (Hidden on Lunar and Full Cycle tabs to avoid confusion) */}
+            {activeTab === 'today' && (
+              <section className="bg-white rounded-[2.5rem] p-7 border border-black/5 shadow-sm">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 bg-[#C78200]/10 rounded-2xl flex items-center justify-center text-[#C78200]">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-[#4A2C2A] font-black text-base tracking-tight">Weekly SOP Model</h3>
+                    <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest">Recurring schedule</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-[#4A2C2A] font-black text-base tracking-tight">Weekly SOP Model</h3>
-                  <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest">Recurring schedule</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { day: 'Mon', task: 'Mineral Mix Application', color: 'bg-amber-500' },
-                  { day: 'Tue', task: 'Water Probiotic (1st)', color: 'bg-blue-500' },
-                  { day: 'Wed', task: 'Gut Probiotic (Intensive)', color: 'bg-emerald-500' },
-                  { day: 'Thu', task: 'Water Probiotic (2nd)', color: 'bg-blue-400' },
-                  { day: 'Fri', task: 'Mineral Stabilization', color: 'bg-amber-400' },
-                  { day: 'Sat', task: 'Immunity Booster', color: 'bg-red-500' },
-                  { day: 'Sun', task: 'Full Water Parameter Check', color: 'bg-[#0D523C]' },
-                ].map((item, i) => {
-                  const dayIdx = [1,2,3,4,5,6,0][i];
-                  const isToday = dayIdx === dayOfWeek;
-                  return (
-                    <div key={i} className={cn(
-                      'flex items-center gap-4 p-3 rounded-2xl transition-all',
-                      isToday ? 'bg-[#0D523C]/5 border border-[#0D523C]/10' : 'hover:bg-[#F8F9FE]'
-                    )}>
-                      <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', item.color)}>
-                        <span className="text-[9px] font-black text-white">{item.day}</span>
+                <div className="space-y-2">
+                  {[
+                    { day: 'Mon', task: 'Mineral Mix Application', color: 'bg-amber-500' },
+                    { day: 'Tue', task: 'Water Probiotic (1st)', color: 'bg-blue-500' },
+                    { day: 'Wed', task: 'Gut Probiotic (Intensive)', color: 'bg-emerald-500' },
+                    { day: 'Thu', task: 'Water Probiotic (2nd)', color: 'bg-blue-400' },
+                    { day: 'Fri', task: 'Mineral Stabilization', color: 'bg-amber-400' },
+                    { day: 'Sat', task: 'Immunity Booster', color: 'bg-red-500' },
+                    { day: 'Sun', task: 'Full Water Parameter Check', color: 'bg-[#0D523C]' },
+                  ].map((item, i) => {
+                    const dayIdx = [1,2,3,4,5,6,0][i];
+                    const isToday = dayIdx === dayOfWeek;
+                    return (
+                      <div key={i} className={cn(
+                        'flex items-center gap-4 p-3 rounded-2xl transition-all',
+                        isToday ? 'bg-[#0D523C]/5 border border-[#0D523C]/10' : 'hover:bg-[#F8F9FE]'
+                      )}>
+                        <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', item.color)}>
+                          <span className="text-[9px] font-black text-white">{item.day}</span>
+                        </div>
+                        <p className={cn('text-[11px] font-black tracking-tight flex-1', isToday ? 'text-[#0D523C]' : 'text-[#4A2C2A]')}>
+                          {item.task}
+                        </p>
+                        {isToday && (
+                          <span className="text-[7px] font-black text-[#0D523C] bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-widest">Today</span>
+                        )}
                       </div>
-                      <p className={cn('text-[11px] font-black tracking-tight flex-1', isToday ? 'text-[#0D523C]' : 'text-[#4A2C2A]')}>
-                        {item.task}
-                      </p>
-                      {isToday && (
-                        <span className="text-[7px] font-black text-[#0D523C] bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-widest">Today</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
           </>
         )}

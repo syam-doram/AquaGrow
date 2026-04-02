@@ -218,13 +218,14 @@ const AppContent = () => {
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.24, ease: [0.33, 1, 0.68, 1] }}
+              className="w-full min-h-screen relative z-10"
             >
               <Routes location={location}>
                 {/* Farmer Routes */}

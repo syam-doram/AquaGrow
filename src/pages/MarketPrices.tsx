@@ -45,7 +45,10 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
   }
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen">
+    <div className="pb-40 bg-transparent min-h-screen relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-20 right-[-10%] w-[80%] h-[30%] bg-amber-100/10 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
       <Header title={t.market} onMenuClick={onMenuClick} />
       
       <div className="pt-24 px-4 py-6">
@@ -170,7 +173,9 @@ const CountDetailView = ({ price, t, onBack }: { price: any, t: Translations, on
   ];
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
+    <div className="pb-40 bg-transparent min-h-screen text-left relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-20 right-[-10%] w-[80%] h-[30%] bg-blue-100/10 rounded-full blur-[100px] -z-10" />
       <Header title={`${price.shrimpSize} ${t.count}`} showBack onBack={onBack} />
       
       <div className="pt-24 px-4 py-8 space-y-8 animate-in slide-in-from-right duration-500">

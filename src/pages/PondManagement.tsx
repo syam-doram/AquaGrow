@@ -38,7 +38,9 @@ export const PondManagement = ({ t, onMenuClick }: { t: Translations, onMenuClic
   const filteredPonds = ponds.filter(p => p.status === activeTab);
 
   return (
-    <div className="pb-32 bg-[#F8F9FE] min-h-screen">
+    <div className="pb-32 bg-transparent min-h-screen relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-0 right-0 w-[80%] h-[30%] bg-emerald-100/10 rounded-full blur-[100px] -z-10" />
       <Header title={t.ponds} onMenuClick={onMenuClick} />
       
       <div className="pt-24 px-4 flex gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">

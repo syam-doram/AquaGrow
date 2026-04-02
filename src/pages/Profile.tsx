@@ -26,7 +26,10 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
   if (!user) return <div className="p-10 text-center">Please login to view profile</div>;
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen">
+    <div className="pb-40 bg-transparent min-h-screen relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-0 right-0 w-[80%] h-[30%] bg-blue-100/10 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[20%] left-0 w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
       <Header title={t.profile} onMenuClick={onMenuClick} />
       
       <div className="pt-24 px-4 py-8">

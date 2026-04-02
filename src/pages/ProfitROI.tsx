@@ -291,7 +291,10 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   }
 
   return (
-    <div className="pb-[180px] bg-[#F8F9FE] min-h-[100dvh] font-sans">
+    <div className="pb-[180px] bg-transparent min-h-[100dvh] font-sans relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-20 right-[-10%] w-[80%] h-[30%] bg-emerald-100/10 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-amber-50/10 rounded-full blur-[120px] -z-10" />
       <Header title={t.roi} showBack={false} onMenuClick={onMenuClick} />
 
       {/* Generating PDF Overlay */}

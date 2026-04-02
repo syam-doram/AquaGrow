@@ -185,7 +185,10 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
   );
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left font-sans">
+    <div className="pb-40 bg-transparent min-h-screen text-left font-sans relative overflow-hidden">
+      {/* ── Page Accents (Layered with Global) ── */}
+      <div className="absolute top-0 right-0 w-[80%] h-[30%] bg-blue-100/10 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[20%] left-0 w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
       <Header title={t.monitor} showBack onMenuClick={onMenuClick} />
 
       <div className="pt-28 px-6 space-y-8">
