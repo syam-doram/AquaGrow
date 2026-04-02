@@ -178,7 +178,7 @@ const AppContent = () => {
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
 
   return (
-    <div className="w-full max-w-md mx-auto bg-[#F8F9FE] min-h-screen relative shadow-2xl overflow-x-hidden font-sans">
+    <div className="w-full max-w-md mx-auto bg-[#F8F9FE] min-h-[100dvh] relative shadow-2xl overflow-x-hidden font-sans">
       {!user ? (
         <AuthScreen t={t} />
       ) : (

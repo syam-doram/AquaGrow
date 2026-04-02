@@ -61,6 +61,19 @@
   }
 }
 
+/* ――― SAFE AREA INSETS FOR CAPACITOR MOBILE APPS ――― */
+header.fixed {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+nav.fixed {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.pb-32, .pb-40 {
+  padding-bottom: max(8rem, calc(8rem + env(safe-area-inset-bottom))) !important;
+}
+
 /* Custom scrollbar for a cleaner look */
 ::-webkit-scrollbar {
   width: 4px;
