@@ -134,7 +134,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
 
     const access  = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id: user._id });
-    refreshTokenStore.add(refresh);
+    await saveRefreshToken(user._id, refresh);
     res.status(201).json({ user, subscription: sub, access_token: access, refresh_token: refresh });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
