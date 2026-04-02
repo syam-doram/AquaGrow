@@ -84,7 +84,7 @@ export const generateReminders = (
        }
     });
 
-    // 🌙 3. LUNAR ALERTS
+    // 🌙 3. LUNAR ALERTS (SOP)
     if (lunar.phase === 'AMAVASYA') {
       reminders.push({
         id: `moon-${pond.id}-amavasya`,
@@ -92,19 +92,43 @@ export const generateReminders = (
         pondName: pond.name,
         type: 'moon',
         title: translations.moonCycleAlert,
-        description: translations.reduceFeedAmavasya,
+        description: translations.reduceFeedAmavasya || 'SOP: Reduce feed 20% tonight',
         time: '07:00',
         status: (currentHour > 7) ? 'completed' : 'pending',
         priority: 'high'
       });
-    } else if (lunar.phase === 'ASHTAMI_NAVAMI') {
+    } else if (lunar.phase === 'POURNAMI') {
+      reminders.push({
+        id: `moon-${pond.id}-pournami`,
+        pondId: pond.id,
+        pondName: pond.name,
+        type: 'moon',
+        title: translations.moonCycleAlert,
+        description: 'SOP: Increase aeration for high demand',
+        time: '07:00',
+        status: (currentHour > 7) ? 'completed' : 'pending',
+        priority: 'high'
+      });
+    } else if (lunar.phase === 'ASHTAMI') {
       reminders.push({
         id: `moon-${pond.id}-ashtami`,
         pondId: pond.id,
         pondName: pond.name,
         type: 'moon',
         title: translations.moonCycleAlert,
-        description: translations.addMineralsAshtami,
+        description: translations.addMineralsAshtami || 'SOP: Add minerals for molting support',
+        time: '07:00',
+        status: (currentHour > 7) ? 'completed' : 'pending',
+        priority: 'medium'
+      });
+    } else if (lunar.phase === 'NAVAMI') {
+      reminders.push({
+        id: `moon-${pond.id}-navami`,
+        pondId: pond.id,
+        pondName: pond.name,
+        type: 'moon',
+        title: translations.moonCycleAlert,
+        description: 'SOP: Light feeding today',
         time: '07:00',
         status: (currentHour > 7) ? 'completed' : 'pending',
         priority: 'medium'

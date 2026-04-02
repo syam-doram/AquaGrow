@@ -35,13 +35,13 @@ export const Header = ({ title, showBack = false, onBack, rightElement, onMenuCl
         )}
       </div>
       
-      <h1 className="text-[#4A2C2A] font-black text-sm tracking-tight">{title}</h1>
+      <h1 className="text-[#4A2C2A] font-black text-base tracking-tighter">{title}</h1>
 
       <div className="flex items-center gap-3">
         {rightElement || (
-          <button className="p-1.5 text-primary/40 relative">
-            <Bell size={18} />
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#4F7AFF] rounded-full"></span>
+          <button className="p-2 text-primary/40 relative active:scale-95 transition-all">
+            <Bell size={22} className="text-[#4A2C2A]/20" />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-[#C78200] rounded-full border-2 border-white shadow-sm"></span>
           </button>
         )}
       </div>

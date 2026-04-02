@@ -52,27 +52,27 @@ export const getEnginePhase = (doc: number) => {
 export const getDailySchedule = (doc: number): DailyTask[] => {
   if (doc <= 30) return [
     { time: '06:00 AM', task: 'Morning Feed', type: 'feed' },
-    { time: '09:00 AM', task: 'Check Feed Trays', type: 'check' },
     { time: '10:00 AM', task: 'Mid-Morning Feed', type: 'feed' },
-    { time: '02:00 PM', task: 'Afternoon Feed', type: 'feed' },
-    { time: '06:00 PM', task: 'Evening Feed + Apply Probiotic', type: 'med' },
+    { time: '02:00 PM', task: 'Afternoon Feed (Slot 3)', type: 'feed' },
+    { time: '05:00 PM', task: 'Evening Feed (Slot 4)', type: 'feed' },
+    { time: '06:00 PM', task: 'Apply Water Probiotic', type: 'med' },
     { time: '09:00 PM', task: 'Aerator ON', type: 'aerator' },
   ];
   if (doc <= 60) return [
     { time: '06:00 AM', task: 'Morning Feed', type: 'feed' },
-    { time: '09:00 AM', task: 'Water Check (DO/pH)', type: 'check' },
-    { time: '12:00 PM', task: 'Mid-Day Feed', type: 'feed' },
-    { time: '03:00 PM', task: 'Afternoon Feed', type: 'feed' },
-    { time: '06:00 PM', task: 'Apply Probiotic / Liver Tonic', type: 'med' },
+    { time: '10:00 AM', task: 'Check Feed Trays', type: 'check' },
+    { time: '02:00 PM', task: 'Afternoon Feed (Slot 3)', type: 'feed' },
+    { time: '05:00 PM', task: 'Evening Feed (Slot 4)', type: 'feed' },
+    { time: '07:00 PM', task: 'Apply Soil Probiotic', type: 'med' },
     { time: '09:00 PM', task: 'Aerator Full ON', type: 'aerator' },
   ];
   return [
     { time: '06:00 AM', task: 'Morning Feed', type: 'feed' },
     { time: '10:00 AM', task: 'Water parameters check', type: 'check' },
-    { time: '12:30 PM', task: 'Mid-Day Feed', type: 'feed' },
-    { time: '05:30 PM', task: 'Evening Feed', type: 'feed' },
-    { time: '07:00 PM', task: 'High Dose Minerals', type: 'med' },
-    { time: '08:00 PM', task: 'Aerator 100% Capacity', type: 'aerator' },
+    { time: '02:00 PM', task: 'Afternoon Feed (Slot 3)', type: 'feed' },
+    { time: '05:00 PM', task: 'Evening Feed (Slot 4)', type: 'feed' },
+    { time: '07:30 PM', task: 'High Dose Minerals', type: 'med' },
+    { time: '08:30 PM', task: 'Aerator 100% Capacity', type: 'aerator' },
   ];
 };
 

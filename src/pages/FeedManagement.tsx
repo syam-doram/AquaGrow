@@ -17,7 +17,7 @@ import { useData } from '../context/DataContext';
 import { Header } from '../components/Header';
 import { Translations } from '../translations';
 import { calculateDOC } from '../utils/pondUtils';
-import { getLunarStatus } from '../utils/lunarUtils';
+import { getLunarStatus, MoonPhase } from '../utils/lunarUtils';
 import { cn } from '../utils/cn';
 
 // ─── WEATHER SIMULATION ───────────────────────────────────────────────────────
@@ -65,31 +65,32 @@ const getSopData = (doc: number) => {
 const buildFeedSlots = (count: number, t: Translations) => {
   if (count === 5) return [
     { time: '06:00 AM', hour: 6, label: t.morning1 },
-    { time: '09:30 AM', hour: 9, label: t.morning2 },
-    { time: '01:00 PM', hour: 13, label: t.afternoon },
-    { time: '04:30 PM', hour: 16, label: t.evening1 },
-    { time: '08:00 PM', hour: 20, label: t.evening2 }
+    { time: '10:00 AM', hour: 10, label: t.morning2 },
+    { time: '02:00 PM', hour: 14, label: t.afternoon },
+    { time: '05:00 PM', hour: 17, label: t.evening1 },
+    { time: '08:30 PM', hour: 20, label: t.evening2 }
   ];
   if (count === 4) return [
     { time: '06:00 AM', hour: 6, label: t.morning1 },
     { time: '10:00 AM', hour: 10, label: t.morning2 },
-    { time: '03:00 PM', hour: 15, label: t.afternoon },
-    { time: '07:00 PM', hour: 19, label: t.evening1 }
+    { time: '02:00 PM', hour: 14, label: t.afternoon },
+    { time: '05:00 PM', hour: 17, label: t.evening1 }
   ];
   return [
     { time: '07:00 AM', hour: 7, label: t.morning1 },
-    { time: '12:00 PM', hour: 12, label: t.afternoon },
+    { time: '01:00 PM', hour: 13, label: t.afternoon },
     { time: '05:00 PM', hour: 17, label: t.evening1 }
   ];
 };
 
 interface Adjustment { factor: number; label: string; reason: string; severity: 'HIGH' | 'MEDIUM' | 'LOW'; color: string; icon: React.ElementType; }
-const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPhase: 'AMAVASYA' | 'ASHTAMI' | 'NAVAMI' | 'NORMAL', t: Translations): Adjustment[] => {
+const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPhase: MoonPhase, t: Translations): Adjustment[] => {
   const adj: Adjustment[] = [];
   if (weather.temp >= 34) adj.push({ factor: 0.80, label: `${t.heatStress} -20%`, reason: `Temp ${weather.temp}°C`, severity: 'HIGH', color: 'text-red-500', icon: Thermometer });
   if (weather.isRaining) adj.push({ factor: 0.85, label: `${t.rainEvent} -15%`, reason: 'Rain lowers DO', severity: 'HIGH', color: 'text-blue-500', icon: Droplets });
   
   if (lunarPhase === 'AMAVASYA') adj.push({ factor: 0.75, label: `🌑 Amavasya -25%`, reason: 'Max molting', severity: 'HIGH', color: 'text-indigo-500', icon: Zap });
+  else if (lunarPhase === 'POURNAMI') adj.push({ factor: 1.0, label: `🌕 Pournami SOP`, reason: 'High Bio-demand', severity: 'MEDIUM', color: 'text-indigo-400', icon: Zap });
   else if (lunarPhase === 'ASHTAMI') adj.push({ factor: 0.90, label: `🌓 Ashtami -10%`, reason: 'Molting start', severity: 'MEDIUM', color: 'text-violet-500', icon: Zap });
   else if (lunarPhase === 'NAVAMI') adj.push({ factor: 0.85, label: `🌙 Navami -15%`, reason: 'Molting peak', severity: 'HIGH', color: 'text-purple-500', icon: Zap });
 
@@ -140,7 +141,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
       <Header 
         title={t.feedManagement} 
-        showBack={true} 
+        showBack={false} 
         onMenuClick={onMenuClick} 
         rightElement={selectedPond && (
           <div className="bg-white/80 backdrop-blur-md border border-black/5 px-4 py-2 rounded-full shadow-sm">

@@ -189,7 +189,7 @@ const AppContent = () => {
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
 
   return (
-    <div className="w-full max-w-md mx-auto bg-[#F7F9F7] min-h-[100dvh] relative shadow-2xl overflow-x-hidden font-sans">
+    <div className="w-full max-w-md mx-auto bg-[#FFFDF5] min-h-[100dvh] relative sm:shadow-2xl overflow-x-hidden font-sans border-x border-black/5 sm:border-none">
       {/* ── GLOBAL MESH GRADIENT ACCENTS ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-5%] left-[-10%] w-[70%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px] animate-pulse" />

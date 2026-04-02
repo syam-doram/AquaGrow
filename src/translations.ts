@@ -189,8 +189,10 @@ export interface Translations {
   count: string;
   ultraHigh: string;
   liveMarketRates: string;
-
-  // Auth & Registration
+  aiDisease: string;
+  learningCenter: string;
+  expertConsultations: string;
+  elevateYield: string;
   login: string;
   register: string;
   enterOtp: string;
@@ -533,6 +535,10 @@ const English: Translations = {
   count: 'Count',
   ultraHigh: 'Ultra High',
   liveMarketRates: 'Live Market Rates',
+  aiDisease: 'AI Disease Detect',
+  learningCenter: 'Learning Center',
+  expertConsultations: 'Expert Consultations',
+  elevateYield: 'Elevate your yield with AquaGrow Pro',
   login: 'Login',
   register: 'Register',
   enterOtp: 'Enter OTP',
@@ -874,6 +880,10 @@ const Telugu: Translations = {
   count: 'కౌంట్',
   ultraHigh: 'అత్యంత అధికం',
   liveMarketRates: 'ప్రత్యక్ష మార్కెట్ ధరలు',
+  aiDisease: 'AI వ్యాధి గుర్తింపు',
+  learningCenter: 'లెర్నింగ్ సెంటర్',
+  expertConsultations: 'నిపుణుల సంప్రదింపులు',
+  elevateYield: 'అక్వాగ్రో ప్రోతో మీ దిగుబడిని పెంచుకోండి',
   login: 'లాగిన్',
   register: 'నమోదు',
   enterOtp: 'OTPని నమోదు చేయండి',

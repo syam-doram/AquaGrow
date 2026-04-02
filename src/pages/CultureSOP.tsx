@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ChevronLeft, Info, Droplets, Zap, AlertTriangle, CheckCircle2,
   Calendar, Clock, ShieldCheck, Thermometer, Wind, Waves, Pill,
-  Moon, Sun, CloudRain, ShieldAlert, Sparkles
+  Moon, Sun, CloudRain, ShieldAlert, Sparkles, Utensils
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -12,6 +12,14 @@ import { calculateDOC } from '../utils/pondUtils';
 import { getLunarStatus } from '../utils/lunarUtils';
 import { cn } from '../utils/cn';
 import { sop100Days } from '../utils/sopSchedule';
+import { format, subDays, isSameDay, addDays, startOfToday } from 'date-fns';
+import { 
+  WEATHER_ALERTS, 
+  WATER_QUALITY_ALERTS, 
+  DISEASE_ALERTS, 
+  FEEDING_ALERTS, 
+  getActiveSOPAlerts 
+} from '../utils/alertRules';
 
 // ─── UTILS & GENERATORS ────────────────────────────────────────────────────────
 const getSimulatedWeather = () => {
@@ -79,7 +87,18 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
   const pond = ponds.find(p => p.id === selectedPondId);
 
   const [now, setNow] = useState(new Date());
-  useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+
+  useEffect(() => { 
+    const timer = setInterval(() => setNow(new Date()), 1000); 
+    return () => clearInterval(timer); 
+  }, []);
+
+  useEffect(() => {
+    import('../utils/lunarUtils').then(m => {
+      setUpcomingEvents(m.getUpcomingMoonEvents(10));
+    });
+  }, []);
 
   if (!pond) return null;
 
@@ -103,15 +122,24 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
   const lunar = getLunarStatus(now);
   const weather = getSimulatedWeather();
   const isAmavasya = lunar.phase === 'AMAVASYA';
-  const isAshtami = lunar.phase === 'ASHTAMI_NAVAMI';
+  const isAshtami = lunar.phase === 'ASHTAMI';
+  const isNavami = lunar.phase === 'NAVAMI';
 
-  // Smart Alerts Logic
-  const smartAlerts = [];
-  if (weather.doLevel < 5) smartAlerts.push({ title: 'Increase aeration immediately', trigger: `DO < 5 (${weather.doLevel} ppm)`, type: 'critical' });
-  if (currentDoc >= 30 && currentDoc <= 45) smartAlerts.push({ title: 'Disease risk extremely high', trigger: `DOC = ${currentDoc}`, type: 'warning' });
-  if (weather.isRaining) smartAlerts.push({ title: 'Stop feeding temporarily & check salinity', trigger: 'Rain forecast', type: 'critical' });
-  if (weather.temp < 25) smartAlerts.push({ title: 'Reduce feed + check shrimp stress', trigger: 'Temperature drop', type: 'warning' });
-  // (In a real app, 'feed not consumed' would be derived from the tray check logs)
+  // Smart Alerts Logic (Dynamic Refined)
+  const smartAlerts = getActiveSOPAlerts({
+    temp: weather.temp,
+    isRaining: weather.isRaining,
+    isHeavyRain: false, // Simulated
+    doLevel: weather.doLevel,
+    ph: 7.8, // Default active
+    ammonia: 0.02,
+    turbidity: 20,
+    windSpeed: 10,
+    feedConsumed: true,
+    shrimpMovement: 'normal',
+    hasWSSVRisk: currentDoc >= 30 && currentDoc <= 45,
+    hasVibriosisSymptoms: false
+  });
 
   return (
     <div className="pb-[400px] bg-[#F8F9FE] min-h-screen font-sans">
@@ -237,32 +265,62 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         </div>
 
         {/* ── 3. MOON CYCLE INTEGRATION ── */}
-        <div className="bg-[#051F19] rounded-[2rem] p-6 border border-[#0D523C]/30 text-white shadow-lg relative overflow-hidden">
-           <Moon size={100} className="absolute right-[-5%] top-[-5%] opacity-5 text-emerald-400" />
-           <div className="flex justify-between items-start mb-4 relative z-10">
+        <div className="bg-[#051F19] rounded-[3.5rem] p-8 border border-[#0D523C]/30 text-white shadow-lg relative overflow-hidden">
+           <Moon size={150} className="absolute right-[-10%] top-[-5%] opacity-5 text-emerald-400 rotate-12" />
+           <div className="flex justify-between items-start mb-6 relative z-10">
               <div>
-                 <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5"><Moon size={12}/> Lunar Calendar Engine</p>
-                 <h3 className="text-lg font-black tracking-tight">{lunar.phase === 'AMAVASYA' ? 'Amavasya Active' : lunar.phase === 'ASHTAMI_NAVAMI' ? 'Quarter Moon Active' : 'Normal Moon Phase'}</h3>
+                 <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-1 flex items-center gap-1.5"><Moon size={12} fill="currentColor"/> Lunar Calendar Engine</p>
+                 <h3 className="text-xl font-black tracking-tighter">Moon Cycle Alerts (~10)</h3>
               </div>
            </div>
            
-           <div className="space-y-3 relative z-10">
-              {isAmavasya ? (
-                <>
-                  <LunarRule rule="Reduce feed (-20%)" desc="Mass molting prevents feeding" />
-                  <LunarRule rule="Add minerals" desc="Required for new shell hardening" />
-                  <LunarRule rule="Increase aeration" desc="DO drops heavily during molting" />
-                </>
-              ) : isAshtami ? (
-                <>
-                  <LunarRule rule="Add Mineral (Medium Dose)" desc="Partial molting support" />
-                  <LunarRule rule="Light Probiotic" desc="Maintain gut health" />
-                </>
-              ) : (
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
-                  <p className="text-xs font-black text-emerald-300">No lunar restrictions today.</p>
-                </div>
+           <div className="space-y-4 relative z-10">
+              {/* Active Alert */}
+              {lunar.phase !== 'NORMAL' && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  className="bg-emerald-500/10 p-5 rounded-[2.5rem] border border-emerald-500/30">
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active SOP Now
+                  </p>
+                  <h4 className="text-lg font-black tracking-tighter mb-2">
+                    {lunar.phase} Phase
+                  </h4>
+                  {lunar.phase === 'AMAVASYA' && <LunarRule rule="Reduce feed 20%" desc="Mass molting prevents feeding" />}
+                  {lunar.phase === 'POURNAMI' && <LunarRule rule="Increase aeration" desc="High biological demand during full moon" />}
+                  {lunar.phase === 'ASHTAMI' && <LunarRule rule="Add minerals" desc="Required for partial shell hardening" />}
+                  {lunar.phase === 'NAVAMI' && <LunarRule rule="Light feeding" desc="Prevent organic load during stress" />}
+                </motion.div>
               )}
+
+              {/* Upcoming List */}
+              <div className="bg-white/5 rounded-[2.2rem] p-6 border border-white/10">
+                <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Upcoming SOP Events</p>
+                <div className="space-y-3">
+                  {upcomingEvents.map((ev, i) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 hover:bg-white/5 rounded-xl px-2 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                          ev.status.phase === 'AMAVASYA' ? "bg-slate-800" : ev.status.phase === 'POURNAMI' ? "bg-amber-100 text-amber-600" : "bg-white/10"
+                        )}>
+                          <Moon size={14} className={ev.status.phase === 'NORMAL' ? '' : 'fill-currentColor'} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black tracking-tight">{ev.status.phase}</p>
+                          <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">{format(ev.date, 'MMM d, EEE')}</p>
+                        </div>
+                      </div>
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest text-right max-w-[120px]">
+                        {ev.status.phase === 'AMAVASYA' ? 'Reduce Feed 20%' : 
+                         ev.status.phase === 'POURNAMI' ? 'Inc. Aeration' : 
+                         ev.status.phase === 'ASHTAMI' ? 'Add Minerals' : 
+                         ev.status.phase === 'NAVAMI' ? 'Light Feeding' : 'Standard'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
            </div>
         </div>
 
@@ -297,7 +355,7 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         </div>
 
         {/* ── 5. SMART ALERTS SYSTEM RECAP ── */}
-        {(smartAlerts.length > 0 || weather.doLevel < 5) && (
+        {smartAlerts.length > 0 && (
           <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-red-500/20 relative overflow-hidden">
              <div className="flex items-center justify-between mb-4">
                <div>
@@ -310,31 +368,103 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
              </div>
 
              <div className="space-y-3">
-                {smartAlerts.map((al, idx) => (
-                  <div key={idx} className={cn(
-                    "p-4 rounded-2xl border",
-                    al.type === 'critical' ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"
-                  )}>
-                     <div className="flex justify-between items-center mb-1">
-                        <p className={cn("text-[9px] font-black uppercase tracking-widest", al.type === 'critical' ? "text-red-600/60" : "text-amber-600/60")}>
-                           IF [{al.trigger}]
-                        </p>
-                     </div>
-                     <p className={cn("font-black text-sm tracking-tight", al.type === 'critical' ? "text-red-600" : "text-amber-600")}>
-                        👉 "{al.title}"
-                     </p>
-                  </div>
-                ))}
-
-                {smartAlerts.length === 0 && (
-                   <div className="p-4 rounded-2xl border bg-emerald-50 border-emerald-200">
-                     <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/60 mb-1">ALL SYSTEMS NOMINAL</p>
-                     <p className="font-black text-sm tracking-tight text-emerald-700">No active risk flags dynamically detected.</p>
+                 {smartAlerts.map((al, idx) => (
+                   <div key={idx} className={cn(
+                     "p-4 rounded-2xl border",
+                     al.priority === 'CRITICAL' ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"
+                   )}>
+                      <div className="flex justify-between items-center mb-1">
+                         <p className={cn("text-[9px] font-black uppercase tracking-widest", al.priority === 'CRITICAL' ? "text-red-600/60" : "text-amber-600/60")}>
+                            IF [{al.condition}]
+                         </p>
+                      </div>
+                      <p className={cn("font-black text-sm tracking-tight", al.priority === 'CRITICAL' ? "text-red-600" : "text-amber-600")}>
+                         👉 "{al.alert}"
+                      </p>
                    </div>
-                )}
+                 ))}
              </div>
           </div>
         )}
+
+        {/* ── 5A. WEATHER ALERTS REFERENCE ── */}
+        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Weather Alerts (~15)</h3>
+              <Wind className="text-blue-500" size={20} />
+           </div>
+           <div className="space-y-3">
+              <div className="grid grid-cols-2 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+                 <span>Condition</span>
+                 <span>SOP Alert</span>
+              </div>
+              {WEATHER_ALERTS.map((al, i) => (
+                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                    <span className="text-xs font-black text-slate-800 tracking-tight">{al.condition}</span>
+                    <span className="text-xs font-black text-blue-600 tracking-tight">{al.alert}</span>
+                 </div>
+              ))}
+           </div>
+        </section>
+
+        {/* ── 5B. WATER QUALITY ALERTS REFERENCE ── */}
+        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">⚠️ Water Quality Alerts (~15)</h3>
+              <Waves className="text-emerald-500" size={20} />
+           </div>
+           <div className="space-y-3">
+              <div className="grid grid-cols-2 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+                 <span>Condition</span>
+                 <span>SOP Alert</span>
+              </div>
+              {WATER_QUALITY_ALERTS.map((al, i) => (
+                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                    <span className="text-xs font-black text-slate-800 tracking-tight">{al.condition}</span>
+                    <span className="text-xs font-black text-emerald-600 tracking-tight">{al.alert}</span>
+                 </div>
+              ))}
+           </div>
+        </section>
+
+        {/* ── 5C. DISEASE ALERTS REFERENCE ── */}
+        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">🦠 Disease Alerts (~10)</h3>
+              <ShieldAlert className="text-red-500" size={20} />
+           </div>
+           <div className="space-y-3">
+              <div className="grid grid-cols-1 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+                 <span>Condition & Alert</span>
+              </div>
+              {DISEASE_ALERTS.map((al, i) => (
+                 <div key={i} className="px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                    <p className="text-xs font-black text-slate-800 tracking-tight mb-1">{al.condition}</p>
+                    <p className="text-[10px] font-black text-red-600 uppercase tracking-widest leading-none">👉 {al.alert}</p>
+                 </div>
+              ))}
+           </div>
+        </section>
+
+        {/* ── 5D. FEEDING ALERTS REFERENCE ── */}
+        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">🍤 Feeding Alerts (~10)</h3>
+              <Utensils className="text-[#C78200]" size={20} />
+           </div>
+           <div className="space-y-3">
+              <div className="grid grid-cols-2 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+                 <span>Condition</span>
+                 <span>SOP Alert</span>
+              </div>
+              {FEEDING_ALERTS.map((al, i) => (
+                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                    <span className="text-xs font-black text-slate-800 tracking-tight">{al.condition}</span>
+                    <span className="text-xs font-black text-amber-600 tracking-tight">{al.alert}</span>
+                 </div>
+              ))}
+           </div>
+        </section>
         </>
         )}
 

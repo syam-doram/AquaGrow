@@ -8,7 +8,7 @@
 const REFERENCE_AMAVASYA = new Date('2026-03-19T06:53:00').getTime();
 const SYNODIC_MONTH = 29.530588 * 24 * 60 * 60 * 1000;
 
-export type MoonPhase = 'AMAVASYA' | 'ASHTAMI' | 'NAVAMI' | 'NORMAL';
+export type MoonPhase = 'AMAVASYA' | 'POURNAMI' | 'ASHTAMI' | 'NAVAMI' | 'NORMAL';
 
 export interface LunarStatus {
   phase: MoonPhase;
@@ -16,8 +16,12 @@ export interface LunarStatus {
   daysToAshtami: number;
   daysToNavami: number;
   daysSinceAmavasya: number;
+  daysSinceAshtami: number;
+  daysSinceNavami: number;
+  daysSincePournami: number;
   isHighRisk: boolean;
   isExactAmavasya: boolean;
+  isExactPournami: boolean;
   isExactAshtami: boolean;
   isExactNavami: boolean;
 }
@@ -32,6 +36,7 @@ export const getLunarStatus = (date: Date = new Date()): LunarStatus => {
 
   // Exact Peak Days (1 day each) - Optimized for 2026 Calendar alignment
   const isExactAmavasya = normalizedDay >= 0 && normalizedDay < 1;
+  const isExactPournami = normalizedDay >= 14.2 && normalizedDay < 15.2;
   const isExactAshtami = (normalizedDay >= 6.8 && normalizedDay < 7.8) || (normalizedDay >= 21.8 && normalizedDay < 22.8);
   const isExactNavami = (normalizedDay >= 7.8 && normalizedDay < 8.8) || (normalizedDay >= 22.8 && normalizedDay < 23.8);
 
@@ -40,11 +45,16 @@ export const getLunarStatus = (date: Date = new Date()): LunarStatus => {
 
   let currentPhase: MoonPhase = 'NORMAL';
   if (isExactAmavasya) currentPhase = 'AMAVASYA';
+  else if (isExactPournami) currentPhase = 'POURNAMI';
   else if (isExactAshtami) currentPhase = 'ASHTAMI';
   else if (isExactNavami) currentPhase = 'NAVAMI';
 
   const nextAshtamiDays = normalizedDay < 7 ? 7 - normalizedDay : normalizedDay < 22 ? 22 - normalizedDay : 36.53 - normalizedDay;
   const nextNavamiDays = normalizedDay < 8 ? 8 - normalizedDay : normalizedDay < 23 ? 23 - normalizedDay : 37.53 - normalizedDay;
+
+  const daysSinceAshtami = (normalizedDay - 7.3) >= 0 ? (normalizedDay - 7.3) : (normalizedDay - 7.3 + 29.53);
+  const daysSinceNavami = (normalizedDay - 8.3) >= 0 ? (normalizedDay - 8.3) : (normalizedDay - 8.3 + 29.53);
+  const daysSincePournami = (normalizedDay - 14.7) >= 0 ? (normalizedDay - 14.7) : (normalizedDay - 14.7 + 29.53);
 
   return {
     phase: currentPhase,
@@ -52,8 +62,12 @@ export const getLunarStatus = (date: Date = new Date()): LunarStatus => {
     daysToAshtami: Math.ceil(nextAshtamiDays),
     daysToNavami: Math.ceil(nextNavamiDays),
     daysSinceAmavasya: Math.floor(normalizedDay),
+    daysSinceAshtami: Math.floor(daysSinceAshtami % 29.53),
+    daysSinceNavami: Math.floor(daysSinceNavami % 29.53),
+    daysSincePournami: Math.floor(daysSincePournami % 29.53),
     isHighRisk: isAmavasyaWindow,
     isExactAmavasya,
+    isExactPournami,
     isExactAshtami,
     isExactNavami
   };
@@ -75,4 +89,28 @@ export const getLunarForecast = (startDate: Date = new Date(), days: number = 30
     });
   }
   return forecast;
+};
+
+export const getUpcomingMoonEvents = (limit: number = 10): LunarDay[] => {
+  const events: LunarDay[] = [];
+  let currentDate = new Date();
+  let daysChecked = 0;
+  let lastPhase: MoonPhase = 'NORMAL';
+
+  while (events.length < limit && daysChecked < 100) { // Safety limit of 100 days
+    const status = getLunarStatus(currentDate);
+    if (status.phase !== 'NORMAL' && status.phase !== lastPhase) {
+      events.push({
+        date: new Date(currentDate),
+        status
+      });
+      lastPhase = status.phase;
+    } else if (status.phase === 'NORMAL') {
+      lastPhase = 'NORMAL';
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+    daysChecked++;
+  }
+  return events;
 };

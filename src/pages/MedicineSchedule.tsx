@@ -226,6 +226,21 @@ const MOON_META = {
       '💡 Best time to apply: 7–9 AM or 4–6 PM',
     ],
   },
+  POURNAMI: {
+    emoji: '🌕',
+    label: 'Pournami — Full Moon',
+    sublabel: 'HIGH BIOLOGICAL DEMAND',
+    bg: 'bg-[#1A1C3E]',
+    border: 'border-indigo-500/40',
+    textColor: 'text-indigo-200',
+    badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30',
+    rules: [
+      '🔵 High biological activity tonight',
+      '🔵 Increase aeration levels (100% capacity)',
+      '🟡 Monitor DO levels afternoon & midnight',
+      '💊 Mineral application suggested for partial molting',
+    ],
+  },
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -334,7 +349,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
         showBack={false} 
         onMenuClick={onMenuClick} 
         rightElement={
-          selectedPond && currentDoc > 0 && (
+          selectedPond && selectedPond.stockingDate && (
             <div className={cn(
               'px-3 py-1.5 rounded-full border',
               currentDoc > 30 && currentDoc <= 45 ? 'bg-red-50 border-red-200' : 'bg-[#FFF8E6] border-[#C78200]/20'
@@ -427,18 +442,22 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     </div>
                   </div>
 
-                  {/* Upcoming Sequence (Shown on Normal phase) */}
-                  {lunar.phase === 'NORMAL' && (
+                  {/* Upcoming / Previous Sequence */}
+                  {(lunar.phase === 'NORMAL' || lunar.phase === 'POURNAMI') && (
                     <div className="px-6 pb-2.5 flex gap-2 overflow-x-auto scrollbar-none">
-                       {[
-                         { label: 'Ashtami', days: lunar.daysToAshtami, emoji: '🌓', color: 'text-violet-300' },
-                         { label: 'Navami', days: lunar.daysToNavami, emoji: '🌙', color: 'text-sky-300' },
-                         { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: '🌑', color: 'text-indigo-400' },
-                       ].sort((a,b) => a.days - b.days).map((ev, i) => (
+                       {(lunar.phase === 'POURNAMI' ? [
+                         { label: 'Prev Ashtami', days: lunar.daysSinceAshtami, emoji: '🌓', color: 'text-violet-300', suffix: ' ago' },
+                         { label: 'Prev Navami', days: lunar.daysSinceNavami, emoji: '🌙', color: 'text-sky-300', suffix: ' ago' },
+                         { label: 'Prev Amavasya', days: lunar.daysSinceAmavasya, emoji: '🌑', color: 'text-indigo-400', suffix: ' ago' },
+                       ] : [
+                         { label: 'Ashtami', days: lunar.daysToAshtami, emoji: '🌓', color: 'text-violet-300', suffix: 'd' },
+                         { label: 'Navami', days: lunar.daysToNavami, emoji: '🌙', color: 'text-sky-300', suffix: 'd' },
+                         { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: '🌑', color: 'text-indigo-400', suffix: 'd' },
+                       ]).sort((a,b) => a.days - b.days).map((ev, i) => (
                          <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col items-center min-w-[80px]">
                             <span className="text-xl mb-1">{ev.emoji}</span>
                             <p className="text-[7px] font-black uppercase text-white/40 tracking-widest">{ev.label}</p>
-                            <p className={cn("text-[10px] font-black", ev.color)}>{ev.days}d</p>
+                            <p className={cn("text-[10px] font-black", ev.color)}>{Math.round(ev.days)}{ev.suffix}</p>
                          </div>
                        ))}
                     </div>
@@ -466,7 +485,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           : `Stable phase. Next major molting event starts in ${Math.min(lunar.daysToAmavasya, lunar.daysToAshtami, lunar.daysToNavami)} days.`}
                       </p>
                     </div>
-                    <Droplets size={16} className="text-white/20 flex-shrink-0" />
+                    <div className="mt-[-8px]">
+                      <Droplets size={16} className="text-white/20 flex-shrink-0" />
+                    </div>
                   </div>
                 </motion.div>
 
@@ -554,8 +575,8 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
-                  {/* DOC=0 / Not Started State */}
-                  {currentDoc === 0 ? (
+                  {/* Not Stocked Empty State */}
+                  {!selectedPond.stockingDate ? (
                     <div className="bg-white rounded-[2.5rem] p-10 text-center border border-dashed border-[#4A2C2A]/10">
                       <div className="w-16 h-16 bg-[#F8F9FE] rounded-3xl flex items-center justify-center mx-auto mb-4 text-[#C78200]">
                         <Calendar size={32} />
@@ -565,7 +586,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         Set a stocking date for <span className="text-[#C78200] font-black">{selectedPond.name}</span> to begin tracking SOP medicines.
                       </p>
                     </div>
-                  ) : todayGuidance.length === 0 ? (
+                  ) : todayGuidance.length === 0 && currentDoc > 0 ? (
                     <div className="bg-white rounded-[2.5rem] p-10 text-center border border-dashed border-[#4A2C2A]/10">
                       <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-3" />
                       <h3 className="text-[#4A2C2A] font-black text-base tracking-tight mb-2">All Clear Today!</h3>
@@ -573,6 +594,19 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     </div>
                   ) : (
                     <>
+                      {/* Guidance or Stocking Day Content */}
+                      {currentDoc === 0 && todayGuidance.length === 0 && (
+                        <div className="bg-emerald-50 border border-emerald-100/50 rounded-[2rem] p-6 text-center">
+                           <Zap className="text-emerald-500 mx-auto mb-3" size={28} />
+                           <h4 className="text-[#0D523C] font-black text-base tracking-tight mb-1">Stocking Day (DOC 0)</h4>
+                           <p className="text-[#0D523C]/50 text-[11px] leading-relaxed mb-4">
+                             Congratulations on starting your culture! Use Bio-Booster and Gut Probiotics for the next 3 days.
+                           </p>
+                           <span className="text-[9px] font-black uppercase text-emerald-800 tracking-widest bg-emerald-500/20 px-3 py-1.5 rounded-full">
+                             Initial Stress Management
+                           </span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between px-1">
                         <div>
                           <h2 className="text-[#4A2C2A] font-black text-lg tracking-tight">{t.dailySOP}</h2>

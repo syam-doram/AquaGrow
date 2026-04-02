@@ -35,32 +35,22 @@ export const Drawer = ({
 
   const farmerSections: NavSection[] = [
     {
-      title: 'Main',
-      items: [
-        { icon: Home,      label: t.home,           path: '/dashboard' },
-        { icon: Waves,     label: t.ponds,          path: '/ponds' },
-        { icon: Pill,      label: t.medicine,       path: '/medicine' },
-        { icon: Utensils,  label: t.feedManagement, path: '/feed' },
-        { icon: Calculator,label: 'ROI & Profit',   path: '/roi' },
-      ],
-    },
-    {
       title: 'Monitoring',
       items: [
         { icon: Activity,    label: 'IoT Multi-Sensor',    path: '/monitor' },
         { icon: Camera,      label: 'Live AI Eye',         path: '/live-monitor' },
-        { icon: Shield,      label: t.aiDisease || 'Disease Detect', path: '/disease-detection' },
-        { icon: Cloud,       label: t.weather || 'Weather & Feed',   path: '/weather' },
-        { icon: BarChart2,   label: t.market || 'Market Prices',    path: '/market' },
+        { icon: Shield,      label: t.aiDisease,           path: '/disease-detection' },
+        { icon: Cloud,       label: t.weather,             path: '/weather' },
+        { icon: BarChart2,   label: t.market,              path: '/market' },
       ],
     },
     {
       title: 'Tools & Learn',
       items: [
-        { icon: BookOpen,     label: t.learningCenter || 'Learning Center',     path: '/learn' },
-        { icon: Stethoscope,  label: t.expertConsultations || 'Expert Consult', path: '/expert-consultations' },
-        { icon: Bell,         label: t.notifications || 'Notifications',         path: '/notifications' },
-        { icon: TrendingUp,   label: 'Export Trends',                            path: '/export-trends' },
+        { icon: BookOpen,     label: t.learningCenter,     path: '/learn' },
+        { icon: Stethoscope,  label: t.expertConsultations, path: '/expert-consultations' },
+        { icon: Bell,         label: t.notifications,      path: '/notifications' },
+        { icon: TrendingUp,   label: 'Export Trends',      path: '/export-trends' },
       ],
     },
     {

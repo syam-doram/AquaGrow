@@ -495,69 +495,106 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           </div>
         </div>
 
-        {/* ── SOP Engine Alerts ── */}
-        <AnimatePresence>
-          {engineAlerts.map((alert, i) => (
-            <motion.div key={`eng-${i}`}
-              initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-              className={cn('p-4 rounded-[1.8rem] border flex items-start gap-3 shadow-md',
-                alert.type === 'critical' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200')}>
-              <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center shrink-0',
-                alert.type === 'critical' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white')}>
-                <AlertTriangle size={18} />
-              </div>
-              <div>
-                <p className={cn('text-[8px] font-black uppercase tracking-widest mb-0.5',
-                  alert.type === 'critical' ? 'text-red-500' : 'text-amber-600')}>
-                  {t.sopEngineAlert} · {alert.pondName}
-                </p>
-                <h3 className="font-black text-sm tracking-tight text-[#4A2C2A]">{alert.title}</h3>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* ── Firebase Alert ── */}
-        <AnimatePresence>
-          {incomingAlert && (
-            <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.9 }}
-              className="bg-[#0D523C] text-white p-5 rounded-[2rem] shadow-2xl border border-emerald-500/30">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
-                    <Bell size={20} className="text-emerald-300" />
+        {/* ── FLOATING NOTIFICATION CENTER ── */}
+        <div className="fixed top-20 left-4 right-4 z-40 pointer-events-none space-y-3">
+          <AnimatePresence mode="popLayout">
+            {/* 1. SOP Engine Alerts (Floating) */}
+            {engineAlerts.map((alert, i) => (
+              <motion.div 
+                key={`floating-eng-${i}`}
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="pointer-events-auto"
+              >
+                <div className={cn(
+                  'p-4 rounded-[1.8rem] border flex items-start gap-4 shadow-xl backdrop-blur-xl',
+                  alert.type === 'critical' ? 'bg-red-50/95 border-red-200' : 'bg-amber-50/95 border-amber-200'
+                )}>
+                  <div className={cn(
+                    'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0',
+                    alert.type === 'critical' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                  )}>
+                    <AlertTriangle size={18} />
                   </div>
-                  <div>
-                    <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">{t.autoEngineAlert}</p>
-                    <h3 className="font-black text-base tracking-tight">{incomingAlert.title}</h3>
-                    <p className="text-xs text-white/60 mt-0.5">{incomingAlert.body}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      'text-[7px] font-black uppercase tracking-widest mb-0.5',
+                      alert.type === 'critical' ? 'text-red-500' : 'text-amber-600'
+                    )}>
+                      {t.sopEngineAlert} · {alert.pondName}
+                    </p>
+                    <h3 className="font-black text-[13px] leading-tight text-[#4A2C2A]">{alert.title}</h3>
                   </div>
                 </div>
-                <button onClick={clearAlert} className="text-white/30 p-1.5 rounded-xl bg-white/5"><X size={14} /></button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            ))}
 
-        {/* ── Lunar Alert ── */}
-        {showLunarAlert && lunar.phase === 'AMAVASYA' && (
-          <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}
-            className="bg-[#1A1C2E] border border-white/5 rounded-[2rem] p-5 text-white relative overflow-hidden">
-            <button onClick={() => setShowLunarAlert(false)} className="absolute top-4 right-4 text-white/20 hover:text-white p-1">
-              <X size={16} />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-                <Moon size={18} className="text-white fill-white" />
-              </div>
-              <div>
-                <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{t.moonPhaseTitle || 'Moon Phase'}</p>
-                <h3 className="font-black text-sm">{t.amavasyaWarning || 'Amavasya Warning'}</h3>
-              </div>
-            </div>
-            <p className="text-white/50 text-[10px] mt-2 leading-relaxed">{t.massMoltingRisk || 'High risk of mass molting. Ensure optimal DO levels.'}</p>
-          </motion.div>
-        )}
+            {/* 2. Firebase Real-time Alerts (Floating) */}
+            {incomingAlert && (
+              <motion.div 
+                key="floating-firebase"
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="pointer-events-auto"
+              >
+                <div className="bg-[#0D523C]/95 backdrop-blur-xl text-white p-5 rounded-[2rem] shadow-2xl border border-emerald-500/30 flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 bg-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
+                      <Bell size={20} className="text-emerald-300" />
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">{t.autoEngineAlert}</p>
+                      <h3 className="font-black text-base tracking-tight">{incomingAlert.title}</h3>
+                      <p className="text-[10px] text-white/60 mt-0.5 leading-tight">{incomingAlert.body}</p>
+                    </div>
+                  </div>
+                  <button onClick={clearAlert} className="text-white/20 hover:text-white p-1.5 rounded-xl bg-white/5 transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 3. Lunar Cycle Alerts (Floating) */}
+            {showLunarAlert && ['AMAVASYA', 'POURNAMI', 'ASHTAMI', 'NAVAMI'].includes(lunar.phase) && (
+              <motion.div 
+                key="floating-lunar"
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="pointer-events-auto"
+              >
+                <div className={cn(
+                  "rounded-[2rem] p-5 text-white relative overflow-hidden border shadow-2xl backdrop-blur-xl",
+                  lunar.phase === 'AMAVASYA' ? "bg-slate-900/95 border-white/10" : "bg-indigo-950/95 border-indigo-500/20"
+                )}>
+                  <button onClick={() => setShowLunarAlert(false)} className="absolute top-4 right-4 text-white/20 hover:text-white p-1 z-20">
+                    <X size={16} />
+                  </button>
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center shrink-0">
+                      <Moon size={18} className={cn("text-white", lunar.phase !== 'NORMAL' && "fill-white")} />
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-0.5">{t.moonPhaseTitle || 'Moon Phase'}</p>
+                      <h3 className="font-black text-sm tracking-tight">{lunar.phase} Phase Alert</h3>
+                      <p className="text-[10px] text-white/40 font-medium">
+                        SOP: {
+                          lunar.phase === 'AMAVASYA' ? 'Reduce feed 20%' : 
+                          lunar.phase === 'POURNAMI' ? 'Increase aeration' : 
+                          lunar.phase === 'ASHTAMI' ? 'Add minerals' : 
+                          lunar.phase === 'NAVAMI' ? 'Light feeding' : ''
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* ── MAIN CONTENT ── */}
         {activePonds.length === 0 ? (
