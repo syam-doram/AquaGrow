@@ -5,7 +5,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
-import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, connectDB, isMock, MockDB } from './db.js';
+import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, RefreshToken, connectDB, isMock, MockDB } from './db.js';
 
 declare global {
   namespace Express {
@@ -27,8 +27,16 @@ const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
 app.use(express.json({ limit: '50kb' }));
 app.use(cors({ origin: true, credentials: true }));
 
-// ─── Refresh token store (in-memory; swap for Redis in prod) ─────────────────
-const refreshTokenStore = new Set();
+// ─── Refresh token persistence logic ─────────────────────────────────────────
+const saveRefreshToken = async (userId: string, token: string) => {
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 7); // 7 days refresh
+  if (isMock()) {
+    await MockDB.save('refreshTokens', { userId: String(userId), token, expiryDate });
+  } else {
+    await new RefreshToken({ userId, token, expiryDate }).save();
+  }
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const signAccess  = (p: any) => jwt.sign(p, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
@@ -157,28 +165,51 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     const id      = user._id || user.id;
     const access  = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id });
-    refreshTokenStore.add(refresh);
+    await saveRefreshToken(id, refresh);
     res.json({ user, subscription: sub, access_token: access, refresh_token: refresh });
   } catch (e) { res.status(500).json({ error: 'Internal Server Error' }); }
 });
 
 // Rotate access token using refresh token
-app.post('/api/auth/refresh', authLimiter, (req, res) => {
+app.post('/api/auth/refresh', authLimiter, async (req, res) => {
   const { refresh_token } = req.body;
-  if (!refresh_token || !refreshTokenStore.has(refresh_token))
-    return res.status(401).json({ error: 'Invalid or missing refresh token' });
+  if (!refresh_token) return res.status(401).json({ error: 'Missing refresh token' });
+  
   try {
     const p = jwt.verify(refresh_token, REFRESH_SECRET) as any;
-    res.json({ access_token: signAccess({ id: p.id, role: p.role, subscriptionStatus: p.subscriptionStatus }) });
-  } catch {
-    refreshTokenStore.delete(refresh_token);
-    res.status(401).json({ error: 'Refresh token expired. Login again.' });
+    const storedToken = isMock() 
+      ? await MockDB.findOne('refreshTokens', { token: refresh_token })
+      : await RefreshToken.findOne({ token: refresh_token });
+
+    if (!storedToken) return res.status(401).json({ error: 'Refresh token not recognized' });
+    
+    const user = isMock()
+      ? await MockDB.findOne('users', { _id: p.id })
+      : await UserMongo.findById(p.id);
+
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const newAccess = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    res.json({ access_token: newAccess });
+  } catch (e) {
+    if (isMock()) {
+      await MockDB.delete('refreshTokens', { token: refresh_token });
+    } else {
+      await RefreshToken.deleteMany({ token: refresh_token });
+    }
+    res.status(401).json({ error: 'Refresh token expired or invalid. Please login again.' });
   }
 });
 
 // Revoke refresh token on logout
-app.post('/api/auth/logout', authenticate, (req, res) => {
-  if (req.body?.refresh_token) refreshTokenStore.delete(req.body.refresh_token);
+app.post('/api/auth/logout', authenticate, async (req, res) => {
+  if (req.body?.refresh_token) {
+    if (isMock()) {
+      await MockDB.delete('refreshTokens', { token: req.body.refresh_token });
+    } else {
+      await RefreshToken.deleteMany({ token: req.body.refresh_token });
+    }
+  }
   res.json({ message: 'Logged out successfully' });
 });
 

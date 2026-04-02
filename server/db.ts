@@ -7,11 +7,12 @@ const MOCK_DB_PATH = path.join(process.cwd(), 'server', 'db.json');
 
 const loadMockDB = () => {
   if (!fs.existsSync(MOCK_DB_PATH)) {
-    fs.writeFileSync(MOCK_DB_PATH, JSON.stringify({ users: [], subscriptions: [], ponds: [], feedLogs: [], medicineLogs: [] }, null, 2));
+    fs.writeFileSync(MOCK_DB_PATH, JSON.stringify({ users: [], subscriptions: [], ponds: [], feedLogs: [], medicineLogs: [], refreshTokens: [] }, null, 2));
   }
   const db = JSON.parse(fs.readFileSync(MOCK_DB_PATH, 'utf-8'));
   if (!db.feedLogs) db.feedLogs = [];
   if (!db.medicineLogs) db.medicineLogs = [];
+  if (!db.refreshTokens) db.refreshTokens = [];
   return db;
 };
 
@@ -77,11 +78,18 @@ const MedicineLogSchema = new mongoose.Schema({
   doc: { type: Number },
 }, { timestamps: true });
 
+const RefreshTokenSchema = new mongoose.Schema({
+  token: { type: String, required: true, unique: true },
+  userId: { type: String, required: true },
+  expiryDate: { type: Date, required: true }
+}, { timestamps: true });
+
 export const User = mongoose.model('User', UserSchema);
 export const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 export const Pond = mongoose.model('Pond', PondSchema);
 export const FeedLog = mongoose.model('FeedLog', FeedLogSchema);
 export const MedicineLog = mongoose.model('MedicineLog', MedicineLogSchema);
+export const RefreshToken = mongoose.model('RefreshToken', RefreshTokenSchema);
 
 // --- MOCK WRAPPERS ---
 export const MockDB = {

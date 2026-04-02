@@ -8,6 +8,7 @@ import { generateReminders } from '../utils/reminderEngine';
 interface DataContextType {
   user: User | null;
   loading: boolean;
+  isSyncing: boolean;
   ponds: Pond[];
   marketPrices: MarketPrice[];
   waterRecords: WaterQualityRecord[];
@@ -37,6 +38,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUserState] = useState<User | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [ponds, setPonds] = useState<Pond[]>([]);
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
   const [waterRecords, setWaterRecords] = useState<WaterQualityRecord[]>(() => {
@@ -72,11 +74,49 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                  user?.subscriptionStatus === 'pro_diamond'
                 );
 
+  const refreshAccessToken = async () => {
+    if (!tokens?.refresh) return null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: tokens.refresh })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const newTokens = { ...tokens, access: data.access_token };
+        setTokens(newTokens);
+        localStorage.setItem('aqua_tokens', JSON.stringify(newTokens));
+        return newTokens;
+      }
+    } catch (e) {
+      console.error("Token refresh failed:", e);
+    }
+    setUser(null); // Force logout if refresh fails
+    return null;
+  };
+
+  const apiFetch = async (url: string, options: any = {}, retry = true): Promise<Response> => {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...getAuthHeaders(options.overrideTokens), ...options.headers }
+    });
+
+    if (response.status === 401 && retry && tokens?.refresh) {
+      const newTokens = await refreshAccessToken();
+      if (newTokens) {
+        return fetch(url, {
+          ...options,
+          headers: { ...getAuthHeaders(newTokens), ...options.headers }
+        });
+      }
+    }
+    return response;
+  };
+
   const fetchUserPonds = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/ponds`, {
-        headers: getAuthHeaders(overrideTokens)
-      });
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/ponds`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
         setPonds(data.map((p: any) => ({ ...p, id: p._id || p.id })));
@@ -88,9 +128,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchSubscription = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/subscription`, {
-        headers: getAuthHeaders(overrideTokens)
-      });
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/subscription`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
         setSubscription(data);
@@ -102,9 +140,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchFeedLogs = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/feed-logs`, {
-        headers: getAuthHeaders(overrideTokens)
-      });
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/feed-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
         setFeedLogs(data.map((l: any) => ({ ...l, id: l._id })));
@@ -116,9 +152,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchMedicineLogs = async (userId: string, overrideTokens?: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${userId}/medicine-logs`, {
-        headers: getAuthHeaders(overrideTokens)
-      });
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/medicine-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
         setMedicineLogs(data.map((l: any) => ({ ...l, id: l._id })));
@@ -198,6 +232,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const register = async (userData: Omit<User, 'id' | 'subscriptionStatus'>) => {
+    setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -223,10 +258,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error: any) {
       console.error("Registration error:", error);
       return { success: false, error: 'Cannot connect to server.' };
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const login = async (phoneNumber: string, password?: string) => {
+    setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -244,6 +282,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error: any) {
       console.error("Login error:", error);
       return { success: false, error: 'Cannot connect to server.' };
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -266,10 +306,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/ponds`, {
+      const response = await apiFetch(`${API_BASE_URL}/ponds`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ ...pond, userId: user?.id || (user as any)?._id })
       });
       if (response.ok) {
@@ -278,6 +318,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error("Add pond error:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -288,21 +330,23 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const deletePond = async (id: string) => {
     // Optimistic UI Update ensures instant removal
     setPonds(prev => prev.filter(p => (p.id !== id && (p as any)._id !== id)));
+    setIsSyncing(true);
     try {
-      await fetch(`${API_BASE_URL}/ponds/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
+      await apiFetch(`${API_BASE_URL}/ponds/${id}`, {
+        method: 'DELETE'
       });
     } catch (error) {
       console.error("Delete pond error:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const addFeedLog = async (log: Omit<FeedRecord, 'id'>) => {
+    setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/feed-logs`, {
+      const response = await apiFetch(`${API_BASE_URL}/feed-logs`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ ...log, userId: user?.id || (user as any)?._id })
       });
       if (response.ok) {
@@ -311,14 +355,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error("Add feed log error:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const addMedicineLog = async (log: Omit<MedicineRecord, 'id'>) => {
+    setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/medicine-logs`, {
+      const response = await apiFetch(`${API_BASE_URL}/medicine-logs`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ ...log, userId: user?.id || (user as any)?._id })
       });
       if (response.ok) {
@@ -327,6 +373,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error("Add medicine log error:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -349,10 +397,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const upgradePlan = async (planName: string) => {
+    setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/subscription/upgrade`, {
+      const response = await apiFetch(`${API_BASE_URL}/subscription/upgrade`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ userId: user?.id || (user as any)?._id, planName })
       });
       if (response.ok) {
@@ -376,6 +424,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error("Upgrade error:", error);
+    } finally {
+      setIsSyncing(false);
     }
     return false;
   };
@@ -390,6 +440,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     <DataContext.Provider value={{ 
       user, 
       loading, 
+      isSyncing,
       ponds, 
       marketPrices, 
       waterRecords, 
