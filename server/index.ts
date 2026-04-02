@@ -361,22 +361,109 @@ app.get('/api/admin/users', authenticate, requireRole('admin'), async (_req, res
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── Push daemon ──────────────────────────────────────────────────────────────
+import admin from 'firebase-admin';
+
+// ─── Firebase Admin Setup (for Push Notification Engine) ────────────────────
+// Note: In Production, set FIREBASE_SERVICE_ACCOUNT_KEY in .env
+try {
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) 
+    : null;
+
+  if (serviceAccount) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('[FCM Engine] Initialized Successfully');
+  } else {
+    console.warn('[FCM Engine] No service account found. Push notifications will be simulated/logged only.');
+  }
+} catch (e) {
+  console.warn('[FCM Engine] Initialization skipped (service account invalid or missing)');
+}
+
+// ─── Push daemon (Auto-Alert Engine) ──────────────────────────────────────────
 const runPushEngine = async () => {
   try {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // Simulate Amavasya check (Simplified logic for demonstration)
+    // Real logic would use a lunar calendar library
+    const isAmavasya = now.getDate() === 1 || now.getDate() === 29; 
+
+    console.log(`[Push Engine] Scanning active ponds at ${now.toLocaleTimeString()}...`);
+
     const users = isMock() ? await MockDB.find('users', {}) : await UserMongo.find({});
     for (const u of users) {
       if (!u.fcmToken || !u.notifications) continue;
+      
       const ponds = isMock()
         ? await MockDB.find('ponds', { userId: u._id||u.id })
         : await PondMongo.find({ userId: u._id||u.id });
+
       for (const p of ponds) {
-        if (p.status !== 'active') continue;
-        if (u.notifications.water && Math.random() > 0.95)
-          console.log('[FCM]', p.name, u.fcmToken.slice(0,12));
+        if (p.status !== 'active' || !p.stockingDate) continue;
+        
+        // Calculate DOC (Days of Culture)
+        const stocking = new Date(p.stockingDate);
+        const diffMs = Math.abs(now.getTime() - stocking.getTime());
+        const doc = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        let alertTitle = '';
+        let alertBody = '';
+
+        // ─── CONDITION 1: DOC Milestone (e.g. DOC 30) ───
+        if (doc === 30) {
+           alertTitle = `Milestone: DOC 30! 📈`;
+           alertBody = `Your prawns in ${p.name} have reached 30 days. Time for a transition to mineral-rich feed.`;
+        }
+        
+        // ─── CONDITION 2: Amavasya Lunar Alert ───
+        else if (isAmavasya && u.notifications.water) {
+           alertTitle = `Amavasya Risk Alert 🌑`;
+           alertBody = `High risk of mass molting and DO drop tonight in ${p.name}. Ensure all aerators are functional.`;
+        }
+
+        // ─── CONDITION 3: 6 AM Feeding Reminder ───
+        else if (currentHour === 6 && u.notifications.feed) {
+           alertTitle = `Feeding Reminder 🥣`;
+           alertBody = `Good morning! It's 6:00 AM. Time for the first feed in ${p.name}.`;
+        }
+
+        // --- DELIVERY LOGIC ---
+        if (alertTitle && alertBody) {
+           console.log(`[FCM-TRIGGER] Condition Met for ${u.name}: ${alertTitle}`);
+
+           if (admin.apps.length > 0) {
+              const message = {
+                 notification: { title: alertTitle, body: alertBody },
+                 token: u.fcmToken,
+                 android: {
+                    priority: 'high' as any,
+                    notification: {
+                       channelId: 'aquagrow-premium',
+                       icon: 'ic_launcher',
+                       color: '#10B981',
+                       clickAction: 'FCM_PLUGIN_ACTIVITY',
+                       visibility: 'public' as any
+                    }
+                 }
+              };
+
+              try {
+                await admin.messaging().send(message);
+                console.log(`[FCM-SUCCESS] Alert sent to ${u.name} for ${p.name}`);
+              } catch (err) {
+                console.warn('[FCM-ERROR] Peer failure:', err.message);
+              }
+           } else {
+              console.log(`[SIMULATED-PUSH] ${alertTitle}: ${alertBody}`);
+           }
+        }
       }
     }
-  } catch (e) { console.error('[Push Engine]', e); }
+  } catch (e) { console.error('[Push Engine Error]', e); }
 };
 
 // ─── Start ────────────────────────────────────────────────────────────────────
@@ -384,7 +471,8 @@ if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
     app.listen(PORT, () => {
       console.log('Server is running and listening on port ' + PORT);
-      setInterval(runPushEngine, 60000);
+      // Run the engine every 2 minutes for check-conditions
+      setInterval(runPushEngine, 120000);
     });
   });
 }
