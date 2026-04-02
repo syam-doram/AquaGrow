@@ -439,10 +439,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const weekDays = ['M','T','W','T','F','S','S'];
 
   return (
-    <div className="pb-32 bg-[#F0F4F2] min-h-screen relative overflow-hidden">
-      {/* ── Background Accents ── */}
-      <div className="absolute top-0 right-0 w-[80%] h-[30%] bg-emerald-100/40 rounded-full blur-[100px] -z-10" />
-      <div className="absolute bottom-[20%] left-0 w-[60%] h-[40%] bg-amber-50/30 rounded-full blur-[120px] -z-10" />
+    <div className="pb-32 bg-transparent min-h-screen relative overflow-hidden">
+      {/* ── Local Page Accents (Layered with Global) ── */}
+      <div className="absolute top-0 right-0 w-[80%] h-[30%] bg-emerald-100/20 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[20%] left-0 w-[60%] h-[40%] bg-amber-50/10 rounded-full blur-[120px] -z-10" />
 
       <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
 

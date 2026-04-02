@@ -316,6 +316,8 @@ export interface Translations {
   weather: string;
   todaysTasks: string;
   viewSchedule: string;
+  inventory: string;
+  orders: string;
 }
 
 const English: Translations = {
@@ -623,6 +625,8 @@ const English: Translations = {
   weather: 'Weather',
   todaysTasks: "Today's Tasks",
   viewSchedule: 'View Schedule',
+  inventory: 'Inventory',
+  orders: 'Orders'
 };
 
 const Telugu: Translations = {
@@ -884,6 +888,8 @@ const Telugu: Translations = {
   weather: 'వాతావరణం',
   todaysTasks: 'నేటి పనులు',
   viewSchedule: 'షెడ్యూల్ చూడండి',
+  inventory: 'స్టాక్/ఇన్వెంటరీ',
+  orders: 'ఆర్డర్లు'
 };
 
 export const translations: Record<Language, Translations> = {

@@ -10,16 +10,21 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   const location = useLocation();
 
   const navItems = [
-    { icon: Home,       label: t.home,     path: '/dashboard' },
-    { icon: Waves,      label: t.ponds,    path: '/ponds'     },
-    { icon: Pill,       label: t.medicine, path: '/medicine'  },
-    { icon: Utensils,   label: t.feed,     path: '/feed'      },
-    { icon: Calculator, label: t.roi,      path: '/roi'       },
+    { icon: Home,       label: t.home,     path: '/dashboard', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    { icon: Waves,      label: t.ponds,    path: '/ponds',     color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
+    { icon: Pill,       label: t.medicine, path: '/medicine',  color: '#A855F7', bg: 'rgba(168, 85, 247, 0.1)' },
+    { icon: Utensils,   label: t.feed,     path: '/feed',      color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    { icon: Calculator, label: t.roi,      path: '/roi',       color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
   ];
 
+  const activeItem = navItems.find(item => location.pathname === item.path) || navItems[0];
+  
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-50">
-      <nav className="nav-blur px-2 py-3 flex justify-around items-center rounded-[2.5rem] border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden">
+      <nav 
+        className="nav-blur px-2 py-3 flex justify-around items-center rounded-[2.5rem] border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden transition-all duration-700 ease-in-out"
+        style={{ backgroundColor: activeItem.bg }}
+      >
         {/* Soft Inner Glow */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
         
@@ -38,12 +43,14 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                 <item.icon 
                   size={isActive ? 22 : 20} 
                   strokeWidth={isActive ? 2.5 : 1.5} 
-                  className={cn("transition-all duration-500", isActive && "drop-shadow-[0_0_8px_rgba(199,130,0,0.4)]")} 
+                  className={cn("transition-all duration-500", isActive ? "opacity-100" : "opacity-20")}
+                  style={{ color: isActive ? item.color : '#4A2C2A' }}
                 />
                 {isActive && (
                   <motion.div 
                     layoutId="nav-bg"
-                    className="absolute -inset-3 bg-[#C78200]/5 rounded-full -z-10"
+                    className="absolute -inset-3 rounded-full -z-10"
+                    style={{ backgroundColor: item.bg }}
                     transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
                   />
                 )}
@@ -56,6 +63,7 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 5 }}
                     className="text-[8px] font-black uppercase tracking-widest text-center truncate w-full px-1"
+                    style={{ color: item.color }}
                   >
                     {item.label.split(' ')[0]}
                   </motion.span>
@@ -65,7 +73,8 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
               {isActive && (
                 <motion.div 
                   layoutId="nav-dot"
-                  className="absolute -bottom-1 w-1.5 h-1.5 bg-[#C78200] rounded-full shadow-[0_0_10px_rgba(199,130,0,0.6)]"
+                  className="absolute -bottom-1 w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}66` }}
                   transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
                 />
               )}

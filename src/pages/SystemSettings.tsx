@@ -43,6 +43,27 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
      setIsSyncingPush(false);
   };
 
+  const handleLanguageChange = async (newLang: 'English' | 'Telugu') => {
+    if (user?.id || (user as any)?._id) {
+       const uInfo = { ...user, language: newLang };
+       setUser(uInfo);
+       localStorage.setItem('aqua_user', JSON.stringify(uInfo));
+       
+       setIsSyncing(true);
+       try {
+         await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ language: newLang })
+         });
+       } catch (err) {
+         console.error('Failed to sync language preference:', err);
+       } finally {
+         setTimeout(() => setIsSyncing(false), 600);
+       }
+    }
+  };
+
   const handleToggle = async (key: keyof typeof notifications) => {
     const newVal = !notifications[key];
     const newPrefs = { ...notifications, [key]: newVal };
@@ -102,7 +123,14 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
       desc: t.measurementUnit,
       color: 'text-amber-500',
       items: [
-        { label: t.measurementUnit, value: units, isSelect: true, options: [t.acres, t.hectares], onSelect: (v: any) => setUnits(v) }
+        { label: t.measurementUnit, value: units, isSelect: true, options: [t.acres, t.hectares], onSelect: (v: any) => setUnits(v) },
+        { label: t.language, value: user?.language || 'English', isSelect: true, options: [t.english, t.telugu], onSelect: (v: any) => {
+          const langMap: Record<string, 'English' | 'Telugu'> = {
+            [t.english]: 'English',
+            [t.telugu]: 'Telugu'
+          };
+          handleLanguageChange(langMap[v]);
+        }}
       ]
     },
     {

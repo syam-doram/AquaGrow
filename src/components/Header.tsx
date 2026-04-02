@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Bell } from 'lucide-react';
+import { ChevronLeft, Bell, LayoutGrid } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { cn } from '../utils/cn';
 
@@ -29,12 +29,8 @@ export const Header = ({ title, showBack = false, onBack, rightElement, onMenuCl
             <ChevronLeft size={20} />
           </button>
         ) : (
-          <button onClick={onMenuClick} className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/20">
-            <img 
-              src={user?.role === 'provider' ? "https://picsum.photos/seed/provider/200/200" : "https://picsum.photos/seed/farmer/200/200"} 
-              className="w-full h-full object-cover" 
-              alt="Profile"
-            />
+          <button onClick={onMenuClick} className="w-10 h-10 rounded-2xl flex items-center justify-center bg-[#012B1D]/5 hover:bg-[#012B1D]/10 transition-all border border-black/5 group">
+            <LayoutGrid size={20} className="text-[#012B1D]/60 group-hover:text-[#012B1D] transition-colors" />
           </button>
         )}
       </div>

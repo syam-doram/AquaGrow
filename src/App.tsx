@@ -189,11 +189,18 @@ const AppContent = () => {
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
 
   return (
-    <div className="w-full max-w-md mx-auto bg-[#F8F9FE] min-h-[100dvh] relative shadow-2xl overflow-x-hidden font-sans">
+    <div className="w-full max-w-md mx-auto bg-[#F7F9F7] min-h-[100dvh] relative shadow-2xl overflow-x-hidden font-sans">
+      {/* ── GLOBAL MESH GRADIENT ACCENTS ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-5%] left-[-10%] w-[70%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute top-[20%] right-[-10%] w-[60%] h-[35%] bg-blue-50/50 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[30%] bg-purple-50/40 rounded-full blur-[90px]" />
+        <div className="absolute bottom-[-10%] right-[0%] w-[80%] h-[40%] bg-emerald-50/30 rounded-full blur-[110px]" />
+      </div>
       {!user ? (
         <AuthScreen t={t} onLanguageChange={setLang} />
       ) : (
-        <>
+        <div className="relative z-10 w-full min-h-[100dvh] flex flex-col">
           <PushSyncManager />
           <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} user={user} t={t} />
           
@@ -272,7 +279,7 @@ const AppContent = () => {
       {showFarmerNav && (
         <BottomNav t={t} onMenuClick={() => setIsDrawerOpen(true)} />
       )}
-        </>
+        </div>
       )}
     </div>
   );

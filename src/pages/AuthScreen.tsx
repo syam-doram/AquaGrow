@@ -12,15 +12,18 @@ import {
   Layers,
   Maximize,
   ShieldCheck,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
 import { cn } from '../utils/cn';
 import { Translations } from '../translations';
+import { API_BASE_URL } from '../config';
 
 export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguageChange?: (l: 'English' | 'Telugu') => void }) => {
-  const { register, login, user: currentUser } = useData();
+  const { register, login, user: currentUser, setUser } = useData();
   const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
   const [lang, setLang] = useState<'English' | 'Telugu'>('English');
   const [isRegister, setIsRegister] = useState(false);
@@ -32,6 +35,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
   const [acres, setAcres] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -91,8 +95,25 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
         else setError(result.error || t.registrationFailed);
       } else {
         const result = await login(`+91 ${phone}`, password);
-        if (result.success) navigate('/dashboard');
-        else setError(result.error || t.loginFailed);
+        if (result.success) {
+          // Sync language preference if changed at login
+          const loggedUser = result.user;
+          if (loggedUser && loggedUser.language !== lang) {
+             const updated = { ...loggedUser, language: lang };
+             setUser(updated);
+             try {
+                fetch(`${API_BASE_URL}/user/${updated.id || (updated as any)._id}/profile`, {
+                   method: 'PUT',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ language: lang })
+                });
+             } catch (err) {}
+          }
+          if (onLanguageChange) onLanguageChange(lang);
+          navigate('/dashboard');
+        } else {
+          setError(result.error || t.loginFailed);
+        }
       }
     } catch (e) {
       setError('Connection Error');
@@ -111,28 +132,8 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
         <div className="absolute top-[40%] left-[20%] w-40 h-40 bg-white/5 rounded-full blur-[80px]" />
       </div>
 
-      {/* ── TOP UTILITIES (Language & Auth Toggle) ── */}
-      <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-50">
-        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-white/10 shadow-2xl transition-all hover:bg-white/[0.08]">
-          <button
-            onClick={() => { setIsRegister(false); setStep('form'); setError(''); }}
-            className={cn(
-              "px-5 py-2.5 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
-              !isRegister ? "bg-white text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
-            )}
-          >
-            {t.login}
-          </button>
-          <button
-            onClick={() => { setIsRegister(true); setStep('form'); setError(''); }}
-            className={cn(
-              "px-5 py-2.5 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
-              isRegister ? "bg-white text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
-            )}
-          >
-            {t.register}
-          </button>
-        </div>
+      {/* ── TOP UTILITIES (Language Selector Only) ── */}
+      <div className="absolute top-8 left-8 right-8 flex justify-end items-center z-50">
 
         <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-white/10 shadow-2xl transition-all hover:bg-white/[0.08]">
           {(['English', 'Telugu'] as const).map((l) => (
@@ -164,6 +165,39 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
         >
           {/* Subtle overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+
+          {/* AUTH TOGGLE (Moved Inside Card) */}
+          <div className="flex bg-black/20 p-1 rounded-[1.6rem] border border-white/5 mb-8 relative z-20 overflow-hidden">
+            <motion.div 
+              layoutId="auth-bg"
+              className="absolute inset-y-1 rounded-[1.3rem] shadow-xl"
+              style={{ 
+                left: isRegister ? '50%' : '4px',
+                right: isRegister ? '4px' : '50%',
+                background: 'rgba(255, 255, 255, 0.95)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+              }}
+              transition={{ type: 'spring', bounce: 0.15, duration: 0.6 }}
+            />
+            <button
+              onClick={() => { setIsRegister(false); setStep('form'); setError(''); }}
+              className={cn(
+                "flex-1 py-2.5 rounded-[1.3rem] text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 relative z-10",
+                !isRegister ? "text-[#021811]" : "text-white/40 hover:text-white/60"
+              )}
+            >
+              {t.login}
+            </button>
+            <button
+              onClick={() => { setIsRegister(true); setStep('form'); setError(''); }}
+              className={cn(
+                "flex-1 py-2.5 rounded-[1.3rem] text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 relative z-10",
+                isRegister ? "text-[#021811]" : "text-white/40 hover:text-white/60"
+              )}
+            >
+              {t.register}
+            </button>
+          </div>
 
           {/* LOGO AREA (Inside Card) */}
           <motion.div className="text-center mb-8 shrink-0">
@@ -317,12 +351,19 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                           <Lock size={16} />
                         </div>
                         <input 
-                          className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/40 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                          className="w-full pl-14 pr-14 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/40 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                           placeholder={t.password || "Set Password"} 
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                       </div>
                     </div>
                   </motion.div>

@@ -10,13 +10,18 @@ export const ProviderBottomNav = ({ t, onMenuClick }: { t: Translations, onMenuC
   const location = useLocation();
   
   const navItems = [
-    { icon: Home, label: t.home, path: '/provider/dashboard' },
-    { icon: Zap, label: t.inventory ?? 'Inventory', path: '/provider/inventory' },
-    { icon: Calendar, label: t.orders ?? 'Orders', path: '/provider/orders' },
+    { icon: Home, label: t.home, path: '/provider/dashboard', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    { icon: Zap, label: t.inventory ?? 'Inventory', path: '/provider/inventory', color: '#C78200', bg: 'rgba(199, 130, 0, 0.1)' },
+    { icon: Calendar, label: t.orders ?? 'Orders', path: '/provider/orders', color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
   ];
 
+  const activeItem = navItems.find(item => location.pathname === item.path) || navItems[0];
+
   return (
-    <nav className="fixed bottom-2 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] bg-white/10 backdrop-blur-xl px-4 py-2 flex justify-between items-center z-50 rounded-[20px] border border-white/20 shadow-xl">
+    <nav 
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md px-4 py-3 flex justify-between items-center z-50 rounded-[2.5rem] border border-white/20 shadow-2xl backdrop-blur-2xl transition-all duration-700 ease-in-out"
+      style={{ backgroundColor: activeItem.bg }}
+    >
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;
         return (
@@ -24,19 +29,21 @@ export const ProviderBottomNav = ({ t, onMenuClick }: { t: Translations, onMenuC
             key={item.path}
             onClick={() => navigate(item.path)}
             className={cn(
-              "flex flex-col items-center gap-2 transition-all duration-500 relative group",
-              isActive ? "text-[#C78200] scale-110" : "text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40"
+              "flex flex-col items-center gap-1.5 transition-all duration-500 relative group flex-1",
+              isActive ? "scale-110" : "text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40"
             )}
+            style={{ color: isActive ? item.color : '' }}
           >
             <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} className="transition-all duration-500" />
             <span className={cn(
-              "text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-500",
-              isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+              "text-[8px] font-black uppercase tracking-widest transition-all duration-500",
+              isActive ? "opacity-100" : "opacity-0"
             )}>{item.label}</span>
             {isActive && (
               <motion.div 
                 layoutId="nav-dot-provider"
-                className="absolute -bottom-1 w-1 h-1 bg-[#C78200] rounded-full"
+                className="absolute -bottom-1 w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}66` }}
               />
             )}
           </button>
@@ -44,10 +51,10 @@ export const ProviderBottomNav = ({ t, onMenuClick }: { t: Translations, onMenuC
       })}
       <button
         onClick={onMenuClick}
-        className="flex flex-col items-center gap-2 text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40 transition-all group"
+        className="flex-1 flex flex-col items-center gap-1.5 text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40 transition-all group"
       >
         <Menu size={22} strokeWidth={1.5} />
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all">Menu</span>
+        <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Menu</span>
       </button>
     </nav>
   );
