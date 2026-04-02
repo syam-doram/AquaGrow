@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
 import { calculateDOC } from '../utils/pondUtils';
 import { cn } from '../utils/cn';
+import { Header } from '../components/Header';
 import { Translations } from '../translations';
 
 // ─── PARAMETER RANGES ────────────────────────────────────────────────────────
@@ -282,21 +283,19 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-black/5 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-[0.1em] uppercase">Pond Monitor</h1>
-          <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{pond.name} • DOC {doc}</p>
-        </div>
-        <button
-          onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-          className="w-11 h-11 bg-[#0D523C] rounded-2xl flex items-center justify-center text-white shadow-lg"
-        >
-          <Plus size={20} />
-        </button>
-      </header>
+      <Header
+        title={t.pondMonitor}
+        showBack
+        onBack={() => navigate(-1)}
+        rightElement={
+          <button
+            onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
+            className="w-11 h-11 bg-[#0D523C] rounded-2xl flex items-center justify-center text-white shadow-lg"
+          >
+            <Plus size={20} />
+          </button>
+        }
+      />
 
       <div className="pt-28 px-5 space-y-5">
 

@@ -9,6 +9,7 @@ import {
   Lock 
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { Header } from '../components/Header';
 import { Translations } from '../translations';
 import { User } from '../types';
 import { analyzeLiveStream } from '../services/geminiService';
@@ -113,13 +114,7 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
   if (!isPro) {
     return (
       <div className="min-h-screen bg-[#FFFDF5]">
-        <header className="p-6 flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="p-2 text-[#4A2C2A]/40">
-            <ChevronLeft size={24} />
-          </button>
-          <h2 className="text-sm font-black text-[#4A2C2A] uppercase tracking-tighter">Live Monitor Pro</h2>
-          <div className="w-10" />
-        </header>
+      <Header title={t.liveMonitor} showBack onBack={() => navigate(-1)} />
         
         <div className="p-6">
           <div className="mt-8 relative overflow-hidden rounded-[3rem] bg-[#0D3025] p-12 text-center shadow-2xl">

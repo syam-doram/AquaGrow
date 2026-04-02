@@ -118,7 +118,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
   if (!isPro) {
     return (
       <div className="min-h-screen bg-[#FFFDF5]">
-        <Header title="AI Disease Detection" showBack />
+        <Header title={t.aiDisease} showBack />
         <div className="p-6 pt-24">
           <div className="mt-8 relative overflow-hidden rounded-[3rem] bg-[#4A2C2A] p-10 text-center shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-[#C78200]/20 to-transparent" />
@@ -158,7 +158,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
 
   return (
     <div className="min-h-screen bg-[#FFFDF5] flex flex-col">
-      <Header title="Disease Detection" showBack />
+      <Header title={t.aiDisease} showBack />
       
       <main className="flex-1 mt-20 p-6">
         {step === 'upload' && (

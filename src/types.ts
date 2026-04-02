@@ -8,6 +8,7 @@ export interface User {
   password?: string;
   location: string;
   farmSize: number;
+  pondCount: number;
   language: Language;
   role: 'farmer' | 'admin' | 'provider';
   subscriptionStatus: SubscriptionStatus;

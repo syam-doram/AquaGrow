@@ -18,7 +18,7 @@ import { cn } from '../utils/cn';
 import { Translations } from '../translations';
 
 // ─── METRIC CARD ──────────────────────────────────────────────────────────────
-const MetricCard = ({ label, value, sub, icon: Icon, color, bg }: any) => (
+const MetricCard = ({ label, value, sub, icon: Icon, color, bg, t }: any) => (
   <div className={cn('rounded-[2rem] p-5 border border-black/5 shadow-sm', bg || 'bg-white')}>
     {Icon && (
       <div className={cn('w-9 h-9 rounded-2xl bg-black/5 flex items-center justify-center mb-3', color)}>
@@ -32,7 +32,7 @@ const MetricCard = ({ label, value, sub, icon: Icon, color, bg }: any) => (
 );
 
 // ─── ENTRY CARD ───────────────────────────────────────────────────────────────
-const EntryCard = ({ entry, onTap }: { entry: any; onTap: () => void }) => {
+const EntryCard = ({ entry, onTap, t }: { entry: any; onTap: () => void; t: Translations }) => {
   const roi = entry.roi ?? 0;
   return (
     <motion.div
@@ -59,11 +59,11 @@ const EntryCard = ({ entry, onTap }: { entry: any; onTap: () => void }) => {
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">Invested</p>
+          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{t.totalInvested}</p>
           <p className="font-black text-sm text-[#4A2C2A] tracking-tight">₹{(entry.totalInvested / 100000).toFixed(1)}L</p>
         </div>
         <div>
-          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">Revenue</p>
+          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{t.revenue}</p>
           <p className="font-black text-sm text-emerald-600 tracking-tight">₹{(entry.totalRevenue / 100000).toFixed(1)}L</p>
         </div>
         <div>
@@ -78,7 +78,7 @@ const EntryCard = ({ entry, onTap }: { entry: any; onTap: () => void }) => {
 };
 
 // ─── ENTRY DETAIL SHEET ───────────────────────────────────────────────────────
-const EntryDetailSheet = ({ entry, onClose }: { entry: any; onClose: () => void }) => {
+const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => void; t: Translations }) => {
   const roi = entry.roi ?? 0;
   const n = (v: any) => parseFloat(v) || 0;
   const totalInvested = entry.totalInvested || 0;
@@ -130,9 +130,9 @@ const EntryDetailSheet = ({ entry, onClose }: { entry: any; onClose: () => void 
           <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest mb-4">Per-kg Economics</p>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { l: 'Cost/kg',    v: entry.harvestWeightKg > 0 ? `₹${(totalInvested / n(entry.harvestWeightKg)).toFixed(0)}` : '—', c: 'text-red-500' },
-              { l: 'Price/kg',   v: entry.pricePerKg ? `₹${n(entry.pricePerKg).toFixed(0)}` : '—',                                 c: 'text-[#C78200]' },
-              { l: 'Profit/kg',  v: n(entry.pricePerKg) > 0 && entry.harvestWeightKg > 0 ? `₹${(entry.netProfit / n(entry.harvestWeightKg)).toFixed(0)}` : '—', c: entry.netProfit >= 0 ? 'text-emerald-600' : 'text-red-500' },
+              { l: t.costPerKg,    v: entry.harvestWeightKg > 0 ? `₹${(totalInvested / n(entry.harvestWeightKg)).toFixed(0)}` : '—', c: 'text-red-500' },
+              { l: t.pricePerKgLabel,   v: entry.pricePerKg ? `₹${n(entry.pricePerKg).toFixed(0)}` : '—',                                 c: 'text-[#C78200]' },
+              { l: t.profitPerKg,  v: n(entry.pricePerKg) > 0 && entry.harvestWeightKg > 0 ? `₹${(entry.netProfit / n(entry.harvestWeightKg)).toFixed(0)}` : '—', c: entry.netProfit >= 0 ? 'text-emerald-600' : 'text-red-500' },
             ].map((m, i) => (
               <div key={i} className="text-center">
                 <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{m.l}</p>
@@ -143,7 +143,7 @@ const EntryDetailSheet = ({ entry, onClose }: { entry: any; onClose: () => void 
         </div>
 
         <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm mb-4 space-y-3">
-          <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">Investment Breakdown</p>
+          <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{t.investmentBreakdown}</p>
           {categories.map((c, i) => (
             <div key={i}>
               <div className="flex justify-between items-baseline mb-1">
@@ -158,7 +158,7 @@ const EntryDetailSheet = ({ entry, onClose }: { entry: any; onClose: () => void 
         </div>
 
         <button onClick={onClose} className="w-full py-5 bg-[#4A2C2A] text-white rounded-[1.6rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
-          Close
+          {t.close}
         </button>
       </motion.div>
     </motion.div>
@@ -249,18 +249,21 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
 
   if (!user || user.subscriptionStatus === 'free') {
     return (
-      <div className="min-h-screen bg-[#FFFDF5] flex flex-col items-center justify-center p-10 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C78200] blur-[120px] rounded-full animate-pulse" />
+      <div className="min-h-screen bg-[#FFFDF5] relative overflow-hidden flex flex-col">
+        <Header title={t.roi} showBack={false} onMenuClick={onMenuClick} />
+        <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
+          <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C78200] blur-[120px] rounded-full animate-pulse" />
+          </div>
+          <div className="w-24 h-24 bg-[#C78200] rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-[#C78200]/20">
+            <Calculator size={48} className="text-white" />
+          </div>
+          <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.proFeature}</h2>
+          <p className="text-[#4A2C2A]/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.profitCalculator} is only available for AquaGrow Pro subscribers.</p>
+          <button onClick={() => navigate('/subscription')} className="bg-[#C78200] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[#C78200]/20 active:scale-95 transition-all flex items-center gap-3">
+            {t.upgradeToPro} <Sparkles size={18} className="text-white/40" />
+          </button>
         </div>
-        <div className="w-24 h-24 bg-[#C78200] rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-[#C78200]/20">
-          <Calculator size={48} className="text-white" />
-        </div>
-        <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.proFeature}</h2>
-        <p className="text-[#4A2C2A]/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.profitCalculator} is only available for AquaGrow Pro subscribers.</p>
-        <button onClick={() => navigate('/subscription')} className="bg-[#C78200] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[#C78200]/20 active:scale-95 transition-all flex items-center gap-3">
-          {t.upgradeToPro} <Sparkles size={18} className="text-white/40" />
-        </button>
       </div>
     );
   }
@@ -268,25 +271,28 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   // Check if any ponds exist (active or otherwise)
   if (ponds.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F8F9FE] flex flex-col items-center justify-center p-10 text-center">
-        <div className="w-20 h-20 bg-[#C78200]/10 rounded-[2rem] flex items-center justify-center mb-6">
-          <Fish size={40} className="text-[#C78200]" />
+      <div className="min-h-screen bg-[#F8F9FE] flex flex-col">
+        <Header title={t.roi} showBack={false} onMenuClick={onMenuClick} />
+        <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
+          <div className="w-20 h-20 bg-[#C78200]/10 rounded-[2rem] flex items-center justify-center mb-6">
+            <Fish size={40} className="text-[#C78200]" />
+          </div>
+          <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">No Ponds Found</h2>
+          <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-8 max-w-[260px]">You need at least one pond to calculate ROI and view financial analytics. Add your first pond to get started.</p>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="bg-[#C78200] text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+          >
+            {t.backToDashboard || 'Go to Dashboard'}
+          </button>
         </div>
-        <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">No Ponds Found</h2>
-        <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-8 max-w-[260px]">You need at least one pond to calculate ROI and view financial analytics. Add your first pond to get started.</p>
-        <button 
-          onClick={() => navigate('/ponds')} 
-          className="bg-[#C78200] text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
-        >
-          Add Your First Pond
-        </button>
       </div>
     );
   }
 
   return (
     <div className="pb-[180px] bg-[#F8F9FE] min-h-[100dvh] font-sans">
-      <Header title="Farm Financials" showBack onMenuClick={onMenuClick} />
+      <Header title={t.roi} showBack={false} onMenuClick={onMenuClick} />
 
       {/* Generating PDF Overlay */}
       <AnimatePresence>
@@ -304,7 +310,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
 
       <AnimatePresence>
         {selectedEntry && (
-          <EntryDetailSheet entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+          <EntryDetailSheet entry={selectedEntry} onClose={() => setSelectedEntry(null)} t={t} />
         )}
       </AnimatePresence>
 
@@ -447,7 +453,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
         {/* ── POND WISE VIEW ── */}
         {viewMode === 'pond' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
-            <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1">Pond Performance</h3>
+            <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1">{t.pondPerformance}</h3>
             {pondWiseStats.length === 0 ? (
                <p className="text-center text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest py-10">No data available</p>
             ) : pondWiseStats.map((p, i) => (
@@ -459,7 +465,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                         </div>
                         <div>
                            <h4 className="text-sm font-black text-[#4A2C2A]">{p.name}</h4>
-                           <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{p.cycles} Cycles Logged</p>
+                           <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{p.cycles} {t.cyclesLogged}</p>
                         </div>
                      </div>
                      <div className={cn("px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest", p.avgRoi >= 30 ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "bg-amber-50 border-amber-200 text-amber-600")}>
@@ -484,7 +490,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
         {/* ── YEARLY VIEW ── */}
         {viewMode === 'year' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-            <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1">Annual Fiscal Report</h3>
+            <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1">{t.annualFiscalReport}</h3>
             
             {yearWiseStats.length > 0 && (
               <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-black/5 h-[320px] pb-4">
@@ -511,13 +517,13 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                   <div className="flex justify-between items-center mb-6">
                      <p className="text-2xl font-black tracking-tighter">FY {y.year}</p>
                      <div className="px-3 py-1 rounded-full border border-emerald-400/30 text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                        ₹{(y.profit/100000).toFixed(1)}L Net Margin
+                        ₹{(y.profit/100000).toFixed(1)}L {t.netMargin}
                      </div>
                   </div>
                   <div className="space-y-4">
                      <div>
                        <div className="flex justify-between items-baseline mb-1">
-                         <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">OpEx Invested</p>
+                         <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t.opexInvested}</p>
                          <p className="text-sm font-black">₹{(y.invested/100000).toFixed(1)}L</p>
                        </div>
                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -526,7 +532,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                      </div>
                      <div>
                        <div className="flex justify-between items-baseline mb-1">
-                         <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">Total Receipts</p>
+                         <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t.totalReceipts}</p>
                          <p className="text-sm font-black text-emerald-400">₹{(y.revenue/100000).toFixed(1)}L</p>
                        </div>
                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -543,12 +549,12 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
         {viewMode === 'overall' && entries.length > 0 && (
           <div className="space-y-3 pt-4 border-t border-black/5">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A]">Harvest History</h3>
-              <span className="text-[8px] font-black text-[#C78200] bg-[#C78200]/10 px-3 py-1.5 rounded-xl uppercase tracking-widest">{entries.length} cycles</span>
+              <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A]">{t.harvestHistory}</h3>
+              <span className="text-[8px] font-black text-[#C78200] bg-[#C78200]/10 px-3 py-1.5 rounded-xl uppercase tracking-widest">{entries.length} {t.doc}</span>
             </div>
             {entries.map((e, i) => (
               <div key={i}>
-                <EntryCard entry={e} onTap={() => setSelectedEntry(e)} />
+                <EntryCard entry={e} onTap={() => setSelectedEntry(e)} t={t} />
               </div>
             ))}
           </div>
@@ -560,10 +566,10 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
             <div className="w-16 h-16 bg-[#C78200]/10 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
               <BarChart2 size={32} className="text-[#C78200]" />
             </div>
-            <h3 className="text-[#4A2C2A] font-black text-lg tracking-tighter mb-2">No ROI Profiles Yet</h3>
-            <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-6">Log your first post-harvest ROI to unlock cycle analytics, pond contributions, and PDF reports.</p>
+            <h3 className="text-[#4A2C2A] font-black text-lg tracking-tighter mb-2">{t.noRoiProfiles}</h3>
+            <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-6">{t.logEntry}</p>
             <button onClick={() => navigate('/roi-entry')} className="bg-[#C78200] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all">
-              + Log First Harvest
+              {t.logFirstHarvest}
             </button>
           </div>
         )}

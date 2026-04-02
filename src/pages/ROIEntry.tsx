@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils/cn';
 import { useData } from '../context/DataContext';
+import { Header } from '../components/Header';
 import { Translations } from '../translations';
 
 type FormData = {
@@ -208,18 +209,12 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
       </AnimatePresence>
 
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-black/5 shadow-sm">
-        <button onClick={() => step === 1 ? navigate(-1) : setStep(s => s - 1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
-          <ChevronLeft size={22} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-tight">{t.postHarvestROI}</h1>
-          <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">
-            Step {step} of {STEPS.length}
-          </p>
-        </div>
-        <div className="w-10" />
-      </header>
+      <Header 
+        title={t.postHarvestROI} 
+        showBack={true}
+        onBack={() => step === 1 ? navigate(-1) : setStep(s => s - 1)}
+        rightElement={<div className="w-10" />}
+      />
 
       {/* STEP PROGRESS PILLS */}
       <div className="fixed top-[72px] left-0 right-0 max-w-md mx-auto z-40 bg-white/95 backdrop-blur-md px-5 py-3 flex gap-2 border-b border-black/5">
@@ -282,17 +277,17 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                 </div>
 
                 <Field label={t.stockingDate} value={form.harvestDate} onChange={set('harvestDate')} type="date" icon={Calendar} />
-                <Field label={t.totalHarvestWeight} value={form.harvestWeightKg} onChange={set('harvestWeightKg')} type="number" placeholder="e.g. 1200" icon={Scale} unit="kg" />
+                <Field label={t.totalHarvestWeight} value={form.harvestWeightKg} onChange={set('harvestWeightKg')} type="number" placeholder="e.g. 1200" icon={Scale} unit={t.kg} />
                 <Field label={t.countPerKgSize} value={form.countPerKg} onChange={set('countPerKg')} type="number" placeholder="e.g. 40" icon={Fish} unit="/kg" />
                 <Field label={t.survival} value={form.survivalRate} onChange={set('survivalRate')} type="number" placeholder="e.g. 80" icon={Percent} unit="%" />
-                <Field label={t.cultureDuration} value={form.cultureDays} onChange={set('cultureDays')} type="number" placeholder="e.g. 90" icon={Calendar} unit="DOC" />
+                <Field label={t.cultureDuration} value={form.cultureDays} onChange={set('cultureDays')} type="number" placeholder="e.g. 90" icon={Calendar} unit={t.days} />
 
                 {/* Grade split */}
                 <div className="space-y-2">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-1">{t.gradeSplit}</label>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Grade A (%)" value={form.gradeA} onChange={set('gradeA')} type="number" placeholder="85" unit="%" />
-                    <Field label="Grade B (%)" value={form.gradeB} onChange={set('gradeB')} type="number" placeholder="15" unit="%" />
+                    <Field label={t.gradeAYield} value={form.gradeA} onChange={set('gradeA')} type="number" placeholder="85" unit="%" />
+                    <Field label={t.gradeBYield} value={form.gradeB} onChange={set('gradeB')} type="number" placeholder="15" unit="%" />
                   </div>
                 </div>
               </div>
@@ -390,7 +385,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                         roi >= 0  ? 'bg-white/20 border-white/20 text-white' :
                                     'bg-red-400/20 border-red-400/30 text-red-200'
                       )}>
-                        {roi >= 40 ? '🏆 Excellent' : roi >= 20 ? '✅ Good' : roi >= 0 ? '⚠️ Break-even' : '🔴 Loss'}
+                        {roi >= 40 ? `🏆 ${t.excellent}` : roi >= 20 ? `✅ ${t.good}` : roi >= 0 ? `⚠️ ${t.breakEven}` : `🔴 ${t.lossCycle}`}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-6 border-t border-white/10 pt-6">

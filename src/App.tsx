@@ -191,7 +191,7 @@ const AppContent = () => {
   return (
     <div className="w-full max-w-md mx-auto bg-[#F8F9FE] min-h-[100dvh] relative shadow-2xl overflow-x-hidden font-sans">
       {!user ? (
-        <AuthScreen t={t} />
+        <AuthScreen t={t} onLanguageChange={setLang} />
       ) : (
         <>
           <PushSyncManager />

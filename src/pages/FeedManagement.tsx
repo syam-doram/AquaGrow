@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
+import { Header } from '../components/Header';
 import { Translations } from '../translations';
 import { calculateDOC } from '../utils/pondUtils';
 import { getLunarStatus } from '../utils/lunarUtils';
@@ -190,18 +191,20 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   return (
     <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-black/5 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-[0.1em] uppercase">{t.feedManagement}</h1>
-          {selectedPond && (
-            <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{selectedPond.name} • {t.doc} {currentDoc}</p>
-          )}
-        </div>
-        <div className="w-10"></div>
-      </header>
+      <Header 
+        title={t.feedManagement} 
+        showBack={false} 
+        onMenuClick={onMenuClick} 
+        rightElement={
+          selectedPond && (
+            <div className="bg-[#FFF8E6] border border-[#C78200]/20 px-3 py-1.5 rounded-full">
+              <span className="text-[9px] font-black text-[#C78200] uppercase tracking-widest whitespace-nowrap">
+                {t.doc} {currentDoc}
+              </span>
+            </div>
+          )
+        }
+      />
 
       <div className="pt-28 px-5 space-y-5">
         {/* Pond Selector */}

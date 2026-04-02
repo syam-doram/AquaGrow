@@ -31,6 +31,7 @@ import {
   HeartPulse,
   Target,
   DollarSign,
+  Pill,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -260,6 +261,41 @@ const DocRing = ({ doc, label }: { doc: number; label: string; key?: string }) =
   );
 };
 
+const QuickNav = ({ t, navigate }: { t: Translations; navigate: any }) => {
+  const links = [
+    { label: t.monitor, icon: Droplets, path: '/monitor', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    { label: t.feed,    icon: Utensils, path: '/feed',    color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
+    { label: t.medicine,icon: Box,      path: '/medicine',color: '#C78200', bg: 'rgba(199, 130, 0, 0.1)' },
+    { label: t.addPond, icon: Plus,     path: '/ponds/new',color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.1)' },
+  ];
+
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-4 pt-1 snap-x no-scrollbar">
+      {links.map((link, i) => (
+        <motion.button
+          key={i}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.05 + 0.1 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => navigate(link.path)}
+          className="flex-shrink-0 snap-start flex flex-col items-center gap-2 p-3 bg-white/60 backdrop-blur-md rounded-[2.2rem] border border-white/40 shadow-[0_8px_20px_rgba(0,0,0,0.03)] min-w-[85px] group"
+        >
+          <div 
+            className="w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all group-hover:scale-110 shadow-lg"
+            style={{ backgroundColor: link.bg }}
+          >
+            <link.icon size={22} style={{ color: link.color }} />
+          </div>
+          <p className="text-[10px] font-black text-[#012B1D]/60 uppercase tracking-widest text-center leading-tight">
+            {link.label.split(' ')[0]}
+          </p>
+        </motion.button>
+      ))}
+    </div>
+  );
+};
+
 // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
@@ -390,7 +426,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   // ── Health score ──
   const healthScore = calcPondHealthScore(latestWater);
   const healthColor = healthScore >= 80 ? '#34d399' : healthScore >= 60 ? '#f59e0b' : '#ef4444';
-  const healthLabel = healthScore >= 80 ? 'Excellent' : healthScore >= 60 ? 'Fair' : 'Poor';
+  const healthLabel = healthScore >= 80 ? t.excellent : healthScore >= 60 ? t.fair : t.poor;
 
   // ── Medicine compliance ──
   const medThisWeek = useMemo(() => {
@@ -403,10 +439,61 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const weekDays = ['M','T','W','T','F','S','S'];
 
   return (
-    <div className="pb-32 bg-[#F8F9FE] min-h-screen">
-      <Header title="AquaGrow" onMenuClick={onMenuClick} />
+    <div className="pb-32 bg-[#F0F4F2] min-h-screen relative overflow-hidden">
+      {/* ── Background Accents ── */}
+      <div className="absolute top-0 right-0 w-[80%] h-[30%] bg-emerald-100/40 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-[20%] left-0 w-[60%] h-[40%] bg-amber-50/30 rounded-full blur-[120px] -z-10" />
 
-      <div className="px-4 pt-24 space-y-4">
+      <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
+
+      <div className="px-4 pt-24 space-y-6">
+        {/* ── NEW ELITE TOP NAV ── */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: t.monitor,   icon: Activity,    path: '/monitor',           color: '#0369A1', bg: '#EFF6FF' },
+            { label: t.disease,   icon: HeartPulse, path: '/disease-detection', color: '#dc2626', bg: '#FEF2F2' },
+            { label: t.market,    icon: TrendingUp,  path: '/market',            color: '#059669', bg: '#ECFDF5' },
+            { label: t.feed,      icon: Utensils,    path: '/feed',              color: '#C78200', bg: '#FFF8E7' },
+            { label: t.weather,   icon: Wind,        path: '/weather',           color: '#6366f1', bg: '#EEF2FF' },
+            { label: t.roi,       icon: BarChart2,   path: '/roi',               color: '#0891b2', bg: '#ECFEFF' },
+            { label: t.sop,       icon: Target,      path: activePonds[0] ? `/ponds/${activePonds[0].id}/sop` : '/ponds', color: '#7c3aed', bg: '#F5F3FF' },
+            { label: t.medicine,  icon: Pill,        path: '/medicine',          color: '#0D523C', bg: '#E6F0EC' },
+          ].map(n => (
+            <button key={n.path} onClick={() => navigate(n.path)}
+              className="bg-white/80 backdrop-blur-md rounded-[1.5rem] p-3 border border-white shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition-all group">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110" style={{ background: n.bg }}>
+                <n.icon size={18} style={{ color: n.color }} />
+              </div>
+              <span className="text-[8px] font-black text-[#4A2C2A]/50 uppercase tracking-widest text-center leading-tight h-4 flex items-center">{n.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── Personal Greeting ── */}
+        <div className="flex items-center justify-between py-2 border-t border-black/5 pt-6">
+          <div>
+            <h2 className="text-[#012B1D]/40 text-[10px] font-black uppercase tracking-[0.4em] mb-1">
+              {(() => {
+                const hour = new Date().getHours();
+                if (hour < 12) return t.goodMorning || 'Good Morning';
+                if (hour < 17) return t.goodAfternoon || 'Good Afternoon';
+                return t.goodEvening || 'Good Evening';
+              })()}
+            </h2>
+            <p className="text-[#012B1D] text-3xl font-serif italic tracking-tighter leading-none mt-1">
+              {user.name.split(' ')[0]}
+            </p>
+          </div>
+          <div className="flex flex-col items-end">
+             <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-2xl border border-white/50 shadow-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#012B1D]/40">{t.systemLive || 'System Live'}</p>
+             </div>
+             <p className="text-[10px] font-bold text-[#012B1D]/20 mt-2">
+                {new Date().toLocaleDateString(user.language === 'English' ? 'en-US' : 'te-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+             </p>
+          </div>
+        </div>
 
         {/* ── SOP Engine Alerts ── */}
         <AnimatePresence>
@@ -459,118 +546,80 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             <button onClick={() => setShowLunarAlert(false)} className="absolute top-4 right-4 text-white/20 hover:text-white p-1">
               <X size={16} />
             </button>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
                 <Moon size={18} className="text-white fill-white" />
               </div>
               <div>
-                <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{t.moonPhaseTitle}</p>
-                <h3 className="font-black text-sm">{t.amavasyaWarning}</h3>
+                <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{t.moonPhaseTitle || 'Moon Phase'}</p>
+                <h3 className="font-black text-sm">{t.amavasyaWarning || 'Amavasya Warning'}</h3>
               </div>
             </div>
-            <p className="text-white/50 text-[10px] leading-relaxed">{t.massMoltingRisk} {t.actionRequired}</p>
+            <p className="text-white/50 text-[10px] mt-2 leading-relaxed">{t.massMoltingRisk || 'High risk of mass molting. Ensure optimal DO levels.'}</p>
           </motion.div>
         )}
 
+        {/* ── MAIN CONTENT ── */}
         {activePonds.length === 0 ? (
-          /* ── Empty State ── */
           <div className="mt-10 bg-white p-10 rounded-[3rem] text-center shadow-xl border border-black/5">
             <div className="w-20 h-20 bg-[#F8F9FE] rounded-full flex items-center justify-center mx-auto mb-6 text-[#C78200]">
               <Plus size={40} />
             </div>
             <h3 className="text-[#4A2C2A] font-black text-xl tracking-tighter mb-3">{t.startYourFirstPond}</h3>
-            <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-8">{t.addFirstPondDesc}</p>
             <button onClick={() => navigate('/ponds/new')}
-              className="w-full py-5 bg-[#C78200] text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-[#C78200]/20 active:scale-95 transition-all">
+              className="w-full py-5 bg-[#C78200] text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl">
               {t.addPond}
             </button>
           </div>
         ) : (
-          <>
-            {/* ══ SECTION 1: LIVE MARKET ══ */}
-            <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.05 }}>
-              <LiveMarketTicker t={t} />
+          <div className="space-y-6">
+            {/* Live Market Rates */}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-amber-500/20 rounded-[2.2rem] blur opacity-25 group-hover:opacity-40 transition-all duration-1000"></div>
+                <LiveMarketTicker t={t} />
+              </div>
             </motion.div>
 
-            {/* ══ SECTION 2: FARM KPI CARDS ══ */}
-            <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.1 }}>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Farm Overview KPIs */}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <div className="grid grid-cols-2 gap-4">
                 {[
-                  {
-                    label: t.totalPonds, value: `${activePonds.length}`,
-                    sub: `${ponds.length} ${t.totalPonds}`, icon: LayersIcon, color: '#C78200', bg: '#FFF8E7',
-                  },
-                  {
-                    label: t.totalArea, value: `${totalArea.toFixed(1)}`,
-                    sub: t.acres, icon: Calculator, color: '#0369A1', bg: '#EFF6FF',
-                  },
-                  {
-                    label: 'Est. Biomass', value: `${(totalBiomassKg/1000).toFixed(1)}T`,
-                    sub: `${totalBiomassKg.toFixed(0)} kg`, icon: Fish, color: '#059669', bg: '#ECFDF5',
-                  },
-                  {
-                    label: 'Pending Alerts', value: String(pendingAlerts).padStart(2,'0'),
-                    sub: 'action required', icon: Bell, color: pendingAlerts > 0 ? '#ef4444' : '#6b7280', bg: pendingAlerts > 0 ? '#FEF2F2' : '#F8F9FE',
-                    path: '/notifications',
-                  },
+                  { label: t.totalPonds, value: activePonds.length, sub: 'Active', icon: LayersIcon, color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+                  { label: t.totalArea, value: totalArea.toFixed(1), sub: 'Acres', icon: Calculator, color: '#0369A1', bg: 'rgba(3, 105, 161, 0.1)' },
+                  { label: t.biomassEst, value: `${(totalBiomassKg/1000).toFixed(1)}T`, sub: 'Estimated', icon: Fish, color: '#059669', bg: 'rgba(5, 150, 105, 0.1)' },
+                  { label: t.pendingAlerts, value: pendingAlerts, sub: 'Required', icon: Bell, color: pendingAlerts > 0 ? '#ef4444' : '#6b7280', bg: pendingAlerts > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)' },
                 ].map((stat, i) => (
-                  <motion.div key={i}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => stat.path && navigate(stat.path)}
-                    className="bg-white rounded-[1.8rem] p-4 border border-black/5 shadow-sm cursor-pointer">
-                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3" style={{ background: stat.bg }}>
-                      <stat.icon size={18} style={{ color: stat.color }} />
+                  <div key={i} className="bg-white/80 backdrop-blur-md rounded-[2.2rem] p-5 border border-white/40 shadow-sm group">
+                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110" style={{ background: stat.bg }}>
+                      <stat.icon size={20} style={{ color: stat.color }} />
                     </div>
-                    <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{stat.label}</p>
-                    <p className="text-[#4A2C2A] text-2xl font-black tracking-tighter mt-0.5">{stat.value}</p>
-                    <p className="text-[8px] text-[#4A2C2A]/40 font-bold mt-0.5">{stat.sub}</p>
-                  </motion.div>
+                    <p className="text-[9px] font-black text-[#012B1D]/40 uppercase tracking-widest">{stat.label}</p>
+                    <p className="text-[#012B1D] text-3xl font-black tracking-tighter mt-1">{stat.value}</p>
+                  </div>
                 ))}
               </div>
             </motion.div>
 
-            {/* ══ SECTION 2B: SURVIVAL + FCR QUICK STATS ══ */}
+            {/* Deep Insight Row */}
             {selectedPond && (
-              <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.12 }}
-                className="grid grid-cols-2 gap-3">
-                {/* FCR Card */}
-                <div className="bg-gradient-to-br from-[#0D523C] to-[#051F19] rounded-[2rem] p-4 border border-emerald-500/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">FCR Ratio</p>
-                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <Target size={11} className="text-emerald-300" />
-                    </div>
-                  </div>
-                  <p className="text-white font-black text-2xl tracking-tighter">
-                    {fcrData?.fcr ?? '—'}
-                  </p>
-                  <p className="text-[7px] text-white/25 font-black mt-0.5 uppercase tracking-wider">
-                    Feed ÷ Biomass Gain
-                  </p>
-                  <p className={`text-[8px] font-black mt-1.5 ${ fcrData?.fcr && Number(fcrData.fcr) < 1.5 ? 'text-emerald-400' : fcrData?.fcr && Number(fcrData.fcr) < 2.0 ? 'text-amber-400' : 'text-red-400'}`}>
-                    {fcrData?.fcr ? (Number(fcrData.fcr) < 1.5 ? '✓ Excellent' : Number(fcrData.fcr) < 2.0 ? '⚡ Good' : '⚠ Review Feed') : 'Log feed to calculate'}
-                  </p>
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 gap-4">
+                <div className="bg-emerald-950 rounded-[2.2rem] p-5 border border-emerald-500/20 shadow-2xl relative overflow-hidden group min-h-[140px]">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-3">{t.fcrRatio || 'FCR Ratio'}</p>
+                  <p className="text-white font-black text-4xl tracking-tighter">{fcrData?.fcr ?? '—'}</p>
+                  <p className="text-[8px] text-white/30 font-black mt-2 uppercase tracking-widest">{t.feedBiomassGain || 'Feed vs Biomass'}</p>
                 </div>
-
-                {/* Survival Rate Card */}
-                <div className="bg-gradient-to-br from-[#1a1c40] to-[#0d0f28] rounded-[2rem] p-4 border border-indigo-500/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">Survival Est.</p>
-                    <div className="w-6 h-6 bg-indigo-500/20 rounded-lg flex items-center justify-center">
-                      <Fish size={11} className="text-indigo-300" />
-                    </div>
-                  </div>
-                  <p className="text-white font-black text-2xl tracking-tighter">{survivalRate}%</p>
-                  <p className="text-[7px] text-white/25 font-black mt-0.5 uppercase tracking-wider">Estimated Live Count</p>
-                  <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-                    <motion.div className="h-full bg-indigo-400 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${survivalRate}%` }}
-                      transition={{ duration: 1.5, ease: 'easeOut' }} />
+                <div className="bg-[#1A1C30] rounded-[2.2rem] p-5 border border-indigo-500/20 shadow-2xl min-h-[140px]">
+                  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3">{t.survivalEst || 'Survival Est.'}</p>
+                  <p className="text-white font-black text-4xl tracking-tighter">{survivalRate}%</p>
+                  <div className="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${survivalRate}%` }} className="h-full bg-indigo-500" />
                   </div>
                 </div>
               </motion.div>
             )}
+
 
             {/* ══ SECTION 3: POND SELECTOR + DOC RINGS ══ */}
             <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.15 }}
@@ -775,17 +824,17 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               {/* Daily Cost Burndown */}
               <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
                 <div>
-                  <p className="text-[7px] text-white/25 font-black uppercase tracking-widest">Daily Feed Cost</p>
+                  <p className="text-[7px] text-white/25 font-black uppercase tracking-widest">{t.dailyFeedCost}</p>
                   <p className="text-white font-black text-base mt-0.5">
                     {feedThisWeek.length > 0
                       ? `₹${(feedThisWeek[feedThisWeek.length-1] * 55).toLocaleString()}`
                       : '—'}
                   </p>
-                  <p className="text-[7px] text-white/20 font-black">@ ₹55/kg est. feed cost</p>
+                  <p className="text-[7px] text-white/20 font-black">{t.estFeedCostPerKg}</p>
                 </div>
                 <button onClick={() => navigate('/roi')}
                   className="px-3 py-2 bg-emerald-500/15 border border-emerald-500/20 rounded-xl text-emerald-300 text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
-                  <BarChart2 size={11} /> ROI →
+                  < BarChart2 size={11} /> {t.roi} →
                 </button>
               </div>
             </motion.div>
@@ -824,7 +873,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 )) : (
                   <div className="bg-white p-8 rounded-[2rem] text-center border border-black/5">
                     <CheckCircle2 size={28} className="text-emerald-400 mx-auto mb-2" />
-                    <p className="text-[#4A2C2A]/40 text-xs font-black">All tasks done for today</p>
+                    <p className="text-[#4A2C2A]/40 text-xs font-black">{t.allTasksDone}</p>
                   </div>
                 )}
               </div>
@@ -914,36 +963,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 {activePonds.length > 4 && (
                   <button onClick={() => navigate('/ponds')}
                     className="w-full py-4 bg-white rounded-[1.5rem] border border-black/5 text-[#C78200] text-[10px] font-black uppercase tracking-widest shadow-sm">
-                    View All {activePonds.length} Ponds →
+                    {t.viewAllPonds} ({activePonds.length}) →
                   </button>
                 )}
               </div>
             </motion.div>
 
-            {/* ── Quick Nav shortcuts ── */}
-            <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.45 }}
-              className="grid grid-cols-4 gap-2 mt-2">
-              {[
-                { label:'Monitor', icon:Activity,   path:'/monitor',           color:'#0369A1', bg:'#EFF6FF' },
-                { label:'Disease', icon:HeartPulse,  path:'/disease-detection', color:'#dc2626', bg:'#FEF2F2' },
-                { label:'Market',  icon:TrendingUp,  path:'/market',            color:'#059669', bg:'#ECFDF5' },
-                { label:'Feed',    icon:Utensils,    path:'/feed',              color:'#C78200', bg:'#FFF8E7' },
-                { label:'Weather', icon:Wind,        path:'/weather',           color:'#6366f1', bg:'#EEF2FF' },
-                { label:'ROI',     icon:BarChart2,   path:'/roi',               color:'#0891b2', bg:'#ECFEFF' },
-                { label:'SOP',     icon:Target,      path: selectedPond ? `/ponds/${selectedPond.id}/sop` : '/ponds', color:'#7c3aed', bg:'#F5F3FF' },
-                { label:'Learn',   icon:ArrowUpRight, path:'/learn',            color:'#b45309', bg:'#FFFBEB' },
-              ].map(n => (
-                <button key={n.path} onClick={() => navigate(n.path)}
-                  className="bg-white rounded-[1.5rem] p-3 border border-black/5 shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition-all">
-                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: n.bg }}>
-                    <n.icon size={18} style={{ color: n.color }} />
-                  </div>
-                  <span className="text-[8px] font-black text-[#4A2C2A]/50 uppercase tracking-widest">{n.label}</span>
-                </button>
-              ))}
-            </motion.div>
 
-          </>
+          </div>
         )}
       </div>
     </div>

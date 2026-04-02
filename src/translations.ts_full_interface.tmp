@@ -1,0 +1,243 @@
+import { Language } from './types';
+
+export interface Translations {
+  // Feed & ROI Basics
+  nextFeed: string;
+  fcrCalculator: string;
+  feedConversionRatio: string;
+  currentFCR: string;
+  biomassEst: string;
+  recalculateRatio: string;
+  todaysConsumption: string;
+  seeHistory: string;
+  logFeedEntry: string;
+  brand: string;
+  qty: string;
+  scheduledFor: string;
+  
+  // Navigation & Headers
+  dashboard: string;
+  home: string;
+  ponds: string;
+  feed: string;
+  medicine: string;
+  roi: string;
+  monitor: string;
+  market: string;
+  profile: string;
+  backToDashboard: string;
+  
+  // Greetings & Status
+  systemLive: string;
+  goodMorning: string;
+  goodAfternoon: string;
+  goodEvening: string;
+  welcome: string;
+
+  // Lunar & SOP
+  amavasyaWarning: string;
+  ashtamiWarning: string;
+  moonPhaseTitle: string;
+  massMoltingRisk: string;
+  newMoonDay: string;
+  fullAerationNight: string;
+  reduceFeedBy30: string;
+  immunityBoosterVitaminC: string;
+  lunarPlanApplied: string;
+  expertMentor: string;
+  todayTask: string;
+  sopDescription: string;
+  medicineBrand: string;
+  recommendedDose: string;
+  viewChecklist: string;
+  complianceRule: string;
+  criticalStageAlert: string;
+  stage5g: string;
+  stage15g: string;
+  stage25g: string;
+  stage35g: string;
+  daysTaken: string;
+  sinceStocking: string;
+  dailyLogTitle: string;
+  acclimatizationDone: string;
+  probioticApplied: string;
+  aerationLevel: string;
+  mineralsApplied: string;
+  gutProbioticMixed: string;
+  zeoliteApplied: string;
+  sludgeChecked: string;
+  vibriosisSigns: string;
+  feedTrayCheck: string;
+  immunityBoostersAdded: string;
+  aerator24h: string;
+  pondBottomCleaned: string;
+  waterExchangeDone: string;
+  targetSizeAchieved: string;
+  cultureSOP: string;
+  stockingDensity: string;
+  aeratorRequirement: string;
+  cultureSchedule: string;
+  medicinesPlan: string;
+  warningSigns: string;
+  productionExpectation: string;
+  logMedication: string;
+  dailySOP: string;
+  
+  // Dashboard Sections
+  todaysTasks: string;
+  viewSchedule: string;
+  activePonds: string;
+  marketPrice: string;
+  weather: string;
+  aiDisease: string;
+  profitCalculator: string;
+  learningCenter: string;
+  community: string;
+  support: string;
+  upgradeToPro: string;
+  proBadge: string;
+  language: string;
+  selectLanguage: string;
+  
+  // Pond & Farm Details
+  farmDetails: string;
+  pondName: string;
+  pondSize: string;
+  stockingDate: string;
+  seedCount: string;
+  species: string;
+  plAge: string;
+  status: string;
+  waterQuality: string;
+  feedManagement: string;
+  healthCheck: string;
+  harvest: string;
+  addPond: string;
+  addFirstPond: string;
+  addFirstPondDesc: string;
+  save: string;
+  cancel: string;
+  
+  // Units & Economics
+  kg: string;
+  acres: string;
+  hectares: string;
+  lakh: string;
+  revenue: string;
+  netProfit: string;
+  totalInvested: string;
+  costPerKg: string;
+  pricePerKgLabel: string;
+  profitPerKg: string;
+  
+  // Generic
+  back: string;
+  next: string;
+  close: string;
+  loading: string;
+  error: string;
+  success: string;
+  
+  // Pro Features
+  proFeature: string;
+  unlockPro: string;
+  subscription: string;
+  premiumModel: string;
+  projectedEfficiency: string;
+  
+  // Disease
+  diseaseAlert: string;
+  diagnoseNow: string;
+  opaqueMuscleSign: string;
+  softShellSign: string;
+  surfaceBubbleSign: string;
+  
+  // History & ROI Detail
+  harvestHistory: string;
+  noRoiProfiles: string;
+  logFirstHarvest: string;
+  compilingReport: string;
+  aggregatingDatasets: string;
+  recentCyclePerformance: string;
+  pondPerformance: string;
+  cyclesLogged: string;
+  annualFiscalReport: string;
+  investedVsRevenue: string;
+  netMargin: string;
+  opexInvested: string;
+  totalReceipts: string;
+  gradeAYield: string;
+  gradeBYield: string;
+  marketSubsidy: string;
+  saveROIProfile: string;
+
+  good: string;
+  fair: string;
+  poor: string;
+  excellent: string;
+  stable: string;
+  high: string;
+  medium: string;
+  low: string;
+  urgent: string;
+  efficiency: string;
+  performanceInsight: string;
+  fcrHighMessage: string;
+  fcrOptimalMessage: string;
+  dailyFeedCost: string;
+  estFeedCostPerKg: string;
+  allTasksDone: string;
+  viewAllPonds: string;
+  disease: string;
+  learn: string;
+  sop: string;
+  doc: string;
+  growthStage: string;
+  count: string;
+  ultraHigh: string;
+  liveMarketRates: string;
+  mealsPerDay: string;
+  monitorTrays: string;
+  blindFeedingActive: string;
+  adjustNextSlot: string;
+  todaysSequence: string;
+  netPerDay: string;
+  totalFeed: string;
+  avgMealsDay: string;
+  super: string;
+  applyAction: string;
+  estimatedBiomass: string;
+  estSurvivingCount: string;
+  survivalRate_short: string;
+  applicationFormula: string;
+  baseKg: string;
+  rate: string;
+  grossKg: string;
+  fixed: string;
+  dailyExecutionRules: string;
+  pondStockingProfile: string;
+  login: string;
+  register: string;
+  enterOtp: string;
+  verifyOtp: string;
+  location: string;
+  pondCount: string;
+  otpSent: string;
+  invalidOtp: string;
+  totalAcres: string;
+  numberOfPonds: string;
+  farmLocation: string;
+  english: string;
+  telugu: string;
+  bengali: string;
+  odia: string;
+  gujarati: string;
+  tamil: string;
+  malayalam: string;
+  logout: string;
+  systemActive: string;
+  loginFailed: string;
+  fillAllFields: string;
+  otpVerified: string;
+  resendOtp: string;
+}

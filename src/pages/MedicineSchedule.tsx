@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
+import { Header } from '../components/Header';
 import { Translations } from '../translations';
 import { calculateDOC } from '../utils/pondUtils';
 import { getSOPGuidance, SOPSuggestion } from '../utils/sopRules';
@@ -299,28 +300,26 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
       </AnimatePresence>
 
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-black/5 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
-          <ChevronLeft size={24} />
-        </button>
-        <div>
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-[0.1em] uppercase text-center">{t.medicine}</h1>
-          {selectedPond && (
-            <p className="text-[9px] text-center font-black text-[#C78200] uppercase tracking-widest">{selectedPond.name}</p>
-          )}
-        </div>
-        <div className={cn(
-          'px-3 py-1.5 rounded-full border',
-          currentDoc > 30 && currentDoc <= 45 ? 'bg-red-50 border-red-200' : 'bg-[#FFF8E6] border-[#C78200]/20'
-        )}>
-          <span className={cn(
-            'text-[9px] font-black uppercase tracking-widest whitespace-nowrap',
-            currentDoc > 30 && currentDoc <= 45 ? 'text-red-500' : 'text-[#C78200]'
-          )}>
-            DOC: {currentDoc}
-          </span>
-        </div>
-      </header>
+      <Header 
+        title={t.medicine} 
+        showBack={false} 
+        onMenuClick={onMenuClick} 
+        rightElement={
+          selectedPond && (
+            <div className={cn(
+              'px-3 py-1.5 rounded-full border',
+              currentDoc > 30 && currentDoc <= 45 ? 'bg-red-50 border-red-200' : 'bg-[#FFF8E6] border-[#C78200]/20'
+            )}>
+              <span className={cn(
+                'text-[9px] font-black uppercase tracking-widest whitespace-nowrap',
+                currentDoc > 30 && currentDoc <= 45 ? 'text-red-500' : 'text-[#C78200]'
+              )}>
+                DOC: {currentDoc}
+              </span>
+            </div>
+          )
+        }
+      />
 
       <div className="pt-28 px-5 space-y-5">
         {/* Pond Selector Tabs */}

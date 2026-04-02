@@ -244,6 +244,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
           location: userData.location,
           role: userData.role,
           farmSize: userData.farmSize,
+          pondCount: userData.pondCount,
           language: userData.language
         })
       });
