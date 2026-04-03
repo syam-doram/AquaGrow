@@ -67,7 +67,7 @@ export const generateReminders = (
     });
 
     // 📅 2. SOP / DOC-BASED REMINDERS
-    const guidance = getSOPGuidance(doc, dayOfWeek);
+    const guidance = getSOPGuidance(doc, now);
     guidance.forEach((g, idx) => {
        if (g.type === 'MEDICINE' || g.type === 'ALERT') {
          reminders.push({

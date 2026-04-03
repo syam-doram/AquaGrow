@@ -20,6 +20,7 @@ import {
   Thermometer,
   Wind,
   Droplets,
+  Moon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -246,11 +247,25 @@ const MOON_META = {
 
 export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, addMedicineLog, medicineLogs } = useData();
+  const { ponds, addMedicineLog, medicineLogs, waterRecords } = useData();
   const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
   const [completedMeds, setCompletedMeds] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'today' | 'cycle' | 'lunar'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'lunar' | 'full'>('today');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const selectedPond = ponds.find(p => p.id === selectedPondId);
+  const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
+
+  // Data-Driven Risk Analysis
+  const pondWaterRecords = waterRecords
+    .filter(r => r.pondId === selectedPond?.id)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  const latestRead = pondWaterRecords[0];
+  const isDOCRisk = currentDoc > 30 && currentDoc < 45 || currentDoc > 75;
+  const isWaterRisk = latestRead && (latestRead.do < 4.0 || latestRead.ph > 8.5 || latestRead.temp > 31);
+  const riskLevel = (isDOCRisk && isWaterRisk) ? 'CRITICAL' : (isDOCRisk || isWaterRisk) ? 'HIGH' : 'STABLE';
 
   // Lunar forecast for the planner
   const lunarForecast = React.useMemo(() => getLunarForecast(new Date(), 30), []);
@@ -262,22 +277,17 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     }
   }, [ponds, selectedPondId]);
 
-  const selectedPond = ponds.find(p => p.id === selectedPondId);
-  const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
-
   // Filter logs for this specific pond to show the count
   const pondMedicineLogs = medicineLogs.filter(l => l.pondId === selectedPondId);
 
   // Lunar status — computed once at render
-  const now = new Date();
-  const lunar = getLunarStatus(now);
+  const lunar = getLunarStatus(selectedDate);
   const moonMeta = MOON_META[lunar.phase];
   const isHighRiskMoon = lunar.phase !== 'NORMAL';
 
   // Use the proper sopRules.ts with day-of-week
-  const dayOfWeek = now.getDay();
   const todayGuidance: SOPSuggestion[] = currentDoc > 0
-    ? getSOPGuidance(currentDoc, dayOfWeek).filter(s => s.type !== 'RULE' || s.title !== 'Amavasya Tip')
+    ? getSOPGuidance(currentDoc, selectedDate).filter(s => s.type !== 'RULE' || s.title !== 'Amavasya Tip')
     : [];
 
   const currentPhaseIdx = getCurrentPhaseIndex(currentDoc);
@@ -611,7 +621,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         <div>
                           <h2 className="text-[#4A2C2A] font-black text-lg tracking-tight">{t.dailySOP}</h2>
                           <p className="text-[#C78200] text-[9px] font-black uppercase tracking-widest mt-0.5">
-                            Required Today — DOC {currentDoc} ({new Date().toLocaleDateString('en-IN', { weekday: 'long' })})
+                            {selectedDate.toDateString() === new Date().toDateString() ? 'Required Today' : `Required on ${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`} — DOC {calculateDOC(selectedPond.stockingDate, selectedDate.toISOString())} ({selectedDate.toLocaleDateString('en-IN', { weekday: 'long' })})
                           </p>
                         </div>
                         <div className={cn(
@@ -711,9 +721,17 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             : 'bg-[#F0F0F0] text-[#4A2C2A]/20 cursor-not-allowed'
                         )}
                       >
-                        {isLogging ? 'Syncing...' : `${t.logMedication} (${completedMeds.length})`}
+                        {isLogging ? 'Syncing...' : (selectedDate.toDateString() === new Date().toDateString() ? `${t.logMedication} (${completedMeds.length})` : 'Planning Only (Historical/Future)')}
                         <ArrowRight size={18} />
                       </button>
+                      {selectedDate.toDateString() !== new Date().toDateString() && (
+                        <button 
+                          onClick={() => setSelectedDate(new Date())}
+                          className="w-full py-3 text-[10px] font-black uppercase text-indigo-500 bg-indigo-500/10 rounded-2xl tracking-widest"
+                        >
+                          Return to Today
+                        </button>
+                      )}
                     </>
                   )}
                 </motion.div>
@@ -859,9 +877,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                              <span className="w-1 h-1 rounded-full bg-emerald-400/30" />
                              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">DOC {currentDoc}</p>
                            </div>
-                           <h3 className="text-2xl font-black tracking-tighter mb-4">30-Day Molting Forecast</h3>
+                           <h3 className="text-2xl font-black tracking-tighter mb-4">2026 Molting Forecast</h3>
                            <p className="text-white/40 text-[10px] font-medium leading-relaxed">
-                              SOP Integrated: Showing molting triggers for {selectedPond.shrimpType} based on stock date and lunar tides.
+                              Calendar Sync: Active (Mar-Sep 2026) · SOP Integrated for {selectedPond.shrimpType}.
                            </p>
                         </div>
                         <div className="absolute right-[-5%] top-[-10%] opacity-10">
@@ -869,10 +887,17 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </div>
                       </div>
 
+                      {/* Weekly Day Headers */}
+                      <div className="grid grid-cols-7 gap-1.5 px-1 mb-2">
+                         {['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'].map((d, i) => (
+                           <div key={i} className="text-center font-black text-[5px] text-[#4A2C2A]/20 uppercase tracking-[0.1em]">{d}</div>
+                         ))}
+                      </div>
+
                       {/* Scrollable Container with 4-row visibility limit */}
-                      <div className="max-h-[460px] overflow-y-auto px-1 pr-2 space-y-4 custom-scrollbar">
+                      <div className="max-h-[480px] overflow-y-auto px-1 pr-2 space-y-4 custom-scrollbar">
                         <motion.div 
-                          className="grid grid-cols-4 gap-3"
+                          className="grid grid-cols-7 gap-1.5"
                           variants={{
                             show: { transition: { staggerChildren: 0.03 } }
                           }}
@@ -886,12 +911,15 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             const isNavami = day.status.phase === 'NAVAMI';
                             const isHighRisk = day.status.isHighRisk && !isAmavasya;
                             
-                            const forecastDoc = currentDoc + i;
+                            const forecastDoc = calculateDOC(selectedPond.stockingDate, day.date.toISOString());
                             const moltCycle = forecastDoc <= 30 ? 4 : forecastDoc <= 60 ? 7 : 12;
                             const isBiologicalMolt = forecastDoc % moltCycle === 0;
                             const isLunarMolt = isAmavasya || isNavami || isAshtami;
-                            const isPeakMolt = isBiologicalMolt && isLunarMolt;
-                            const hasMoltRisk = isPeakMolt || isAmavasya || (isBiologicalMolt && day.status.isHighRisk);
+                            
+                            // Peak Molt: When biological cycle hits lunar high-tide
+                            const isPeakMolt = isBiologicalMolt && isLunarMolt; 
+                            const hasMoltRisk = isPeakMolt || isLunarMolt;
+                            const isBioMarker = isBiologicalMolt && !isLunarMolt;
 
                             return (
                               <motion.div 
@@ -910,70 +938,77 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                   { duration: 0.8, ease: "easeOut", delay: i * 0.02 }
                                 }
                                 className={cn(
-                                  "relative p-3 rounded-[2rem] border flex flex-col items-center justify-between transition-all min-h-[105px]",
-                                  isAmavasya ? "bg-black border-indigo-500 shadow-xl" :
-                                  isAshtami ? "bg-violet-950 border-violet-500/50 shadow-lg" :
+                                  "relative p-2 rounded-[1.2rem] border flex flex-col items-center justify-between transition-all min-h-[95px] cursor-pointer",
+                                  isAmavasya ? "bg-black border-indigo-500 shadow-xl shadow-indigo-500/20" :
+                                  isAshtami ? "bg-violet-950 border-violet-500/50 shadow-lg shadow-violet-500/10" :
                                   isNavami ? "bg-[#0B1A2E] border-sky-500/30 shadow-lg " :
-                                  isToday ? "bg-emerald-500 border-white shadow-xl shadow-emerald-500/30" :
-                                  "bg-white/80 backdrop-blur-sm border-black/5",
-                                  isHighRisk && "ring-2 ring-indigo-500/10",
+                                  isBioMarker ? "bg-[#FFF9E6] border-amber-200/50 shadow-sm" :
+                                  day.date.toDateString() === selectedDate.toDateString() ? "bg-emerald-500 border-white shadow-xl shadow-emerald-500/30" :
+                                  "bg-white/90 backdrop-blur-md border-black/5",
+                                  isHighRisk && !isAmavasya && "ring-1 ring-indigo-500/20",
                                   isPeakMolt && "ring-4 ring-amber-500 shadow-xl shadow-amber-500/20 scale-105 z-20"
                                 )}
+                                onClick={() => setSelectedDate(day.date)}
                               >
                                  <div className="w-full flex justify-between items-start mb-1">
                                     <div className="flex flex-col">
                                       <span className={cn(
-                                        "text-[7px] font-black uppercase",
-                                        (isAmavasya || isAshtami || isNavami || isToday) ? "text-white/40" : "text-black/10"
+                                        "text-[5px] font-black uppercase tracking-tighter opacity-70",
+                                        (isAmavasya || isAshtami || isNavami || day.date.toDateString() === selectedDate.toDateString()) ? "text-white/40" : "text-black/20"
                                       )}>
-                                        {day.date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                                        {day.date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}
                                       </span>
                                       <span className={cn(
-                                        "text-[6px] font-black",
-                                        (isAmavasya || isAshtami || isNavami || isToday) ? "text-white/20" : "text-black/5"
+                                        "text-[5px] font-black",
+                                        (isAmavasya || isAshtami || isNavami || day.date.toDateString() === selectedDate.toDateString()) ? "text-white/20" : "text-black/5"
                                       )}>
-                                        DOC {forecastDoc}
+                                        D{forecastDoc}
                                       </span>
                                     </div>
                                     {isToday && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                                  </div>
                                  
                                  <div className="relative flex flex-col items-center">
-                                   <span className="text-xl mb-0.5">
-                                      {day.status.isExactAmavasya ? '🌑' : 
-                                       day.status.isExactAshtami ? '🌗' : 
-                                       '🌕'}
-                                   </span>
-                                   {hasMoltRisk && (
-                                     <div className={cn(
-                                       "absolute -top-1 -right-3 px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-2xl",
-                                       isPeakMolt ? "bg-amber-500 text-white" : "bg-white text-indigo-900 border border-indigo-100"
-                                     )}>
-                                       <span className="text-[7px] font-black uppercase tracking-widest whitespace-nowrap">
-                                         {isPeakMolt ? '🔥 Peak' : '🦐 Molt'}
-                                       </span>
-                                     </div>
-                                   )}
+                                    <motion.span 
+                                      animate={isLunarMolt ? { rotate: 360 } : {}}
+                                      transition={isLunarMolt ? { duration: 25, repeat: Infinity, ease: "linear" } : {}}
+                                      className="text-sm mb-0.5 inline-block"
+                                    >
+                                       {day.status.phase === 'AMAVASYA' ? '🌑' : 
+                                        day.status.phase === 'POURNAMI' ? '🌕' : 
+                                        day.status.phase === 'ASHTAMI' ? '🌗' :
+                                        day.status.phase === 'NAVAMI' ? '🌘' :
+                                        '🌑'}
+                                    </motion.span>
+                                    {(hasMoltRisk || isNavami || isAshtami) && (
+                                      <div className={cn(
+                                        "absolute -top-1 -right-3 p-1 rounded-full",
+                                        isPeakMolt ? "bg-amber-500" : "bg-indigo-500"
+                                      )}>
+                                        <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
+                                      </div>
+                                    )}
                                  </div>
                                  
-                                 <div className="text-center">
-                                    <p className={cn(
-                                      "text-xs font-black tracking-tight",
-                                      (isAmavasya || isAshtami || isNavami || isToday) ? "text-white" : "text-[#4A2C2A]"
-                                    )}>
-                                      {day.date.getDate()}
-                                    </p>
-                                    <p className={cn(
-                                      "text-[5px] font-black uppercase tracking-widest leading-tight mt-1",
-                                      isAmavasya ? "text-indigo-300" : 
-                                      isAshtami ? "text-violet-300" : 
-                                      isNavami ? "text-purple-300" :
-                                      isToday ? "text-emerald-100" :
-                                      isHighRisk ? "text-indigo-400/60" :
-                                      "text-black/20"
-                                    )}>
-                                      {isAmavasya ? 'AMAVASYA' : isPeakMolt ? 'INTENSIVE' : isAshtami ? 'ASHTAMI' : isNavami ? 'NAVAMI' : isHighRisk ? 'RISK WINDOW' : 'STABLE'}
-                                    </p>
+                                 <div className="text-center w-full">
+                                     <p className={cn(
+                                       "text-[9px] font-black tracking-tighter leading-none mb-1",
+                                       (isAmavasya || isAshtami || isNavami || day.date.toDateString() === selectedDate.toDateString()) ? "text-white" : "text-[#4A2C2A]"
+                                     )}>
+                                       {day.date.getDate()} {day.date.toLocaleDateString('en-US', { month: 'short' })}
+                                     </p>
+                                     <div className={cn(
+                                       "py-0.5 px-1 rounded-md text-[4px] font-black uppercase tracking-[0.2em] inline-block w-full",
+                                       isAmavasya ? "bg-indigo-500 text-white" : 
+                                       isAshtami ? "bg-violet-500 text-white" : 
+                                       isNavami ? "bg-sky-500 text-white" :
+                                       isBioMarker ? "bg-amber-500 text-white" :
+                                       day.date.toDateString() === selectedDate.toDateString() ? "bg-white text-emerald-600" :
+                                       isHighRisk ? "bg-indigo-100/50 text-indigo-400" :
+                                       "bg-black/[0.03] text-black/20"
+                                     )}>
+                                       {isAmavasya ? 'AMAVASYA' : isPeakMolt ? 'PEAK' : isAshtami ? 'ASHTAMI' : isNavami ? 'NAVAMI' : isBioMarker ? 'BIOMOLT' : isHighRisk ? 'RISK' : 'OK'}
+                                     </div>
                                  </div>
                               </motion.div>
                             );
@@ -981,14 +1016,60 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </motion.div>
                       </div>
 
+                      {/* Quick Medicine Preview for Selected Date */}
+                      <motion.div 
+                        key={selectedDate.toISOString()}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-[2.5rem] p-6 border border-black/5 shadow-lg mt-2"
+                      >
+                         <div className="flex items-center justify-between mb-4">
+                            <div>
+                               <p className="text-[#C78200] text-[8px] font-black uppercase tracking-widest leading-none mb-1">Schedule for</p>
+                               <h3 className="text-[#4A2C2A] text-sm font-black tracking-tighter">
+                                 {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' })} — DOC {calculateDOC(selectedPond.stockingDate, selectedDate.toISOString())}
+                               </h3>
+                            </div>
+                            <button 
+                              onClick={() => setActiveTab('today')}
+                              className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-xl uppercase tracking-widest"
+                            >
+                              Open Full SOP →
+                            </button>
+                         </div>
+
+                         <div className="space-y-3">
+                            {getSOPGuidance(calculateDOC(selectedPond.stockingDate, selectedDate.toISOString()), selectedDate)
+                              .filter(s => s.type === 'MEDICINE' || s.type === 'LUNAR')
+                              .map((med, idx) => (
+                                <div key={idx} className="flex items-center gap-4 p-3 bg-[#F8F9FE] rounded-2xl border border-black/5">
+                                   <div className={cn(
+                                     "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                                     med.type === 'LUNAR' ? "bg-[#1A1C2E] text-white" : "bg-[#C78200] text-white"
+                                   )}>
+                                      {med.type === 'LUNAR' ? <Moon size={14} /> : <Zap size={14} />}
+                                   </div>
+                                   <div>
+                                      <p className="text-[#4A2C2A] text-[11px] font-black tracking-tight leading-none">{med.title}</p>
+                                      <p className="text-[#4A2C2A]/40 text-[9px] font-medium leading-tight mt-1 line-clamp-1">{med.description}</p>
+                                   </div>
+                                </div>
+                            ))}
+                            {getSOPGuidance(calculateDOC(selectedPond.stockingDate, selectedDate.toISOString()), selectedDate)
+                              .filter(s => s.type === 'MEDICINE' || s.type === 'LUNAR').length === 0 && (
+                                <p className="text-[#4A2C2A]/30 text-[10px] font-black text-center py-4 uppercase tracking-widest">No primary medicines scheduled</p>
+                            )}
+                         </div>
+                      </motion.div>
+
                       <div className="bg-[#C78200]/5 p-6 rounded-[2.5rem] border border-[#C78200]/10 mt-6">
                          <div className="flex items-center gap-3 mb-3 text-[#C78200]">
                             <AlertTriangle size={18} />
                             <h4 className="text-[10px] font-black uppercase tracking-widest">personalized Planning Tip</h4>
                          </div>
                          <p className="text-[#4A2C2A]/60 text-[11px] leading-relaxed font-bold">
-                            Based on your pond's stock date ({selectedPond.shrimpType}), the next heavy molting is predicted across {currentDoc < 45 ? '3-5' : '7-10'} days. 
-                            <span className="text-indigo-900 font-black ml-1">🌕 Full Moon</span> triggers on {lunarForecast.find(d => d.date.getDate() === 17)?.date.toLocaleDateString() || 'cycle peak'}. 
+                            Based on your pond's stock date ({selectedPond.shrimpType}), the high-risk molting period is locked to the lunar cycle. 
+                            <span className="text-indigo-900 font-black ml-1">🌑 New Moon</span> triggers on {lunarForecast.find(d => d.status.phase === 'AMAVASYA')?.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) || 'Cycle Peak'}. 
                             Ensure DO is &gt; 5ppm.
                          </p>
                       </div>
@@ -998,25 +1079,54 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
               )}
             </AnimatePresence>
 
-            {/* Dynamic Disease Alert Section (Hidden on Lunar tab) */}
-            {currentDoc > 0 && activeTab !== 'lunar' && (
+            {/* Dynamic Disease Alert Section (Only shows when risk is HIGH or CRITICAL) */}
+            {currentDoc > 0 && activeTab !== 'lunar' && riskLevel !== 'STABLE' && (
               <section className="bg-red-50 rounded-[2.5rem] p-7 border border-red-100 relative overflow-hidden">
                 <div className="flex items-center gap-4 mb-5">
-                  <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-500/20">
+                  <div className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all",
+                    riskLevel === 'CRITICAL' ? "bg-red-600 animate-pulse" : "bg-red-500"
+                  )}>
                     <AlertCircle size={24} />
                   </div>
                   <div>
-                    <h2 className="text-[#4A2C2A] text-lg font-black tracking-tighter">{t.diseaseAlert}</h2>
-                    <p className="text-red-400 text-[9px] font-black uppercase tracking-widest leading-tight">
+                    <h2 className="text-[#4A2C2A] text-lg font-black tracking-tighter">
+                      {riskLevel === 'CRITICAL' ? "⚠️ EXTREME RISK ALERT" : t.diseaseAlert}
+                    </h2>
+                    <p className={cn(
+                      "text-[9px] font-black uppercase tracking-widest leading-tight",
+                      riskLevel === 'CRITICAL' ? "text-red-700" : "text-red-400"
+                    )}>
                       {currentDoc <= 30 ? "Early Risk: Bacteria / PL Stress" :
                        currentDoc <= 60 ? "Critical Zone: Vibriosis / WSSV" :
-                       "Late Risk: EHP / EMS Stage"} (DOC {currentDoc})
+                       "Late Risk: EHP / EMS Stage"} {riskLevel === 'CRITICAL' && "- ENVIRONMENTAL STRESS DETECTED"}
                     </p>
                   </div>
                 </div>
 
+                <div className="bg-red-500/5 p-4 rounded-2xl border border-red-500/10 mb-5">
+                  <p className="text-red-900/70 text-[10px] font-black uppercase tracking-widest mb-2">Live Analysis Summary:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white/50 p-2 rounded-xl border border-red-100">
+                       <p className="text-[7px] font-black text-red-400 uppercase">SOP Risk (Age)</p>
+                       <p className="text-[11px] font-black text-[#4A2C2A]">{isDOCRisk ? 'ACTIVE' : 'STABLE'}</p>
+                    </div>
+                    <div className="bg-white/50 p-2 rounded-xl border border-red-100">
+                       <p className="text-[7px] font-black text-red-400 uppercase">Pond Data (Latest)</p>
+                       <p className="text-[11px] font-black text-[#4A2C2A]">{isWaterRisk ? 'STRESS DETECTED' : 'NORMAL'}</p>
+                    </div>
+                  </div>
+                  {isWaterRisk && latestRead && (
+                    <p className="text-red-600 text-[10px] font-bold mt-3 leading-tight">
+                      ⚠️ Detectable risk due to {latestRead.do < 4.0 ? 'LOW DO (' + latestRead.do + ')' : ''} 
+                      {latestRead.ph > 8.5 ? ' HIGH PH (' + latestRead.ph + ')' : ''} 
+                      {latestRead.temp > 31 ? ' HIGH TEMP (' + latestRead.temp + ')' : ''}.
+                    </p>
+                  )}
+                </div>
+
                 <p className="text-red-900/50 text-[11px] font-bold tracking-tight leading-relaxed mb-5">
-                  Your pond is entering a {currentDoc <= 45 ? 'growth' : 'peak'} risk stage. Monitor these symptoms carefully:
+                  Based on **DOC {currentDoc}** + **Daily Pond Data**, monitor these specific symptoms:
                 </p>
 
                 <div className="space-y-2.5 mb-6">
@@ -1074,7 +1184,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     { day: 'Sun', task: 'Full Water Parameter Check', color: 'bg-[#0D523C]' },
                   ].map((item, i) => {
                     const dayIdx = [1,2,3,4,5,6,0][i];
-                    const isToday = dayIdx === dayOfWeek;
+                    const isToday = dayIdx === selectedDate.getDay();
                     return (
                       <div key={i} className={cn(
                         'flex items-center gap-4 p-3 rounded-2xl transition-all',

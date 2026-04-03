@@ -57,6 +57,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
+  // singleton to hold active refresh request to avoid race condition/multiple simultaneous logout
+  const refreshInProgress = React.useRef<Promise<any> | null>(null);
+
   const getAuthHeaders = (overrideTokens?: { access: string }) => {
     const headers: any = { 'Content-Type': 'application/json' };
     const activeToken = overrideTokens?.access || tokens?.access;
@@ -76,24 +79,32 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshAccessToken = async () => {
     if (!tokens?.refresh) return null;
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: tokens.refresh })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const newTokens = { ...tokens, access: data.access_token };
-        setTokens(newTokens);
-        localStorage.setItem('aqua_tokens', JSON.stringify(newTokens));
-        return newTokens;
+    if (refreshInProgress.current) return refreshInProgress.current;
+
+    refreshInProgress.current = (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: tokens.refresh })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const newTokens = { ...tokens, access: data.access_token };
+          setTokens(newTokens);
+          localStorage.setItem('aqua_tokens', JSON.stringify(newTokens));
+          refreshInProgress.current = null;
+          return newTokens;
+        }
+      } catch (e) {
+        console.error("Token refresh failed:", e);
       }
-    } catch (e) {
-      console.error("Token refresh failed:", e);
-    }
-    setUser(null); // Force logout if refresh fails
-    return null;
+      refreshInProgress.current = null;
+      setUser(null); // Force logout if refresh fails or returns error status
+      return null;
+    })();
+
+    return refreshInProgress.current;
   };
 
   const apiFetch = async (url: string, options: any = {}, retry = true): Promise<Response> => {

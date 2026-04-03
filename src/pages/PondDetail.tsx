@@ -49,8 +49,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   if (!pond) return <div className="p-10 text-center text-[#4A2C2A] font-black uppercase tracking-widest bg-white min-h-screen">{t.pondNotFound}</div>;
 
   const currentDoc = calculateDOC(pond.stockingDate);
-  const dayOfWeek = new Date().getDay();
-  const guidance = getSOPGuidance(currentDoc, dayOfWeek);
+  const guidance = getSOPGuidance(currentDoc, new Date());
   const today = new Date().toISOString().split('T')[0];
 
   // Today's water conditions

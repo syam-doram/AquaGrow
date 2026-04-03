@@ -9,6 +9,7 @@ export interface Translations {
   medicine: string;
   roi: string;
   monitor: string;
+  liveMonitor: string;
   market: string;
   profile: string;
   backToDashboard: string;
@@ -16,6 +17,11 @@ export interface Translations {
   settings: string;
   systemSettings: string;
   logout: string;
+  pondMonitor: string;
+  missedActivities: string;
+  alertHistory: string;
+  expert: string;
+  notifications: string;
 
   // Greetings & Status
   systemLive: string;
@@ -93,13 +99,25 @@ export interface Translations {
   measurementUnit: string;
   units: string;
   appTheme: string;
-  notifications: string;
   waterQualityAlerts: string;
   feedingReminders: string;
   scheduleSync: string;
   docFeedPlan: string;
   metricsFcr: string;
   aiDiagnostics: string;
+  analysisError: string;
+  scanShrimp: string;
+  uploadPhotoDesc: string;
+  openCamera: string;
+  uploadPhoto: string;
+  photoInstructions: string;
+  deepAIAnalysis: string;
+  scanningHealthMarkers: string;
+  analysisResult: string;
+  confidence: string;
+  severity: string;
+  correctiveActions: string;
+  scanAgain: string;
   aiServiceStatus: string;
   secureCloudManaged: string;
   region: string;
@@ -192,6 +210,15 @@ export interface Translations {
   aiDisease: string;
   learningCenter: string;
   expertConsultations: string;
+  expertConsultationsDesc: string;
+  priorityAccess: string;
+  connectExpertTitle: string;
+  expertSubDesc: string;
+  availableExperts: string;
+  bookCall: string;
+  chatNow: string;
+  maybeLater: string;
+  proSubscriptionRequired: string;
   elevateYield: string;
   login: string;
   register: string;
@@ -316,11 +343,15 @@ export interface Translations {
   pondDocProgress: string;
   days: string;
   weather: string;
+  criticalAlerts: string;
+  feedEfficiency: string;
+  weatherAdj: string;
+  forecast7Day: string;
   todaysTasks: string;
   viewSchedule: string;
   inventory: string;
   orders: string;
-  
+
   // Market Prices & Locations
   blackTiger: string;
   scampi: string;
@@ -351,6 +382,28 @@ export interface Translations {
   profitCalculator: string;
   upgradeToPro: string;
   logEntry: string;
+  profitForecasting: string;
+  globalPriceAlerts: string;
+  realTimeHealthMonitoring: string;
+  currentPlan: string;
+  expiryDate: string;
+  termsPrivacyPolicy: string;
+  paymentSuccess: string;
+  processingPayment: string;
+  doNotRefresh: string;
+  payNow: string;
+  transactionHistory: string;
+  viewReceipt: string;
+  paymentDate: string;
+  amountPaid: string;
+  transactionId: string;
+  refundDetails: string;
+  paymentGlitch: string;
+  supportContact: string;
+  refundPolicy: string;
+  alkalinity: string;
+  turbidity: string;
+  mortality: string;
 }
 
 const English: Translations = {
@@ -361,6 +414,7 @@ const English: Translations = {
   medicine: 'Medicine',
   roi: 'ROI',
   monitor: 'Monitor',
+  liveMonitor: 'Live Monitor',
   market: 'Market',
   profile: 'Profile',
   backToDashboard: 'Back to Dashboard',
@@ -368,6 +422,11 @@ const English: Translations = {
   settings: 'Settings',
   systemSettings: 'System Settings',
   logout: 'Logout',
+  pondMonitor: 'Pond Monitor',
+  missedActivities: 'Missed Activities',
+  alertHistory: 'Cloud Alert History',
+  expert: 'Expert',
+  notifications: 'Notifications',
   systemLive: 'System Live',
   systemActive: 'System Active',
   goodMorning: 'Good Morning,',
@@ -439,13 +498,25 @@ const English: Translations = {
   measurementUnit: 'Measurement Unit',
   units: 'Units',
   appTheme: 'App Theme',
-  notifications: 'Notifications',
   waterQualityAlerts: 'Water Quality Alerts',
   feedingReminders: 'Feeding Reminders',
   scheduleSync: 'Schedule Sync',
   docFeedPlan: 'DOC Feed Plan',
   metricsFcr: 'FCR Metrics',
   aiDiagnostics: 'AI & Diagnostics',
+  analysisError: 'Analysis Error',
+  scanShrimp: 'Scan Shrimp',
+  uploadPhotoDesc: 'Upload a clear photo for high-accuracy disease detection',
+  openCamera: 'Open Camera',
+  uploadPhoto: 'Upload from Gallery',
+  photoInstructions: 'Photo Instructions',
+  deepAIAnalysis: 'Analyzing Pathogens...',
+  scanningHealthMarkers: 'Checking bio-markers',
+  analysisResult: 'Analysis Result',
+  confidence: 'AI Confidence',
+  severity: 'Status',
+  correctiveActions: 'Treatment SOP',
+  scanAgain: 'New Analysis',
   aiServiceStatus: 'AI Service Status',
   secureCloudManaged: 'Secure Cloud Managed',
   region: 'Region',
@@ -530,6 +601,9 @@ const English: Translations = {
   viewAllPonds: 'View All Ponds',
   disease: 'Disease',
   learn: 'Learn',
+  alkalinity: 'Alkalinity',
+  turbidity: 'Turbidity',
+  mortality: 'Mortality',
   sop: 'SOP',
   growthStage: 'Growth Stage',
   count: 'Count',
@@ -538,6 +612,15 @@ const English: Translations = {
   aiDisease: 'AI Disease Detect',
   learningCenter: 'Learning Center',
   expertConsultations: 'Expert Consultations',
+  expertConsultationsDesc: 'Get instant advice on disease control, water quality, and yield optimization.',
+  priorityAccess: 'Priority Access',
+  connectExpertTitle: 'Connect with Global Bio-Experts',
+  expertSubDesc: 'Connect with certified professionals for real-time guidance on your farm\'s health and productivity.',
+  availableExperts: 'Available Experts',
+  bookCall: 'Book Call',
+  chatNow: 'Chat Now',
+  maybeLater: 'Maybe Later',
+  proSubscriptionRequired: 'is only available for AquaGrow Pro subscribers.',
   elevateYield: 'Elevate your yield with AquaGrow Pro',
   login: 'Login',
   register: 'Register',
@@ -641,11 +724,11 @@ const English: Translations = {
   notLoggedYet: 'Not logged yet',
   goldenRulesSchedule: 'Golden Rules & Schedule',
   waterLog: 'Water Log',
-  morning1: 'Slot 1',
-  morning2: 'Slot 2',
-  afternoon: 'Slot 3',
-  evening1: 'Slot 4',
-  evening2: 'Slot 5',
+  morning1: 'Early Morning',
+  morning2: 'Morning',
+  afternoon: 'Afternoon',
+  evening1: 'Evening',
+  evening2: 'Late Evening',
   pondPerformance_short: 'Perf',
   feedLogs: 'Feed Logs',
   sopEngineAlert: 'SOP Engine Alert',
@@ -660,6 +743,10 @@ const English: Translations = {
   pondDocProgress: 'Pond DOC Progress',
   days: 'days',
   weather: 'Weather',
+  criticalAlerts: 'Critical Alerts',
+  feedEfficiency: 'AI Feed Adjustment',
+  weatherAdj: 'Weather-Based Correction',
+  forecast7Day: '7-Day Forecast',
   todaysTasks: "Today's Tasks",
   viewSchedule: 'View Schedule',
   inventory: 'Inventory',
@@ -693,8 +780,27 @@ const English: Translations = {
   phLevel: 'pH Level',
   investmentBreakdown: 'Investment Breakdown',
   profitCalculator: 'Profit Calculator',
-  upgradeToPro: 'Upgrade to Pro',
+  upgradeToPro: 'Upgrade To Pro',
   logEntry: 'Log your first harvest to see analytics here.',
+  profitForecasting: 'Profit Forecasting',
+  globalPriceAlerts: 'Global Price Alerts',
+  realTimeHealthMonitoring: 'Real-time Health Monitoring',
+  currentPlan: 'Current Plan',
+  expiryDate: 'Expiry Date',
+  termsPrivacyPolicy: 'By upgrading, you agree to our Terms of Service and Privacy Policy.',
+  paymentSuccess: 'Payment Successful',
+  processingPayment: 'Processing Payment',
+  doNotRefresh: 'Please do not refresh or close this window',
+  payNow: 'Pay Now',
+  transactionHistory: 'Transaction History',
+  viewReceipt: 'View Receipt',
+  paymentDate: 'Payment Date',
+  amountPaid: 'Amount Paid',
+  transactionId: 'Transaction ID',
+  refundDetails: 'Refund Details',
+  paymentGlitch: 'Facing a payment glitch?',
+  supportContact: 'Contact Support',
+  refundPolicy: 'Refund Policy',
 };
 
 const Telugu: Translations = {
@@ -706,6 +812,7 @@ const Telugu: Translations = {
   medicine: 'మందుల షెడ్యూల్',
   roi: 'లాభం & ROI',
   monitor: 'పర్యవేక్షణ',
+  liveMonitor: 'ప్రత్యక్ష పర్యవేక్షణ',
   market: 'మార్కెట్',
   profile: 'ప్రొఫైల్',
   backToDashboard: 'డాష్‌బోర్డ్‌కు వెనుకకు',
@@ -713,6 +820,9 @@ const Telugu: Translations = {
   settings: 'సెట్టింగ్‌లు',
   systemSettings: 'సిస్టమ్ సెట్టింగ్‌లు',
   logout: 'లాగ్ అవుట్',
+  pondMonitor: 'చెరువు పర్యవేక్షణ',
+  missedActivities: 'తప్పిపోయిన కార్యకలాపాలు',
+  alertHistory: 'క్లౌడ్ హెచ్చరికల చరిత్ర',
   systemLive: 'సిస్టమ్ లైవ్',
   systemActive: 'సిస్టమ్ యాక్టివ్',
   goodMorning: 'శుభోదయం,',
@@ -791,6 +901,19 @@ const Telugu: Translations = {
   docFeedPlan: 'DOC మేత ప్రణాళిక',
   metricsFcr: 'FCR గణాంకాలు',
   aiDiagnostics: 'AI & డయాగ్నోస్టిక్స్',
+  analysisError: 'విశ్లేషణ లోపం',
+  scanShrimp: 'రొయ్యలను స్కాన్ చేయండి',
+  uploadPhotoDesc: 'ఖచ్చితమైన వ్యాధి గుర్తింపు కోసం స్పష్టమైన ఫోటోను అప్‌లోడ్ చేయండి',
+  openCamera: 'కెమెరా తెరవండి',
+  uploadPhoto: 'గ్యాలరీ నుండి అప్‌లోడ్ చేయండి',
+  photoInstructions: 'ఫోటో సూచనలు',
+  deepAIAnalysis: 'వ్యాధికారకాలను విశ్లేషిస్తోంది...',
+  scanningHealthMarkers: 'బయో-మార్కర్లను తనిఖీ చేస్తోంది',
+  analysisResult: 'విశ్లేషణ ఫలితం',
+  confidence: 'AI విశ్వసనీయత',
+  severity: 'స్థితి',
+  correctiveActions: 'చికిత్స SOP',
+  scanAgain: 'కొత్త విశ్లేషణ',
   aiServiceStatus: 'AI సర్వీస్ స్థితి',
   secureCloudManaged: 'సురక్షిత క్లౌడ్ మేనేజ్డ్',
   region: 'ప్రాంతం',
@@ -875,6 +998,9 @@ const Telugu: Translations = {
   viewAllPonds: 'అన్ని చెరువులను చూడండి',
   disease: 'వ్యాధి',
   learn: 'నేర్చుకోండి',
+  alkalinity: 'ఆల్కలినిటీ',
+  turbidity: 'టర్బిడిటీ',
+  mortality: 'మరణాలు',
   sop: 'SOP',
   growthStage: 'పెరుగుదల దశ',
   count: 'కౌంట్',
@@ -883,6 +1009,15 @@ const Telugu: Translations = {
   aiDisease: 'AI వ్యాధి గుర్తింపు',
   learningCenter: 'లెర్నింగ్ సెంటర్',
   expertConsultations: 'నిపుణుల సంప్రదింపులు',
+  expertConsultationsDesc: 'వ్యాధి నియంత్రణ, నీటి నాణ్యత మరియు దిగుబడి ఆప్టిమైజేషన్‌పై తక్షణ సలహా తీసుకోండి.',
+  priorityAccess: 'ప్రాధాన్యత యాక్సెస్',
+  connectExpertTitle: 'గ్లోబల్ బయో-నిపుణులతో కనెక్ట్ అవ్వండి',
+  expertSubDesc: 'మీ ఫామ్ ఆరోగ్యం మరియు ఉత్పాదకతపై నిజ-సమయ మార్గదర్శకత్వం కోసం సర్టిఫైడ్ ప్రొఫెషనల్స్‌తో కనెక్ట్ అవ్వండి.',
+  availableExperts: 'అందుబాటులో ఉన్న నిపుణులు',
+  bookCall: 'కాల్ బుక్ చేయండి',
+  chatNow: 'ఇప్పుడే చాట్ చేయండి',
+  maybeLater: 'తర్వాత చూద్దాం',
+  proSubscriptionRequired: 'ఆక్వాగ్రో ప్రో సభ్యులకు మాత్రమే అందుబాటులో ఉన్నాయి.',
   elevateYield: 'అక్వాగ్రో ప్రోతో మీ దిగుబడిని పెంచుకోండి',
   login: 'లాగిన్',
   register: 'నమోదు',
@@ -939,11 +1074,11 @@ const Telugu: Translations = {
   notLoggedYet: 'ఇంకా నమోదు చేయలేదు',
   goldenRulesSchedule: 'గోల్డెన్ రూల్స్ & షెడ్యూల్',
   waterLog: 'నీటి లాగ్',
-  morning1: 'స్లాట్ 1',
-  morning2: 'స్లాట్ 2',
-  afternoon: 'స్లాట్ 3',
-  evening1: 'స్లాట్ 4',
-  evening2: 'స్లాట్ 5',
+  morning1: 'వేకువజామున (Early)',
+  morning2: 'ఉదయం (Morning)',
+  afternoon: 'మధ్యాహ్నం (Afternoon)',
+  evening1: 'సాయంత్రం (Evening)',
+  evening2: 'రాత్రి (Late Evening)',
   pondPerformance_short: 'పనితీరు',
   feedLogs: 'మేత లాగ్‌లు',
   sopEngineAlert: 'SOP ఇంజిన్ హెచ్చరిక',
@@ -958,6 +1093,10 @@ const Telugu: Translations = {
   pondDocProgress: 'చెరువు DOC పురోగతి',
   days: 'రోజులు',
   weather: 'వాతావరణం',
+  criticalAlerts: 'ముఖ్యమైన హెచ్చరికలు',
+  feedEfficiency: 'AI మేత సర్దుబాటు',
+  weatherAdj: 'వాతావరణ ఆధారిత సర్దుబాటు',
+  forecast7Day: '7-రోజుల వాతావరణం',
   todaysTasks: 'నేటి పనులు',
   viewSchedule: 'షెడ్యూల్ చూడండి',
   inventory: 'స్టాక్/ఇన్వెంటరీ',
@@ -993,6 +1132,25 @@ const Telugu: Translations = {
   profitCalculator: 'లాభాల కాలిక్యులేటర్',
   upgradeToPro: 'ప్రోకు అప్‌గ్రేడ్ అవ్వండి',
   logEntry: 'విశ్లేషణలను చూడటానికి మీ మొదటి కోతను నమోదు చేయండి.',
+  profitForecasting: 'లాభాల అంచనా',
+  globalPriceAlerts: 'గ్లోబల్ ధర హెచ్చరికలు',
+  realTimeHealthMonitoring: 'రియల్ టైమ్ హెల్త్ మానిటరింగ్',
+  currentPlan: 'ప్రస్తుత ప్లాన్',
+  expiryDate: 'ముగింపు తేదీ',
+  termsPrivacyPolicy: 'అప్‌గ్రేడ్ చేయడం ద్వారా, మీరు మా సేవా నిబంధనలు మరియు గోప్యతా విధానానికి అంగీకరిస్తున్నారు.',
+  paymentSuccess: 'చెల్లింపు విజయవంతమైంది',
+  processingPayment: 'చెల్లింపు ప్రాసెస్ చేయబడుతోంది',
+  doNotRefresh: 'దయచేసి ఈ విండోను రిఫ్రెష్ చేయవద్దు లేదా మూసివేయవద్దు',
+  payNow: 'ఇప్పుడే చెల్లించండి',
+  transactionHistory: 'లావాదేవీల చరిత్ర',
+  viewReceipt: 'రశీదు చూడండి',
+  paymentDate: 'చెల్లింపు తేదీ',
+  amountPaid: 'చెల్లించిన మొత్తం',
+  transactionId: 'లావాదేవీ ID',
+  refundDetails: 'రీఫండ్ వివరాలు',
+  paymentGlitch: 'చెల్లింపులో సమస్య ఎదురవుతుందా?',
+  supportContact: 'మద్దతును సంప్రదించండి',
+  refundPolicy: 'రీఫండ్ విధానం',
 };
 
 export const translations: Record<Language, Translations> = {

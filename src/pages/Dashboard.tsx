@@ -32,6 +32,7 @@ import {
   Target,
   DollarSign,
   Pill,
+  Eye,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -42,7 +43,7 @@ import { cn } from '../utils/cn';
 import { getLunarStatus } from '../utils/lunarUtils';
 import { Translations } from '../translations';
 import { User, WaterQualityRecord } from '../types';
-import { useFirebaseAlerts } from '../hooks/useFirebaseAlerts';
+// import { useFirebaseAlerts } from '../hooks/useFirebaseAlerts';
 
 // ─── MARKET RATE DATA ────────────────────────────────────────────────────────
 const MARKET_RATES = [
@@ -304,9 +305,46 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const [showLunarAlert, setShowLunarAlert]     = useState(true);
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [selectedPondId, setSelectedPondId]     = useState<string>('');
+  const [dismissedAlerts, setDismissedAlerts]   = useState<Record<string, { count: number, lastDismissed: number }>>(() => {
+    const saved = localStorage.getItem('aqua_dismissed_engine_alerts');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const shouldShowAlert = (key: string) => {
+    const record = dismissedAlerts[key];
+    if (!record) return true;
+    
+    const now = Date.now();
+    const isSameDay = new Date(record.lastDismissed).toDateString() === new Date(now).toDateString();
+    
+    if (!isSameDay) return true; // Reset daily
+    if (record.count >= 2) return false; // Max 2 times per day
+    
+    // If dismissed once, hide for 8 hours (half-day requirement)
+    if (record.count === 1 && (now - record.lastDismissed) < 8 * 60 * 60 * 1000) return false;
+    
+    return true;
+  };
+
+  const handleDismiss = (key: string) => {
+    const now = Date.now();
+    setDismissedAlerts(prev => {
+      const current = prev[key] || { count: 0, lastDismissed: 0 };
+      const isSameDay = new Date(current.lastDismissed).toDateString() === new Date(now).toDateString();
+      const updated = {
+        ...prev,
+        [key]: { 
+          count: isSameDay ? current.count + 1 : 1, 
+          lastDismissed: now 
+        }
+      };
+      localStorage.setItem('aqua_dismissed_engine_alerts', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const activePonds = useMemo(() => ponds.filter(p => p.status === 'active'), [ponds]);
-  const { incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
+  // const { incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
   const lunar = getLunarStatus(new Date());
 
   // Auto-select first active pond
@@ -365,8 +403,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         p.status === 'harvested',
         lastW ? { do: lastW.do, ph: lastW.ph, temp: lastW.temperature, ammonia: lastW.ammonia } : undefined
       );
-      return result?.activeAlerts.map(a => ({ ...a, pondName: p.name, pondId: p.id })) || [];
-    }), [activePonds, waterRecords]);
+      return result?.activeAlerts
+        .map(a => ({ ...a, pondName: p.name, pondId: p.id, alertKey: `${p.id}-${a.title}` }))
+        .filter(a => shouldShowAlert(a.alertKey)) || [];
+    }), [activePonds, waterRecords, dismissedAlerts]);
 
   const pondTasks = useMemo(() => {
     if (!selectedPond) return [];
@@ -447,25 +487,75 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
       <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
 
       <div className="px-4 pt-24 space-y-6">
+        {/* ── MANUALLY "RAISED" ENGINE ALERTS ── */}
+        <AnimatePresence>
+          {engineAlerts.length > 0 && (
+            <div className="space-y-3">
+              {engineAlerts.map((alert, i) => (
+                <motion.div 
+                  key={`inline-eng-${i}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className={cn(
+                    'p-5 rounded-[2rem] border flex items-start gap-4 shadow-lg backdrop-blur-md relative overflow-hidden',
+                    alert.type === 'critical' ? 'bg-red-500/10 border-red-500/20' : 'bg-[#C78200]/10 border-[#C78200]/20'
+                  )}
+                >
+                  <button 
+                    onClick={() => handleDismiss(alert.alertKey)}
+                    className="absolute top-4 right-4 p-2 rounded-xl hover:bg-black/5 text-[#012B1D]/20 hover:text-[#012B1D] transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className={cn(
+                    'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0',
+                    alert.type === 'critical' ? 'bg-red-500 text-white' : 'bg-[#C78200] text-white'
+                  )}>
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-8">
+                    <p className={cn(
+                      'text-[8px] font-black uppercase tracking-[0.2em] mb-1',
+                      alert.type === 'critical' ? 'text-red-500' : 'text-[#C78200]'
+                    )}>
+                      {t.sopEngineAlert} · {alert.pondName}
+                    </p>
+                    <h3 className="font-black text-[15px] leading-tight text-[#012B1D]">{alert.title}</h3>
+                    <p className="mt-2 text-[9px] font-bold text-[#012B1D]/40 uppercase tracking-widest">
+                      {dismissedAlerts[alert.alertKey]?.count === 1 ? 'Last reminder for today' : 'Critical Farm Condition'}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* ── NEW ELITE TOP NAV ── */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 mb-8">
           {[
             { label: t.monitor,   icon: Activity,    path: '/monitor',           color: '#0369A1', bg: '#EFF6FF' },
+            { label: t.liveMonitor,icon: Eye,        path: '/live-monitor',      color: '#0891b2', bg: '#ECFEFF' },
             { label: t.disease,   icon: HeartPulse, path: '/disease-detection', color: '#dc2626', bg: '#FEF2F2' },
             { label: t.market,    icon: TrendingUp,  path: '/market',            color: '#059669', bg: '#ECFDF5' },
-            { label: t.feed,      icon: Utensils,    path: '/feed',              color: '#C78200', bg: '#FFF8E7' },
             { label: t.weather,   icon: Wind,        path: '/weather',           color: '#6366f1', bg: '#EEF2FF' },
-            { label: t.roi,       icon: BarChart2,   path: '/roi',               color: '#0891b2', bg: '#ECFEFF' },
-            { label: t.sop,       icon: Target,      path: activePonds[0] ? `/ponds/${activePonds[0].id}/sop` : '/ponds', color: '#7c3aed', bg: '#F5F3FF' },
-            { label: t.medicine,  icon: Pill,        path: '/medicine',          color: '#0D523C', bg: '#E6F0EC' },
+            { label: t.learn,     icon: Box,         path: '/learn',             color: '#8B5CF6', bg: '#F5F3FF' },
+            { label: t.expert,    icon: Target,      path: '/expert-consultations', color: '#D97706', bg: '#FFF7ED' },
+            { label: t.profile,   icon: Fish,        path: '/profile',           color: '#e11d48', bg: '#FFF1F2' },
           ].map(n => (
-            <button key={n.path} onClick={() => navigate(n.path)}
-              className="bg-white/80 backdrop-blur-md rounded-[1.5rem] p-3 border border-white shadow-sm flex flex-col items-center gap-1.5 active:scale-95 transition-all group">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110" style={{ background: n.bg }}>
+            <motion.button 
+              key={n.path} 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate(n.path)}
+              className="bg-white rounded-[1.2rem] p-3 border border-white/50 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.04)] flex flex-col items-center gap-2 hover:shadow-xl transition-all group relative overflow-hidden"
+            >
+              <div className="absolute inset-x-0 bottom-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: n.color }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110 shadow-inner" style={{ background: n.bg }}>
                 <n.icon size={18} style={{ color: n.color }} />
               </div>
-              <span className="text-[8px] font-black text-[#4A2C2A]/50 uppercase tracking-widest text-center leading-tight h-4 flex items-center">{n.label}</span>
-            </button>
+              <span className="text-[8px] font-black text-[#012B1D]/40 uppercase tracking-widest text-center leading-tight">{n.label}</span>
+            </motion.button>
           ))}
         </div>
 
@@ -498,64 +588,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         {/* ── FLOATING NOTIFICATION CENTER ── */}
         <div className="fixed top-20 left-4 right-4 z-40 pointer-events-none space-y-3">
           <AnimatePresence mode="popLayout">
-            {/* 1. SOP Engine Alerts (Floating) */}
-            {engineAlerts.map((alert, i) => (
-              <motion.div 
-                key={`floating-eng-${i}`}
-                initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="pointer-events-auto"
-              >
-                <div className={cn(
-                  'p-4 rounded-[1.8rem] border flex items-start gap-4 shadow-xl backdrop-blur-xl',
-                  alert.type === 'critical' ? 'bg-red-50/95 border-red-200' : 'bg-amber-50/95 border-amber-200'
-                )}>
-                  <div className={cn(
-                    'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0',
-                    alert.type === 'critical' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
-                  )}>
-                    <AlertTriangle size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-[7px] font-black uppercase tracking-widest mb-0.5',
-                      alert.type === 'critical' ? 'text-red-500' : 'text-amber-600'
-                    )}>
-                      {t.sopEngineAlert} · {alert.pondName}
-                    </p>
-                    <h3 className="font-black text-[13px] leading-tight text-[#4A2C2A]">{alert.title}</h3>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+            {/* 1. SOP Engine Alerts (Floating) - MOVED TO IN-PAGE LAYOUT BELOW */}
 
-            {/* 2. Firebase Real-time Alerts (Floating) */}
-            {incomingAlert && (
-              <motion.div 
-                key="floating-firebase"
-                initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="pointer-events-auto"
-              >
-                <div className="bg-[#0D523C]/95 backdrop-blur-xl text-white p-5 rounded-[2rem] shadow-2xl border border-emerald-500/30 flex items-start justify-between gap-3">
-                  <div className="flex gap-3">
-                    <div className="w-10 h-10 bg-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
-                      <Bell size={20} className="text-emerald-300" />
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">{t.autoEngineAlert}</p>
-                      <h3 className="font-black text-base tracking-tight">{incomingAlert.title}</h3>
-                      <p className="text-[10px] text-white/60 mt-0.5 leading-tight">{incomingAlert.body}</p>
-                    </div>
-                  </div>
-                  <button onClick={clearAlert} className="text-white/20 hover:text-white p-1.5 rounded-xl bg-white/5 transition-colors">
-                    <X size={14} />
-                  </button>
-                </div>
-              </motion.div>
-            )}
+            {/* 2. Firebase Real-time Alerts (Floating) - MOVED TO GLOBAL COUNTERPART */}
 
             {/* 3. Lunar Cycle Alerts (Floating) */}
             {showLunarAlert && ['AMAVASYA', 'POURNAMI', 'ASHTAMI', 'NAVAMI'].includes(lunar.phase) && (
@@ -638,243 +673,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               </div>
             </motion.div>
 
-            {/* Deep Insight Row */}
-            {selectedPond && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 gap-4">
-                <div className="bg-emerald-950 rounded-[2.2rem] p-5 border border-emerald-500/20 shadow-2xl relative overflow-hidden group min-h-[140px]">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
-                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-3">{t.fcrRatio || 'FCR Ratio'}</p>
-                  <p className="text-white font-black text-4xl tracking-tighter">{fcrData?.fcr ?? '—'}</p>
-                  <p className="text-[8px] text-white/30 font-black mt-2 uppercase tracking-widest">{t.feedBiomassGain || 'Feed vs Biomass'}</p>
-                </div>
-                <div className="bg-[#1A1C30] rounded-[2.2rem] p-5 border border-indigo-500/20 shadow-2xl min-h-[140px]">
-                  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3">{t.survivalEst || 'Survival Est.'}</p>
-                  <p className="text-white font-black text-4xl tracking-tighter">{survivalRate}%</p>
-                  <div className="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${survivalRate}%` }} className="h-full bg-indigo-500" />
-                  </div>
-                </div>
-              </motion.div>
-            )}
 
 
-            {/* ══ SECTION 3: POND SELECTOR + DOC RINGS ══ */}
-            <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.15 }}
-              className="bg-[#02130F] rounded-[2rem] p-5 border border-white/5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{t.pondDocProgress || 'Pond DOC Progress'}</p>
-                  <p className="text-[7px] font-black text-white/20 uppercase tracking-widest mt-0.5">Days of Culture / Target 90</p>
-                </div>
-                <button onClick={() => setRefreshTs(Date.now())} className="p-2 rounded-xl bg-white/5 text-white/30 hover:text-white transition-colors">
-                  <RefreshCw size={13} />
-                </button>
-              </div>
 
-              {/* Horizontal scrollable pond selector */}
-              <div className="flex gap-2 overflow-x-auto pb-1 mb-4" style={{ scrollbarWidth:'none' }}>
-                {activePonds.map(p => (
-                  <button key={p.id} onClick={() => setSelectedPondId(p.id)}
-                    className={cn('flex-shrink-0 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all',
-                      selectedPondId === p.id ? 'bg-emerald-500 text-white' : 'bg-white/5 text-white/40 hover:text-white/70')}>
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex justify-around">
-                {activePonds.slice(0,4).map(p => (
-                  <DocRing key={p.id} doc={calculateDOC(p.stockingDate)} label={p.name.split(' ').pop() ?? p.name} />
-                ))}
-              </div>
-            </motion.div>
-
-            {/* ══ SECTION 4: LIVE WATER QUALITY (REAL DATA) ══ */}
-            {selectedPond && (
-              <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.2 }}
-                className="bg-[#02130F] rounded-[2rem] p-5 border border-white/5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Live Water Quality</p>
-                    <p className="text-[7px] font-black text-white/20 mt-0.5">
-                      {selectedPond.name} ·{' '}
-                      {latestWater ? `Updated ${new Date(latestWater.date).toLocaleDateString()}` : 'No readings yet'}
-                    </p>
-                  </div>
-                  {/* Health Score Badge */}
-                  <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border" style={{ borderColor: `${healthColor}40`, background: `${healthColor}15` }}>
-                      <HeartPulse size={10} style={{ color: healthColor }} />
-                      <span className="text-[9px] font-black" style={{ color: healthColor }}>{healthScore}% {healthLabel}</span>
-                    </div>
-                    <p className="text-[7px] text-white/20 font-black mt-0.5">Pond Health Score</p>
-                  </div>
-                </div>
-
-                {latestWater ? (
-                  <>
-                    <div className="grid grid-cols-4 gap-3">
-                      <WaterGauge label="pH" value={safeNum(latestWater.ph)} unit="" color={phColor(safeNum(latestWater.ph))} min={6.5} max={9} icon={FlaskConical} />
-                      <WaterGauge label="DO" value={safeNum(latestWater.do)} unit="mg/L" color={doColor(safeNum(latestWater.do))} min={0} max={10} icon={Droplets} />
-                      <WaterGauge label="Temp" value={safeNum(latestWater.temperature)} unit="°C" color="#60a5fa" min={20} max={38} icon={Thermometer} />
-                      <WaterGauge label="NH₃" value={safeNum(latestWater.ammonia)} unit="ppm" color={ammoniaColor(safeNum(latestWater.ammonia))} min={0} max={1} icon={FlaskConical} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      <div className="bg-white/5 rounded-xl p-2.5 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center"><Droplets size={12} className="text-cyan-400" /></div>
-                        <div>
-                          <p className="text-[7px] font-black text-white/30 uppercase tracking-widest">Salinity</p>
-                          <p className="text-white font-black text-xs">{safeNum(latestWater.salinity)} ppt</p>
-                        </div>
-                      </div>
-                      <div className="bg-white/5 rounded-xl p-2.5 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center"><Activity size={12} className="text-purple-400" /></div>
-                        <div>
-                          <p className="text-[7px] font-black text-white/30 uppercase tracking-widest">Alkalinity</p>
-                          <p className="text-white font-black text-xs">{safeNum(latestWater.alkalinity)} ppm</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 7-day trend sparklines */}
-                    {waterTrend.ph.length > 1 && (
-                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/5">
-                        {[
-                          { label: 'pH Trend', data: waterTrend.ph, color: '#60a5fa' },
-                          { label: 'DO Trend', data: waterTrend.doVals, color: '#34d399' },
-                          { label: 'Temp °C', data: waterTrend.temp, color: '#fbbf24' },
-                        ].map(s => (
-                          <div key={s.label}>
-                            <p className="text-[7px] font-black text-white/25 uppercase tracking-widest mb-1">{s.label}</p>
-                            <SparkLine data={s.data} color={s.color} filled />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-6">
-                    <Droplets size={32} className="text-white/10 mx-auto mb-3" />
-                    <p className="text-white/30 text-xs font-black">No water records yet</p>
-                    <button onClick={() => navigate('/monitor')}
-                      className="mt-3 px-4 py-2 bg-blue-500/20 text-blue-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-500/20">
-                      Add Water Reading
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* ══ SECTION 5: FEED + MEDICINE ACTIVITY ══ */}
-            <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.25 }}
-              className="grid grid-cols-2 gap-3">
-
-              {/* Feed Activity */}
-              <div className="bg-[#02130F] rounded-[2rem] p-4 border border-white/5">
-                <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-3">Feed / Week</p>
-                {feedThisWeek.length > 0 ? (
-                  <>
-                    <MiniBar data={feedThisWeek} color="#34d399" />
-                    <div className="flex justify-between mt-1">
-                      {weekDays.slice(0, feedThisWeek.length).map((d, i) => (
-                        <p key={i} className="flex-1 text-center text-[6px] font-black text-white/20">{d}</p>
-                      ))}
-                    </div>
-                    <div className="mt-3 pt-2 border-t border-white/5">
-                      <p className="text-emerald-300 font-black text-lg tracking-tighter">
-                        {feedThisWeek[feedThisWeek.length-1]}
-                        <span className="text-[8px] text-white/25 ml-1">kg Today</span>
-                      </p>
-                      <p className="text-[7px] text-white/20 font-black">
-                        Total: {feedThisWeek.reduce((a,b)=>a+b,0).toFixed(1)} kg
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center py-4">
-                    <Utensils size={22} className="text-white/10 mb-2" />
-                    <p className="text-white/20 text-[9px] font-black text-center">No feed logs</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Medicine Compliance */}
-              <div className="bg-[#02130F] rounded-[2rem] p-4 border border-white/5">
-                <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mb-3">Medicine Log</p>
-                <div className="flex items-center justify-center my-3">
-                  <div className="relative w-16 h-16">
-                    <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-                      <circle cx="32" cy="32" r="26" strokeWidth="5" stroke="rgba(255,255,255,0.06)" fill="none" />
-                      <circle cx="32" cy="32" r="26" strokeWidth="5" fill="none"
-                        stroke="#C78200" strokeLinecap="round"
-                        strokeDasharray={`${Math.min(100,(medThisWeek/7)*100) * 1.634} 163.4`}
-                        style={{ transition: 'stroke-dasharray 1s ease' }} />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-black text-sm">{medThisWeek}</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-center text-[7px] font-black text-white/25 uppercase tracking-widest">Doses this week</p>
-                <button onClick={() => navigate('/medicine')}
-                  className="w-full mt-3 py-1.5 bg-[#C78200]/15 rounded-xl text-[#C78200] text-[8px] font-black uppercase tracking-widest border border-[#C78200]/20">
-                  View Schedule →
-                </button>
-              </div>
-            </motion.div>
-
-            {/* ══ SECTION 6: REVENUE ESTIMATE ══ */}
-            <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.3 }}
-              className="bg-gradient-to-br from-[#0D523C] to-[#051F19] rounded-[2rem] p-5 border border-emerald-500/10">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Revenue Forecast</p>
-                  <p className="text-[7px] text-white/20 font-black mt-0.5">Based on current biomass × avg market rate</p>
-                </div>
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-2xl flex items-center justify-center">
-                  <DollarSign size={18} className="text-emerald-300" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {[
-                  { label: 'Est. Biomass', value: `${(totalBiomassKg/1000).toFixed(2)}T`, color: 'text-emerald-300' },
-                  { label: 'Avg Rate/kg', value: '₹450', color: 'text-[#C78200]' },
-                  { label: 'Est. Revenue', value: formatLakh(estRevenueAtHarvest), color: 'text-white' },
-                ].map((m,i) => (
-                  <div key={i} className="bg-white/5 rounded-2xl p-3 text-center border border-white/5">
-                    <p className={cn('font-black text-base tracking-tighter', m.color)}>{m.value}</p>
-                    <p className="text-[7px] font-black text-white/25 uppercase tracking-widest mt-0.5">{m.label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <motion.div initial={{ width:0 }}
-                  animate={{ width: `${Math.min(100, (totalBiomassKg/1000/5)*100)}%` }}
-                  transition={{ duration:1.2, ease:'easeOut' }}
-                  className="h-full bg-emerald-400 rounded-full" />
-              </div>
-              <div className="flex justify-between mt-1">
-                <p className="text-[7px] text-white/20 font-black">0T</p>
-                <p className="text-[7px] text-white/20 font-black">Target 5T</p>
-              </div>
-
-              {/* Daily Cost Burndown */}
-              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-                <div>
-                  <p className="text-[7px] text-white/25 font-black uppercase tracking-widest">{t.dailyFeedCost}</p>
-                  <p className="text-white font-black text-base mt-0.5">
-                    {feedThisWeek.length > 0
-                      ? `₹${(feedThisWeek[feedThisWeek.length-1] * 55).toLocaleString()}`
-                      : '—'}
-                  </p>
-                  <p className="text-[7px] text-white/20 font-black">{t.estFeedCostPerKg}</p>
-                </div>
-                <button onClick={() => navigate('/roi')}
-                  className="px-3 py-2 bg-emerald-500/15 border border-emerald-500/20 rounded-xl text-emerald-300 text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
-                  < BarChart2 size={11} /> {t.roi} →
-                </button>
-              </div>
-            </motion.div>
 
             {/* ══ SECTION 7: TODAY'S TASKS ══ */}
             <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.35 }}>

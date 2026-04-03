@@ -58,6 +58,8 @@ export interface WaterQualityRecord {
   ammonia: number;
   alkalinity: number;
   temperature: number;
+  turbidity?: number;
+  mortality?: number;
 }
 
 export interface FeedRecord {

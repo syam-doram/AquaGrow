@@ -301,31 +301,31 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
 
         {/* ── HEALTH SCORE HERO ── */}
         <div className={cn(
-          'rounded-[2.5rem] p-6 relative overflow-hidden',
+          'rounded-[2.2rem] p-5 relative overflow-hidden',
           !latestRecord ? 'bg-[#0D523C]' :
           healthScore! >= 80 ? 'bg-[#0D523C]' :
           healthScore! >= 60 ? 'bg-amber-700' : 'bg-red-700'
         )}>
           <div className="relative z-10">
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-3">
               <div>
-                <p className="text-white/40 text-[9px] font-black uppercase tracking-widest">Overall Health</p>
+                <p className="text-white/40 text-[8px] font-black uppercase tracking-widest leading-none">Overall Health</p>
                 {latestRecord ? (
                   <>
-                    <p className="text-white font-black text-6xl tracking-tighter leading-none mt-1">
-                      {healthScore}<span className="text-2xl opacity-50">/100</span>
+                    <p className="text-white font-black text-4xl tracking-tighter leading-none mt-2">
+                      {healthScore}<span className="text-xl opacity-50">/100</span>
                     </p>
-                    <p className="text-white/60 text-[9px] font-black uppercase tracking-widest mt-1">
+                    <p className="text-white/60 text-[8px] font-black uppercase tracking-widest mt-1.5">
                       {latestRecord.date === new Date().toISOString().split('T')[0] ? 'Today' : `Last: ${latestRecord.date}`}
                     </p>
                   </>
                 ) : (
-                  <p className="text-white font-black text-2xl tracking-tight mt-2">No data yet</p>
+                  <p className="text-white font-black text-xl tracking-tight mt-2">No data yet</p>
                 )}
               </div>
               <div className="text-right">
-                <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mb-2">
-                  <Activity size={28} className="text-white" />
+                <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center mb-1.5 ml-auto">
+                  <Activity size={24} className="text-white" />
                 </div>
                 <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">
                   {latestRecord ? (healthScore! >= 80 ? '✅ Healthy' : healthScore! >= 60 ? '⚠️ Monitor' : '🔴 Act Now') : 'Log Conditions'}
@@ -335,7 +335,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
 
             {/* Score bar */}
             {latestRecord && (
-              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mt-1">
                 <motion.div
                   initial={{ width: 0 }} animate={{ width: `${healthScore}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -344,8 +344,8 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
               </div>
             )}
           </div>
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/5 rounded-full" />
-          <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-black/10 rounded-full" />
+          <div className="absolute -right-12 -top-12 w-40 h-40 bg-white/5 rounded-full" />
+          <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/10 rounded-full" />
         </div>
 
         {/* ── LOG DAILY CONDITIONS CTA (if no recent log) ── */}
@@ -407,69 +407,69 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                   {/* Parameter Grid */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
-                      <h2 className="text-[#4A2C2A] font-black text-base tracking-tight">Water Parameters</h2>
-                      <span className="text-[8px] font-black text-[#4A2C2A]/30 bg-white px-3 py-1.5 rounded-xl border border-black/5 uppercase tracking-widest">
+                      <h2 className="text-[#4A2C2A] font-black text-sm tracking-tight uppercase opacity-60">Live Metrics</h2>
+                      <span className="text-[7px] font-black text-[#4A2C2A]/30 bg-white px-2.5 py-1 rounded-lg border border-black/5 uppercase tracking-widest">
                         {latestRecord.date}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2.5">
                       {PARAM_CONFIG.map(cfg => {
-                        const val = (latestRecord as any)[cfg.key];
-                        if (val === undefined) return null;
-                        const st = getStatus(cfg, val);
-                        const sc = statusColor[st];
-                        const trend = getTrend(cfg.key);
-                        return (
-                          <motion.div
-                            key={cfg.key}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className={cn('rounded-2xl p-4 border', sc.bg, sc.border)}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center', sc.icon)}>
-                                <cfg.icon size={14} />
-                              </div>
-                              <p className="text-[8px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">{cfg.label}</p>
-                            </div>
-                            <div className="flex items-baseline gap-1">
-                              <p className={cn('font-black text-2xl tracking-tighter', sc.text)}>{val}</p>
-                              <p className="text-[8px] font-black text-[#4A2C2A]/30">{cfg.unit}</p>
-                              {trend && (
-                                <span className="ml-auto">
-                                  {trend === 'up' ? <TrendingUp size={12} className="text-blue-400" /> :
-                                   trend === 'down' ? <TrendingDown size={12} className="text-red-400" /> :
-                                   <Minus size={12} className="text-[#4A2C2A]/20" />}
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 flex items-center gap-1">
-                              <span className={cn('text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full', sc.badge)}>
-                                {st}
-                              </span>
-                              <span className="text-[7px] text-[#4A2C2A]/20 font-black">{cfg.min}–{cfg.max}{cfg.unit}</span>
-                            </div>
-                          </motion.div>
-                        );
+                         const val = (latestRecord as any)[cfg.key];
+                         if (val === undefined) return null;
+                         const st = getStatus(cfg, val);
+                         const sc = statusColor[st];
+                         const trend = getTrend(cfg.key);
+                         return (
+                           <motion.div
+                             key={cfg.key}
+                             initial={{ opacity: 0, scale: 0.95 }}
+                             animate={{ opacity: 1, scale: 1 }}
+                             className={cn('rounded-2xl p-3 border', sc.bg, sc.border)}
+                           >
+                             <div className="flex items-center gap-2 mb-1.5">
+                               <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center', sc.icon)}>
+                                 <cfg.icon size={12} />
+                               </div>
+                               <p className="text-[7px] font-black text-[#4A2C2A]/40 uppercase tracking-widest leading-none">{cfg.label}</p>
+                             </div>
+                             <div className="flex items-baseline gap-1">
+                               <p className={cn('font-black text-xl tracking-tighter', sc.text)}>{val}</p>
+                               <p className="text-[7px] font-black text-[#4A2C2A]/30">{cfg.unit}</p>
+                               {trend && (
+                                 <span className="ml-auto">
+                                   {trend === 'up' ? <TrendingUp size={10} className="text-blue-400" /> :
+                                    trend === 'down' ? <TrendingDown size={10} className="text-red-400" /> :
+                                    <Minus size={10} className="text-[#4A2C2A]/20" />}
+                                 </span>
+                               )}
+                             </div>
+                             <div className="mt-1 flex items-center gap-1">
+                               <span className={cn('text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded-full', sc.badge)}>
+                                 {st}
+                               </span>
+                               <span className="text-[6px] text-[#4A2C2A]/20 font-black">{cfg.min}–{cfg.max}{cfg.unit}</span>
+                             </div>
+                           </motion.div>
+                         );
                       })}
                     </div>
                   </div>
 
                   {/* Action Plan */}
-                  <div className="bg-[#0D523C] rounded-[2rem] p-5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck size={18} className="text-emerald-300" />
-                      <p className="text-emerald-300/80 text-[9px] font-black uppercase tracking-widest">Today's Corrective Actions</p>
+                  <div className="bg-[#0D523C] rounded-[1.8rem] p-4 space-y-2 shadow-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ShieldCheck size={14} className="text-emerald-300" />
+                      <p className="text-emerald-300/80 text-[8px] font-black uppercase tracking-widest">SOP Corrective Protocol</p>
                     </div>
                     {todayActions.map((action, i) => (
                       <div key={i} className={cn(
-                        'rounded-xl px-4 py-3 border',
-                        action.severity === 'high' ? 'bg-red-900/30 border-red-500/20' :
-                        action.severity === 'medium' ? 'bg-amber-900/20 border-amber-500/20' :
+                        'rounded-xl px-3.5 py-2.5 border',
+                        action.severity === 'high' ? 'bg-red-900/40 border-red-500/10' :
+                        action.severity === 'medium' ? 'bg-amber-900/30 border-amber-500/10' :
                         'bg-white/5 border-white/5'
                       )}>
-                        <p className="text-white/80 text-[10px] font-bold leading-snug">{action.text}</p>
+                        <p className="text-white font-bold text-[9px] leading-relaxed">{action.text}</p>
                       </div>
                     ))}
                   </div>
@@ -573,32 +573,32 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
 
               {/* Harvest Status Card */}
               <div className={cn(
-                'rounded-[2.5rem] p-6 relative overflow-hidden text-white',
-                harvestReady ? 'bg-[#0D523C]' : 'bg-indigo-900'
+                'rounded-[2rem] p-5 relative overflow-hidden text-white',
+                harvestReady ? 'bg-[#0D523C]' : 'bg-indigo-900 shadow-lg'
               )}>
                 <div className="relative z-10">
-                  <p className="text-white/40 text-[9px] font-black uppercase tracking-widest">
+                  <p className="text-white/40 text-[8px] font-black uppercase tracking-widest leading-none">
                     {harvestReady ? 'Harvest Ready' : 'Harvest Forecast'}
                   </p>
                   {harvestReady ? (
                     <>
-                      <p className="text-white font-black text-4xl tracking-tighter mt-1 mb-2">Ready Now!</p>
-                      <p className="text-emerald-300 text-[10px] font-black">DOC {doc} • Est. {currentWeightG.toFixed(1)}g/shrimp • ~{estimatedCountPerKg}/kg</p>
+                      <p className="text-white font-black text-3xl tracking-tighter mt-1.5 mb-1.5">Ready Now!</p>
+                      <p className="text-emerald-300 text-[9px] font-black uppercase tracking-widest">DOC {doc} • ~{estimatedCountPerKg}/kg</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-white font-black text-4xl tracking-tighter mt-1 mb-2">{daysToHarvest} days left</p>
-                      <p className="text-indigo-300 text-[10px] font-black">Target: DOC 90 • Est. {(90 * 0.38).toFixed(1)}g/shrimp</p>
+                      <p className="text-white font-black text-3xl tracking-tighter mt-1.5 mb-1.5">{daysToHarvest} days left</p>
+                      <p className="text-indigo-300 text-[9px] font-black uppercase tracking-widest">Target: DOC 90 • {currentWeightG.toFixed(1)}g avg</p>
                     </>
                   )}
 
                   {/* Progress bar */}
-                  <div className="w-full h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-white/10 mt-3 overflow-hidden">
                     <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${Math.min(100, (doc / 90) * 100)}%` }} />
                   </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-[7px] font-black text-white/20 uppercase">DOC 1</span>
-                    <span className="text-[7px] font-black text-white/20 uppercase">DOC 90 (Harvest)</span>
+                  <div className="flex justify-between mt-1 opacity-20">
+                    <span className="text-[6px] font-black uppercase tracking-widest text-white">Stock</span>
+                    <span className="text-[6px] font-black uppercase tracking-widest text-white">Target</span>
                   </div>
                 </div>
               </div>
@@ -755,23 +755,23 @@ const CountHarvestAlert = ({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-[2.5rem] p-6 border text-white relative overflow-hidden ${alertStyles[alertLevel]}`}
+      className={`rounded-[2rem] p-5 border text-white relative overflow-hidden ${alertStyles[alertLevel]}`}
     >
       {/* Glow orb */}
-      <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[60px] opacity-30"
+      <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[50px] opacity-25"
         style={{ background: alertLevel === 'premium' ? '#10b981' : alertLevel === 'ready' ? '#22c55e' : '#C78200' }}
       />
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3.5">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/40">Farmer Count Tracker</p>
-            <h3 className="text-2xl font-black tracking-tighter mt-1">
+            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">Farmer Count Tracker</p>
+            <h3 className="text-xl font-black tracking-tighter mt-1">
               {estimatedCountPerKg > 200 ? '???/kg' : `~${estimatedCountPerKg}/kg`}
             </h3>
           </div>
-          <div className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border ${
+          <div className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border ${
             alertLevel === 'premium' ? 'bg-emerald-400/20 border-emerald-400/30 text-emerald-300' :
             alertLevel === 'ready'   ? 'bg-green-400/20 border-green-400/30 text-green-300' :
                                        'bg-[#C78200]/20 border-[#C78200]/30 text-[#C78200]'
@@ -782,68 +782,68 @@ const CountHarvestAlert = ({
 
         {/* Alert message */}
         {isAtPremiumCount && currentMarketRate ? (
-          <div className={`rounded-2xl px-4 py-3 mb-4 ${
+          <div className={`rounded-xl px-3 py-2.5 mb-3.5 ${
             alertLevel === 'premium' ? 'bg-emerald-400/15 border border-emerald-400/20' :
             'bg-green-400/10 border border-green-400/15'
           }`}>
-            <p className="text-[11px] font-black text-white leading-snug">
-              🔔 Your shrimp are now at <span className="text-emerald-300">{matchedBracket}/kg count</span> — a{' '}
-              <span className="text-emerald-300">{currentMarketRate.demand} demand</span> bracket.
-              Market rate: <span className="text-emerald-300 text-base">₹{currentMarketRate.price}/kg</span>.
-              Based on DOC {doc} track — <span className="underline decoration-dotted">this is your harvest window.</span>
+            <p className="text-[10px] font-black text-white leading-snug">
+              🔔 Shrimp at <span className="text-emerald-300 font-black">{matchedBracket}/kg count</span> —{' '}
+              <span className="text-emerald-300 uppercase">{currentMarketRate.demand} demand</span>.
+              Market rate: <span className="text-emerald-300">₹{currentMarketRate.price}/kg</span>.
+              <span className="opacity-60 block mt-1">This is your optimal harvest window.</span>
             </p>
           </div>
         ) : (
-          <div className="bg-white/5 rounded-2xl px-4 py-3 mb-4 border border-white/10">
-            <p className="text-[10px] font-bold text-white/60 leading-snug">
-              Currently at <span className="text-white font-black">{currentStage.label}</span> — Est. {currentWeightG.toFixed(1)}g/shrimp.
-              Monitor daily. Premium count window approaches at DOC 90–100.
+          <div className="bg-white/5 rounded-xl px-3 py-2.5 mb-3.5 border border-white/10">
+            <p className="text-[9px] font-bold text-white/50 leading-snug">
+              Currently at <span className="text-white font-black">{currentStage.label}</span>. 
+              Premium window approaches at DOC 90+.
             </p>
           </div>
         )}
 
         {/* DOC Count Track */}
-        <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-3">Count Track — DOC Progress</p>
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
+        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-2.5">Count Track — DOC Progress</p>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {countStages.map((stage, i) => {
             const isPast = doc >= stage.doc;
             const isCurrent = Math.abs(stage.doc - doc) < 8;
             return (
-              <div key={i} className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${
+              <div key={i} className={`flex flex-col items-center gap-1 flex-shrink-0 ${
                 isCurrent ? 'opacity-100' : isPast ? 'opacity-60' : 'opacity-25'
               }`}>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
                   isCurrent
-                    ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.5)]'
+                    ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]'
                     : isPast
                     ? 'bg-white/20 border-white/30'
                     : 'bg-white/5 border-white/10'
                 }`}>
-                  {isPast && !isCurrent && <CheckCircle2 size={12} className="text-white" />}
-                  {isCurrent && <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />}
+                  {isPast && !isCurrent && <CheckCircle2 size={10} className="text-white" />}
+                  {isCurrent && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
                 </div>
-                <p className="text-[6px] font-black text-white/40 uppercase whitespace-nowrap">D{stage.doc}</p>
-                <p className={`text-[7px] font-black whitespace-nowrap ${
+                <p className="text-[6px] font-black text-white/40 uppercase whitespace-nowrap leading-none mt-1">D{stage.doc}</p>
+                <p className={`text-[7px] font-black whitespace-nowrap mt-0.5 ${
                   isCurrent ? 'text-emerald-300' : 'text-white/30'
-                }`}>{stage.count}/kg</p>
+                }`}>{stage.count}/k</p>
               </div>
             );
           })}
         </div>
 
         {/* Estimated Biomass */}
-        <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-3 gap-3">
+        <div className="mt-3.5 pt-3.5 border-t border-white/10 grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest">Est. Biomass</p>
-            <p className="font-black text-base tracking-tighter">{(estWeightKg / 1000).toFixed(1)}T</p>
+            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Biomass</p>
+            <p className="font-black text-sm tracking-tighter">{(estWeightKg / 1000).toFixed(1)}T</p>
           </div>
           <div>
-            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest">Live Count</p>
-            <p className="font-black text-base tracking-tighter">{(estimatedLiveCount / 1000).toFixed(0)}K</p>
+            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Live Count</p>
+            <p className="font-black text-sm tracking-tighter">{(estimatedLiveCount / 1000).toFixed(0)}K</p>
           </div>
           <div>
-            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest">Survival</p>
-            <p className="font-black text-base tracking-tighter">{(survivalRate * 100).toFixed(0)}%</p>
+            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Survival</p>
+            <p className="font-black text-sm tracking-tighter">{(survivalRate * 100).toFixed(0)}%</p>
           </div>
         </div>
       </div>
@@ -864,7 +864,6 @@ const LiveMarketTicker = ({
   const animFrameRef = useRef<number>(0);
   const speedRef = useRef(0.6);
 
-  // Auto-scroll the ticker
   useEffect(() => {
     const ticker = tickerRef.current;
     if (!ticker) return;
@@ -881,70 +880,51 @@ const LiveMarketTicker = ({
     return () => cancelAnimationFrame(animFrameRef.current);
   }, []);
 
-  const items = [...marketRates, ...marketRates]; // duplicate for seamless loop
+  const items = [...marketRates, ...marketRates];
 
   return (
-    <div className="bg-[#02130F] rounded-[2rem] overflow-hidden border border-white/5">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Live Market Rates</p>
+    <div className="bg-[#02130F] rounded-[1.8rem] overflow-hidden border border-white/5 shadow-2xl">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/5">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">Live Market Rates</p>
         </div>
-        <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">₹/Kg · Bhimavaram</p>
+        <p className="text-[7px] font-black text-white/20 uppercase tracking-widest">₹/Kg · Local</p>
       </div>
 
-      {/* Ticker Rail */}
-      <div className="overflow-hidden py-4">
+      <div className="overflow-hidden py-3">
         <div
           ref={tickerRef}
-          className="flex gap-3 px-4"
+          className="flex gap-2.5 px-4"
           style={{ transform: `translateX(-${tickerOffset}px)`, willChange: 'transform' }}
         >
           {items.map((rate, i) => {
-            const isCurrentCount =
-              estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
+            const isCurrentCount = estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
             return (
               <div
                 key={i}
-                className={`flex-shrink-0 rounded-2xl px-4 py-3 border transition-all ${
+                className={`flex-shrink-0 rounded-xl px-3 py-2 border transition-all ${
                   isCurrentCount
-                    ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_12px_rgba(52,211,153,0.2)]'
+                    ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_10px_rgba(52,211,153,0.15)]'
                     : rate.trend === 'up'
                     ? 'bg-white/5 border-white/10'
                     : rate.trend === 'down'
                     ? 'bg-red-900/10 border-red-500/10'
-                    : 'bg-white/5 border-white/5'
+                    : 'bg-white/10 border-white/5'
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
-                  <p className={`text-[8px] font-black uppercase tracking-widest ${
-                    isCurrentCount ? 'text-emerald-300' : 'text-white/30'
-                  }`}>{rate.count}/kg</p>
+                  <p className={`text-[7px] font-black uppercase tracking-widest ${isCurrentCount ? 'text-emerald-300' : 'text-white/30'}`}>{rate.count}/kg</p>
                   {isCurrentCount && (
-                    <span className="text-[6px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest border border-emerald-400/20">You</span>
+                    <span className="text-[5px] bg-emerald-400/20 text-emerald-300 px-1 py-0.5 rounded-full font-black uppercase tracking-widest border border-emerald-400/20">You</span>
                   )}
                 </div>
-                <p className={`font-black text-lg tracking-tighter ${
-                  isCurrentCount ? 'text-emerald-300' :
-                  rate.trend === 'up' ? 'text-white' :
-                  rate.trend === 'down' ? 'text-red-400' : 'text-white/70'
-                }`}>
+                <p className={`font-black text-base tracking-tighter leading-none ${isCurrentCount ? 'text-emerald-300' : rate.trend === 'up' ? 'text-white' : rate.trend === 'down' ? 'text-red-400' : 'text-white/70'}`}>
                   ₹{rate.price}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  {rate.trend === 'up' ? (
-                    <TrendingUp size={9} className="text-emerald-400" />
-                  ) : rate.trend === 'down' ? (
-                    <TrendingDown size={9} className="text-red-400" />
-                  ) : (
-                    <Minus size={9} className="text-white/20" />
-                  )}
-                  <p className={`text-[7px] font-black uppercase tracking-widest ${
-                    rate.demand === 'HIGH' || rate.demand === 'ULTRA HIGH' ? 'text-emerald-400' :
-                    rate.demand === 'STABLE' ? 'text-blue-400' :
-                    rate.demand === 'MEDIUM' ? 'text-amber-400' : 'text-red-400'
-                  }`}>{rate.demand}</p>
+                  {rate.trend === 'up' ? <TrendingUp size={8} className="text-emerald-400" /> : rate.trend === 'down' ? <TrendingDown size={8} className="text-red-400" /> : <Minus size={8} className="text-white/20" />}
+                  <p className={`text-[6px] font-black uppercase tracking-widest ${rate.demand === 'HIGH' || rate.demand === 'ULTRA HIGH' ? 'text-emerald-400' : rate.demand === 'STABLE' ? 'text-blue-400' : rate.demand === 'MEDIUM' ? 'text-amber-400' : 'text-red-400'}`}>{rate.demand}</p>
                 </div>
               </div>
             );
@@ -952,23 +932,13 @@ const LiveMarketTicker = ({
         </div>
       </div>
 
-      {/* Price Grid Summary */}
       <div className="grid grid-cols-3 gap-0 border-t border-white/5">
         {marketRates.slice(0, 6).map((rate, i) => {
           const isCurrent = estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
           return (
-            <div
-              key={i}
-              className={`px-3 py-3 text-center border-r border-b border-white/5 last:border-r-0 ${
-                isCurrent ? 'bg-emerald-500/10' : ''
-              }`}
-            >
-              <p className={`text-[8px] font-black uppercase tracking-widest ${
-                isCurrent ? 'text-emerald-400' : 'text-white/20'
-              }`}>{rate.count}/kg</p>
-              <p className={`font-black text-sm tracking-tighter mt-0.5 ${
-                isCurrent ? 'text-emerald-300' : 'text-white/60'
-              }`}>₹{rate.price}</p>
+            <div key={i} className={`px-2 py-2.5 text-center border-r border-b border-white/5 last:border-r-0 ${isCurrent ? 'bg-emerald-500/10' : ''}`}>
+              <p className={`text-[7px] font-black uppercase tracking-widest ${isCurrent ? 'text-emerald-400' : 'text-white/20'}`}>{rate.count}/kg</p>
+              <p className={`font-black text-xs tracking-tighter mt-0.5 ${isCurrent ? 'text-emerald-300' : 'text-white/60'}`}>₹{rate.price}</p>
             </div>
           );
         })}

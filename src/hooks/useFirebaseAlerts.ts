@@ -5,7 +5,11 @@ import { Capacitor } from '@capacitor/core';
 
 export const useFirebaseAlerts = (userLanguage: string) => {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
-  const [incomingAlert, setIncomingAlert] = useState<{ title: string, body: string } | null>(null);
+  const [incomingAlert, setIncomingAlert] = useState<{ title: string, body: string, timestamp: number } | null>(null);
+  const [alertHistory, setAlertHistory] = useState<{ title: string, body: string, timestamp: number }[]>(() => {
+    const saved = localStorage.getItem('aqua_alert_history');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const requestNotificationPermission = async () => {
     // ─── NATIVE (ANDROID/IOS) PUSH ───
@@ -73,10 +77,16 @@ export const useFirebaseAlerts = (userLanguage: string) => {
       });
 
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Native Push Received: ', notification);
-        setIncomingAlert({
+        const newAlert = {
           title: notification.title || 'New Alert',
-          body: notification.body || 'You have a new message'
+          body: notification.body || 'You have a new message',
+          timestamp: Date.now()
+        };
+        setIncomingAlert(newAlert);
+        setAlertHistory(prev => {
+          const updated = [newAlert, ...prev].slice(0, 50);
+          localStorage.setItem('aqua_alert_history', JSON.stringify(updated));
+          return updated;
         });
       });
 
@@ -88,14 +98,31 @@ export const useFirebaseAlerts = (userLanguage: string) => {
       onMessageListener().then((payload: any) => {
         console.log("Web Foreground Message: ", payload);
         if (payload?.notification) {
-          setIncomingAlert({
+          const newAlert = {
             title: payload.notification.title,
-            body: payload.notification.body
+            body: payload.notification.body,
+            timestamp: Date.now()
+          };
+          setIncomingAlert(newAlert);
+          setAlertHistory(prev => {
+            const updated = [newAlert, ...prev].slice(0, 50);
+            localStorage.setItem('aqua_alert_history', JSON.stringify(updated));
+            return updated;
           });
         }
       }).catch(err => console.log('Web message listener failed: ', err));
     }
   }, [fcmToken]);
 
-  return { requestNotificationPermission, fcmToken, incomingAlert, clearAlert: () => setIncomingAlert(null) };
+  return { 
+    requestNotificationPermission, 
+    fcmToken, 
+    incomingAlert, 
+    alertHistory,
+    clearAlert: () => setIncomingAlert(null),
+    clearHistory: () => {
+      localStorage.removeItem('aqua_alert_history');
+      setAlertHistory([]);
+    }
+  };
 };

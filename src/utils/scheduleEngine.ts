@@ -56,7 +56,7 @@ export const getDailySchedule = (doc: number): DailyTask[] => {
     { time: '02:00 PM', task: 'Afternoon Feed (Slot 3)', type: 'feed' },
     { time: '05:00 PM', task: 'Evening Feed (Slot 4)', type: 'feed' },
     { time: '06:00 PM', task: 'Apply Water Probiotic', type: 'med' },
-    { time: '09:00 PM', task: 'Aerator ON', type: 'aerator' },
+    { time: '06:30 PM', task: 'Aerator ON', type: 'aerator' },
   ];
   if (doc <= 60) return [
     { time: '06:00 AM', task: 'Morning Feed', type: 'feed' },
@@ -64,7 +64,7 @@ export const getDailySchedule = (doc: number): DailyTask[] => {
     { time: '02:00 PM', task: 'Afternoon Feed (Slot 3)', type: 'feed' },
     { time: '05:00 PM', task: 'Evening Feed (Slot 4)', type: 'feed' },
     { time: '07:00 PM', task: 'Apply Soil Probiotic', type: 'med' },
-    { time: '09:00 PM', task: 'Aerator Full ON', type: 'aerator' },
+    { time: '06:30 PM', task: 'Aerator Full ON', type: 'aerator' },
   ];
   return [
     { time: '06:00 AM', task: 'Morning Feed', type: 'feed' },
@@ -72,7 +72,7 @@ export const getDailySchedule = (doc: number): DailyTask[] => {
     { time: '02:00 PM', task: 'Afternoon Feed (Slot 3)', type: 'feed' },
     { time: '05:00 PM', task: 'Evening Feed (Slot 4)', type: 'feed' },
     { time: '07:30 PM', task: 'High Dose Minerals', type: 'med' },
-    { time: '08:30 PM', task: 'Aerator 100% Capacity', type: 'aerator' },
+    { time: '06:30 PM', task: 'Aerator 100% Capacity', type: 'aerator' },
   ];
 };
 

@@ -7,12 +7,11 @@ import {
   Camera, 
   TrendingUp, 
   Globe, 
-  Headphones, 
-  CreditCard, 
   Smartphone, 
   ChevronRight,
   ChevronLeft,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
@@ -72,46 +71,46 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0D1B17] text-white flex flex-col overflow-x-hidden pb-10 relative font-sans text-left">
+    <div className="min-h-screen bg-[#0D1B17] text-white flex flex-col overflow-x-hidden pb-8 relative font-sans text-left">
       <button 
         onClick={() => navigate(-1)}
-        className="absolute top-8 left-8 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all z-50 active:scale-90"
+        className="absolute top-6 left-6 p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all z-50 active:scale-90"
       >
-        <ChevronLeft size={24} className="text-white/60" />
+        <ChevronLeft size={20} className="text-white/60" />
       </button>
       
-      <div className="flex flex-col items-center pt-16 pb-8">
-        <div className="relative mb-8">
+      <div className="flex flex-col items-center pt-12 pb-6">
+        <div className="relative mb-6">
           <div className="absolute inset-0 bg-[#C78200]/20 blur-3xl rounded-full scale-150"></div>
-          <div className="w-24 h-24 bg-[#C78200] rounded-full flex items-center justify-center relative z-10 shadow-[0_0_40px_rgba(199,130,0,0.3)]">
-            <Waves size={48} className="text-white" />
+          <div className="w-20 h-20 bg-[#C78200] rounded-full flex items-center justify-center relative z-10 shadow-[0_0_30px_rgba(199,130,0,0.2)]">
+            <Waves size={40} className="text-white" />
           </div>
-          <div className="absolute -top-2 -right-2 bg-white p-2 rounded-full border-2 border-[#4A2C2A] shadow-xl">
-            <Sparkles size={16} className="text-[#C78200]" />
+          <div className="absolute -top-1 -right-1 bg-white p-1.5 rounded-full border-2 border-[#4A2C2A] shadow-lg">
+            <Sparkles size={12} className="text-[#C78200]" />
           </div>
         </div>
-        <h1 className="text-2xl font-black tracking-tighter text-white text-center">
+        <h1 className="text-xl font-black tracking-tighter text-white text-center">
           AquaGrow <span className="text-[#C78200]">Scale Up</span>
         </h1>
-        <p className="text-white/40 text-[10px] font-black tracking-[0.4em] uppercase mt-3">Choose Your Farming Capacity</p>
+        <p className="text-white/40 text-[8px] font-black tracking-[0.4em] uppercase mt-2">Choose Your Capacity</p>
       </div>
 
       {isPro && user && (
-        <div className="px-8 mb-8">
-          <div className="bg-[#1A302A] border border-emerald-500/20 rounded-[2.5rem] p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none text-[#C78200]"><Sparkles size={80} /></div>
-            <p className="text-[#C78200] text-[8px] font-black uppercase tracking-[0.4em] mb-2">Current Active Status</p>
-            <h3 className="text-2xl font-black tracking-tighter mb-4">
+        <div className="px-6 mb-6">
+          <div className="bg-[#1A302A] border border-emerald-500/20 rounded-[1.8rem] p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none text-[#C78200]"><Sparkles size={60} /></div>
+            <p className="text-[#C78200] text-[7px] font-black uppercase tracking-[0.4em] mb-1.5">Current Active Status</p>
+            <h3 className="text-xl font-black tracking-tighter mb-3">
               {user.subscriptionStatus === 'pro_silver' ? 'Aqua 3 (Silver)' : 
                user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : 
                user.subscriptionStatus === 'pro_diamond' ? 'Aqua 9 (Diamond)' : 'Aqua Pro'}
             </h3>
-            <div className="flex flex-col gap-1.5 mt-2">
-              <p className="text-[#C78200]/40 text-[7px] font-black uppercase tracking-[0.2em]">Active Coverage Plan</p>
+            <div className="flex flex-col gap-1 mt-1">
+              <p className="text-[#C78200]/40 text-[6px] font-black uppercase tracking-[0.2em]">Active Coverage</p>
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-500"><CheckCircle2 size={12} /></div>
-                <p className="text-emerald-400 text-[10px] font-black tracking-tight uppercase">
-                  Expiry Date: <span className="text-white text-xs">{user.subscriptionExpiry ? format(new Date(user.subscriptionExpiry), 'MMM d, yyyy') : 'N/A'}</span>
+                <div className="p-1 bg-emerald-500/10 rounded-md text-emerald-500"><CheckCircle2 size={10} /></div>
+                <p className="text-emerald-400 text-[9px] font-black tracking-tight uppercase">
+                  Expiry: <span className="text-white text-[11px]">{user.subscriptionExpiry ? format(new Date(user.subscriptionExpiry), 'MMM d, yyyy') : 'N/A'}</span>
                 </p>
               </div>
             </div>
@@ -119,78 +118,75 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
         </div>
       )}
 
-      <div className="px-8 space-y-6 mb-12">
-        {PLANS.filter(p => user?.subscriptionStatus !== p.id).map((plan) => {
-          const isActivePlan = false; // Filtered out anyway, but kept for logic safety
-          return (
-            <div 
-              key={plan.id}
-              onClick={() => setSelectedPlan(plan.id as any)}
-              className={cn(
-                "relative overflow-hidden rounded-[2.5rem] p-7 transition-all duration-500 cursor-pointer border",
-                selectedPlan === plan.id ? "bg-white text-[#4A2C2A] border-white shadow-2xl scale-[1.02]" : "bg-white/5 border-white/10 text-white"
+      <div className="px-6 space-y-4 mb-8">
+        {PLANS.filter(p => user?.subscriptionStatus !== p.id).map((plan) => (
+          <div 
+            key={plan.id}
+            onClick={() => setSelectedPlan(plan.id as any)}
+            className={cn(
+              "relative overflow-hidden rounded-[1.8rem] p-5 transition-all duration-500 cursor-pointer border",
+              selectedPlan === plan.id ? "bg-white text-[#4A2C2A] border-white shadow-xl scale-[1.01]" : "bg-white/5 border-white/10 text-white"
+            )}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-black tracking-tighter">{plan.label}</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                   <div className={cn("w-1 h-1 rounded-full", plan.color)} />
+                   <p className={cn("text-[8px] font-black uppercase tracking-widest", selectedPlan === plan.id ? "opacity-60" : "text-white/40")}>
+                     {plan.ponds} Ponds / Year
+                   </p>
+                </div>
+              </div>
+              {plan.id === 'pro_gold' && (
+                <div className="bg-[#C78200] text-white px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest shadow-lg">Best Value</div>
               )}
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-xl font-black tracking-tighter">{plan.label}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                     <div className={cn("w-1.5 h-1.5 rounded-full", plan.color)} />
-                     <p className={cn("text-[9px] font-black uppercase tracking-widest", selectedPlan === plan.id ? "opacity-60" : "text-white/40")}>
-                       {plan.ponds} Ponds / Year
-                     </p>
-                  </div>
-                </div>
-                {plan.id === 'pro_gold' && (
-                  <div className="bg-[#C78200] text-white px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-xl shadow-[#C78200]/20">Best Value</div>
-                )}
-              </div>
-              
-              <p className={cn("text-[10px] font-bold mb-6", selectedPlan === plan.id ? "opacity-60" : "text-white/40")}>
-                 {plan.desc}
-              </p>
-  
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black tracking-tighter">{plan.price}</span>
-                <div className="flex flex-col">
-                  <span className={cn("text-[8px] font-black uppercase tracking-widest", selectedPlan === plan.id ? "opacity-40" : "text-white/40")}>/year</span>
-                  <span className={cn("text-[7px] font-bold uppercase tracking-widest text-[#C78200]")}>365 Days Validity</span>
-                </div>
-              </div>
             </div>
-          );
-        })}
-      </div>
+            
+            <p className={cn("text-[9px] font-bold mb-4", selectedPlan === plan.id ? "opacity-60" : "text-white/40")}>
+               {plan.desc}
+            </p>
 
-      <div className="px-8 space-y-4 mb-10">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 mb-2">Included In All Plans</h2>
-        {features.map((f, i) => (
-          <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-5 flex items-center gap-6 group">
-            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-[#C78200] border border-white/10">
-              <f.icon size={22} strokeWidth={2} />
-            </div>
-            <div>
-              <h3 className="font-black text-sm tracking-tight text-white">{f.title}</h3>
-              <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest mt-0.5">{f.desc}</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black tracking-tighter">{plan.price}</span>
+              <div className="flex flex-col">
+                <span className={cn("text-[7px] font-black uppercase tracking-widest", selectedPlan === plan.id ? "opacity-40" : "text-white/40")}>/year</span>
+                <span className={cn("text-[6px] font-bold uppercase tracking-widest text-[#C78200]")}>365 Days Validity</span>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="px-8 mt-12 pb-10">
+      <div className="px-6 space-y-3 mb-8">
+        <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 mb-1">Included Benefits</h2>
+        {features.map((f, i) => (
+          <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-4 group">
+            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-[#C78200] border border-white/10">
+              <f.icon size={18} strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="font-black text-xs tracking-tight text-white">{f.title}</h3>
+              <p className="text-[8px] text-white/40 font-bold uppercase tracking-widest mt-0.5">{f.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="px-6 mt-8 pb-8">
         <button 
           onClick={handleUpgrade}
           disabled={!selectedPlan}
           className={cn(
-            "w-full font-black py-6 rounded-[2rem] shadow-2xl transition-all flex items-center justify-center gap-4 uppercase tracking-[0.3em] text-[11px] active:scale-95",
+            "w-full font-black py-5 rounded-[1.5rem] shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-[0.3em] text-[10px] active:scale-95",
             selectedPlan 
-              ? "bg-[#C78200] text-white shadow-[#C78200]/30" 
+              ? "bg-[#C78200] text-white shadow-[#C78200]/20" 
               : "bg-white/10 text-white/20 cursor-not-allowed shadow-none"
           )}
         >
-          {selectedPlan ? t.unlockPro : "Select a Plan"} <Sparkles size={18} />
+          {selectedPlan ? t.unlockPro : "Select a Plan"} <Sparkles size={16} />
         </button>
-        <p className="text-center text-white/20 text-[9px] font-bold uppercase tracking-widest mt-8 px-10 leading-relaxed">
+        <p className="text-center text-white/20 text-[8px] font-bold uppercase tracking-widest mt-6 px-8 leading-relaxed">
           {t.termsPrivacyPolicy}
         </p>
       </div>
@@ -211,7 +207,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   );
 };
 
-const PaymentModal = ({ isOpen, onClose, plan, price, t, onPaymentSuccess }: { isOpen: boolean, onClose: () => void, plan: string, price: string, t: Translations, onPaymentSuccess: () => void }) => {
+const PaymentModal = ({ onClose, plan, price, t, onPaymentSuccess }: { isOpen: boolean, onClose: () => void, plan: string, price: string, t: Translations, onPaymentSuccess: () => void }) => {
   const [method, setMethod] = useState<'card' | 'upi' | 'netbanking'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -228,7 +224,7 @@ const PaymentModal = ({ isOpen, onClose, plan, price, t, onPaymentSuccess }: { i
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-8">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -240,35 +236,35 @@ const PaymentModal = ({ isOpen, onClose, plan, price, t, onPaymentSuccess }: { i
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        className="relative w-full max-w-lg bg-white rounded-t-[3.5rem] sm:rounded-[3.5rem] p-10 overflow-hidden"
+        className="relative w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 overflow-hidden"
       >
         {isSuccess ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-8 shadow-2xl animate-bounce">
-              <CheckCircle2 size={48} className="text-white" />
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-xl animate-bounce">
+              <CheckCircle2 size={40} className="text-white" />
             </div>
-            <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.paymentSuccess}</h2>
-            <p className="text-[#4A2C2A]/40 text-sm font-bold uppercase tracking-widest">Your farm is now ready to scale</p>
+            <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">{t.paymentSuccess}</h2>
+            <p className="text-[#4A2C2A]/40 text-xs font-bold uppercase tracking-widest">Now ready to scale</p>
           </div>
         ) : isProcessing ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 border-4 border-[#C78200]/20 border-t-[#C78200] rounded-full animate-spin mb-8"></div>
-            <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.processingPayment}</h2>
-            <p className="text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-[0.2em]">{t.doNotRefresh}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-16 h-16 border-4 border-[#C78200]/20 border-t-[#C78200] rounded-full animate-spin mb-6"></div>
+            <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A] mb-3">{t.processingPayment}</h2>
+            <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-[0.2em]">{t.doNotRefresh}</p>
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-10">
+            <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A]">Pay Securely</h2>
-                <p className="text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest mt-1">{plan.replace('_', ' ').toUpperCase()} • {price}</p>
+                <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Pay Securely</h2>
+                <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{plan.replace('_', ' ').toUpperCase()} • {price}</p>
               </div>
-              <button onClick={onClose} className="p-3 bg-[#4A2C2A]/5 rounded-2xl text-[#4A2C2A]/40 hover:text-[#4A2C2A] transition-colors">
-                <X size={20} />
+              <button onClick={onClose} className="p-2 bg-[#4A2C2A]/5 rounded-xl text-[#4A2C2A]/40 hover:text-[#4A2C2A] transition-colors">
+                <X size={18} />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-3 gap-3 mb-8">
               {[
                 { id: 'card', icon: CreditCard, label: 'Card' },
                 { id: 'upi', icon: Smartphone, label: 'UPI' },
@@ -278,53 +274,53 @@ const PaymentModal = ({ isOpen, onClose, plan, price, t, onPaymentSuccess }: { i
                   key={m.id}
                   onClick={() => setMethod(m.id as any)}
                   className={cn(
-                    "flex flex-col items-center gap-3 p-5 rounded-3xl border transition-all",
+                    "flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all",
                     method === m.id ? "bg-[#C78200]/10 border-[#C78200] text-[#C78200]" : "bg-white border-black/5 text-[#4A2C2A]/40"
                   )}
                 >
-                  <m.icon size={28} />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-center leading-tight">{m.label}</span>
+                  <m.icon size={24} />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-center leading-tight">{m.label}</span>
                 </button>
               ))}
             </div>
 
-            <div className="space-y-6 mb-10">
+            <div className="space-y-4 mb-8">
               {method === 'card' && (
                 <>
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-2">Card Number</label>
-                    <input className="w-full bg-[#F8F9FE] border border-black/5 p-5 rounded-2xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all" placeholder="0000 0000 0000 0000" />
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">Card Number</label>
+                    <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="0000 0000 0000 0000" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <label className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-2">Expiry</label>
-                      <input className="w-full bg-[#F8F9FE] border border-black/5 p-5 rounded-2xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all" placeholder="MM/YY" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">Expiry</label>
+                      <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="MM/YY" />
                     </div>
-                    <div className="space-y-3">
-                      <label className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-2">CVV</label>
-                      <input className="w-full bg-[#F8F9FE] border border-black/5 p-5 rounded-2xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all" placeholder="***" type="password" />
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">CVV</label>
+                      <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="***" type="password" />
                     </div>
                   </div>
                 </>
               )}
               {method === 'upi' && (
-                <div className="space-y-3">
-                  <label className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-2">UPI ID</label>
-                  <input className="w-full bg-[#F8F9FE] border border-black/5 p-5 rounded-2xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all" placeholder="username@upi" />
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">UPI ID</label>
+                  <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="username@upi" />
                 </div>
               )}
             </div>
 
-            <div className="p-5 bg-[#C78200]/5 rounded-2xl border border-[#C78200]/10 mb-8 flex justify-between items-center">
-              <p className="text-[#C78200]/60 text-[10px] font-black uppercase tracking-widest">Annual Total</p>
-              <p className="text-xl font-black tracking-tighter text-[#4A2C2A]">{price}</p>
+            <div className="p-4 bg-[#C78200]/5 rounded-xl border border-[#C78200]/10 mb-6 flex justify-between items-center">
+              <p className="text-[#C78200]/60 text-[9px] font-black uppercase tracking-widest">Total</p>
+              <p className="text-lg font-black tracking-tighter text-[#4A2C2A]">{price}</p>
             </div>
 
             <button 
               onClick={handlePay}
-              className="w-full bg-[#C78200] text-white font-black py-6 rounded-[2rem] shadow-2xl shadow-[#C78200]/20 transition-all flex items-center justify-center gap-4 uppercase tracking-[0.3em] text-[11px] active:scale-95"
+              className="w-full bg-[#C78200] text-white font-black py-5 rounded-[1.8rem] shadow-xl shadow-[#C78200]/10 transition-all flex items-center justify-center gap-3 uppercase tracking-[0.3em] text-[10px] active:scale-95"
             >
-              {t.payNow} <ChevronRight size={18} />
+              {t.payNow} <ChevronRight size={16} />
             </button>
           </>
         )}

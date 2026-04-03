@@ -13,10 +13,10 @@ import { SplashScreen as CapSplash } from '@capacitor/splash-screen';
 import { Capacitor } from '@capacitor/core';
 
 // Components
-import { Drawer } from './components/Drawer';
 import { BottomNav } from './components/BottomNav';
 import { ProviderBottomNav } from './components/ProviderBottomNav';
 import { PushSyncManager } from './components/PushSyncManager';
+import { GlobalAlertCenter } from './components/GlobalAlertCenter';
 
 // Pages
 import { Dashboard } from './pages/Dashboard';
@@ -77,7 +77,6 @@ const AppContent = () => {
   const { user, loading, isSyncing } = useData();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [lang, setLang] = useState<Language>('English');
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -202,23 +201,21 @@ const AppContent = () => {
       ) : (
         <div className="relative z-10 w-full min-h-[100dvh] flex flex-col">
           <PushSyncManager />
-          <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} user={user} t={t} />
+          <GlobalAlertCenter t={t} />
           
-          <AnimatePresence>
-            {isSyncing && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                exit={{ opacity: 0, y: -20 }}
-                className="fixed top-12 left-1/2 -translate-x-1/2 z-[100] bg-[#02130F]/90 backdrop-blur-md border border-emerald-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-2xl"
-              >
-                <div className="w-3 h-3 border-[1.5px] border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mt-px">Syncing</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {isSyncing && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-12 left-1/2 -translate-x-1/2 z-[100] bg-[#02130F]/90 backdrop-blur-md border border-emerald-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-2xl"
+            >
+              <div className="w-3 h-3 border-[1.5px] border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mt-px">Syncing</span>
+            </motion.div>
+          )}
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0, y: 8 }}
@@ -229,57 +226,63 @@ const AppContent = () => {
             >
               <Routes location={location}>
                 {/* Farmer Routes */}
-                <Route path="/dashboard" element={<Dashboard user={user} t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/ponds" element={<PondManagement t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/ponds/new" element={<PondEntry t={t} />} />
-            <Route path="/ponds/:id" element={<PondDetail t={t} />} />
-            <Route path="/ponds/:id/sop" element={<CultureSOP t={t} />} />
-            <Route path="/ponds/:id/entry" element={<DailySOPLog t={t} />} />
-            <Route path="/ponds/:id/monitor" element={<PondMonitor t={t} />} />
-            <Route path="/ponds/:id/water-log/:date?" element={<DailyConditionsLog t={t} />} />
-            <Route path="/ponds/:id/feeding" element={<PondFeedingLog t={t} />} />
-            <Route path="/monitor" element={<WaterMonitoring t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/market" element={<MarketPrices t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/profile" element={<Profile t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/profile/edit" element={<EditProfile user={user as User} t={t} />} />
-            <Route path="/profile/security" element={<SecurityPrivacy t={t} />} />
-            <Route path="/profile/subscription" element={<SubscriptionPlan t={t} />} />
-            <Route path="/profile/settings" element={<SystemSettings t={t} />} />
-            <Route path="/roi" element={<ProfitROI t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/export-trends" element={<ExportMarketTrends user={user} t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/disease-detection" element={<DiseaseDetection user={user} t={t} />} />
-            <Route path="/live-monitor" element={<LiveMonitor user={user} t={t} />} />
-            <Route path="/subscription" element={<SubscriptionScreen t={t} />} />
-            <Route path="/expert-consultations" element={<ExpertConsultations user={user} t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/feed" element={<FeedManagement t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/medicine" element={<MedicineSchedule t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/weather" element={<WeatherFeedAlert t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/learn" element={<LearningCenter t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/notifications" element={<Notifications t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/water-logs/:pondId/:date" element={<WaterLogDetail t={t} />} />
-            <Route path="/harvest-revenue" element={<HarvestRevenue t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/expense-report" element={<ExpenseReport t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/roi-entry" element={<ROIEntry t={t} />} />
-            <Route path="/daily-expense" element={<DailyExpenseLog t={t} />} />
-            <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
+                <Route path="/dashboard" element={
+                  <>
+                    <PushSyncManager />
+                    <GlobalAlertCenter t={t} />
+                    <Dashboard user={user} t={t} onMenuClick={() => navigate('/profile')} />
+                  </>
+                } />
+                <Route path="/ponds" element={<PondManagement t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/ponds/new" element={<PondEntry t={t} />} />
+                <Route path="/ponds/:id" element={<PondDetail t={t} />} />
+                <Route path="/ponds/:id/sop" element={<CultureSOP t={t} />} />
+                <Route path="/ponds/:id/entry" element={<DailySOPLog t={t} />} />
+                <Route path="/ponds/:id/monitor" element={<PondMonitor t={t} />} />
+                <Route path="/ponds/:id/water-log/:date?" element={<DailyConditionsLog t={t} />} />
+                <Route path="/ponds/:id/feeding" element={<PondFeedingLog t={t} />} />
+                <Route path="/monitor" element={<WaterMonitoring t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/market" element={<MarketPrices t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/profile" element={<Profile t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/profile/edit" element={<EditProfile user={user as User} t={t} />} />
+                <Route path="/profile/security" element={<SecurityPrivacy t={t} />} />
+                <Route path="/profile/subscription" element={<SubscriptionPlan t={t} />} />
+                <Route path="/profile/settings" element={<SystemSettings t={t} />} />
+                <Route path="/roi" element={<ProfitROI t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/export-trends" element={<ExportMarketTrends user={user} t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/disease-detection" element={<DiseaseDetection user={user} t={t} />} />
+                <Route path="/live-monitor" element={<LiveMonitor user={user} t={t} />} />
+                <Route path="/subscription" element={<SubscriptionScreen t={t} />} />
+                <Route path="/expert-consultations" element={<ExpertConsultations user={user} t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/feed" element={<FeedManagement t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/medicine" element={<MedicineSchedule t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/weather" element={<WeatherFeedAlert t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/learn" element={<LearningCenter t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/notifications" element={<Notifications t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/water-logs/:pondId/:date" element={<WaterLogDetail t={t} />} />
+                <Route path="/harvest-revenue" element={<HarvestRevenue t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/expense-report" element={<ExpenseReport t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/roi-entry" element={<ROIEntry t={t} />} />
+                <Route path="/daily-expense" element={<DailyExpenseLog t={t} />} />
+                <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
 
-            {/* Provider Routes */}
-            <Route path="/provider/dashboard" element={<ProviderDashboard t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/provider/inventory" element={<ProviderInventory t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
-            <Route path="/provider/orders" element={<ProviderOrders t={t} onMenuClick={() => setIsDrawerOpen(true)} />} />
+                {/* Provider Routes */}
+                <Route path="/provider/dashboard" element={<ProviderDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/provider/inventory" element={<ProviderInventory t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/provider/orders" element={<ProviderOrders t={t} onMenuClick={() => navigate('/profile')} />} />
 
-            <Route path="*" element={<Navigate to={isProvider ? "/provider/dashboard" : "/dashboard"} replace />} />
-          </Routes>
-        </motion.div>
-      </AnimatePresence>
+                <Route path="*" element={<Navigate to={isProvider ? "/provider/dashboard" : "/dashboard"} replace />} />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
 
-      {/* Persistent Navigation */}
-      {showProviderNav && (
-        <ProviderBottomNav t={t} onMenuClick={() => setIsDrawerOpen(true)} />
-      )}
-      {showFarmerNav && (
-        <BottomNav t={t} onMenuClick={() => setIsDrawerOpen(true)} />
-      )}
+          {/* Persistent Navigation */}
+          {showProviderNav && (
+            <ProviderBottomNav t={t} onMenuClick={() => navigate('/profile')} />
+          )}
+          {showFarmerNav && (
+            <BottomNav t={t} onMenuClick={() => navigate('/profile')} />
+          )}
         </div>
       )}
     </div>

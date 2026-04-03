@@ -9,38 +9,70 @@ export interface SOPSuggestion {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
 }
 
-export const getSOPGuidance = (doc: number, dayOfWeek?: number): SOPSuggestion[] => {
+export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggestion[] => {
   const suggestions: SOPSuggestion[] = [];
-  const lunar = getLunarStatus(new Date());
+  const lunar = getLunarStatus(date);
+  const dayOfWeek = date.getDay();
 
   // Lunar-Aware Guidance (SOP - High Priority)
   if (lunar.phase === 'AMAVASYA') {
     suggestions.push({
       type: 'LUNAR',
       title: 'Amavasya - Feed Adjustment',
-      description: 'SOP: Reduce feed 20% due to mass molting risk and low DO.',
+      description: 'SOP: Reduce feed 20-30% tonight due to mass molting risk and low DO.',
+      priority: 'HIGH'
+    });
+    suggestions.push({
+      type: 'MEDICINE',
+      title: 'Mineral Mix (High Dose)',
+      description: 'Lunar SOP: Vital for shell hardening during Amavasya molting.',
+      dose: '15-20 kg / acre',
+      priority: 'HIGH'
+    });
+    suggestions.push({
+      type: 'MEDICINE',
+      title: 'Vitamin C / Immunity Boost',
+      description: 'Lunar SOP: Combat stress during high biological demand period.',
       priority: 'HIGH'
     });
   } else if (lunar.phase === 'POURNAMI') {
     suggestions.push({
       type: 'LUNAR',
       title: 'Pournami - Aeration Alert',
-      description: 'SOP: Increase aeration. High biological demand during full moon.',
+      description: 'SOP: Increase aeration to 100% capacity. High biological demand during full moon.',
       priority: 'HIGH'
+    });
+    suggestions.push({
+      type: 'MEDICINE',
+      title: 'Mineral Mix (Maintenance Dose)',
+      description: 'SOP: Support partial molting during full moon.',
+      priority: 'MEDIUM'
     });
   } else if (lunar.phase === 'ASHTAMI') {
     suggestions.push({
       type: 'LUNAR',
-      title: 'Ashtami - Mineral Support',
-      description: 'SOP: Add minerals to support partial molting and shell hardening.',
+      title: 'Ashtami - Molting sequence starts',
+      description: 'SOP: Reduce feed by 10% today. 48hr stress sequence begins.',
       priority: 'MEDIUM'
+    });
+    suggestions.push({
+      type: 'MEDICINE',
+      title: 'Mineral Mix (Evening)',
+      description: 'SOP: Essential for shell hardening as molting sequence begins.',
+      priority: 'HIGH'
     });
   } else if (lunar.phase === 'NAVAMI') {
     suggestions.push({
       type: 'LUNAR',
-      title: 'Navami - Light Feeding',
-      description: 'SOP: Light feeding today to prevent excess organic load.',
+      title: 'Navami - Peak Vigilance',
+      description: 'SOP: Watch for soft-shell. Reduce feed by 15% if mortality seen.',
       priority: 'MEDIUM'
+    });
+    suggestions.push({
+      type: 'MEDICINE',
+      title: 'Immunity Booster (Morning)',
+      description: 'SOP: Support recovery after peak molting phase.',
+      priority: 'HIGH'
     });
   }
   

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, Globe, Layout, Ruler, ChevronRight, Settings, Sparkles, XCircle } from 'lucide-react';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import { Header } from '../components/Header';
 import { Translations } from '../translations';
 import { cn } from '../utils/cn';
@@ -14,6 +16,8 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
     water: user?.notifications?.water ?? true,
     feed: user?.notifications?.feed ?? true,
     market: user?.notifications?.market ?? false,
+    expert: user?.notifications?.expert ?? true,
+    security: user?.notifications?.security ?? true,
   });
 
   const [units, setUnits] = useState<'Acres' | 'Hectares'>('Acres');
@@ -31,7 +35,7 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({ 
                 fcmToken: token,
-                notifications: user.notifications || { water: true, feed: true, market: false }
+                notifications: user.notifications || { water: true, feed: true, market: false, expert: true, security: true }
              })
           });
           const uInfo = { ...user, fcmToken: token };
@@ -96,18 +100,43 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
       desc: t.smartFarmAlerts, 
       color: 'text-[#C78200]',
       items: [
-        { label: t.waterQualityAlerts, value: notifications.water, onToggle: () => handleToggle('water') },
-        { label: t.feedingReminders, value: notifications.feed, onToggle: () => handleToggle('feed') },
+        { label: t.waterQualityAlerts, sub: 'Daily oxygen & pH status', value: notifications.water, onToggle: () => handleToggle('water') },
+        { label: t.feedingReminders, sub: 'Timely feed slot alerts', value: notifications.feed, onToggle: () => handleToggle('feed') },
+        { label: 'Market Insights', sub: 'Price trends & market alerts', value: notifications.market, onToggle: () => handleToggle('market') },
+        { label: 'Expert Chat Alerts', sub: 'Instant consultation replies', value: notifications.expert, onToggle: () => handleToggle('expert') },
+        { label: 'Security Alerts', sub: 'New login & security updates', value: notifications.security, onToggle: () => handleToggle('security') },
         { 
           label: 'Mobile Push Engine', 
+          sub: 'Link device for background alerts',
           isButton: true, 
           btnLabel: fcmToken ? 'Active & Linked' : (isSyncingPush ? 'Pairing...' : 'Sync Device'),
           btnColor: fcmToken ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-emerald-500 text-white',
           disabled: !!fcmToken || isSyncingPush,
           onClick: handleSyncPush 
         },
-        { label: 'Test System Alert', isButton: true, btnLabel: 'Send Test', onClick: () => {
-          if (typeof window !== 'undefined' && 'Notification' in window) {
+        { label: 'Test System Alert', sub: 'Verify push functionality', isButton: true, btnLabel: 'Send Test', onClick: async () => {
+          if (Capacitor.isNativePlatform()) {
+             try {
+               await LocalNotifications.requestPermissions();
+               await LocalNotifications.schedule({
+                 notifications: [
+                   {
+                     title: "AquaGrow System Test",
+                     body: "Victory! Official system-level alerts are now active on your Android device.",
+                     id: Math.floor(Math.random() * 100000),
+                     schedule: { at: new Date(Date.now() + 1000) },
+                     sound: 'default',
+                     attachments: undefined,
+                     actionTypeId: "",
+                     extra: null
+                   }
+                 ]
+               });
+             } catch (err) {
+               console.error('Failed to trigger native test:', err);
+               alert("System test failed. Please check Android notification permissions.");
+             }
+          } else if (typeof window !== 'undefined' && 'Notification' in window) {
             new Notification("AquaGrow System Test", {
               body: "This is a local verification alert. Your browser is ready to receive Farm Updates!",
               icon: "/logo192.png"
@@ -200,7 +229,11 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
                 <div className="divide-y divide-[#4A2C2A]/5">
                   {section.items.map((item, i) => (
                     <div key={i} className="p-6 flex items-center justify-between group transition-all">
-                      <span className="font-black text-sm tracking-tight text-[#4A2C2A]">{item.label}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-black text-sm tracking-tight text-[#4A2C2A]">{item.label}</span>
+                        {item.sub && <span className="text-[9px] font-bold text-[#4A2C2A]/30 uppercase tracking-widest">{item.sub}</span>}
+                      </div>
+                      
                       {item.isSelect ? (
                         <div className="flex bg-[#4A2C2A]/5 p-1 rounded-xl gap-2 h-10 items-center overflow-x-auto max-w-[200px] scrollbar-hide">
                           {item.options?.map((opt) => (

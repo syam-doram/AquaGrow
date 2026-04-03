@@ -210,15 +210,21 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
             <div className="w-32 h-32 relative mb-8">
               <motion.div 
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 border-4 border-[#C78200]/20 border-t-[#C78200] rounded-full"
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 border-4 border-[#C78200]/10 border-t-[#C78200] rounded-full"
+              />
+              <motion.div
+                initial={{ opacity: 0.5, scale: 0.8 }}
+                animate={{ opacity: [0.3, 0.8, 0.3], scale: [0.8, 1.1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 bg-[#C78200]/5 rounded-full"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles size={40} className="text-[#C78200] animate-pulse" />
+                <Sparkles size={40} className="text-[#C78200]" />
               </div>
             </div>
-            <h2 className="text-2xl font-black text-[#4A2C2A] tracking-tighter mb-2">{t.deepAIAnalysis || 'Analyzing Pathogens...'}</h2>
-            <p className="text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-[0.3em]">{t.scanningHealthMarkers || 'Checking bio-markers'}</p>
+            <h2 className="text-2xl font-black text-[#012B1D] tracking-tighter mb-2">{t.deepAIAnalysis || 'Analyzing Pathogens...'}</h2>
+            <p className="text-[#012B1D]/40 text-[10px] font-black uppercase tracking-[0.4em]">{t.scanningHealthMarkers || 'Checking bio-markers'}</p>
           </div>
         )}
 
@@ -226,11 +232,27 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-500 space-y-6">
             {/* Specimen Photo Preview */}
             {image && (
-              <div className="relative overflow-hidden rounded-[2.5rem] bg-black/5 aspect-video shadow-sm border border-black/5">
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-black/5 aspect-video shadow-sm border border-black/5 group">
                  <img src={image} alt="Specimen" className="w-full h-full object-cover" />
-                 <div className="absolute top-4 left-4">
-                    <div className="bg-white/30 backdrop-blur-md px-3 py-1 rounded-xl border border-white/20">
-                       <p className="text-[7px] font-black text-white uppercase tracking-widest">Specimen ID: #AI-SCAN</p>
+                 
+                 {/* Scanning HUD Overlay */}
+                 <div className="absolute inset-0 pointer-events-none">
+                    <motion.div 
+                       initial={{ top: '0%' }}
+                       animate={{ top: ['0%', '100%', '0%'] }}
+                       transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                       className="absolute left-0 right-0 h-0.5 bg-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.8)] z-10"
+                    />
+                    <div className="absolute inset-0 border-[20px] border-black/10 mix-blend-overlay" />
+                    <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-white/60" />
+                    <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-white/60" />
+                    <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-white/60" />
+                    <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-white/60" />
+                 </div>
+
+                 <div className="absolute top-6 left-6">
+                    <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20">
+                       <p className="text-[8px] font-black text-white uppercase tracking-widest">Specimen ID: AQUA-{Math.floor(Date.now()/100000)}</p>
                     </div>
                  </div>
               </div>

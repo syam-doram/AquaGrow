@@ -21,10 +21,14 @@ import { Translations } from '../translations';
 import { cn } from '../utils/cn';
 import { Reminder } from '../types/reminder';
 
+import { useFirebaseAlerts } from '../hooks/useFirebaseAlerts';
+
 export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
+  const { user } = useData();
+  const { alertHistory, clearHistory } = useFirebaseAlerts(user?.language || 'English');
   const navigate = useNavigate();
   const { reminders, toggleReminder } = useData();
-  const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'missed'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'missed' | 'history'>('today');
 
   const now = new Date();
   const currentHour = now.getHours();
@@ -79,7 +83,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
            <h1 className="text-xl font-black text-[#4A2C2A] tracking-tighter">{t.notifications}</h1>
         </div>
         <div className="flex items-center gap-3">
-           <button className="p-3 bg-[#F8F9FE] rounded-2xl text-[#4A2C2A]/20">
+           <button onClick={clearHistory} className="p-3 bg-[#F8F9FE] rounded-2xl text-[#4A2C2A]/20 hover:text-red-500 transition-colors">
               <Trash2 size={20} />
            </button>
            <div className="w-10 h-10 bg-[#C78200] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-900/10">
@@ -92,8 +96,8 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
       <div className="pt-32 px-6 flex gap-2">
          {[
            { id: 'today', label: t.today, count: todayReminders.length },
-           { id: 'upcoming', label: t.upcomingAlerts, count: upcomingReminders.length },
-           { id: 'missed', label: t.missedActivities, count: missedReminders.length }
+           { id: 'missed', label: t.missedActivities || 'Missed', count: missedReminders.length },
+           { id: 'history', label: t.alertHistory || 'Cloud Alerts', count: alertHistory.length }
          ].map((tab: any) => (
            <button 
              key={tab.id}
@@ -133,6 +137,21 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                  <Navigation size={48} className="mx-auto" />
                  <p className="text-[#4A2C2A] text-xs font-black uppercase tracking-widest">No activities found</p>
               </div>
+            ) : activeTab === 'history' ? (
+              alertHistory.map((h, i) => (
+                <div key={`h-${i}`} className="bg-white p-6 rounded-[2.2rem] shadow-sm border border-black/5 flex items-start gap-5">
+                   <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Bell size={24} />
+                   </div>
+                   <div className="flex-1">
+                      <h3 className="text-[#4A2C2A] font-black text-base tracking-tight leading-tight">{h.title}</h3>
+                      <p className="text-[10px] text-[#4A2C2A]/60 mt-1 leading-tight">{h.body}</p>
+                      <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-2">
+                        {new Date(h.timestamp).toLocaleString()}
+                      </p>
+                   </div>
+                </div>
+              ))
             ) : (activeTab === 'today' ? todayReminders : activeTab === 'upcoming' ? upcomingReminders : missedReminders).map((r: Reminder) => (
               <div 
                 key={r.id} 

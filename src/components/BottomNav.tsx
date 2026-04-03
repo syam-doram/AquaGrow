@@ -49,10 +49,12 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                 {isActive && (
                   <motion.div 
                     layoutId="nav-bg"
-                    className="absolute -inset-3 rounded-full -z-10"
-                    style={{ backgroundColor: item.bg }}
+                    className="absolute -inset-x-3 -inset-y-2 rounded-2xl -z-10"
+                    style={{ backgroundColor: item.bg, border: `1px solid ${item.color}22` }}
                     transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
-                  />
+                  >
+                    <div className="absolute inset-0 bg-white/40 blur-[2px] rounded-2xl" />
+                  </motion.div>
                 )}
               </div>
               

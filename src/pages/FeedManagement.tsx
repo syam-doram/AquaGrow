@@ -150,15 +150,15 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
       />
 
-      <div className="px-6 py-4 space-y-6 pt-24">
+      <div className="px-5 py-4 space-y-4 pt-20">
         {ponds.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {ponds.map(p => (
               <button
                 key={p.id}
                 onClick={() => setSelectedPondId(p.id)}
                 className={cn(
-                  'px-6 py-3.5 rounded-[1.6rem] text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
+                  'px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
                   selectedPondId === p.id ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg' : 'bg-white/60 backdrop-blur-md text-[#4A2C2A]/40 border-black/5'
                 )}
               >{p.name}</button>
@@ -167,12 +167,12 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
 
         {!selectedPond ? (
-           <div className="bg-white/80 backdrop-blur-md rounded-[3rem] p-10 text-center border border-black/5 shadow-xl mt-8">
-             <div className="w-24 h-24 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6">
-                <Waves size={48} className="text-emerald-600/30" />
+           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 text-center border border-black/5 shadow-xl mt-6">
+             <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                <Waves size={40} className="text-emerald-600/30" />
              </div>
-             <h2 className="text-2xl font-black text-[#4A2C2A] leading-tight mb-2">{t.noActivePonds}</h2>
-             <button onClick={() => navigate('/ponds')} className="bg-[#0D523C] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl mt-4">
+             <h2 className="text-xl font-black text-[#4A2C2A] leading-tight mb-2">{t.noActivePonds}</h2>
+             <button onClick={() => navigate('/ponds')} className="bg-[#0D523C] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl mt-4">
                {t.addPond}
              </button>
            </div>
@@ -185,63 +185,63 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 { icon: Wind, label: t.wind, value: `${weather.windSpeed}k/h`, color: 'text-slate-500' },
                 { icon: Waves, label: 'DO', value: weather.doLevel, color: weather.doLevel === 'LOW' ? 'text-red-500' : 'text-emerald-500' },
               ].map((item, i) => (
-                <div key={i} className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 text-center border border-black/5 shadow-sm">
-                  <item.icon size={14} className={cn('mx-auto mb-1', item.color)} />
-                  <p className="text-[7px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{item.label}</p>
-                  <p className={cn('text-[9px] font-black mt-0.5', item.color)}>{item.value}</p>
+                <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 text-center border border-black/5 shadow-sm">
+                  <item.icon size={12} className={cn('mx-auto mb-1', item.color)} />
+                  <p className="text-[6px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{item.label}</p>
+                  <p className={cn('text-[8px] font-black mt-0.5', item.color)}>{item.value}</p>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-[2.8rem] p-7 shadow-xl border border-black/5 relative overflow-hidden">
-              <div className="flex justify-between items-center mb-6 relative z-10">
+            <div className="bg-white/90 backdrop-blur-md rounded-[2.2rem] p-5 shadow-xl border border-black/5 relative overflow-hidden">
+              <div className="flex justify-between items-center mb-4 relative z-10">
                 <div>
-                  <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest bg-[#C78200]/10 px-4 py-1.5 rounded-full w-max mb-2">{t.scheduleSync}</p>
-                  <p className="text-[#4A2C2A] font-black text-2xl tracking-tighter">{t.nextFeed}</p>
+                  <p className="text-[7px] font-black text-[#C78200] uppercase tracking-widest bg-[#C78200]/10 px-3 py-1 rounded-full w-max mb-1.5">{t.scheduleSync}</p>
+                  <p className="text-[#4A2C2A] font-black text-xl tracking-tighter">{t.nextFeed}</p>
                 </div>
-                <div className="flex gap-2">
-                  <div className="bg-[#F8F9FE] px-5 py-3 rounded-2xl text-center border border-black/5 shadow-inner">
-                    <p className="text-3xl font-black tracking-tighter text-[#0D523C] mb-1">{countdownH.toString().padStart(2, '0')}</p>
-                    <p className="text-[8px] font-black text-black/30 uppercase tracking-widest">{t.hrs}</p>
+                <div className="flex gap-1.5">
+                  <div className="bg-[#F8F9FE] px-4 py-2 rounded-xl text-center border border-black/5 shadow-inner">
+                    <p className="text-2xl font-black tracking-tighter text-[#0D523C] mb-0">{countdownH.toString().padStart(2, '0')}</p>
+                    <p className="text-[7px] font-black text-black/30 uppercase tracking-widest leading-none">{t.hrs}</p>
                   </div>
-                  <div className="bg-[#F8F9FE] px-5 py-3 rounded-2xl text-center border border-black/5 shadow-inner">
-                    <p className="text-3xl font-black tracking-tighter text-[#0D523C] mb-1">{countdownM.toString().padStart(2, '0')}</p>
-                    <p className="text-[8px] font-black text-black/30 uppercase tracking-widest">{t.min}</p>
+                  <div className="bg-[#F8F9FE] px-4 py-2 rounded-xl text-center border border-black/5 shadow-inner">
+                    <p className="text-2xl font-black tracking-tighter text-[#0D523C] mb-0">{countdownM.toString().padStart(2, '0')}</p>
+                    <p className="text-[7px] font-black text-black/30 uppercase tracking-widest leading-none">{t.min}</p>
                   </div>
                 </div>
               </div>
-              <p className="text-center font-black text-base text-[#4A2C2A]">{nextFeedSlot.label} ({nextFeedSlot.time}) — <span className="text-[#C78200]">{kgPerSlot} kg {t.dose}</span></p>
+              <p className="text-center font-black text-sm text-[#4A2C2A]">{nextFeedSlot.label} ({nextFeedSlot.time}) — <span className="text-[#C78200]">{kgPerSlot} kg {t.dose}</span></p>
             </div>
 
             {adjustments.length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2.5rem] p-6 bg-red-50/80 backdrop-blur-md border border-red-200/40 shadow-xl">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-500/20">
-                    <AlertTriangle size={24} />
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-[1.8rem] p-5 bg-red-50/80 backdrop-blur-md border border-red-200/40 shadow-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-500/20 text-xs">
+                    <AlertTriangle size={20} />
                   </div>
                   <div>
-                    <p className="font-black text-red-900 text-base tracking-tight">{t.adjustmentsActive}</p>
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">{Math.round((1 - combinedFactor) * 100)}% {t.feedReductionApplied}</p>
+                    <p className="font-black text-red-900 text-sm tracking-tight">{t.adjustmentsActive}</p>
+                    <p className="text-[8px] font-black text-red-600 uppercase tracking-widest">{Math.round((1 - combinedFactor) * 100)}% {t.feedReductionApplied}</p>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                    {adjustments.map((a, i) => (
-                     <div key={i} className="flex justify-between items-center bg-white/40 p-3 rounded-2xl border border-red-200/10">
-                        <span className="text-[9px] font-black text-red-800 uppercase tracking-widest">{a.label}</span>
-                        <span className="text-[8px] font-black bg-red-500 text-white px-2 py-0.5 rounded-full">{a.severity}</span>
+                     <div key={i} className="flex justify-between items-center bg-white/40 p-2.5 rounded-xl border border-red-200/10">
+                        <span className="text-[8px] font-black text-red-800 uppercase tracking-widest">{a.label}</span>
+                        <span className="text-[7px] font-black bg-red-500 text-white px-2 py-0.5 rounded-full">{a.severity}</span>
                      </div>
                    ))}
                 </div>
               </motion.div>
             )}
 
-            <div className="flex bg-white/60 backdrop-blur-md p-1.5 rounded-[2.2rem] border border-black/5 shadow-inner">
+            <div className="flex bg-white/60 backdrop-blur-md p-1.5 rounded-3xl border border-black/5 shadow-inner">
                {(['schedule', 'fcr'] as const).map(tab => (
                  <button
                    key={tab}
                    onClick={() => setActiveTab(tab)}
                    className={cn(
-                     "flex-1 py-4 rounded-[1.6rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                     "flex-1 py-3.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all",
                      activeTab === tab ? "bg-[#0D523C] text-white shadow-xl" : "text-[#4A2C2A]/30"
                    )}
                  >
@@ -252,37 +252,37 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
             <AnimatePresence mode="wait">
               {activeTab === 'schedule' && (
-                <motion.div key="schedule" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
-                  <div className="bg-gradient-to-br from-[#051F19] to-[#0D523C] p-7 rounded-[2.8rem] shadow-2xl text-white relative overflow-hidden">
-                     <div className="relative z-10 space-y-6 text-left">
-                        <div className="flex justify-between items-start border-b border-white/5 pb-5">
+                <motion.div key="schedule" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-4">
+                  <div className="bg-gradient-to-br from-[#051F19] to-[#0D523C] p-6 rounded-[2.2rem] shadow-2xl text-white relative overflow-hidden">
+                     <div className="relative z-10 space-y-4 text-left">
+                        <div className="flex justify-between items-start border-b border-white/5 pb-4">
                            <div>
-                              <p className="text-emerald-400/60 text-[9px] font-black uppercase tracking-[0.3em] mb-2"><Scale size={14} className="inline mr-2"/>{t.estimatedBiomass}</p>
-                              <p className="text-4xl font-black tracking-tighter">{biomassKg.toLocaleString()} <span className="text-xl text-emerald-400">kg</span></p>
+                              <p className="text-emerald-400/60 text-[8px] font-black uppercase tracking-[0.3em] mb-1.5"><Scale size={12} className="inline mr-2"/>{t.estimatedBiomass}</p>
+                              <p className="text-3xl font-black tracking-tighter">{biomassKg.toLocaleString()} <span className="text-lg text-emerald-400">kg</span></p>
                            </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                           <div className="bg-black/20 p-4 rounded-3xl border border-white/5 flex-1 text-center">
-                              <p className="text-2xl font-black">{biomassKg}</p>
-                              <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mt-1">{t.baseKg}</p>
+                        <div className="flex items-center gap-2">
+                           <div className="bg-black/20 p-3 rounded-2xl border border-white/5 flex-1 text-center">
+                              <p className="text-xl font-black">{biomassKg}</p>
+                              <p className="text-white/30 text-[7px] font-black uppercase tracking-widest mt-1">{t.baseKg}</p>
                            </div>
-                           <span className="text-white/20 text-xl font-black">×</span>
-                           <div className="bg-black/20 p-4 rounded-3xl border border-white/5 flex-1 text-center">
-                              <p className="text-2xl font-black text-emerald-400">{sop.feedRatePct || t.fixed}%</p>
-                              <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mt-1">{t.rate}</p>
+                           <span className="text-white/20 text-lg font-black">×</span>
+                           <div className="bg-black/20 p-3 rounded-2xl border border-white/5 flex-1 text-center">
+                              <p className="text-xl font-black text-emerald-400">{sop.feedRatePct || t.fixed}%</p>
+                              <p className="text-white/30 text-[7px] font-black uppercase tracking-widest mt-1">{t.rate}</p>
                            </div>
-                           <span className="text-white/20 text-xl font-black">=</span>
-                           <div className="bg-amber-500 p-4 rounded-3xl flex-1 text-center">
-                              <p className="text-2xl font-black text-indigo-950">{rawDailyKg}</p>
-                              <p className="text-indigo-950/40 text-[8px] font-black uppercase tracking-widest mt-1">{t.grossKg}</p>
+                           <span className="text-white/20 text-lg font-black">=</span>
+                           <div className="bg-amber-500 p-3 rounded-2xl flex-1 text-center">
+                              <p className="text-xl font-black text-indigo-950">{rawDailyKg}</p>
+                              <p className="text-indigo-950/40 text-[7px] font-black uppercase tracking-widest mt-1">{t.grossKg}</p>
                            </div>
                         </div>
                      </div>
                   </div>
 
-                  <div className="space-y-4">
-                     <h2 className="text-[#4A2C2A] font-black text-xl px-1 tracking-tighter">{t.todaysSequence}</h2>
-                     <motion.div className="space-y-3" variants={{ show: { transition: { staggerChildren: 0.05 } } }} initial="hidden" animate="show">
+                  <div className="space-y-3">
+                     <h2 className="text-[#4A2C2A] font-black text-lg px-1 tracking-tighter">{t.todaysSequence}</h2>
+                     <motion.div className="space-y-2" variants={{ show: { transition: { staggerChildren: 0.05 } } }} initial="hidden" animate="show">
                        {feedSlots.map((slot, i) => {
                          const isNow = now.getHours() === slot.hour;
                          const isPast = now.getHours() > slot.hour;
@@ -291,18 +291,18 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                              key={i} 
                              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
                              className={cn(
-                               "bg-white/90 rounded-[2.5rem] px-7 py-6 border shadow-sm flex items-center gap-5",
+                               "bg-white/90 rounded-[1.8rem] px-5 py-4 border shadow-sm flex items-center gap-4",
                                isNow ? "border-[#C78200] ring-4 ring-[#C78200]/10" : "border-black/5 opacity-80"
                              )}
                            >
-                              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white", isNow ? 'bg-[#C78200]' : isPast ? 'bg-emerald-500' : 'bg-slate-200')}>
-                                 {isPast ? <CheckCircle2 size={24} /> : <Clock size={24} />}
+                              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white", isNow ? 'bg-[#C78200]' : isPast ? 'bg-emerald-500' : 'bg-slate-200')}>
+                                 {isPast ? <CheckCircle2 size={18} /> : <Clock size={18} />}
                               </div>
                               <div className="flex-1">
-                                 <p className={cn("font-black text-base", isNow ? "text-[#C78200]" : "text-[#4A2C2A]")}>{slot.label}</p>
-                                 <p className="text-[10px] font-black opacity-30 uppercase tracking-widest">{slot.time}</p>
+                                 <p className={cn("font-black text-sm", isNow ? "text-[#C78200]" : "text-[#4A2C2A]")}>{slot.label}</p>
+                                 <p className="text-[8px] font-black opacity-30 uppercase tracking-widest">{slot.time}</p>
                               </div>
-                              <p className="font-black text-xl text-[#0D523C]">{kgPerSlot}<span className="text-xs ml-1 opacity-40">kg</span></p>
+                              <p className="font-black text-lg text-[#0D523C]">{kgPerSlot}<span className="text-[10px] ml-1 opacity-40">kg</span></p>
                            </motion.div>
                          );
                        })}
@@ -312,22 +312,22 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               )}
 
               {activeTab === 'fcr' && (
-                <motion.div key="fcr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                <motion.div key="fcr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
                   {(() => {
                     const totalFeedConsumed = feedLogs.filter(l => l.pondId === selectedPondId).reduce((acc, l) => acc + l.quantity, 0);
                     const currentFcr = biomassKg > 0 ? (totalFeedConsumed / biomassKg).toFixed(2) : '0.00';
                     return (
-                      <div className="bg-[#051F19] p-10 rounded-[3rem] text-center shadow-2xl">
-                         <p className="text-emerald-400/40 text-[10px] font-black uppercase tracking-[0.4em] mb-6">{t.feedConversionRatio}</p>
-                         <div className="text-8xl font-black tracking-tighter text-emerald-500 mb-4">{currentFcr}</div>
-                         <div className="grid grid-cols-2 gap-8 mt-12 pt-8 border-t border-white/5">
+                      <div className="bg-[#051F19] p-8 rounded-[2.5rem] text-center shadow-2xl">
+                         <p className="text-emerald-400/40 text-[9px] font-black uppercase tracking-[0.4em] mb-4">{t.feedConversionRatio}</p>
+                         <div className="text-6xl font-black tracking-tighter text-emerald-500 mb-2">{currentFcr}</div>
+                         <div className="grid grid-cols-2 gap-6 mt-10 pt-6 border-t border-white/5">
                             <div>
-                               <p className="text-white/20 text-[8px] font-black uppercase">{t.totalFeed}</p>
-                               <p className="text-white font-black text-2xl">{totalFeedConsumed}kg</p>
+                               <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">{t.totalFeed}</p>
+                               <p className="text-white font-black text-xl">{totalFeedConsumed}kg</p>
                             </div>
                             <div>
-                               <p className="text-white/20 text-[8px] font-black uppercase">{t.estimatedBiomass}</p>
-                               <p className="text-white font-black text-2xl">{biomassKg}kg</p>
+                               <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">{t.estimatedBiomass}</p>
+                               <p className="text-white font-black text-xl">{biomassKg}kg</p>
                             </div>
                          </div>
                       </div>

@@ -6,8 +6,13 @@ import {
   Activity, 
   Sparkles, 
   Waves, 
-  Lock 
+  Lock,
+  Target,
+  Maximize2,
+  Scan,
+  Compass
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../context/DataContext';
 import { Header } from '../components/Header';
 import { Translations } from '../translations';
@@ -117,18 +122,18 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
       <Header title={t.liveMonitor} showBack onBack={() => navigate(-1)} />
         
         <div className="p-6">
-          <div className="mt-8 relative overflow-hidden rounded-[3rem] bg-[#0D3025] p-12 text-center shadow-2xl">
+          <div className="mt-6 relative overflow-hidden rounded-[2.5rem] bg-[#0D3025] p-8 text-center shadow-2xl border border-white/5">
              <div className="absolute inset-0 bg-gradient-to-br from-[#C78200]/10 to-transparent" />
              <div className="relative z-10 flex flex-col items-center">
-                <div className="w-20 h-20 bg-emerald-500/5 rounded-3xl flex items-center justify-center mb-10 border border-emerald-500/10">
-                   <TrendingUp size={36} className="text-[#C78200] animate-pulse" />
+                <div className="w-16 h-16 bg-emerald-500/5 rounded-2xl flex items-center justify-center mb-6 border border-emerald-500/10 shadow-inner">
+                   <TrendingUp size={28} className="text-[#C78200] animate-pulse" />
                 </div>
-                <h3 className="text-3xl font-black text-white tracking-tighter mb-4">Smart <span className="text-[#C78200]">Visibility</span></h3>
-                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-12 leading-relaxed px-4">“Like X-ray vision for your pond — powered by AI insights.” Real-time behavior intelligence to track feeding response and stress.</p>
+                <h3 className="text-2xl font-black text-white tracking-tighter mb-3 uppercase">Smart <span className="text-[#C78200]">Visibility</span></h3>
+                <p className="text-white/40 text-[9px] font-bold uppercase tracking-[0.2em] mb-10 leading-relaxed px-4">“Like X-ray vision for your pond — powered by AI insights.” Real-time behavior intelligence to track feeding response and stress.</p>
                 
                 <button 
                   onClick={() => navigate('/subscription')}
-                  className="w-full bg-[#C78200] text-white font-black py-6 rounded-3xl shadow-xl shadow-amber-500/20 uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all"
+                  className="w-full bg-[#C78200] text-white font-black py-5 rounded-2xl shadow-xl shadow-amber-500/20 uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all"
                 >
                   Unlock AI Insights
                 </button>
@@ -165,20 +170,73 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
         />
         <canvas ref={canvasRef} className="hidden" />
         
-        {/* AI Overlays */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* AI Overlays - Digital HUD */}
+        <div className="absolute inset-0 pointer-events-none p-6">
+          {/* Diagnostic Corners */}
+          <div className="absolute top-10 left-10 w-24 h-24 border-t-2 border-l-2 border-[#C78200]/40 rounded-tl-[2rem]" />
+          <div className="absolute top-10 right-10 w-24 h-24 border-t-2 border-r-2 border-[#C78200]/40 rounded-tr-[2rem]" />
+          <div className="absolute bottom-10 left-10 w-24 h-24 border-b-2 border-l-2 border-[#C78200]/40 rounded-bl-[2rem]" />
+          <div className="absolute bottom-10 right-10 w-24 h-24 border-b-2 border-r-2 border-[#C78200]/40 rounded-br-[2rem]" />
+          
+          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/5 shadow-[0_0_10px_white/20]" />
+          <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/5 shadow-[0_0_10px_white/20]" />
+
           {isAnalyzing && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4">
-              <div className="w-16 h-16 border-4 border-[#C78200] border-t-transparent rounded-full animate-spin" />
-              <p className="text-[#C78200] text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">AI ANALYZING FEED TRAY...</p>
-            </div>
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-6"
+            >
+              <div className="w-24 h-24 relative">
+                 <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 border-4 border-[#C78200]/10 border-t-[#C78200] rounded-full shadow-[0_0_20px_#C78200/40]"
+                 />
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <Scan size={32} className="text-[#C78200] animate-pulse" />
+                 </div>
+              </div>
+              <div className="bg-black/60 backdrop-blur-xl px-6 py-2 rounded-2xl border border-white/10">
+                 <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.4em]">Analyzing Bio-Vibrations...</p>
+              </div>
+            </motion.div>
           )}
-          <div className="absolute top-1/4 left-1/4 w-32 h-32 border border-[#C78200]/40 rounded-full animate-pulse flex items-center justify-center">
-            <div className="text-[8px] text-[#C78200] font-black uppercase tracking-widest">Scanning Tray...</div>
-          </div>
-          <div className="absolute bottom-1/3 right-1/4 w-24 h-24 border border-white/40 rounded-lg animate-bounce flex items-center justify-center">
-            <div className="text-[8px] text-white font-black uppercase tracking-widest">{metrics.health > 80 ? 'Sample Healthy' : 'Monitor Sample'}</div>
-          </div>
+
+          {/* Dynamic Floating Data Points */}
+          <motion.div 
+            animate={{ 
+               x: [0, 20, 0], 
+               y: [0, -20, 0] 
+            }}
+            transition={{ duration: 10, repeat: Infinity }}
+            className="absolute top-1/3 left-1/4"
+          >
+             <div className="w-4 h-4 border-2 border-emerald-400 rounded-full flex items-center justify-center relative">
+                <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping" />
+                <div className="absolute left-6 whitespace-nowrap">
+                   <p className="text-emerald-400 text-[7px] font-black uppercase tracking-widest">Normal Pathogen Count</p>
+                   <p className="text-white text-[8px] font-bold">SAMPLE_092: OK</p>
+                </div>
+             </div>
+          </motion.div>
+
+          <motion.div 
+            animate={{ 
+               x: [0, -15, 0], 
+               y: [0, 30, 0] 
+            }}
+            transition={{ duration: 8, repeat: Infinity }}
+            className="absolute bottom-1/4 right-1/3"
+          >
+             <div className="w-4 h-4 border-2 border-amber-400 rounded-full flex items-center justify-center relative">
+                <div className="w-1 h-1 bg-amber-400 rounded-full animate-ping" />
+                <div className="absolute right-6 whitespace-nowrap text-right">
+                   <p className="text-amber-400 text-[7px] font-black uppercase tracking-widest">Turbidity Check</p>
+                   <p className="text-white text-[8px] font-bold">14.2 NTU</p>
+                </div>
+             </div>
+          </motion.div>
         </div>
 
         <div className="absolute top-10 left-8 right-8 flex justify-between items-start">
