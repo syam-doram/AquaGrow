@@ -23,6 +23,12 @@ export interface User {
     expert: boolean;
     security: boolean;
   };
+  bankDetails?: {
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+    isVerified: boolean;
+  };
 }
 
 export interface Pond {

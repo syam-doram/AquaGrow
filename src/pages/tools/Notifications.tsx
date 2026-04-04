@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
   Droplets, 
@@ -24,11 +24,17 @@ import { Reminder } from '../../types/reminder';
 import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
 
 export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
-  const { user } = useData();
-  const { alertHistory, clearHistory } = useFirebaseAlerts(user?.language || 'English');
+  const { user, notifications, markNotificationsRead } = useData();
   const navigate = useNavigate();
   const { reminders, toggleReminder } = useData();
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'missed' | 'history'>('today');
+
+  // Mark all as read when history is visited
+  useEffect(() => {
+     if (activeTab === 'history') {
+        markNotificationsRead();
+     }
+  }, [activeTab]);
 
   const now = new Date();
   const currentHour = now.getHours();
@@ -73,7 +79,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
   };
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
+    <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left px-0">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-8 flex items-center justify-between border-b border-black/5">
         <div className="flex items-center gap-4">
@@ -83,9 +89,6 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
            <h1 className="text-xl font-black text-[#4A2C2A] tracking-tighter">{t.notifications}</h1>
         </div>
         <div className="flex items-center gap-3">
-           <button onClick={clearHistory} className="p-3 bg-[#F8F9FE] rounded-2xl text-[#4A2C2A]/20 hover:text-red-500 transition-colors">
-              <Trash2 size={20} />
-           </button>
            <div className="w-10 h-10 bg-[#C78200] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-900/10">
               <Bell size={20} />
            </div>
@@ -95,9 +98,9 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
       {/* Tabs */}
       <div className="pt-32 px-6 flex gap-2">
          {[
-           { id: 'today', label: t.today, count: todayReminders.length },
+           { id: 'today', label: t.today, count: todayReminders.length + (activeTab === 'today' ? 0 : 0) },
            { id: 'missed', label: t.missedActivities || 'Missed', count: missedReminders.length },
-           { id: 'history', label: t.alertHistory || 'Cloud Alerts', count: alertHistory.length }
+           { id: 'history', label: t.alertHistory || 'Cloud Alerts', count: notifications.length }
          ].map((tab: any) => (
            <button 
              key={tab.id}
@@ -132,14 +135,14 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            {(activeTab === 'today' ? todayReminders : activeTab === 'upcoming' ? upcomingReminders : missedReminders).length === 0 ? (
+            {(activeTab === 'history' ? notifications : (activeTab === 'today' ? todayReminders : activeTab === 'upcoming' ? upcomingReminders : missedReminders)).length === 0 ? (
               <div className="py-20 text-center space-y-4 opacity-30">
                  <Navigation size={48} className="mx-auto" />
                  <p className="text-[#4A2C2A] text-xs font-black uppercase tracking-widest">No activities found</p>
               </div>
             ) : activeTab === 'history' ? (
-              alertHistory.map((h, i) => (
-                <div key={`h-${i}`} className="bg-white p-6 rounded-[2.2rem] shadow-sm border border-black/5 flex items-start gap-5">
+              notifications.map((h, i) => (
+                <div key={`h-${h.id}`} className="bg-white p-6 rounded-[2.2rem] shadow-sm border border-black/5 flex items-start gap-5">
                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
                       <Bell size={24} />
                    </div>
@@ -147,7 +150,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                       <h3 className="text-[#4A2C2A] font-black text-base tracking-tight leading-tight">{h.title}</h3>
                       <p className="text-[10px] text-[#4A2C2A]/60 mt-1 leading-tight">{h.body}</p>
                       <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-2">
-                        {new Date(h.timestamp).toLocaleString()}
+                        {new Date(h.date).toLocaleString()}
                       </p>
                    </div>
                 </div>

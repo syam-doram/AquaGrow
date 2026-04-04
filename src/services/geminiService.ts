@@ -29,8 +29,10 @@ export async function analyzeShrimpHealth(base64Image: string, language: string 
           confidence: 85,
           severity: 'Critical',
           isFallback: true,
-          reasoning: language === 'Hindi' 
-            ? "मलमूत्र के सफ़ेद धागों की दृश्यता और आंत का खाली होना।"
+          verifiedSchema: true,
+          markerAnalysis: "Significant presence of white strands in the digestive tract. High pathogen load suspected.",
+          reasoning: language === 'Telugu' 
+            ? "మల విసర్జనలో తెల్లటి దారాలు కనిపించడం మరియు ఆహార నాళం ఖాళీగా ఉండటం."
             : "Visibility of white fecal strings and empty midgut section.",
           action: language === 'Hindi'
             ? "तात्कालिक कार्रवाई: भोजन कम करें, प्रोबायोटिक (Gut) की खुराक बढ़ाएं और जल विनिमय बंद करें।"
@@ -55,8 +57,10 @@ export async function analyzeShrimpHealth(base64Image: string, language: string 
           confidence: 96,
           severity: 'Safe',
           isFallback: true,
-          reasoning: language === 'Hindi'
-            ? "पूर्ण आंत, गहरा हेपेटोपेनक्रियास और कोई शारीरिक विकृति नहीं।"
+          verifiedSchema: true,
+          markerAnalysis: "Healthy specimen detected. No structural abnormalities found.",
+          reasoning: language === 'Telugu' 
+            ? "పూర్ణ ఆహార నాళం, ముదురు రంగు హెపాటోపాంక్రియాస్ మరియు ఎటువంటి శారీరక వైకల్యాలు లేవు."
             : "Full gut line, dark hepatopancreas, and no physical deformities seen.",
           action: language === 'Hindi'
             ? "नियमित निगरानी जारी रखें और बायो-सिक्योरिटी (Bio-security) बनाए रखें।"

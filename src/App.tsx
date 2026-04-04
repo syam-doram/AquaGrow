@@ -38,6 +38,7 @@ import { DiseaseDetection } from './pages/monitoring/DiseaseDetection';
 import { LiveMonitor } from './pages/monitoring/LiveMonitor';
 import { SubscriptionScreen } from './pages/profile/SubscriptionScreen';
 import { ExpertConsultations } from './pages/tools/ExpertConsultations';
+import { LanguageSettings } from './pages/profile/LanguageSettings';
 import { MedicineSchedule } from './pages/management/MedicineSchedule';
 import { WeatherFeedAlert } from './pages/tools/WeatherFeedAlert';
 import { LearningCenter } from './pages/tools/LearningCenter';
@@ -188,7 +189,7 @@ const AppContent = () => {
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
 
   return (
-    <div className="w-full max-w-md mx-auto bg-[#FFFDF5] min-h-[100dvh] relative sm:shadow-2xl overflow-x-hidden font-sans border-x border-black/5 sm:border-none">
+    <div className="w-full max-w-md mx-auto bg-paper min-h-[100dvh] relative sm:shadow-2xl overflow-x-hidden font-sans sm:border-none">
       {/* ── GLOBAL MESH GRADIENT ACCENTS ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-5%] left-[-10%] w-[70%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px] animate-pulse" />
@@ -250,6 +251,7 @@ const AppContent = () => {
                 <Route path="/profile/edit" element={<EditProfile user={user as User} t={t} />} />
                 <Route path="/profile/security" element={<SecurityPrivacy t={t} />} />
                 <Route path="/profile/subscription" element={<SubscriptionPlan t={t} />} />
+                <Route path="/profile/language" element={<LanguageSettings t={t} />} />
                 <Route path="/profile/settings" element={<SystemSettings t={t} />} />
                 <Route path="/roi" element={<ProfitROI t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/export-trends" element={<ExportMarketTrends user={user} t={t} onMenuClick={() => navigate('/profile')} />} />

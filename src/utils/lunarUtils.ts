@@ -27,13 +27,26 @@ export interface LunarStatus {
 }
 
 const PHASE_OVERRIDES_2026: Record<string, MoonPhase> = {
-  '2026-04-17': 'AMAVASYA',
-  '2026-04-24': 'ASHTAMI',
-  '2026-04-25': 'NAVAMI',
-  '2026-05-02': 'POURNAMI',
-  '2026-05-16': 'AMAVASYA',
-  '2026-05-23': 'ASHTAMI',
-  '2026-05-24': 'NAVAMI',
+  // --- Exact 2026 Lunar Registry (IST) - Single Day Peak Mode ---
+  // Purnima (Full Moons)
+  '2026-01-03': 'POURNAMI', '2026-02-01': 'POURNAMI', '2026-03-03': 'POURNAMI',
+  '2026-04-01': 'POURNAMI', '2026-05-01': 'POURNAMI', '2026-05-31': 'POURNAMI', 
+  '2026-06-29': 'POURNAMI', '2026-07-29': 'POURNAMI', '2026-08-28': 'POURNAMI', 
+  '2026-09-26': 'POURNAMI', '2026-10-26': 'POURNAMI', '2026-11-24': 'POURNAMI', 
+  '2026-12-24': 'POURNAMI',
+
+  // Amavasya (New Moons)
+  '2026-01-19': 'AMAVASYA', '2026-02-17': 'AMAVASYA', '2026-03-19': 'AMAVASYA',
+  '2026-04-17': 'AMAVASYA', '2026-05-16': 'AMAVASYA', '2026-06-15': 'AMAVASYA',
+  '2026-07-14': 'AMAVASYA', '2026-08-13': 'AMAVASYA', '2026-09-11': 'AMAVASYA',
+  '2026-10-11': 'AMAVASYA', '2026-11-09': 'AMAVASYA', '2026-12-09': 'AMAVASYA',
+
+  // Ashtami & Navami Phases (IST Verified)
+  '2026-04-10': 'ASHTAMI', '2026-04-11': 'NAVAMI',
+  '2026-04-24': 'ASHTAMI', '2026-04-25': 'NAVAMI',
+  '2026-05-10': 'ASHTAMI', '2026-05-11': 'NAVAMI',
+  '2026-05-23': 'ASHTAMI', '2026-05-24': 'NAVAMI',
+  '2026-06-08': 'ASHTAMI', '2026-06-09': 'NAVAMI',
 };
 
 export const getLunarStatus = (date: Date = new Date()): LunarStatus => {
@@ -47,22 +60,31 @@ export const getLunarStatus = (date: Date = new Date()): LunarStatus => {
   const cycleDay = (diff % (29.53059 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000);
   const normalizedDay = cycleDay < 0 ? (cycleDay + 29.53) % 29.53 : cycleDay % 29.53;
 
-  // Exact Peak Days (1 day each) - Optimized for 2026 Calendar alignment
-  // Exact Peak Days (Ultra-tight 0.6 day window for exact calendar lock)
-  const isExactAmavasya = normalizedDay >= 29.3 || normalizedDay < 0.3;
-  const isExactPournami = normalizedDay >= 14.5 && normalizedDay < 15.1;
-  const isExactAshtami = (normalizedDay >= 6.8 && normalizedDay < 7.4) || (normalizedDay >= 21.8 && normalizedDay < 22.4);
-  const isExactNavami = (normalizedDay >= 7.8 && normalizedDay < 8.4) || (normalizedDay >= 22.8 && normalizedDay < 23.4);
-
-  // High Risk Windows (Only peak day focus)
-  const isAmavasyaWindow = normalizedDay >= 29.0 || normalizedDay <= 0.5;
+  // Widened detection windows (+/- 0.5 days) for reliable daily calendar locking
+  const isExactAmavasya = normalizedDay >= 29.0 || normalizedDay < 0.5;
+  const isExactPournami = normalizedDay >= 14.2 && normalizedDay < 15.3;
+  const isExactAshtami = (normalizedDay >= 6.8 && normalizedDay < 7.8) || (normalizedDay >= 21.8 && normalizedDay < 22.8);
+  const isExactNavami = (normalizedDay >= 7.8 && normalizedDay < 8.8) || (normalizedDay >= 22.8 && normalizedDay < 23.8);
 
   let currentPhase: MoonPhase = overridePhase || 'NORMAL';
+  
+  // High Risk Windows (Broader for alerts)
+  const isAmavasyaWindow = normalizedDay >= 29.0 || normalizedDay <= 0.8;
+
+  // STRICT RULE: For 2026, only use our verified astronomical registry.
+  // No mathematical 'guessing' to avoid duplicate days.
   if (!overridePhase) {
-    if (isExactAmavasya) currentPhase = 'AMAVASYA';
-    else if (isExactPournami) currentPhase = 'POURNAMI';
-    else if (isExactAshtami) currentPhase = 'ASHTAMI';
-    else if (isExactNavami) currentPhase = 'NAVAMI';
+    const year = date.getFullYear();
+    if (year > 2026) {
+       // Algorithm is for future years only
+       if (isExactAmavasya) currentPhase = 'AMAVASYA';
+       else if (isExactPournami) currentPhase = 'POURNAMI';
+       else if (isExactAshtami) currentPhase = 'ASHTAMI';
+       else if (isExactNavami) currentPhase = 'NAVAMI';
+    } else {
+       // 2026 is 100% REGISTRY-DRIVEN
+       currentPhase = 'NORMAL';
+    }
   }
 
   const nextAshtamiDays = normalizedDay < 7 ? 7 - normalizedDay : normalizedDay < 22 ? 22 - normalizedDay : 36.53 - normalizedDay;

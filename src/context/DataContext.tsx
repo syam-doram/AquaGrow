@@ -32,6 +32,11 @@ interface DataContextType {
   reminders: any[];
   toggleReminder: (id: string) => void;
   medicineLogs: MedicineRecord[];
+  apiFetch: (url: string, options?: any, retry?: boolean) => Promise<Response>;
+  notifications: any[];
+  addNotification: (title: string, body: string, type?: string) => void;
+  markNotificationsRead: () => void;
+  unreadCount: number;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -50,6 +55,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [completedReminderIds, setCompletedReminderIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('completed_reminders');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [notifications, setNotifications] = useState<any[]>(() => {
+    const saved = localStorage.getItem('aqua_notifications_v2');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -528,6 +537,32 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
     return false;
   };
+  const addNotification = (title: string, body: string, type: string = 'alert') => {
+    const newNotif = {
+      id: Math.random().toString(36).substr(2, 9),
+      title,
+      body,
+      type,
+      date: new Date().toISOString(),
+      isRead: false
+    };
+    setNotifications(prev => {
+       const next = [newNotif, ...prev].slice(0, 50); 
+       localStorage.setItem('aqua_notifications_v2', JSON.stringify(next));
+       return next;
+    });
+  };
+
+  const markNotificationsRead = () => {
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, isRead: true }));
+      localStorage.setItem('aqua_notifications_v2', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const unreadCount = React.useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
   const reminders = React.useMemo(() => {
     return generateReminders(ponds, feedLogs, waterRecords, translations[user?.language || 'English']).map((r: any) => ({
       ...r,
@@ -568,6 +603,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       addExpense,
       reminders,
       medicineLogs,
+      apiFetch,
+      notifications,
+      addNotification,
+      markNotificationsRead,
+      unreadCount,
       toggleReminder: (id: string) => {
         setCompletedReminderIds(prev => {
           const next = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id];

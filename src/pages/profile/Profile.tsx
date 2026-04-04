@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User as UserIcon, 
@@ -14,17 +14,73 @@ import {
   Sparkles,
   Phone,
   Mail,
-  Award
+  Award,
+  Building2,
+  XCircle,
+  CheckCircle2
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
+import { API_BASE_URL } from '../../config';
 
 export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { user, setUser, isPro } = useData();
+
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [bankStep, setBankStep] = useState<'form' | 'verifying' | 'success'>('form');
+  const [bankData, setBankData] = useState(user?.bankDetails || {
+    bankName: 'Enter Bank Name',
+    accountNumber: '**** **** 1234',
+    ifscCode: 'IFSC0000000',
+    isVerified: false
+  });
+
+  // Sync bankData with user.bankDetails whenever context updates
+  React.useEffect(() => {
+    if (user?.bankDetails) {
+      setBankData(user.bankDetails);
+    }
+  }, [user?.bankDetails]);
+
+  const handleVerifyBank = async () => {
+    setBankStep('verifying');
+    
+    // 1. Simulate verification pulse
+    setTimeout(async () => {
+      const updatedBank = { ...bankData, isVerified: true };
+      setBankStep('success');
+      setBankData(updatedBank);
+
+      // 2. Persist to MongoDB Database
+      if (user?.id || (user as any)?._id) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bankDetails: updatedBank })
+          });
+
+          if (res.ok) {
+            // 3. Update Global Context
+            const newUser = { ...user, bankDetails: updatedBank };
+            setUser(newUser);
+            localStorage.setItem('aqua_user', JSON.stringify(newUser));
+          }
+        } catch (err) {
+          console.error('Critical Database Sync Error:', err);
+        }
+      }
+
+      setTimeout(() => {
+        setShowBankModal(false);
+        setBankStep('form');
+      }, 2000);
+    }, 2500);
+  };
 
   if (!user) return (
     <div className="min-h-screen bg-[#FFFDF5] flex flex-col items-center justify-center p-10 text-center">
@@ -192,47 +248,6 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
           </div>
         </motion.div>
 
-        {/* ── Language Selection ── */}
-        <motion.section variants={itemVariants} className="space-y-4">
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-              <Globe size={18} />
-            </div>
-            <div>
-              <h3 className="text-[#4A2C2A] text-base font-black tracking-tight">{t.language}</h3>
-              <p className="text-[8px] text-[#4A2C2A]/30 font-bold uppercase tracking-widest">{t.selectLanguage}</p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-[1.8rem] p-5 shadow-sm border border-black/5">
-            <div className="grid grid-cols-2 gap-2">
-              {[t.english, t.telugu, t.bengali, t.odia, t.gujarati, t.tamil, t.malayalam].map((opt) => {
-                 const mapping: Record<string, string> = {
-                   [t.english]: 'English', [t.telugu]: 'Telugu', [t.bengali]: 'Bengali',
-                   [t.odia]: 'Odia', [t.gujarati]: 'Gujarati', [t.tamil]: 'Tamil',
-                   [t.malayalam]: 'Malayalam'
-                 };
-                 const targetLang = mapping[opt] || 'English';
-                 const isSelected = user.language === targetLang;
-                 return (
-                    <button 
-                      key={opt}
-                      onClick={() => setUser({ ...user, language: targetLang as any })}
-                      className={cn(
-                        "h-11 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all px-3 flex items-center justify-center border",
-                        isSelected 
-                          ? "bg-[#C78200] text-white border-[#C78200] shadow-lg shadow-amber-900/10 scale-[1.02] z-10" 
-                          : "bg-[#4A2C2A]/5 text-[#4A2C2A]/40 border-transparent hover:bg-[#4A2C2A]/10"
-                      )}
-                    >
-                      {opt}
-                    </button>
-                 );
-              })}
-            </div>
-          </div>
-        </motion.section>
-
         {/* ── Settings Sections ── */}
         <motion.section variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between px-2 mb-1">
@@ -245,12 +260,14 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
           {[
             { icon: UserIcon, label: t.editProfile, path: '/profile/edit', color: 'bg-amber-50 text-amber-600' },
             { icon: ShieldCheck, label: t.securityPrivacy, path: '/profile/security', color: 'bg-emerald-50 text-emerald-600' },
+            { icon: Globe, label: t.language, path: '/profile/language', color: 'bg-[#C78200]/10 text-[#C78200]' },
             { icon: CreditCard, label: t.subscriptionPlan, path: '/profile/subscription', color: 'bg-blue-50 text-blue-600' },
+            { icon: Building2, label: 'Banking & Payouts', onClick: () => setShowBankModal(true), color: 'bg-indigo-50 text-indigo-600' },
             { icon: Settings, label: t.systemSettings, path: '/profile/settings', color: 'bg-slate-50 text-slate-500' }
           ].map((item, i) => (
             <button 
               key={i} 
-              onClick={() => navigate(item.path)}
+              onClick={() => item.onClick ? item.onClick() : navigate(item.path!)}
               className="w-full bg-white p-4 rounded-[1.5rem] shadow-sm border border-black/5 flex items-center justify-between group hover:border-[#C78200]/30 transition-all active:scale-[0.98]"
             >
               <div className="flex items-center gap-4">
@@ -277,6 +294,96 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
           </button>
         </motion.section>
       </motion.div>
+      {/* ── Bank Verification Modal ── */}
+      <AnimatePresence>
+        {showBankModal && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowBankModal(false)}
+              className="absolute inset-0 bg-[#000]/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              className="relative w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 overflow-hidden shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                  <Building2 size={24} />
+                </div>
+                <button 
+                  onClick={() => setShowBankModal(false)}
+                  className="p-3 bg-[#4A2C2A]/5 rounded-2xl text-[#4A2C2A]/30 hover:text-[#4A2C2A] transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+
+              {bankStep === 'form' ? (
+                <>
+                  <div className="mb-8 text-left">
+                    <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A]">Edit Account</h2>
+                    <p className="text-[#4A2C2A]/40 text-xs font-bold uppercase tracking-widest mt-1">Update your settlement credentials</p>
+                  </div>
+
+                  <div className="space-y-4 mb-8">
+                    <div className="space-y-2 text-left">
+                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">Bank Name</label>
+                      <input 
+                        className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-blue-500 transition-all text-sm" 
+                        value={bankData.bankName} 
+                        onChange={(e) => setBankData(prev => ({ ...prev, bankName: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2 text-left">
+                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">Account Number</label>
+                      <input 
+                        className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-blue-500 transition-all text-sm" 
+                        value={bankData.accountNumber}
+                        placeholder="Enter Full Account Number" 
+                        onChange={(e) => setBankData(prev => ({ ...prev, accountNumber: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2 text-left">
+                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">IFSC Code</label>
+                      <input 
+                        className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-blue-500 transition-all text-sm" 
+                        value={bankData.ifscCode} 
+                        onChange={(e) => setBankData(prev => ({ ...prev, ifscCode: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleVerifyBank}
+                    className="w-full bg-blue-600 text-white font-black py-5 rounded-[1.8rem] shadow-xl flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all"
+                  >
+                    Save & Verify <ShieldCheck size={16} />
+                  </button>
+                </>
+              ) : bankStep === 'verifying' ? (
+                <div className="py-12 flex flex-col items-center text-center">
+                   <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin mb-6" />
+                   <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A] mb-2 leading-none uppercase">Verifying</h2>
+                   <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-[0.3em]">Synching with Reserve Network...</p>
+                </div>
+              ) : (
+                <div className="py-12 flex flex-col items-center text-center">
+                   <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-lg animate-bounce">
+                      <CheckCircle2 size={40} className="text-white" />
+                   </div>
+                   <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-2">Verified!</h2>
+                   <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-[0.3em]">Bank details successfully updated.</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

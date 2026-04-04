@@ -9,7 +9,7 @@ import { API_BASE_URL } from '../config';
  * This ensures the farming engine can deliver alerts without requiring manual clicks in settings.
  */
 export const PushSyncManager = () => {
-  const { user } = useData();
+  const { user, apiFetch } = useData();
   const { requestNotificationPermission, fcmToken } = useFirebaseAlerts(user?.language || 'English');
 
   // Initial Permission/Registration Request
@@ -25,12 +25,11 @@ export const PushSyncManager = () => {
       if (user && fcmToken && fcmToken !== user.fcmToken) {
         console.log("[PushSyncManager] Token update detected. Syncing with backend engine...");
         try {
-          await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/notifications`, {
+          await apiFetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/notifications`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                fcmToken: fcmToken,
-               notifications: user.notifications || { water: true, feed: true, market: false }
+               notifications: user.notifications || { water: true, feed: true, market: false, expert: true, security: true }
             })
           });
           

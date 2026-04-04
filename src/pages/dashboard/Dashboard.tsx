@@ -304,7 +304,19 @@ const QuickNav = ({ t, navigate }: { t: Translations; navigate: any }) => {
 // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, reminders, waterRecords, feedLogs, medicineLogs } = useData();
+  const { 
+    ponds, 
+    loading, 
+    waterRecords, 
+    isSyncing, 
+    refreshData, 
+    apiFetch,
+    addNotification,
+    unreadCount,
+    reminders,
+    feedLogs,
+    medicineLogs
+  } = useData();
   const [showWeatherAlert, setShowWeatherAlert] = useState(true);
   const [showLunarAlert, setShowLunarAlert]     = useState(true);
   const [refreshTs, setRefreshTs] = useState(Date.now());
@@ -455,34 +467,43 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         });
     }), [activePonds, waterRecords, dismissedAlerts, user.notifications]);
 
-  // ── PUSH TO LOCAL NOTIFICATIONS EFFECT ──
+  // ── PUSH TO LOCAL NOTIFICATIONS & HISTORY EFFECT ──
   useEffect(() => {
-    if (engineAlerts.length > 0 && Capacitor.isNativePlatform()) {
+    if (engineAlerts.length > 0) {
       engineAlerts.forEach(async (alert) => {
-        // Only trigger native push if we haven't already notified in this specific session
-        const notifiedInSession = sessionStorage.getItem(`notified_eng_${alert.alertKey}`);
-        if (!notifiedInSession) {
-          try {
-            await LocalNotifications.schedule({
-              notifications: [
-                {
-                  id: Math.floor(Math.random() * 100000),
-                  title: `${t.sopEngineAlert} · ${alert.pondName}`,
-                  body: alert.title,
-                  smallIcon: 'ic_stat_name', // Default Capacitor icon name convention or check ic_launcher
-                  largeIcon: 'res://icon',
-                  sound: 'default'
-                }
-              ]
-            });
-            sessionStorage.setItem(`notified_eng_${alert.alertKey}`, 'true');
-          } catch (err) {
-            console.error('Failed to trigger local notification:', err);
+        // 1. ADD TO PERSISTENT TABBED HISTORY (New shared context feature)
+        const alreadyInHistory = sessionStorage.getItem(`added_to_history_${alert.alertKey}`);
+        if (!alreadyInHistory) {
+          addNotification(`${t.sopEngineAlert} · ${alert.pondName}`, alert.title, alert.type);
+          sessionStorage.setItem(`added_to_history_${alert.alertKey}`, 'true');
+        }
+
+        // 2. TRIGGER NATIVE PUSH (Mobile only)
+        if (Capacitor.isNativePlatform()) {
+          const notifiedInSession = sessionStorage.getItem(`notified_eng_${alert.alertKey}`);
+          if (!notifiedInSession) {
+            try {
+              await LocalNotifications.schedule({
+                notifications: [
+                  {
+                    id: Math.floor(Math.random() * 100000),
+                    title: `${t.sopEngineAlert} · ${alert.pondName}`,
+                    body: alert.title,
+                    smallIcon: 'ic_stat_name',
+                    largeIcon: 'res://icon',
+                    sound: 'default'
+                  }
+                ]
+              });
+              sessionStorage.setItem(`notified_eng_${alert.alertKey}`, 'true');
+            } catch (err) {
+              console.error('Failed to trigger local notification:', err);
+            }
           }
         }
       });
     }
-  }, [engineAlerts, t]);
+  }, [engineAlerts, t, addNotification]);
 
   const pondTasks = useMemo(() => {
     if (!selectedPond) return [];
@@ -518,7 +539,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   }, 0);
 
   const estRevenueAtHarvest = totalBiomassKg * 450; // ₹450/kg avg at 50 count
-  const pendingAlerts = reminders.filter((r: any) => r.status === 'pending').length;
+  const pendingAlerts = reminders.filter((r: any) => r.status === 'pending').length + unreadCount;
 
   // ── FCR Calculation (Feed Conversion Ratio) ──
   const fcrData = useMemo(() => {
@@ -562,7 +583,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
       <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
 
-      <div className="px-4 pt-24 space-y-6">
+      <div className="px-6 pt-32 space-y-6">
         {/* ── MANUALLY "RAISED" ENGINE ALERTS ── */}
         {/* ── NEW ELITE TOP NAV ── */}
         <div className="grid grid-cols-4 gap-2 mb-8">

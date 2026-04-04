@@ -22,6 +22,8 @@ export interface Translations {
   alertHistory: string;
   expert: string;
   notifications: string;
+  systemHealthOptimal: string;
+  systemTestMessage: string;
 
   // Greetings & Status
   systemLive: string;
@@ -474,6 +476,8 @@ const English: Translations = {
   alertHistory: 'Cloud Alert History',
   expert: 'Expert',
   notifications: 'Notifications',
+  systemHealthOptimal: 'System Health: Optimal',
+  systemTestMessage: 'Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.',
   systemLive: 'System Live',
   systemActive: 'System Active',
   goodMorning: 'Good Morning,',
@@ -988,7 +992,9 @@ const Telugu: Translations = {
   measurementUnit: 'కొలత యూనిట్',
   units: 'యూనిట్లు',
   appTheme: 'యాప్ థీమ్',
-  notifications: 'నోటిఫికేషన్‌లు',
+  notifications: 'ప్రకటనలు',
+  systemHealthOptimal: 'సిస్టమ్ ఆరోగ్యం: అద్భుతంగా ఉంది',
+  systemTestMessage: 'స్టైలిష్ అలర్ట్‌లను పరీక్షిస్తున్నాము. ఆక్వాగ్రో పుష్ ఇంజిన్ ఇప్పుడు మీ ఫామ్ కోసం యాక్టివ్‌గా ఉంది.',
   waterQualityAlerts: 'నీటి నాణ్యత హెచ్చరికలు',
   feedingReminders: 'మేత రిమైండర్లు',
   scheduleSync: 'షెడ్యూల్ సమకాలీకరణ',

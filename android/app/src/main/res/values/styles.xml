@@ -13,6 +13,14 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        
+        <!-- Android Ergonomics: Make status bar icons dark for white header comfort -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#00000000</item>
+
+        <!-- Android Ergonomics: Match bottom nav bar to app background -->
+        <item name="android:navigationBarColor">#F8F9FE</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
     <!--
@@ -22,11 +30,11 @@
         gold gradient + centered icon, matching the in-app SplashScreen.
     -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
-        <item name="android:windowBackground">@drawable/splash</item>
-        <item name="android:statusBarColor">@color/aquagrow_deep</item>
-        <item name="android:navigationBarColor">@color/aquagrow_deep</item>
-        <item name="windowSplashScreenBackground">@color/aquagrow_amber</item>
+        <item name="android:background">@color/ic_launcher_background</item>
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
+        <item name="android:statusBarColor">@color/ic_launcher_background</item>
+        <item name="android:navigationBarColor">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
         <!-- Remove white flash between native splash and web view -->
         <item name="android:windowIsTranslucent">false</item>
     </style>

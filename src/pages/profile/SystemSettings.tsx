@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, Globe, Layout, Ruler, ChevronRight, Settings, Sparkles, XCircle } from 'lucide-react';
+import { Bell, Globe, Layout, Ruler, ChevronRight, Settings, Sparkles, XCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { Header } from '../../components/Header';
@@ -11,7 +11,7 @@ import { API_BASE_URL } from '../../config';
 import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
 
 export const SystemSettings = ({ t }: { t: Translations }) => {
-  const { user, setUser } = useData();
+  const { user, setUser, addNotification } = useData();
   const [notifications, setNotifications] = useState({
     water: user?.notifications?.water ?? true,
     feed: user?.notifications?.feed ?? true,
@@ -48,8 +48,10 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
   };
 
   const handleTestAlert = async () => {
-    // 1. Trigger Stylized In-App Alert
-    triggerLocalAlert("System Health: Optimal", "Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.");
+    triggerLocalAlert(t.systemHealthOptimal || "System Health: Optimal", t.systemTestMessage || "Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.");
+    
+    // Increment persistent history for UI feedback
+    addNotification(t.systemHealthOptimal || "System Health: Optimal", t.systemTestMessage || "Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.", "info");
     
     // 2. Trigger System Level Native Alert
     if (Capacitor.isNativePlatform()) {
@@ -208,7 +210,7 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
         )}
       </AnimatePresence>
       
-      <div className="pt-24 px-5 py-6 space-y-10">
+      <div className="pt-32 px-5 py-6 space-y-10">
         <div className="bg-[#4A2C2A] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
           <div className="relative z-10">
             <h2 className="text-3xl font-black tracking-tighter mb-3">{t.settings}</h2>

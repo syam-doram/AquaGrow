@@ -51,6 +51,23 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
     }
   };
 
+  const calculateCredit = () => {
+    if (!user?.subscriptionExpiry || !isPro) return 0;
+    const expiry = new Date(user.subscriptionExpiry);
+    const now = new Date();
+    if (expiry <= now) return 0;
+    
+    // Calculate remaining days
+    const diffMs = expiry.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    
+    // Constant daily rates based on plan prices
+    // Silver: 2999/365 = ~8.2, Gold: 4999/365 = ~13.7
+    const dailyRate = user.subscriptionStatus === 'pro_silver' ? 8.21 : 13.69;
+    return Math.floor(diffDays * dailyRate);
+  };
+
+  const existingCredit = calculateCredit();
   const currentPlanData = PLANS.find(p => p.id === selectedPlan);
 
   const handlePaymentSuccess = async () => {
@@ -71,7 +88,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0D1B17] text-white flex flex-col overflow-x-hidden pb-8 relative font-sans text-left">
+    <div className="min-h-[100dvh] bg-[#0D1B17] text-white flex flex-col overflow-x-hidden pb-8 relative font-sans text-left">
       <button 
         onClick={() => navigate(-1)}
         className="absolute top-6 left-6 p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all z-50 active:scale-90"
@@ -96,23 +113,52 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
       </div>
 
       {isPro && user && (
-        <div className="px-6 mb-6">
-          <div className="bg-[#1A302A] border border-emerald-500/20 rounded-[1.8rem] p-6 relative overflow-hidden">
+        <div className="px-6 mb-8">
+          <div className="bg-gradient-to-br from-[#1A302A] to-[#0D1B17] border border-emerald-500/20 rounded-[2rem] p-6 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none text-[#C78200]"><Sparkles size={60} /></div>
-            <p className="text-[#C78200] text-[7px] font-black uppercase tracking-[0.4em] mb-1.5">Current Active Status</p>
-            <h3 className="text-xl font-black tracking-tighter mb-3">
-              {user.subscriptionStatus === 'pro_silver' ? 'Aqua 3 (Silver)' : 
-               user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : 
-               user.subscriptionStatus === 'pro_diamond' ? 'Aqua 9 (Diamond)' : 'Aqua Pro'}
-            </h3>
-            <div className="flex flex-col gap-1 mt-1">
-              <p className="text-[#C78200]/40 text-[6px] font-black uppercase tracking-[0.2em]">Active Coverage</p>
-              <div className="flex items-center gap-2">
-                <div className="p-1 bg-emerald-500/10 rounded-md text-emerald-500"><CheckCircle2 size={10} /></div>
-                <p className="text-emerald-400 text-[9px] font-black tracking-tight uppercase">
-                  Expiry: <span className="text-white text-[11px]">{user.subscriptionExpiry ? format(new Date(user.subscriptionExpiry), 'MMM d, yyyy') : 'N/A'}</span>
-                </p>
-              </div>
+            
+            <div className="flex justify-between items-start mb-4">
+               <div>
+                  <p className="text-[#C78200] text-[7.5px] font-black uppercase tracking-[0.4em] mb-1.5">Current Status</p>
+                  <h3 className="text-xl font-black tracking-tighter">
+                    {user.subscriptionStatus === 'pro_silver' ? 'Aqua 3 (Silver)' : 
+                     user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : 
+                     user.subscriptionStatus === 'pro_diamond' ? 'Aqua 9 (Diamond)' : 'Aqua Pro'}
+                  </h3>
+               </div>
+               <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+                  <p className="text-emerald-400 text-[8px] font-black uppercase tracking-widest leading-none mb-1">Active Until</p>
+                  <p className="text-white text-[12px] font-black">{user.subscriptionExpiry ? format(new Date(user.subscriptionExpiry), 'MMM d, yyyy') : 'N/A'}</p>
+               </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/5 space-y-3">
+               <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 pt-0.5 shadow-sm">
+                     <TrendingUp size={14} />
+                  </div>
+                  <div>
+                     <h4 className="text-[10px] font-black uppercase tracking-widest text-[#C78200]">Rollover Protection + Refund</h4>
+                     <p className="text-[9px] text-white/40 font-bold leading-relaxed pr-8">
+                        Upgrading now **refunds** your remaining ₹{existingCredit} balance as a credit towards your new plan.
+                     </p>
+                  </div>
+               </div>
+
+               <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between">
+                  <div>
+                     <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">New Potential Expiry</p>
+                     <p className="text-emerald-400 text-sm font-black tracking-tight">
+                        {(() => {
+                          const curr = user.subscriptionExpiry ? new Date(user.subscriptionExpiry) : new Date();
+                          const next = new Date(curr > new Date() ? curr : new Date());
+                          next.setFullYear(next.getFullYear() + 1);
+                          return format(next, 'MMMM d, yyyy');
+                        })()}
+                     </p>
+                  </div>
+                  <CheckCircle2 size={16} className="text-emerald-500 opacity-50" />
+               </div>
             </div>
           </div>
         </div>
@@ -173,6 +219,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
         ))}
       </div>
 
+
       <div className="px-6 mt-8 pb-8">
         <button 
           onClick={handleUpgrade}
@@ -198,6 +245,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
             onClose={() => setIsPaymentModalOpen(false)}
             plan={selectedPlan!}
             price={currentPlanData.price}
+            existingCredit={existingCredit}
             t={t}
             onPaymentSuccess={handlePaymentSuccess}
           />
@@ -207,21 +255,36 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   );
 };
 
-const PaymentModal = ({ onClose, plan, price, t, onPaymentSuccess }: { isOpen: boolean, onClose: () => void, plan: string, price: string, t: Translations, onPaymentSuccess: () => void }) => {
+const PaymentModal = ({ onClose, plan, price, existingCredit, t, onPaymentSuccess }: { isOpen: boolean, onClose: () => void, plan: string, price: string, existingCredit: number, t: Translations, onPaymentSuccess: () => void }) => {
   const [method, setMethod] = useState<'card' | 'upi' | 'netbanking'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [processStep, setProcessStep] = useState<string>('');
 
   const handlePay = () => {
     setIsProcessing(true);
+    setProcessStep('Verifying Active Account...');
+    
     setTimeout(() => {
-      setIsProcessing(false);
-      setIsSuccess(true);
+      setProcessStep('Calculating Refund Credit...');
       setTimeout(() => {
-        onPaymentSuccess();
-      }, 2000);
-    }, 2500);
+        setProcessStep(`Refunding ₹${existingCredit.toLocaleString()} to Balance...`);
+        setTimeout(() => {
+           setProcessStep('Initiating Final Transaction...');
+           setTimeout(() => {
+              setIsProcessing(false);
+              setIsSuccess(true);
+              setTimeout(() => {
+                onPaymentSuccess();
+              }, 2000);
+           }, 1500);
+        }, 1200);
+      }, 1000);
+    }, 800);
   };
+
+  const basePriceNum = parseInt(price.replace('₹ ', '').replace(',', ''));
+  const finalPayable = Math.max(0, basePriceNum - existingCredit);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
@@ -244,24 +307,39 @@ const PaymentModal = ({ onClose, plan, price, t, onPaymentSuccess }: { isOpen: b
               <CheckCircle2 size={40} className="text-white" />
             </div>
             <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">{t.paymentSuccess}</h2>
-            <p className="text-[#4A2C2A]/40 text-xs font-bold uppercase tracking-widest">Now ready to scale</p>
+            <p className="text-[#4A2C2A]/40 text-xs font-bold uppercase tracking-widest">Upgrade confirmed. Credit Applied.</p>
           </div>
         ) : isProcessing ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 border-4 border-[#C78200]/20 border-t-[#C78200] rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A] mb-3">{t.processingPayment}</h2>
-            <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-[0.2em]">{t.doNotRefresh}</p>
+            <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A] mb-3">{processStep}</h2>
+            <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-[0.2em]">Transaction Securely Managed</p>
           </div>
         ) : (
           <>
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Pay Securely</h2>
-                <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{plan.replace('_', ' ').toUpperCase()} • {price}</p>
+                <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Prorated Transition</h2>
+                <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{plan.replace('_', ' ').toUpperCase()} Expansion</p>
               </div>
               <button onClick={onClose} className="p-2 bg-[#4A2C2A]/5 rounded-xl text-[#4A2C2A]/40 hover:text-[#4A2C2A] transition-colors">
                 <X size={18} />
               </button>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-[2rem] border border-black/5 mb-8 space-y-4">
+               <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">New Plan Charge</span>
+                  <span className="text-sm font-black text-[#4A2C2A]">₹{basePriceNum.toLocaleString()}</span>
+               </div>
+               <div className="flex justify-between items-center text-emerald-600">
+                  <span className="text-[10px] font-black uppercase tracking-widest">Remaining Credit (Refund)</span>
+                  <span className="text-sm font-black">- ₹{existingCredit.toLocaleString()}</span>
+               </div>
+               <div className="pt-4 border-t border-black/10 flex justify-between items-center">
+                  <span className="text-xs font-black text-[#4A2C2A] uppercase tracking-widest">Net Payable</span>
+                  <span className="text-2xl font-black tracking-tighter text-[#C78200]">₹{finalPayable.toLocaleString()}</span>
+               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 mb-8">
@@ -309,11 +387,6 @@ const PaymentModal = ({ onClose, plan, price, t, onPaymentSuccess }: { isOpen: b
                   <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="username@upi" />
                 </div>
               )}
-            </div>
-
-            <div className="p-4 bg-[#C78200]/5 rounded-xl border border-[#C78200]/10 mb-6 flex justify-between items-center">
-              <p className="text-[#C78200]/60 text-[9px] font-black uppercase tracking-widest">Total</p>
-              <p className="text-lg font-black tracking-tighter text-[#4A2C2A]">{price}</p>
             </div>
 
             <button 

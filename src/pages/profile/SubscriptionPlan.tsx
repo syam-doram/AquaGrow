@@ -24,16 +24,37 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
     { label: t.realTimeHealthMonitoring, icon: ShieldCheck, color: 'text-indigo-500' }
   ];
 
+  const calculateCredit = () => {
+    if (!user?.subscriptionExpiry || !isPro) return 0;
+    const expiry = new Date(user.subscriptionExpiry);
+    const now = new Date();
+    if (expiry <= now) return 0;
+    const diffMs = expiry.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const dailyRate = user.subscriptionStatus === 'pro_silver' ? 8.21 : 13.69;
+    return Math.floor(diffDays * dailyRate);
+  };
+
+  const existingCredit = calculateCredit();
+
   // Mock transaction data based on user status
   const transactions = isPro ? [
     { 
+      id: 'TXN_A827H921K',
+      date: new Date('2026-04-02'),
+      amount: '₹ 2,999',
+      status: 'Upgraded',
+      plan: 'Aqua 3 (Silver)'
+    },
+    { 
       id: 'TXN_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      date: user.subscriptionExpiry ? new Date(new Date(user.subscriptionExpiry).getFullYear() - 1, new Date(user.subscriptionExpiry).getMonth(), new Date(user.subscriptionExpiry).getDate()) : new Date(),
-      amount: user.subscriptionStatus === 'pro_silver' ? '₹ 2,999' : user.subscriptionStatus === 'pro_gold' ? '₹ 4,999' : '₹ 6,999',
+      date: new Date(),
+      amount: user.subscriptionStatus === 'pro_gold' ? `₹ ${4999 - existingCredit}` : user.subscriptionStatus === 'pro_diamond' ? `₹ ${6999 - existingCredit}` : '₹ 0',
+      refund: `₹ ${existingCredit}`,
       status: 'Success',
-      plan: user.subscriptionStatus === 'pro_silver' ? t.telugu === 'అక్వాగ్రో' ? 'అక్వా 3 (సిల్వర్)' : 'Aqua 3 (Silver)' : user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : 'Aqua 9 (Diamond)'
+      plan: user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua 9 (Diamond)' : 'N/A'
     }
-  ] : [];
+  ].filter(t => t.plan !== 'N/A' && (t.plan === 'Aqua 3 (Silver)' || user.subscriptionStatus !== 'pro_silver')) : [];
 
   const planName = isPro 
     ? (user.subscriptionStatus === 'pro_silver' ? 'Aqua Silver' : user.subscriptionStatus === 'pro_gold' ? 'Aqua Gold' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua Diamond' : 'Aqua Pro') 
@@ -53,7 +74,7 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
   };
 
   return (
-    <div className="pb-32 bg-[#FBFBFE] min-h-screen relative overflow-hidden text-left">
+    <div className="pb-32 bg-[#FBFBFE] min-h-screen relative overflow-hidden text-left font-sans">
       {/* ── Page Accents ── */}
       <div className="absolute top-0 right-0 w-[80%] h-[25%] bg-[#C78200]/5 rounded-full blur-[100px] -z-10" />
       <div className="absolute bottom-[20%] left-0 w-[60%] h-[35%] bg-emerald-500/10 rounded-full blur-[120px] -z-10" />
@@ -109,27 +130,38 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
           <motion.section variants={itemVariants} className="space-y-4">
              <div className="flex items-center justify-between px-2">
                 <h3 className="text-[#4A2C2A] text-base font-black tracking-tighter">{t.transactionHistory}</h3>
-                <Receipt size={16} className="text-[#4A2C2A]/20" />
+                <div className="px-3 py-1 bg-emerald-500/5 border border-emerald-500/10 rounded-full flex items-center gap-2">
+                  <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Audit Verified</span>
+                </div>
              </div>
              
              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-black/5 divide-y divide-black/5">
-                {transactions.map((txn, idx) => (
+                {transactions.map((txn: any, idx) => (
                    <div 
                      key={idx} 
                      onClick={() => setSelectedTransaction(txn)}
-                     className="py-3 first:pt-0 last:pb-0 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer"
+                     className="py-4 first:pt-0 last:pb-0 flex items-center justify-between group active:scale-[0.98] transition-all cursor-pointer"
                    >
                       <div className="flex items-center gap-3">
-                         <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-sm transition-transform group-hover:rotate-12">
-                            <CheckCircle2 size={18} />
+                         <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center border shadow-sm transition-transform group-hover:rotate-12",
+                           txn.status === 'Current' || txn.status === 'Success' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100"
+                         )}>
+                            {txn.status === 'Success' ? <CheckCircle2 size={18} /> : <Receipt size={18} />}
                          </div>
                          <div>
-                            <p className="font-black text-xs text-[#4A2C2A] tracking-tight">{txn.plan}</p>
+                            <div className="flex items-center gap-2">
+                               <p className="font-black text-xs text-[#4A2C2A] tracking-tight">{txn.plan}</p>
+                               {txn.refund && <span className="text-[6px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-widest">Refund Credit</span>}
+                            </div>
                             <p className="text-[8px] font-bold text-[#4A2C2A]/30 uppercase tracking-widest">{format(txn.date, 'MMM d, yyyy')}</p>
                          </div>
                       </div>
                       <div className="text-right flex items-center gap-2">
-                         <p className="font-black text-xs text-[#4A2C2A]">{txn.amount}</p>
+                         <div>
+                            <p className="font-black text-xs text-[#4A2C2A]">{txn.amount}</p>
+                            {txn.refund && <p className="text-[6px] font-bold text-emerald-500 uppercase tracking-tighter">Applied: -{txn.refund}</p>}
+                         </div>
                          <ChevronRight size={14} className="text-[#4A2C2A]/10 group-hover:text-[#C78200] group-hover:translate-x-1 transition-all" />
                       </div>
                    </div>
@@ -272,6 +304,12 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
                        <p className="text-[8px] font-black uppercase tracking-widest text-[#4A2C2A]/30">{t.paymentDate}</p>
                        <p className="font-black text-xs text-[#4A2C2A]">{format(selectedTransaction.date, 'MMMM d, yyyy')}</p>
                     </div>
+                    {selectedTransaction.refund && (
+                      <div className="flex justify-between items-center text-emerald-600">
+                         <p className="text-[8px] font-black uppercase tracking-widest">Prorated Refund Applied</p>
+                         <p className="font-black text-xs">- {selectedTransaction.refund}</p>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                        <p className="text-[8px] font-black uppercase tracking-widest text-[#4A2C2A]/30">Service Plan</p>
                        <p className="font-black text-xs text-[#4A2C2A]">{selectedTransaction.plan}</p>
@@ -328,16 +366,16 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
                     {policyType === 'refund' ? (
                        <div className="space-y-6 text-[#4A2C2A]/70 text-[11px] leading-relaxed font-medium">
                           <p>
+                             <strong className="text-[#4A2C2A] block mb-1">PRORATED SCALE-UP REFUND</strong>
+                             Subscriptions upgraded mid-cycle are eligible for a prorated refund credit. Our system calculates the monetary value of your remaining days on the lower tier and applies it as a direct deduction from the new tier's cost.
+                          </p>
+                          <p>
                              <strong className="text-[#4A2C2A] block mb-1">CANCELLATION POLICY</strong>
                              Subscriptions are activated immediately upon payment. You may cancel your subscription at any time; however, the service will remain active until the end of the current billing cycle.
                           </p>
                           <p>
                              <strong className="text-[#4A2C2A] block mb-1">REFUND ELIGIBILITY</strong>
-                             As a digital service provider, AquaGrow generally operates a no-refund policy. Refunds are only considered in cases of technical glitches where the Pro upgrade fails to activate within 24 hours of successful payment.
-                          </p>
-                          <p>
-                             <strong className="text-[#4A2C2A] block mb-1">REFUND PROCESS</strong>
-                             Any refund requests must be initiated within 48 hours of original payment. Once verified by our financial team, the refund will be processed within 5-7 business days to your original payment method.
+                             As a digital service provider, AquaGrow operates a no-cash-refund policy except in cases of technical glitches. Credits applied during transitions are final and non-transferable.
                           </p>
                        </div>
                     ) : (

@@ -123,7 +123,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
   };
 
   return (
-    <div className="h-screen bg-[#021811] relative overflow-hidden flex flex-col items-center font-sans tracking-tight">
+    <div className="min-h-[100dvh] bg-[#021811] relative overflow-hidden flex flex-col items-center font-sans tracking-tight">
       
       {/* ── AMBIENT BACKGROUND ── */}
       <div className="absolute inset-0 pointer-events-none">
