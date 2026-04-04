@@ -12,6 +12,9 @@ const loadMockDB = () => {
   const db = JSON.parse(fs.readFileSync(MOCK_DB_PATH, 'utf-8'));
   if (!db.feedLogs) db.feedLogs = [];
   if (!db.medicineLogs) db.medicineLogs = [];
+  if (!db.waterLogs) db.waterLogs = [];
+  if (!db.sopLogs) db.sopLogs = [];
+  if (!db.expenses) db.expenses = [];
   if (!db.refreshTokens) db.refreshTokens = [];
   return db;
 };
@@ -84,11 +87,52 @@ const RefreshTokenSchema = new mongoose.Schema({
   expiryDate: { type: Date, required: true }
 }, { timestamps: true });
 
+const WaterLogSchema = new mongoose.Schema({
+  pondId: { type: String, required: true },
+  userId: { type: String, required: true },
+  date: { type: String, required: true },
+  ph: { type: Number },
+  do: { type: Number },
+  temperature: { type: Number },
+  salinity: { type: Number },
+  ammonia: { type: Number },
+  alkalinity: { type: Number },
+  turbidity: { type: Number },
+  mortality: { type: Number },
+  isSynced: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const SOPLogSchema = new mongoose.Schema({
+  pondId: { type: String, required: true },
+  userId: { type: String, required: true },
+  date: { type: String, required: true },
+  avgWeight: { type: Number },
+  feedQty: { type: Number },
+  mortality: { type: Number },
+  checks: { type: Map, of: Boolean },
+  isSynced: { type: Boolean, default: true }
+}, { timestamps: true });
+
+const ExpenseSchema = new mongoose.Schema({
+  pondId: { type: String, required: true },
+  userId: { type: String, required: true },
+  date: { type: String, required: true },
+  category: { type: String },
+  categoryLabel: { type: String },
+  amount: { type: Number },
+  quantity: { type: Number },
+  notes: { type: String },
+  isSynced: { type: Boolean, default: true }
+}, { timestamps: true });
+
 export const User = mongoose.model('User', UserSchema);
 export const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 export const Pond = mongoose.model('Pond', PondSchema);
 export const FeedLog = mongoose.model('FeedLog', FeedLogSchema);
 export const MedicineLog = mongoose.model('MedicineLog', MedicineLogSchema);
+export const WaterLog = mongoose.model('WaterLog', WaterLogSchema);
+export const SOPLog = mongoose.model('SOPLog', SOPLogSchema);
+export const Expense = mongoose.model('Expense', ExpenseSchema);
 export const RefreshToken = mongoose.model('RefreshToken', RefreshTokenSchema);
 
 // --- MOCK WRAPPERS ---

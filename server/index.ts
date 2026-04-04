@@ -5,7 +5,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
-import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, RefreshToken, connectDB, isMock, MockDB } from './db.js';
+import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, RefreshToken, connectDB, isMock, MockDB } from './db.js';
 
 declare global {
   namespace Express {
@@ -304,9 +304,73 @@ app.delete('/api/ponds/:id', authenticate, async (req, res) => {
       await PondMongo.findByIdAndDelete(id);
       await FeedLogMongo.deleteMany({ pondId: id });
       await MedicineLogMongo.deleteMany({ pondId: id });
+      await WaterLogMongo.deleteMany({ pondId: id });
     }
     res.status(204).send();
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+//  WATER LOGS                    ║
+// ═══════════════════════════════╝
+
+app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, res) => {
+  try {
+    const logs = isMock()
+      ? await MockDB.find('waterLogs', { userId: req.params.userId })
+      : await WaterLogMongo.find({ userId: req.params.userId });
+    res.json(logs);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/water-logs', authenticate, async (req, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id };
+    if (isMock()) return res.json(await MockDB.save('waterLogs', data));
+    res.json(await new WaterLogMongo(data).save());
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+//  SOP LOGS                      ║
+// ═══════════════════════════════╝
+
+app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res) => {
+  try {
+    const logs = isMock()
+      ? await MockDB.find('sopLogs', { userId: req.params.userId })
+      : await SOPLogMongo.find({ userId: req.params.userId });
+    res.json(logs);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sop-logs', authenticate, async (req, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id };
+    if (isMock()) return res.json(await MockDB.save('sopLogs', data));
+    res.json(await new SOPLogMongo(data).save());
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+//  EXPENSES                      ║
+// ═══════════════════════════════╝
+
+app.get('/api/user/:userId/expenses', authenticate, requireSelf, async (req, res) => {
+  try {
+    const expenses = isMock()
+      ? await MockDB.find('expenses', { userId: req.params.userId })
+      : await ExpenseMongo.find({ userId: req.params.userId });
+    res.json(expenses);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/expenses', authenticate, async (req, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id };
+    if (isMock()) return res.json(await MockDB.save('expenses', data));
+    res.json(await new ExpenseMongo(data).save());
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 // ═══════════════════════════════╗

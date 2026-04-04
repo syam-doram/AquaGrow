@@ -20,6 +20,8 @@ export interface User {
     water: boolean;
     feed: boolean;
     market: boolean;
+    expert: boolean;
+    security: boolean;
   };
 }
 

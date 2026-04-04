@@ -119,6 +119,11 @@ export const useFirebaseAlerts = (userLanguage: string) => {
     fcmToken, 
     incomingAlert, 
     alertHistory,
+    triggerLocalAlert: (title: string, body: string) => {
+      const newAlert = { title, body, timestamp: Date.now() };
+      setIncomingAlert(newAlert);
+      setAlertHistory(prev => [newAlert, ...prev].slice(0, 50));
+    },
     clearAlert: () => setIncomingAlert(null),
     clearHistory: () => {
       localStorage.removeItem('aqua_alert_history');

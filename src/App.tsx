@@ -19,47 +19,47 @@ import { PushSyncManager } from './components/PushSyncManager';
 import { GlobalAlertCenter } from './components/GlobalAlertCenter';
 
 // Pages
-import { Dashboard } from './pages/Dashboard';
-import { PondManagement } from './pages/PondManagement';
-import { PondEntry } from './pages/PondEntry';
-import { PondDetail } from './pages/PondDetail';
-import { WaterMonitoring } from './pages/WaterMonitoring';
-import { MarketPrices } from './pages/MarketPrices';
-import { Profile } from './pages/Profile';
-import { EditProfile } from './pages/EditProfile';
-import { SecurityPrivacy } from './pages/SecurityPrivacy';
-import { SubscriptionPlan } from './pages/SubscriptionPlan';
-import { SystemSettings } from './pages/SystemSettings';
-import { AuthScreen } from './pages/AuthScreen';
-import { SplashScreen } from './pages/SplashScreen';
-import { OnboardingScreen } from './pages/OnboardingScreen';
-import { FeedManagement } from './pages/FeedManagement';
-import { DiseaseDetection } from './pages/DiseaseDetection';
-import { LiveMonitor } from './pages/LiveMonitor';
-import { SubscriptionScreen } from './pages/SubscriptionScreen';
-import { ExpertConsultations } from './pages/ExpertConsultations';
-import { MedicineSchedule } from './pages/MedicineSchedule';
-import { WeatherFeedAlert } from './pages/WeatherFeedAlert';
-import { LearningCenter } from './pages/LearningCenter';
-import { Notifications } from './pages/Notifications';
-import { ProfitROI } from './pages/ProfitROI';
-import { ExportMarketTrends } from './pages/ExportMarketTrends';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { PondMonitor } from './pages/PondMonitor';
-import { PondFeedingLog } from './pages/PondFeedingLog';
-import { CultureSOP } from './pages/CultureSOP';
-import { DailySOPLog } from './pages/DailySOPLog';
-import { DailyConditionsLog } from './pages/DailyConditionsLog';
-import { DailyExpenseLog } from './pages/DailyExpenseLog';
-import { WaterLogDetail } from './pages/WaterLogDetail';
-import { HarvestRevenue } from './pages/HarvestRevenue';
-import { ExpenseReport } from './pages/ExpenseReport';
-import { ROIEntry } from './pages/ROIEntry';
+import { Dashboard } from './pages/dashboard/Dashboard';
+import { PondManagement } from './pages/ponds/PondManagement';
+import { PondEntry } from './pages/ponds/PondEntry';
+import { PondDetail } from './pages/ponds/PondDetail';
+import { WaterMonitoring } from './pages/monitoring/WaterMonitoring';
+import { MarketPrices } from './pages/market/MarketPrices';
+import { Profile } from './pages/profile/Profile';
+import { EditProfile } from './pages/profile/EditProfile';
+import { SecurityPrivacy } from './pages/profile/SecurityPrivacy';
+import { SubscriptionPlan } from './pages/profile/SubscriptionPlan';
+import { SystemSettings } from './pages/profile/SystemSettings';
+import { AuthScreen } from './pages/auth/AuthScreen';
+import { SplashScreen } from './pages/auth/SplashScreen';
+import { OnboardingScreen } from './pages/auth/OnboardingScreen';
+import { FeedManagement } from './pages/management/FeedManagement';
+import { DiseaseDetection } from './pages/monitoring/DiseaseDetection';
+import { LiveMonitor } from './pages/monitoring/LiveMonitor';
+import { SubscriptionScreen } from './pages/profile/SubscriptionScreen';
+import { ExpertConsultations } from './pages/tools/ExpertConsultations';
+import { MedicineSchedule } from './pages/management/MedicineSchedule';
+import { WeatherFeedAlert } from './pages/tools/WeatherFeedAlert';
+import { LearningCenter } from './pages/tools/LearningCenter';
+import { Notifications } from './pages/tools/Notifications';
+import { ProfitROI } from './pages/finance/ProfitROI';
+import { ExportMarketTrends } from './pages/market/ExportMarketTrends';
+import { AdminDashboard } from './pages/dashboard/AdminDashboard';
+import { PondMonitor } from './pages/ponds/PondMonitor';
+import { PondFeedingLog } from './pages/ponds/PondFeedingLog';
+import { CultureSOP } from './pages/logs/CultureSOP';
+import { DailySOPLog } from './pages/logs/DailySOPLog';
+import { DailyConditionsLog } from './pages/logs/DailyConditionsLog';
+import { DailyExpenseLog } from './pages/logs/DailyExpenseLog';
+import { WaterLogDetail } from './pages/monitoring/WaterLogDetail';
+import { HarvestRevenue } from './pages/finance/HarvestRevenue';
+import { ExpenseReport } from './pages/finance/ExpenseReport';
+import { ROIEntry } from './pages/finance/ROIEntry';
 
 // Provider Pages
-import { ProviderDashboard } from './pages/ProviderDashboard';
-import { ProviderInventory } from './pages/ProviderInventory';
-import { ProviderOrders } from './pages/ProviderOrders';
+import { ProviderDashboard } from './pages/provider/ProviderDashboard';
+import { ProviderInventory } from './pages/provider/ProviderInventory';
+import { ProviderOrders } from './pages/provider/ProviderOrders';
 
 export default function App() {
   return (
@@ -215,14 +215,17 @@ const AppContent = () => {
             </motion.div>
           )}
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.24, ease: [0.33, 1, 0.68, 1] }}
-              className="w-full min-h-screen relative z-10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ 
+                duration: 0.15, 
+                ease: "linear"
+              }}
+              className="w-full min-h-[100dvh] relative z-10 overflow-x-hidden"
             >
               <Routes location={location}>
                 {/* Farmer Routes */}

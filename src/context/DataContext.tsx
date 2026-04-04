@@ -13,6 +13,8 @@ interface DataContextType {
   marketPrices: MarketPrice[];
   waterRecords: WaterQualityRecord[];
   feedLogs: FeedRecord[];
+  sopLogs: any[];
+  expenses: any[];
   setUser: (user: User | null) => void;
   register: (user: Omit<User, 'id' | 'subscriptionStatus'>) => Promise<{ success: boolean; error?: string }>;
   login: (phoneNumber: string, password?: string) => Promise<{ success: boolean; user?: User; error?: string }>;
@@ -41,12 +43,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [ponds, setPonds] = useState<Pond[]>([]);
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
-  const [waterRecords, setWaterRecords] = useState<WaterQualityRecord[]>(() => {
-    const saved = localStorage.getItem('aqua_water_records');
-    return saved ? JSON.parse(saved) : mockWaterRecords;
-  });
+  const [waterRecords, setWaterRecords] = useState<WaterQualityRecord[]>([]);
   const [feedLogs, setFeedLogs] = useState<FeedRecord[]>([]);
   const [medicineLogs, setMedicineLogs] = useState<MedicineRecord[]>([]);
+  const [sopLogs, setSopLogs] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
   const [completedReminderIds, setCompletedReminderIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('completed_reminders');
     return saved ? JSON.parse(saved) : [];
@@ -172,6 +173,42 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error fetching medicine logs:", error);
     }
   };
+  
+  const fetchWaterLogs = async (userId: string, overrideTokens?: any) => {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/water-logs`, { overrideTokens });
+      if (response.ok) {
+        const data = await response.json();
+        setWaterRecords(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+      }
+    } catch (error) {
+      console.error("Error fetching water logs:", error);
+    }
+  };
+
+  const fetchSOPLogs = async (userId: string, overrideTokens?: any) => {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/sop-logs`, { overrideTokens });
+      if (response.ok) {
+        const data = await response.json();
+        setSopLogs(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+      }
+    } catch (error) {
+      console.error("Error fetching SOP logs:", error);
+    }
+  };
+
+  const fetchExpenses = async (userId: string, overrideTokens?: any) => {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/expenses`, { overrideTokens });
+      if (response.ok) {
+        const data = await response.json();
+        setExpenses(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -201,7 +238,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             fetchUserPonds(u.id || u._id, activeTokens),
             fetchSubscription(u.id || u._id, activeTokens),
             fetchFeedLogs(u.id || u._id, activeTokens),
-            fetchMedicineLogs(u.id || u._id, activeTokens)
+            fetchMedicineLogs(u.id || u._id, activeTokens),
+            fetchWaterLogs(u.id || u._id, activeTokens),
+            fetchSOPLogs(u.id || u._id, activeTokens),
+            fetchExpenses(u.id || u._id, activeTokens)
           ]);
         }
       } else {
@@ -231,6 +271,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         fetchUserPonds(uid, currentTokens);
         fetchSubscription(uid, currentTokens);
         fetchFeedLogs(uid, currentTokens);
+        fetchWaterLogs(uid, currentTokens);
+        fetchSOPLogs(uid, currentTokens);
+        fetchExpenses(uid, currentTokens);
       }
     } else {
       localStorage.removeItem('aqua_user');
@@ -390,16 +433,60 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const addWaterRecord = (record: Omit<WaterQualityRecord, 'id'>) => {
-    const newRecord: WaterQualityRecord = {
-      ...record,
-      id: `w_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    };
-    setWaterRecords(prev => {
-      const updated = [newRecord, ...prev];
-      localStorage.setItem('aqua_water_records', JSON.stringify(updated));
-      return updated;
-    });
+  const addWaterRecord = async (record: Omit<WaterQualityRecord, 'id'>) => {
+    setIsSyncing(true);
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/water-logs`, {
+        method: 'POST',
+        body: JSON.stringify({ ...record, userId: user?.id || (user as any)?._id })
+      });
+      if (response.ok) {
+        const newRecord = await response.json();
+        setWaterRecords(prev => [{ ...newRecord, id: newRecord._id || newRecord.id }, ...prev]);
+        // Clean up old localStorage for seamless migration
+        localStorage.removeItem('aqua_water_records');
+      }
+    } catch (error) {
+      console.error("Add water record error:", error);
+    } finally {
+      setIsSyncing(true);
+    }
+  };
+
+  const addSOPLog = async (log: any) => {
+    setIsSyncing(true);
+    try {
+       const response = await apiFetch(`${API_BASE_URL}/sop-logs`, {
+          method: 'POST',
+          body: JSON.stringify({ ...log, userId: user?.id || (user as any)?._id })
+       });
+       if (response.ok) {
+          const newLog = await response.json();
+          setSopLogs(prev => [...prev, { ...newLog, id: newLog._id || newLog.id }]);
+       }
+    } catch (error) {
+       console.error("Add SOP Log error:", error);
+    } finally {
+       setIsSyncing(false);
+    }
+  };
+
+  const addExpense = async (expense: any) => {
+    setIsSyncing(true);
+    try {
+       const response = await apiFetch(`${API_BASE_URL}/expenses`, {
+          method: 'POST',
+          body: JSON.stringify({ ...expense, userId: user?.id || (user as any)?._id })
+       });
+       if (response.ok) {
+          const newExp = await response.json();
+          setExpenses(prev => [...prev, { ...newExp, id: newExp._id || newExp.id }]);
+       }
+    } catch (error) {
+       console.error("Add Expense error:", error);
+    } finally {
+       setIsSyncing(false);
+    }
   };
 
   const hasAccess = (feature: string) => {
@@ -457,13 +544,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       marketPrices, 
       waterRecords, 
       feedLogs, 
+      sopLogs,
+      expenses,
       setUser,
       register: register as any,
       login: login as any,
       addPond,
       updatePond,
       deletePond,
-      refreshData: () => fetchUserPonds(user?.id || (user as any)?._id),
+      refreshData: () => {
+        const uid = user?.id || (user as any)?._id;
+        fetchUserPonds(uid);
+        fetchWaterLogs(uid);
+      },
       subscription,
       isPro,
       hasAccess,
@@ -471,6 +564,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       addFeedLog,
       addMedicineLog,
       addWaterRecord,
+      addSOPLog,
+      addExpense,
       reminders,
       medicineLogs,
       toggleReminder: (id: string) => {

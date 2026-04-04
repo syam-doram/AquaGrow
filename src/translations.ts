@@ -404,6 +404,53 @@ export interface Translations {
   alkalinity: string;
   turbidity: string;
   mortality: string;
+  earlyStage: string;
+  highRiskPeriod: string;
+  finalStage: string;
+  processingEntry: string;
+  saveEntry: string;
+  pelletFeed: string;
+  medicineProbiotics: string;
+  dieselFuel: string;
+  gridPowerBill: string;
+  laborWages: string;
+  otherTesting: string;
+  expenseLogged: string;
+  updatingFinancialTrajectory: string;
+  added: string;
+  dailyTraj: string;
+  logLiveExpense: string;
+  dailyOpexEntry: string;
+  operatingExpense: string;
+  dailyTracker: string;
+  totalAmount: string;
+  outflow: string;
+  selectCulturePond: string;
+  date: string;
+  total: string;
+  expenseCategory: string;
+  purchased: string;
+  calculatedUnitPrice: string;
+  merchantNotes: string;
+  merchantNotesPlaceholder: string;
+  submitExpense: string;
+  activeCycleAudit: string;
+  liveTracking: string;
+  totalCycleSpend: string;
+  avgRunRate: string;
+  forecastTarget: string;
+  onBudget: string;
+  fourteenDayTrajectory: string;
+  dailyExpenses: string;
+  live: string;
+  cost: string;
+  dashedLineRunRate: string;
+  categoryBreakdown: string;
+  pctOfTotalSpend: string;
+  seedPlsCost: string;
+  majorExpenses: string;
+  viewPdfLog: string;
+  logDailyExpense: string;
 }
 
 const English: Translations = {
@@ -698,6 +745,53 @@ const English: Translations = {
   cultureSchedule: 'Culture Schedule',
   medicinesPlan: 'Medicine Plan',
   warningSigns: 'Warning Signs',
+  earlyStage: 'Early Stage (DOC 1-10)',
+  highRiskPeriod: 'High Risk Period (DOC 11-45)',
+  finalStage: 'Final Growth Stage (DOC 46+)',
+  processingEntry: 'Processing Entry...',
+  saveEntry: 'Save Daily Log',
+  pelletFeed: 'Pellet Feed',
+  medicineProbiotics: 'Medicine & Probiotics',
+  dieselFuel: 'Diesel Fuel',
+  gridPowerBill: 'Electricity / Power',
+  laborWages: 'Labor Wages',
+  otherTesting: 'Lab & Testing',
+  expenseLogged: 'Expense Logged!',
+  updatingFinancialTrajectory: 'UPDATING FINANCIAL TRAJECTORY',
+  added: 'Added',
+  dailyTraj: 'Daily Run-Rate',
+  logLiveExpense: 'Log Daily Expense',
+  dailyOpexEntry: 'DAILY OPEX ENTRY',
+  operatingExpense: 'Operating Expense',
+  dailyTracker: 'Daily Tracker',
+  totalAmount: 'Total Amount',
+  outflow: 'Outflow',
+  selectCulturePond: 'Select Culture Pond',
+  date: 'Date',
+  total: 'Total',
+  expenseCategory: 'Expense Category',
+  purchased: 'Purchased',
+  calculatedUnitPrice: 'Calculated Unit Price',
+  merchantNotes: 'Merchant Notes',
+  merchantNotesPlaceholder: 'Invoice details, vendor name...',
+  submitExpense: 'Submit Expense',
+  activeCycleAudit: 'Active Cycle Audit',
+  liveTracking: 'Live Tracking',
+  totalCycleSpend: 'Total Cycle Spend',
+  avgRunRate: 'Avg Run-Rate',
+  forecastTarget: 'Forecast Target',
+  onBudget: 'On Budget',
+  fourteenDayTrajectory: '14-Day Trajectory',
+  dailyExpenses: 'Daily Expenses',
+  live: 'Live',
+  cost: 'Cost',
+  dashedLineRunRate: 'Dashed line = Avg. Daily Run-Rate',
+  categoryBreakdown: 'Category Breakdown',
+  pctOfTotalSpend: '% of total spend',
+  seedPlsCost: 'Seed / PLs Cost',
+  majorExpenses: 'Major Expenses',
+  viewPdfLog: 'View PDF Log',
+  logDailyExpense: 'Log Daily Expense',
   productionExpectation: 'Yield Forecast',
   logMedication: 'Log Medication',
   dailySOP: 'Daily SOP Tracker',
@@ -1151,6 +1245,53 @@ const Telugu: Translations = {
   paymentGlitch: 'చెల్లింపులో సమస్య ఎదురవుతుందా?',
   supportContact: 'మద్దతును సంప్రదించండి',
   refundPolicy: 'రీఫండ్ విధానం',
+  earlyStage: 'ప్రారంభ దశ (DOC 1-10)',
+  highRiskPeriod: 'అధిక ప్రమాద కాలం (DOC 11-45)',
+  finalStage: 'చివరి పెరుగుదల దశ (DOC 46+)',
+  processingEntry: 'ప్రాసెస్ చేయబడుతోంది...',
+  saveEntry: 'రోజువారీ లాగ్‌ను సేవ్ చేయండి',
+  pelletFeed: 'పెల్లెట్ ఫీడ్',
+  medicineProbiotics: 'మందులు & ప్రోబయోటిక్స్',
+  dieselFuel: 'డీజిల్ ఇంధనం',
+  gridPowerBill: 'విద్యుత్ బిల్లు',
+  laborWages: 'కూలీ ఖర్చులు',
+  otherTesting: 'ల్యాబ్ & టెస్టింగ్',
+  expenseLogged: 'ఖర్చు నమోదైంది!',
+  updatingFinancialTrajectory: 'ఆర్థిక అంచనా అప్‌డేట్ అవుతోంది',
+  added: 'జోడించబడింది',
+  dailyTraj: 'రోజువారీ ఖర్చు రేటు',
+  logLiveExpense: 'రోజువారీ ఖర్చును నమోదు చేయండి',
+  dailyOpexEntry: 'రోజువారీ OPEX ఎంట్రీ',
+  operatingExpense: 'నిర్వహణ ఖర్చు',
+  dailyTracker: 'రోజువారీ ట్రాకర్',
+  totalAmount: 'మొత్తం ధర',
+  outflow: 'ఖర్చు',
+  selectCulturePond: 'చెరువును ఎంచుకోండి',
+  date: 'తేదీ',
+  total: 'మొత్తం',
+  expenseCategory: 'ఖర్చు కేటగిరీ',
+  purchased: 'కొనుగోలు చేయబడింది',
+  calculatedUnitPrice: 'లెక్కించిన యూనిట్ ధర',
+  merchantNotes: 'మర్చంట్ నోట్స్',
+  merchantNotesPlaceholder: 'ఇన్వాయిస్ వివరాలు, విక్రేత పేరు...',
+  submitExpense: 'ఖర్చును సమర్పించండి',
+  activeCycleAudit: 'యాక్టివ్ సైకిల్ ఆడిట్',
+  liveTracking: 'లైవ్ ట్రాకింగ్',
+  totalCycleSpend: 'మొత్తం సైకిల్ ఖర్చు',
+  avgRunRate: 'సగటు రోజువారీ ఖర్చు',
+  forecastTarget: 'బడ్జెట్ లక్ష్యం',
+  onBudget: 'బడ్జెట్‌లో ఉంది',
+  fourteenDayTrajectory: '14-రోజుల బాట',
+  dailyExpenses: 'రోజువారీ ఖర్చులు',
+  live: 'లైవ్',
+  cost: 'ఖర్చు',
+  dashedLineRunRate: 'చుక్కల లైన్ = సగటు రోజువారీ ఖర్చు',
+  categoryBreakdown: 'కేటగిరీ విభజన',
+  pctOfTotalSpend: 'మొత్తం ఖర్చులో %',
+  seedPlsCost: 'విత్తనం / PLs ఖర్చు',
+  majorExpenses: 'ప్రధాన ఖర్చులు',
+  viewPdfLog: 'PDF లాగ్ చూడండి',
+  logDailyExpense: 'రోజువారీ ఖర్చును నమోదు చేయండి',
 };
 
 export const translations: Record<Language, Translations> = {
