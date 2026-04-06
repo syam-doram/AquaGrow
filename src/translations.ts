@@ -268,6 +268,9 @@ export interface Translations {
   verifyAndJoin: string;
   getVerified: string;
   signInPrompt: string;
+  email: string;
+  startYourFirstPond: string;
+  phoneOrEmail: string;
 
   // Lunar & Water
   amavasyaWarning: string;
@@ -349,7 +352,6 @@ export interface Translations {
   feedLogs: string;
   sopEngineAlert: string;
   autoEngineAlert: string;
-  startYourFirstPond: string;
   totalPonds: string;
   totalArea: string;
   pendingAlerts: string;
@@ -580,6 +582,9 @@ const English: Translations = {
   analysisError: 'Analysis Error',
   scanShrimp: 'Scan Shrimp',
   uploadPhotoDesc: 'Upload a clear photo for high-accuracy disease detection',
+  email: "Email Address",
+  startYourFirstPond: "Start Your First Pond",
+  phoneOrEmail: "Phone or Email",
   openCamera: 'Open Camera',
   uploadPhoto: 'Upload from Gallery',
   photoInstructions: 'Photo Instructions',
@@ -865,7 +870,6 @@ const English: Translations = {
   feedLogs: 'Feed Logs',
   sopEngineAlert: 'SOP Engine Alert',
   autoEngineAlert: 'Automated Engine Alert',
-  startYourFirstPond: 'Start Your First Pond',
   totalPonds: 'Total Ponds',
   totalArea: 'Total Area',
   pendingAlerts: 'Pending Alerts',
@@ -1093,6 +1097,9 @@ const Telugu: Translations = {
   newPondEntry: 'కొత్త చెరువు ఎంట్రీ',
   primaryDetails: 'ప్రాథమిక వివరాలు',
   stockingAnalytics: 'స్టాకింగ్ విశ్లేషణలు',
+  email: 'ఈమెయిల్ చిరునామా',
+  startYourFirstPond: 'మీ మొదటి చెరువును ప్రారంభించండి',
+  phoneOrEmail: 'ఫోన్ లేదా ఈమెయిల్',
   operationalData: 'నిర్వహణ డేటా',
   completePondEntry: 'చెరువు ఎంట్రీని పూర్తి చేయండి',
   kg: 'కిలోలు',

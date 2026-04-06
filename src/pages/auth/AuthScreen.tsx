@@ -89,6 +89,26 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
         
         setLoading(true);
         if (onLanguageChange) onLanguageChange(lang);
+        
+        // PROACTIVE IDENTITY CHECK — Restriction step
+        try {
+          const checkRes = await fetch(`${API_BASE_URL}/auth/check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile: `+91 ${phone}`, email })
+          });
+          const checkData = await checkRes.json();
+          if (!checkRes.ok) {
+            setError(checkData.error || "User already exists. Restricted.");
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          setError("Identity check failed. Restricted.");
+          setLoading(false);
+          return;
+        }
+
         setTimeout(() => {
           setLoading(false);
           setStep('otp');

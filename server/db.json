@@ -63,6 +63,28 @@
         "security": true
       },
       "updatedAt": "2026-04-06T06:41:50.443Z"
+    },
+    {
+      "name": "Ashok Reddy",
+      "phoneNumber": "+91 9898989898",
+      "email": "Syamk.doram@gmail.com",
+      "password": "$2b$12$39wuFtzpMpkJYeVXlMpW3eQMmtmfU48VBCiptjnYPxX/tdfutQzL6",
+      "location": "Sv Palem",
+      "role": "farmer",
+      "farmSize": 10,
+      "language": "English",
+      "subscriptionStatus": "free",
+      "_id": "id_1775460859632_q7a5c",
+      "createdAt": "2026-04-06T07:34:19.632Z",
+      "fcmToken": "fZFmaOPC56v8SjyD6lYl20:APA91bF71efq86W28lASUWnt2DdyjAH67Klygrz9fp0mU39_Zaa1-e8T00C8Rs27JgXmK0QIJg16jkO3I-zTdHZWx1t-LBQzxS4WQK-6g74iHoNwABsU5oo",
+      "notifications": {
+        "water": true,
+        "feed": true,
+        "market": false,
+        "expert": true,
+        "security": true
+      },
+      "updatedAt": "2026-04-06T07:36:36.200Z"
     }
   ],
   "subscriptions": [
@@ -111,6 +133,17 @@
       ],
       "_id": "id_1775456138453_ol1vu",
       "createdAt": "2026-04-06T06:15:38.453Z"
+    },
+    {
+      "userId": "id_1775460859632_q7a5c",
+      "planName": "free",
+      "status": "active",
+      "features": [
+        "basic_dashboard",
+        "pond_management"
+      ],
+      "_id": "id_1775460859646_qlhf8",
+      "createdAt": "2026-04-06T07:34:19.646Z"
     }
   ],
   "ponds": [
@@ -311,6 +344,13 @@
       "expiryDate": "2026-04-13T06:15:38.470Z",
       "_id": "id_1775456138471_ndir5",
       "createdAt": "2026-04-06T06:15:38.471Z"
+    },
+    {
+      "userId": "id_1775460859632_q7a5c",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImlkXzE3NzU0NjA4NTk2MzJfcTdhNWMiLCJpYXQiOjE3NzU0NjA4NTksImV4cCI6MTc3NjA2NTY1OX0.0mqRXJfjzJhggINBem8L5pbNuiG8MeVA_ta8imf7Ngs",
+      "expiryDate": "2026-04-13T07:34:19.691Z",
+      "_id": "id_1775460859693_p8j66",
+      "createdAt": "2026-04-06T07:34:19.694Z"
     }
   ]
 }

@@ -113,6 +113,24 @@ app.get('/api/health', (_req, res) =>
 //  AUTH                          ║
 // ═══════════════════════════════╝
 
+app.post('/api/auth/check', authLimiter, async (req, res) => {
+  try {
+    const { mobile, email } = req.body;
+    if (isMock()) {
+      if (await MockDB.findOne('users', { phoneNumber: mobile }))
+        return res.status(409).json({ error: 'Phone number already registered' });
+      if (await MockDB.findOne('users', { email }))
+        return res.status(409).json({ error: 'Email address already registered' });
+    } else {
+      if (await UserMongo.findOne({ phoneNumber: mobile }))
+        return res.status(409).json({ error: 'Phone number already registered' });
+      if (await UserMongo.findOne({ email }))
+        return res.status(409).json({ error: 'Email address already registered' });
+    }
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Check failed' }); }
+});
+
 app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { name, mobile, email, password, location, role, farmSize, language } = req.body;
@@ -125,14 +143,20 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     let user, sub;
 
     if (isMock()) {
-      if (await MockDB.findOne('users', { $or: [{ phoneNumber: mobile }, { email }] }))
-        return res.status(409).json({ error: 'Phone or Email already registered' });
+      if (await MockDB.findOne('users', { phoneNumber: mobile }))
+        return res.status(409).json({ error: 'Phone number already registered' });
+      if (await MockDB.findOne('users', { email }))
+        return res.status(409).json({ error: 'Email address already registered' });
+      
       user = await MockDB.save('users', { name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: +farmSize||0, language: language||'English', subscriptionStatus: 'free' });
       sub  = await MockDB.save('subscriptions', { userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] });
     } else {
       if (mongoose.connection.readyState !== 1) throw new Error('DB not ready');
-      if (await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email }] }))
-        return res.status(409).json({ error: 'Phone or Email already registered' });
+      if (await UserMongo.findOne({ phoneNumber: mobile }))
+        return res.status(409).json({ error: 'Phone number already registered' });
+      if (await UserMongo.findOne({ email }))
+        return res.status(409).json({ error: 'Email address already registered' });
+        
       user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: farmSize||0, language: language||'English', subscriptionStatus: 'free' }).save();
       sub  = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] }).save();
     }
