@@ -28,7 +28,7 @@ const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({ 
-  origin: ['http://localhost:3000', 'https://aqua-grow.vercel.app', 'https://aquagrow.onrender.com'],
+  origin: ['https://aqua-grow.vercel.app', 'https://aquagrow.onrender.com'],
   credentials: true 
 }));
 
@@ -103,19 +103,15 @@ app.get('/api/health', (_req, res) =>
 app.post('/api/auth/check', authLimiter, async (req, res) => {
   try {
     const { mobile, email } = req.body;
-    if (isMock()) {
-      if (await MockDB.findOne('users', { phoneNumber: mobile }))
-        return res.status(409).json({ error: 'Phone number already registered' });
-      if (await MockDB.findOne('users', { email }))
-        return res.status(409).json({ error: 'Email address already registered' });
-    } else {
-      if (await UserMongo.findOne({ phoneNumber: mobile }))
-        return res.status(409).json({ error: 'Phone number already registered' });
-      if (await UserMongo.findOne({ email }))
-        return res.status(409).json({ error: 'Email address already registered' });
-    }
+    if (mobile && await UserMongo.findOne({ phoneNumber: mobile }))
+      return res.status(409).json({ error: 'Phone number already registered' });
+    if (email && await UserMongo.findOne({ email }))
+      return res.status(409).json({ error: 'Email address already registered' });
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: 'Check failed' }); }
+  } catch (e) { 
+    console.error('[Check Error]', e.message);
+    res.status(500).json({ error: 'Check failed' }); 
+  }
 });
 
 app.post('/api/auth/register', authLimiter, async (req, res) => {

@@ -754,7 +754,39 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         </div>
 
         {/* ── MAIN CONTENT ── */}
-        {activePonds.length === 0 ? (
+        {loading ? (
+          <div className="mt-6 bg-white/80 backdrop-blur-md p-12 rounded-[2.5rem] text-center shadow-lg border border-white/40 flex flex-col items-center justify-center relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10">
+                <motion.div 
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                />
+             </div>
+             
+             <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mb-6 relative">
+                <div className="absolute inset-0 bg-emerald-200/20 rounded-3xl animate-ping" />
+                <RefreshCw size={36} className="text-emerald-500 animate-spin" strokeWidth={2.5} />
+             </div>
+             
+             <h3 className="text-emerald-950 font-black text-lg tracking-tight mb-2 uppercase">{t.syncingData || 'Syncing Farm Data'}</h3>
+             <p className="text-[9px] text-emerald-900/30 font-black uppercase tracking-[0.2em] max-w-[200px] leading-relaxed">
+               Establishing secure connection to Render server...
+             </p>
+             
+             <div className="mt-8 flex gap-1.5">
+                {[0, 1, 2].map(i => (
+                  <motion.div 
+                    key={i}
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                    className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                  />
+                ))}
+             </div>
+          </div>
+        ) : activePonds.length === 0 ? (
           <div className="mt-6 bg-white p-8 rounded-[2.5rem] text-center shadow-lg border border-black/5 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="w-16 h-16 bg-[#F8F9FE] rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#C78200] shadow-inner">
               <Plus size={32} strokeWidth={3} />
