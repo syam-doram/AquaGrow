@@ -8,19 +8,31 @@ import { useData } from '../../context/DataContext';
 
 export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
   const navigate = useNavigate();
-  const { setUser } = useData();
+  const { updateUser } = useData();
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name || '',
     email: user.email || '',
     phoneNumber: user.phoneNumber || '',
     location: user.location || '',
-    experience: '5 Years', // Placeholder
+    experience: (user as any).experience || '5 Years',
   });
 
-  const handleSave = () => {
-    // In a real app, this would call an API
-    setUser({ ...user, ...formData });
-    navigate('/profile');
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const success = await updateUser(formData);
+      if (success) {
+        navigate('/profile');
+      } else {
+        alert('Failed to update profile. Please try again.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error updating profile.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -90,9 +102,16 @@ export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
 
         <button 
           onClick={handleSave}
-          className="w-full mt-12 bg-[#C78200] text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl shadow-[#C78200]/20 transition-all active:scale-95 flex items-center justify-center gap-4"
+          disabled={isSaving}
+          className="w-full mt-12 bg-[#C78200] text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl shadow-[#C78200]/20 transition-all active:scale-95 flex items-center justify-center gap-4 disabled:opacity-70"
         >
-          {t.saveChanges} <Save size={18} />
+          {isSaving ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              {t.saveChanges} <Save size={18} />
+            </>
+          )}
         </button>
       </div>
     </div>

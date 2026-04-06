@@ -19,7 +19,7 @@ declare global {
 dotenv.config();
 const app = express();
 app.set('trust proxy', 1);
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_refresh';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
@@ -27,16 +27,12 @@ const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(cors({ 
+app.use(cors({
   origin: [
-    'https://aquagrow.onrender.com', 
-    'https://aqua-grow.vercel.app',
-    'https://localhost', 
-    'http://localhost', 
-    'http://localhost:5173',
-    'capacitor://localhost'
+    'https://aquagrow.onrender.com',
+    'https://aqua-grow.vercel.app'
   ],
-  credentials: true 
+  credentials: true
 }));
 
 // ─── Refresh token persistence logic ─────────────────────────────────────────
@@ -47,14 +43,14 @@ const saveRefreshToken = async (userId: string, token: string) => {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const signAccess  = (p: any) => jwt.sign(p, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+const signAccess = (p: any) => jwt.sign(p, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
 const signRefresh = (p: any) => jwt.sign(p, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions);
 
 // ─── Rate limiters ────────────────────────────────────────────────────────────
 // Auth: 10 req / 15 min  — brute-force protection
-const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many attempts. Try again in 15 minutes.' }, standardHeaders: true, legacyHeaders: false });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many attempts. Try again in 15 minutes.' }, standardHeaders: true, legacyHeaders: false });
 // General API: 120 req / min per IP
-const apiLimiter  = rateLimit({ windowMs: 60*1000, max: 120, message: { error: 'Rate limit exceeded.' }, standardHeaders: true, legacyHeaders: false });
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: 'Rate limit exceeded.' }, standardHeaders: true, legacyHeaders: false });
 
 app.use('/api', apiLimiter);
 
@@ -82,7 +78,7 @@ const requireRole = (...roles) => (req, res, next) => {
 const requireSelf = (req, res, next) => {
   const id = req.params.userId || req.body?.userId;
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-  
+
   if (req.user.id !== id && req.user.role !== 'admin')
     return res.status(403).json({ error: 'Cannot access another user data' });
   next();
@@ -113,9 +109,9 @@ app.post('/api/auth/check', authLimiter, async (req, res) => {
     if (email && await UserMongo.findOne({ email }))
       return res.status(409).json({ error: 'Email address already registered' });
     res.json({ success: true });
-  } catch (e) { 
+  } catch (e) {
     console.error('[Check Error]', e.message);
-    res.status(500).json({ error: 'Check failed' }); 
+    res.status(500).json({ error: 'Check failed' });
   }
 });
 
@@ -135,11 +131,11 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(409).json({ error: 'Phone number already registered' });
     if (await UserMongo.findOne({ email }))
       return res.status(409).json({ error: 'Email address already registered' });
-        
-    user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: farmSize||0, language: language||'English', subscriptionStatus: 'free' }).save();
-    sub  = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] }).save();
 
-    const access  = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role || 'farmer', farmSize: farmSize || 0, language: language || 'English', subscriptionStatus: 'free' }).save();
+    sub = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard', 'pond_management'] }).save();
+
+    const access = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id: user._id });
     await saveRefreshToken(user._id, refresh);
     res.status(201).json({ user, subscription: sub, access_token: access, refresh_token: refresh });
@@ -158,8 +154,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     sub = await SubscriptionMongo.findOne({ userId: user._id });
 
-    const id      = user._id || user.id;
-    const access  = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    const id = user._id || user.id;
+    const access = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id });
     await saveRefreshToken(id, refresh);
     res.json({ user, subscription: sub, access_token: access, refresh_token: refresh });
@@ -170,13 +166,13 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 app.post('/api/auth/refresh', authLimiter, async (req, res) => {
   const { refresh_token } = req.body;
   if (!refresh_token) return res.status(401).json({ error: 'Missing refresh token' });
-  
+
   try {
     const p = jwt.verify(refresh_token, REFRESH_SECRET) as any;
     const storedToken = await RefreshToken.findOne({ token: refresh_token });
 
     if (!storedToken) return res.status(401).json({ error: 'Refresh token not recognized' });
-    
+
     const user = await UserMongo.findById(p.id);
 
     if (!user) return res.status(401).json({ error: 'User not found' });
@@ -206,11 +202,11 @@ app.post('/api/subscription/upgrade', authenticate, async (req, res) => {
     const { planName } = req.body;
     const userId = req.user.id;
     const features = planName === 'pro'
-      ? ['basic_dashboard','pond_management','advanced_analytics','agent_access']
+      ? ['basic_dashboard', 'pond_management', 'advanced_analytics', 'agent_access']
       : planName === 'enterprise'
-      ? ['basic_dashboard','pond_management','advanced_analytics','agent_access','expert_consultation','market_trends']
-      : ['basic_dashboard','pond_management'];
-    const end = new Date(Date.now() + 365*24*60*60*1000);
+        ? ['basic_dashboard', 'pond_management', 'advanced_analytics', 'agent_access', 'expert_consultation', 'market_trends']
+        : ['basic_dashboard', 'pond_management'];
+    const end = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
     const sub = await SubscriptionMongo.findOneAndUpdate({ userId }, { planName, features, status: 'active', endDate: end }, { upsert: true, new: true });
     await UserMongo.findByIdAndUpdate(userId, { subscriptionStatus: planName === 'free' ? 'free' : 'pro' });
     res.json(sub);
@@ -220,8 +216,8 @@ app.post('/api/subscription/upgrade', authenticate, async (req, res) => {
 app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req, res) => {
   try {
     const userId = req.params.userId;
-    const sub = await SubscriptionMongo.findOne({ userId });
-    
+    let sub = await SubscriptionMongo.findOne({ userId });
+
     // Auto-create or return default free plan if missing
     if (!sub) {
       const defaultSub = {
@@ -230,9 +226,9 @@ app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req,
         status: 'active',
         features: ['basic_dashboard', 'pond_management'],
         startDate: new Date(),
-        endDate: new Date(Date.now() + 365*24*60*60*1000)
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
       };
-      
+
       sub = await new SubscriptionMongo(defaultSub).save();
     }
     res.json(sub);
@@ -256,14 +252,14 @@ app.patch('/api/user/:userId', authenticate, requireSelf, async (req, res) => {
   try {
     const userId = req.params.userId;
     const updates = req.body;
-    
+
     // Safety: don't allow password or role updates via this endpoint
     delete updates.password;
     delete updates.role;
-    delete updates.mobile; // Phone is fixed for now
+    delete updates.phoneNumber; // Phone is fixed for now
 
     const user = await UserMongo.findByIdAndUpdate(userId, updates, { new: true });
-    
+
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -426,11 +422,11 @@ app.post('/api/ai/analyze-health', authenticate, async (req, res) => {
           role: 'user',
           parts: [
             { text: prompt },
-            { 
-              inlineData: { 
-                data: base64Image.split(',')[1] || base64Image, 
-                mimeType: 'image/jpeg' 
-              } 
+            {
+              inlineData: {
+                data: base64Image.split(',')[1] || base64Image,
+                mimeType: 'image/jpeg'
+              }
             }
           ]
         }
@@ -438,7 +434,7 @@ app.post('/api/ai/analyze-health', authenticate, async (req, res) => {
     });
 
     const text = response.text;
-    
+
     // Final check for valid JSON in response
     const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
     const diagnosis = JSON.parse(jsonStr);
@@ -463,8 +459,8 @@ import admin from 'firebase-admin';
 // ─── Firebase Admin Setup (for Push Notification Engine) ────────────────────
 // Note: In Production, set FIREBASE_SERVICE_ACCOUNT_KEY in .env
 try {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) 
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
     : null;
 
   if (serviceAccount) {
@@ -484,22 +480,22 @@ const runPushEngine = async () => {
   try {
     const now = new Date();
     const currentHour = now.getHours();
-    
+
     // Simulate Amavasya check (Simplified logic for demonstration)
     // Real logic would use a lunar calendar library
-    const isAmavasya = now.getDate() === 1 || now.getDate() === 29; 
+    const isAmavasya = now.getDate() === 1 || now.getDate() === 29;
 
     console.log(`[Push Engine] Scanning active ponds at ${now.toLocaleTimeString()}...`);
 
     const users = await UserMongo.find({});
     for (const u of users) {
       if (!u.fcmToken || !u.notifications) continue;
-      
-      const ponds = await PondMongo.find({ userId: u._id||u.id });
+
+      const ponds = await PondMongo.find({ userId: u._id || u.id });
 
       for (const p of ponds) {
         if (p.status !== 'active' || !p.stockingDate) continue;
-        
+
         // Calculate DOC (Days of Culture)
         const stocking = new Date(p.stockingDate);
         const diffMs = Math.abs(now.getTime() - stocking.getTime());
@@ -510,51 +506,51 @@ const runPushEngine = async () => {
 
         // ─── CONDITION 1: DOC Milestone (e.g. DOC 30) ───
         if (doc === 30) {
-           alertTitle = `Milestone: DOC 30! 📈`;
-           alertBody = `Your prawns in ${p.name} have reached 30 days. Time for a transition to mineral-rich feed.`;
+          alertTitle = `Milestone: DOC 30! 📈`;
+          alertBody = `Your prawns in ${p.name} have reached 30 days. Time for a transition to mineral-rich feed.`;
         }
-        
+
         // ─── CONDITION 2: Amavasya Lunar Alert ───
         else if (isAmavasya && u.notifications.water) {
-           alertTitle = `Amavasya Risk Alert 🌑`;
-           alertBody = `High risk of mass molting and DO drop tonight in ${p.name}. Ensure all aerators are functional.`;
+          alertTitle = `Amavasya Risk Alert 🌑`;
+          alertBody = `High risk of mass molting and DO drop tonight in ${p.name}. Ensure all aerators are functional.`;
         }
 
         // ─── CONDITION 3: 6 AM Feeding Reminder ───
         else if (currentHour === 6 && u.notifications.feed) {
-           alertTitle = `Feeding Reminder 🥣`;
-           alertBody = `Good morning! It's 6:00 AM. Time for the first feed in ${p.name}.`;
+          alertTitle = `Feeding Reminder 🥣`;
+          alertBody = `Good morning! It's 6:00 AM. Time for the first feed in ${p.name}.`;
         }
 
         // --- DELIVERY LOGIC ---
         if (alertTitle && alertBody) {
-           console.log(`[FCM-TRIGGER] Condition Met for ${u.name}: ${alertTitle}`);
+          console.log(`[FCM-TRIGGER] Condition Met for ${u.name}: ${alertTitle}`);
 
-           if (admin.apps.length > 0) {
-              const message = {
-                 notification: { title: alertTitle, body: alertBody },
-                 token: u.fcmToken,
-                 android: {
-                    priority: 'high' as any,
-                    notification: {
-                       channelId: 'aquagrow-premium',
-                       icon: 'ic_launcher',
-                       color: '#10B981',
-                       clickAction: 'FCM_PLUGIN_ACTIVITY',
-                       visibility: 'public' as any
-                    }
-                 }
-              };
-
-              try {
-                await admin.messaging().send(message);
-                console.log(`[FCM-SUCCESS] Alert sent to ${u.name} for ${p.name}`);
-              } catch (err) {
-                console.warn('[FCM-ERROR] Peer failure:', err.message);
+          if (admin.apps.length > 0) {
+            const message = {
+              notification: { title: alertTitle, body: alertBody },
+              token: u.fcmToken,
+              android: {
+                priority: 'high' as any,
+                notification: {
+                  channelId: 'aquagrow-premium',
+                  icon: 'ic_launcher',
+                  color: '#10B981',
+                  clickAction: 'FCM_PLUGIN_ACTIVITY',
+                  visibility: 'public' as any
+                }
               }
-           } else {
-              console.log(`[SIMULATED-PUSH] ${alertTitle}: ${alertBody}`);
-           }
+            };
+
+            try {
+              await admin.messaging().send(message);
+              console.log(`[FCM-SUCCESS] Alert sent to ${u.name} for ${p.name}`);
+            } catch (err) {
+              console.warn('[FCM-ERROR] Peer failure:', err.message);
+            }
+          } else {
+            console.log(`[SIMULATED-PUSH] ${alertTitle}: ${alertBody}`);
+          }
         }
       }
     }
