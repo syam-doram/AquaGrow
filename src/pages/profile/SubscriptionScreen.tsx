@@ -24,19 +24,27 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   const { upgradePlan, user, isPro } = useData();
   
   const PLANS = [
-    { id: 'pro_silver',  label: 'Aqua 3 (Silver)', price: '₹ 2,999',  ponds: 3, color: 'bg-slate-400', desc: 'Ideal for small-scale pilot crops' },
-    { id: 'pro_gold',    label: 'Aqua 6 (Gold)',   price: '₹ 4,999',  ponds: 6, color: 'bg-[#C78200]', desc: 'The perfect balance for growing farms' },
-    { id: 'pro_diamond', label: 'Aqua 9 (Diamond)', price: '₹ 6,999',  ponds: 9, color: 'bg-blue-500', desc: 'Maximum scale for professional operations' },
+    { id: 'pro_silver',  label: 'Aqua 3 (Silver)', price: '₹ 2,999', priceNum: 2999, ponds: 3, color: 'bg-slate-400', desc: 'Ideal for small-scale pilot crops', rank: 1 },
+    { id: 'pro_gold',    label: 'Aqua 6 (Gold)',   price: '₹ 4,999', priceNum: 4999, ponds: 6, color: 'bg-[#C78200]', desc: 'The perfect balance for growing farms', rank: 2 },
+    { id: 'pro_diamond', label: 'Aqua 9 (Diamond)', price: '₹ 6,999', priceNum: 6999, ponds: 9, color: 'bg-blue-500', desc: 'Maximum scale for professional operations', rank: 3 },
   ];
 
-  const availablePlans = PLANS.filter(p => user?.subscriptionStatus !== p.id);
+  const getPlanRank = (id: string | undefined) => {
+    if (!id) return 0;
+    const plan = PLANS.find(p => p.id === id);
+    return plan ? plan.rank : 0;
+  };
+
+  const userRank = getPlanRank(user?.subscriptionStatus);
+  const availablePlans = PLANS.filter(p => p.rank > userRank);
+  
   const [selectedPlan, setSelectedPlan] = useState<string | null>(availablePlans.length > 0 ? availablePlans[0].id : null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Sync selected plan if user status changes (e.g. login/expiry)
   React.useEffect(() => {
-    const updatedAvailable = PLANS.filter(p => user?.subscriptionStatus !== p.id);
-    if (selectedPlan && user?.subscriptionStatus === selectedPlan) {
+    const updatedAvailable = PLANS.filter(p => p.rank > getPlanRank(user?.subscriptionStatus));
+    if (selectedPlan && PLANS.find(p => p.id === selectedPlan)!.rank <= getPlanRank(user?.subscriptionStatus)) {
       setSelectedPlan(updatedAvailable.length > 0 ? updatedAvailable[0].id : null);
     } else if (!selectedPlan && updatedAvailable.length > 0) {
       setSelectedPlan(updatedAvailable[0].id);
@@ -51,23 +59,31 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
     }
   };
 
-  const calculateCredit = () => {
-    if (!user?.subscriptionExpiry || !isPro) return 0;
+  const getSubscriptionDetails = () => {
+    if (!user?.subscriptionExpiry || !isPro) return { credit: 0, usedDays: 0, usedAmount: 0, remainingDays: 0 };
+    
     const expiry = new Date(user.subscriptionExpiry);
     const now = new Date();
-    if (expiry <= now) return 0;
     
     // Calculate remaining days
     const diffMs = expiry.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const remainingDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     
-    // Constant daily rates based on plan prices
-    // Silver: 2999/365 = ~8.2, Gold: 4999/365 = ~13.7
-    const dailyRate = user.subscriptionStatus === 'pro_silver' ? 8.21 : 13.69;
-    return Math.floor(diffDays * dailyRate);
+    // Assume 365 days cycle for used days detection
+    const totalDays = 365;
+    const usedDays = Math.max(0, totalDays - remainingDays);
+    
+    const currentPlan = PLANS.find(p => p.id === user.subscriptionStatus);
+    const totalPaid = currentPlan ? currentPlan.priceNum : 0;
+    const dailyRate = totalPaid / totalDays;
+    
+    const usedAmount = Math.ceil(usedDays * dailyRate);
+    const credit = Math.max(0, totalPaid - usedAmount);
+    
+    return { credit, usedDays, usedAmount, remainingDays };
   };
 
-  const existingCredit = calculateCredit();
+  const { credit: existingCredit, usedDays, usedAmount } = getSubscriptionDetails();
   const currentPlanData = PLANS.find(p => p.id === selectedPlan);
 
   const handlePaymentSuccess = async () => {
@@ -133,14 +149,14 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
             </div>
 
             <div className="pt-4 border-t border-white/5 space-y-3">
-               <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 pt-0.5 shadow-sm">
                      <TrendingUp size={14} />
                   </div>
                   <div>
-                     <h4 className="text-[10px] font-black uppercase tracking-widest text-[#C78200]">Rollover Protection + Refund</h4>
+                     <h4 className="text-[10px] font-black uppercase tracking-widest text-[#C78200]">Prorated Upgrade Logic</h4>
                      <p className="text-[9px] text-white/40 font-bold leading-relaxed pr-8">
-                        Upgrading now **refunds** your remaining ₹{existingCredit} balance as a credit towards your new plan.
+                        Used **{usedDays} days** (Cutting: ₹{usedAmount.toLocaleString()}). Your remaining balance of **₹{existingCredit.toLocaleString()}** will be credited to your new choice.
                      </p>
                   </div>
                </div>
@@ -246,6 +262,8 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
             plan={selectedPlan!}
             price={currentPlanData.price}
             existingCredit={existingCredit}
+            usedDays={usedDays}
+            usedAmount={usedAmount}
             t={t}
             onPaymentSuccess={handlePaymentSuccess}
           />
@@ -255,7 +273,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   );
 };
 
-const PaymentModal = ({ onClose, plan, price, existingCredit, t, onPaymentSuccess }: { isOpen: boolean, onClose: () => void, plan: string, price: string, existingCredit: number, t: Translations, onPaymentSuccess: () => void }) => {
+const PaymentModal = ({ onClose, plan, price, existingCredit, usedDays, usedAmount, t, onPaymentSuccess }: { isOpen: boolean, onClose: () => void, plan: string, price: string, existingCredit: number, usedDays: number, usedAmount: number, t: Translations, onPaymentSuccess: () => void }) => {
   const [method, setMethod] = useState<'card' | 'upi' | 'netbanking'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -266,11 +284,11 @@ const PaymentModal = ({ onClose, plan, price, existingCredit, t, onPaymentSucces
     setProcessStep('Verifying Active Account...');
     
     setTimeout(() => {
-      setProcessStep('Calculating Refund Credit...');
+      setProcessStep('Calculating Used Days & Cutting...');
       setTimeout(() => {
-        setProcessStep(`Refunding ₹${existingCredit.toLocaleString()} to Balance...`);
+        setProcessStep(`Applying ₹${existingCredit.toLocaleString()} Credit...`);
         setTimeout(() => {
-           setProcessStep('Initiating Final Transaction...');
+           setProcessStep('Finalizing Upgrade...');
            setTimeout(() => {
               setIsProcessing(false);
               setIsSuccess(true);
@@ -327,17 +345,21 @@ const PaymentModal = ({ onClose, plan, price, existingCredit, t, onPaymentSucces
               </button>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-black/5 mb-8 space-y-4">
-               <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">New Plan Charge</span>
-                  <span className="text-sm font-black text-[#4A2C2A]">₹{basePriceNum.toLocaleString()}</span>
+            <div className="bg-slate-50 p-6 rounded-[2rem] border border-black/5 mb-8 space-y-3">
+               <div className="flex justify-between items-center opacity-40">
+                  <span className="text-[9px] font-black uppercase tracking-widest">Selected Plan Price</span>
+                  <span className="text-xs font-bold font-mono">₹{basePriceNum.toLocaleString()}</span>
+               </div>
+               <div className="flex justify-between items-center text-red-500/60">
+                  <span className="text-[9px] font-black uppercase tracking-widest">Cutting ({usedDays} used days)</span>
+                  <span className="text-xs font-bold font-mono">+ ₹{usedAmount.toLocaleString()}</span>
                </div>
                <div className="flex justify-between items-center text-emerald-600">
-                  <span className="text-[10px] font-black uppercase tracking-widest">Remaining Credit (Refund)</span>
-                  <span className="text-sm font-black">- ₹{existingCredit.toLocaleString()}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Adjustment Credit</span>
+                  <span className="text-xs font-bold font-mono">- ₹{(basePriceNum - finalPayable).toLocaleString()}</span>
                </div>
-               <div className="pt-4 border-t border-black/10 flex justify-between items-center">
-                  <span className="text-xs font-black text-[#4A2C2A] uppercase tracking-widest">Net Payable</span>
+               <div className="pt-3 border-t border-black/5 flex justify-between items-center">
+                  <span className="text-[10px] font-black text-[#4A2C2A] uppercase tracking-widest">Net Payable</span>
                   <span className="text-2xl font-black tracking-tighter text-[#C78200]">₹{finalPayable.toLocaleString()}</span>
                </div>
             </div>

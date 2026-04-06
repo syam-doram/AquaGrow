@@ -167,12 +167,13 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
 
         {!selectedPond ? (
-           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 text-center border border-black/5 shadow-xl mt-6">
-             <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
-                <Waves size={40} className="text-emerald-600/30" />
+           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-6 text-center border border-black/5 shadow-xl mt-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+             <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Waves size={32} className="text-emerald-600/30" />
              </div>
-             <h2 className="text-xl font-black text-[#4A2C2A] leading-tight mb-2">{t.noActivePonds}</h2>
-             <button onClick={() => navigate('/ponds')} className="bg-[#0D523C] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl mt-4">
+             <h2 className="text-base font-black text-[#4A2C2A] leading-tight mb-2 uppercase tracking-tight">{t.noActivePonds}</h2>
+             <p className="text-[10px] text-[#4A2C2A]/30 font-bold uppercase tracking-widest mb-6 px-10">{t.addFirstPondDesc}</p>
+             <button onClick={() => navigate('/ponds')} className="bg-[#0D523C] text-white px-8 py-3.5 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
                {t.addPond}
              </button>
            </div>

@@ -14,27 +14,26 @@ export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggest
   const lunar = getLunarStatus(date);
   const dayOfWeek = date.getDay();
 
-  // Lunar-Aware Guidance (SOP - High Priority)
+  // --- DOC-BASED FILTERS ---
+  const isEarlyStage = doc <= 20;
+
+  // 🕒 1. Lunar-Aware Guidance (SOP - High Priority)
   if (lunar.phase === 'AMAVASYA') {
     suggestions.push({
       type: 'LUNAR',
-      title: 'Amavasya - Feed Adjustment',
-      description: 'SOP: Reduce feed 20-30% tonight due to mass molting risk and low DO.',
+      title: 'Amavasya - Water Stability',
+      description: isEarlyStage ? 'Maintain stable water levels. High molting period for early-stage seed.' : 'SOP: Reduce feed 20-30% tonight due to mass molting risk and low DO.',
       priority: 'HIGH'
     });
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Mineral Mix (High Dose)',
-      description: 'Lunar SOP: Vital for shell hardening during Amavasya molting.',
-      dose: '15-20 kg / acre',
-      priority: 'HIGH'
-    });
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Vitamin C / Immunity Boost',
-      description: 'Lunar SOP: Combat stress during high biological demand period.',
-      priority: 'HIGH'
-    });
+    if (!isEarlyStage) {
+      suggestions.push({
+        type: 'MEDICINE',
+        title: 'Mineral Mix (High Dose)',
+        description: 'Lunar SOP: Vital for shell hardening during Amavasya molting.',
+        dose: '15-20 kg / acre',
+        priority: 'HIGH'
+      });
+    }
   } else if (lunar.phase === 'POURNAMI') {
     suggestions.push({
       type: 'LUNAR',
@@ -42,197 +41,94 @@ export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggest
       description: 'SOP: Increase aeration to 100% capacity. High biological demand during full moon.',
       priority: 'HIGH'
     });
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Mineral Mix (Maintenance Dose)',
-      description: 'SOP: Support partial molting during full moon.',
-      priority: 'MEDIUM'
-    });
-  } else if (lunar.phase === 'ASHTAMI') {
-    suggestions.push({
-      type: 'LUNAR',
-      title: 'Ashtami - Molting sequence starts',
-      description: 'SOP: Reduce feed by 10% today. 48hr stress sequence begins.',
-      priority: 'MEDIUM'
-    });
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Mineral Mix (Evening)',
-      description: 'SOP: Essential for shell hardening as molting sequence begins.',
-      priority: 'HIGH'
-    });
-  } else if (lunar.phase === 'NAVAMI') {
-    suggestions.push({
-      type: 'LUNAR',
-      title: 'Navami - Peak Vigilance',
-      description: 'SOP: Watch for soft-shell. Reduce feed by 15% if mortality seen.',
-      priority: 'MEDIUM'
-    });
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Immunity Booster (Morning)',
-      description: 'SOP: Support recovery after peak molting phase.',
-      priority: 'HIGH'
-    });
   }
   
-  // DOC-WISE MEDICINE SCHEDULE
-  if (doc === 0) {
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Initial Bio-Booster',
-      description: 'First application to establish microbial balance on stocking day.',
-      brand: 'Aqua-Safe Booster',
-      dose: '1L / acre',
-      priority: 'HIGH'
-    });
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Anti-Stress Tonic',
-      description: 'Apply 2 hours before/after stocking to reduce seed mortality.',
-      dose: '500ml / acre',
-      priority: 'HIGH'
-    });
-  } else if (doc >= 1 && doc <= 10) {
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Gut Probiotic (Daily)',
-      description: 'Mix with feed to improve digestion and early survival.',
-      brand: 'CP Gut Probiotic',
-      dose: '5–10 g/kg feed',
-      priority: 'HIGH'
-    });
-    if (doc % 3 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        title: 'Water Probiotic',
-        description: 'Maintain water quality and early microbial balance.',
-        brand: 'Bioclean Aqua Plus',
-        dose: '250 g/acre',
-        priority: 'MEDIUM'
-      });
-    }
-  } else if (doc >= 11 && doc <= 20) {
-    suggestions.push({
-      type: 'MEDICINE',
-      title: 'Gut Probiotic Continue',
-      description: 'Maintain gut health during growth spurt.',
-      brand: 'Avanti Gut Health',
-      dose: '10g/kg feed',
-      priority: 'HIGH'
-    });
+  // 🕒 2. EARLY STAGE SPECIALIZATION (DOC 1-20)
+  if (isEarlyStage) {
     if (doc % 5 === 0) {
       suggestions.push({
-        type: 'MEDICINE',
-        title: 'Water & Soil Probiotic',
-        description: 'Clean pond bottom (soil bacteria) and water column.',
-        brand: 'Sanolife PRO-W',
+        type: 'TIP',
+        title: 'Water Quality Check',
+        description: 'Monitor Alkalinity and pH stability. This is the foundation stage.',
+        priority: 'HIGH'
+      });
+    }
+    if (doc === 10 || doc === 20) {
+      suggestions.push({
+        type: 'RULE',
+        title: 'Water Probiotic Tip',
+        description: 'Establish beneficial microbial balance for a healthy pond bottom.',
         priority: 'MEDIUM'
       });
     }
-    if (doc === 15) {
+  } else {
+    // 🕒 3. MATURE STAGE MEDICINE SCHEDULE (DOC 21+)
+    if (doc >= 21 && doc <= 30) {
       suggestions.push({
         type: 'ALERT',
-        title: 'Vitamin C Booster',
-        description: 'Immunity boost for transitioned juveniles.',
+        title: 'White Gut (WGD) Check',
+        description: 'SOP: Inspect feed trays for white fecal strings or opaque shrimp guts.',
         priority: 'HIGH'
       });
-    }
-  } else if (doc >= 21 && doc <= 30) {
-    if (doc % 2 !== 0) { // Alternate days
+
+      if (doc === 25) {
+        suggestions.push({
+          type: 'ALERT',
+          title: 'Vibriosis Check Required',
+          description: 'Risk starting stage! Check for early signs of Vibriosis.',
+          priority: 'HIGH'
+        });
+        suggestions.push({
+          type: 'MEDICINE',
+          title: 'Immunity Booster',
+          description: 'Bolster defenses before critical stage.',
+          priority: 'MEDIUM'
+        });
+      }
+    } else if (doc >= 31 && doc <= 45) {
       suggestions.push({
-        type: 'MEDICINE',
-        title: 'Water Probiotic',
-        description: 'Critical for ammonia control in risk stage.',
+        type: 'ALERT',
+        title: 'CRITICAL STAGE ALERT',
+        description: 'High risk of White Spot Syndrome (WSSV). Keep aeration at maximum.',
+        priority: 'HIGH'
+      });
+      suggestions.push({
+        type: 'ALERT',
+        title: 'White Feces (WFD) Alert',
+        description: 'SOP: If white strings are seen, reduce feed by 50% immediately.',
+        priority: 'HIGH'
+      });
+    } else if (doc >= 81 && doc <= 100) {
+      suggestions.push({
+        type: 'RULE',
+        title: 'Final Stage Compliance',
+        description: 'Stop heavy medicines now. Maintain clean water for harvest quality.',
         priority: 'HIGH'
       });
     }
-    if (doc === 25) {
-       suggestions.push({
-         type: 'ALERT',
-         title: 'Vibriosis Check Required',
-         description: 'Risk starting stage! Check for early signs of Vibriosis.',
-         priority: 'HIGH'
-       });
-       suggestions.push({
-         type: 'MEDICINE',
-         title: 'Immunity Booster',
-         description: 'Bolster defenses before critical stage.',
-         priority: 'MEDIUM'
-       });
-    }
-  } else if (doc >= 31 && doc <= 45) {
-    suggestions.push({
-      type: 'ALERT',
-      title: 'CRITICAL STAGE ALERT',
-      description: 'High risk of White Spot Syndrome (WSSV). Keep aeration at maximum.',
-      priority: 'HIGH'
-    });
-    if (doc % 3 === 0) {
-       suggestions.push({
-         type: 'MEDICINE',
-         title: 'Water Probiotic',
-         description: 'Intensive water conditioning required.',
-         priority: 'HIGH'
-       });
-    }
-    if (doc >= 30 && doc <= 35) {
-       suggestions.push({
-         type: 'MEDICINE',
-         title: 'Anti-Stress Tonic',
-         description: 'Reduce physiological stress in extreme heat/cold.',
-         priority: 'MEDIUM'
-       });
-    }
-    if (doc === 40) {
-       suggestions.push({
-         type: 'MEDICINE',
-         title: 'Vitamin + Mineral Booster',
-         description: 'Prepare for high growth stage.',
-         priority: 'HIGH'
-       });
-    }
-  } else if (doc >= 46 && doc <= 60) {
-    if (doc === 50) {
-       suggestions.push({
-         type: 'MEDICINE',
-         title: 'Liver Tonic',
-         description: 'Focus on hepatopancreas health for maximum growth.',
-         priority: 'HIGH'
-       });
-    }
-  } else if (doc >= 81 && doc <= 100) {
-    suggestions.push({
-      type: 'RULE',
-      title: 'Final Stage Compliance',
-      description: 'Stop heavy medicines now. Maintain clean water for harvest quality.',
-      priority: 'HIGH'
-    });
-  }
 
-  // Simple Weekly Model
-  if (dayOfWeek !== undefined) {
-    const weeklyModel: Record<number, SOPSuggestion[]> = {
-      1: [{ type: 'MEDICINE', title: 'Monday → Mineral', description: 'Weekly mineral application day.', priority: 'MEDIUM' }],
-      2: [{ type: 'MEDICINE', title: 'Tuesday → Water probiotic', description: 'Condition the water column.', priority: 'HIGH' }],
-      3: [{ type: 'MEDICINE', title: 'Wednesday → Gut probiotic', description: 'Intensive gut health feed mix.', priority: 'MEDIUM' }],
-      4: [{ type: 'MEDICINE', title: 'Thursday → Water probiotic', description: 'Second water conditioning for the week.', priority: 'HIGH' }],
-      5: [{ type: 'MEDICINE', title: 'Friday → Mineral', description: 'Secondary mineral stabilization.', priority: 'MEDIUM' }],
-      6: [{ type: 'ALERT', title: 'Saturday → Immunity booster', description: 'Bolster shrimp immunity today.', priority: 'HIGH' }],
-      0: [{ type: 'TIP', title: 'Sunday → Check water', description: 'Full water parameter check and maintenance.', priority: 'MEDIUM' }],
-    };
-    if (weeklyModel[dayOfWeek]) {
-      suggestions.push(...weeklyModel[dayOfWeek]);
+    // Weekly Model (Only for Mature Stage)
+    if (dayOfWeek !== undefined) {
+      const weeklyModel: Record<number, SOPSuggestion[]> = {
+        1: [{ type: 'MEDICINE', title: 'Monday → Mineral', description: 'Weekly mineral application day.', priority: 'MEDIUM' }],
+        2: [{ type: 'MEDICINE', title: 'Tuesday → Water probiotic', description: 'Condition the water column.', priority: 'HIGH' }],
+        3: [{ type: 'MEDICINE', title: 'Wednesday → Gut probiotic', description: 'Intensive gut health feed mix.', priority: 'MEDIUM' }],
+        4: [{ type: 'MEDICINE', title: 'Thursday → Water probiotic', description: 'Second water conditioning for the week.', priority: 'HIGH' }],
+        5: [{ type: 'MEDICINE', title: 'Friday → Mineral', description: 'Secondary mineral stabilization.', priority: 'MEDIUM' }],
+        6: [{ type: 'ALERT', title: 'Saturday → Immunity booster', description: 'Bolster shrimp immunity today.', priority: 'HIGH' }],
+        0: [{ type: 'TIP', title: 'Sunday → Check water', description: 'Full water parameter check and maintenance.', priority: 'MEDIUM' }],
+      };
+      if (weeklyModel[dayOfWeek]) {
+        suggestions.push(...weeklyModel[dayOfWeek]);
+      }
     }
   }
 
-  // General Rules
-  suggestions.push({
-    type: 'RULE',
-    title: 'Amavasya Tip',
-    description: 'Success depends on: Water quality + Aeration + Feed management during Amavasya.',
-    priority: 'MEDIUM'
-  });
+  // --- FINAL FILTERING ---
+  // If Early Stage, strictly remove MEDICINE and ALERT types as requested.
+  if (isEarlyStage) {
+    return suggestions.filter(s => s.type !== 'MEDICINE' && s.type !== 'ALERT');
+  }
 
   return suggestions;
 };

@@ -40,13 +40,13 @@ export const fetchCurrentConditions = () => {
 };
 
 export const getEnginePhase = (doc: number) => {
-  if (doc <= 10) return { phase: 1, title: 'Phase 1: DOC 1–10', msg: 'Starter stage – maintain water stability', tasks: [{ t: 'Feed', v: '4–5 times/day' }, { t: 'Probiotic', v: 'every 3 days' }, { t: 'Mineral', v: 'weekly' }] };
-  if (doc <= 20) return { phase: 2, title: 'Phase 2: DOC 11–20', msg: 'Ammonia control important', tasks: [{ t: 'Feed', v: 'Increase slowly' }, { t: 'Probiotic', v: 'Start gut probiotic' }, { t: 'Add-on', v: 'Zeolite reminder' }] };
-  if (doc <= 30) return { phase: 3, title: 'Phase 3: DOC 21–30', msg: 'Disease risk starting – monitor shrimp', tasks: [{ t: 'Mineral', v: '2 times/week' }, { t: 'Probiotic', v: 'Alternate days' }, { t: 'Risk', v: 'Check for infections' }] };
-  if (doc <= 45) return { phase: 4, title: 'Phase 4: DOC 31–45 (Critical)', msg: 'High risk of White Spot Syndrome', tasks: [{ t: 'Feed', v: '3–4 times' }, { t: 'Medicine', v: 'Immunity booster' }, { t: 'Aerator', v: 'Full time (24h)' }] };
-  if (doc <= 60) return { phase: 5, title: 'Phase 5: DOC 46–60', msg: 'High biomass – oxygen demand high', tasks: [{ t: 'Feed', v: 'High feeding' }, { t: 'Medicine', v: 'Liver tonic' }, { t: 'Aerator', v: 'Extra aeration needed' }] };
-  if (doc <= 80) return { phase: 6, title: 'Phase 6: DOC 61–80', msg: 'Growth stage – maintain stability', tasks: [{ t: 'Feed', v: 'Maintain volumes' }, { t: 'Mineral', v: 'High dose' }, { t: 'Check', v: 'Water toxicity check' }] };
-  return { phase: 7, title: 'Phase 7: DOC 81–100', msg: 'Harvest planning stage', tasks: [{ t: 'Feed', v: 'Reduce gradually' }, { t: 'Prep', v: 'Prepare for harvest' }, { t: 'Check', v: 'Size sampling' }] };
+  if (doc <= 10) return { phase: 1, title: 'Phase 1: DOC 1–10 (Seeding)', msg: 'Starter stage – prioritize water quality & alkalinity', tasks: [{ t: 'Check', v: 'pH & Alkalinity (Daily)' }, { t: 'Water', v: 'Maintain slight green color' }, { t: 'Feed', v: 'Follow tray observations' }] };
+  if (doc <= 20) return { phase: 2, title: 'Phase 2: DOC 11–20', msg: 'Transition phase – maintain pH stability & growth', tasks: [{ t: 'Probiotic', v: 'Soil/Water probiotics' }, { t: 'Water', v: 'Monitor early ammonia' }, { t: 'Feed', v: 'Gradual increment' }] };
+  if (doc <= 30) return { phase: 3, title: 'Phase 3: DOC 21–30', msg: 'Shrimp observation stage – monitor for stress', tasks: [{ t: 'Disease', v: 'Start body checks' }, { t: 'Water', v: 'Strict pH monitoring' }, { t: 'Feed', v: 'Adjust per check-tray' }] };
+  if (doc <= 45) return { phase: 4, title: 'Phase 4: DOC 31–45 (Critical)', msg: 'Peak High Risk Window (WSSV)', tasks: [{ t: 'WSSV', v: 'Check for white spots' }, { t: 'Medicine', v: 'Immunity supplements' }, { t: 'Aerator', v: 'Continuous aeration' }] };
+  if (doc <= 60) return { phase: 5, title: 'Phase 5: DOC 46–60', msg: 'Biomass expansion stage', tasks: [{ t: 'Water', v: 'Monitor fecal strings' }, { t: 'Feed', v: 'High protein intake' }, { t: 'Medicine', v: 'Liver protection' }] };
+  if (doc <= 80) return { phase: 6, title: 'Phase 6: DOC 61–80', msg: 'Moulting Management', tasks: [{ t: 'Mineral', v: 'Enhance mineral dose' }, { t: 'Water', v: 'Daily DO checks' }, { t: 'Harvest', v: 'Partial planning' }] };
+  return { phase: 7, title: 'Phase 7: DOC 81–100', msg: 'Maturity & Final Harvest', tasks: [{ t: 'Harvest', v: 'Clear all stocks' }, { t: 'Final', v: 'Market price check' }, { t: 'Feed', v: 'Stop 12h before' }] };
 };
 
 export const getDailySchedule = (doc: number): DailyTask[] => {

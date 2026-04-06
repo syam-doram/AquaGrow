@@ -128,12 +128,16 @@ export const PondManagement = ({ t, onMenuClick }: { t: Translations, onMenuClic
             </div>
           ))
         ) : (
-          <div className="text-center py-20 bg-white rounded-[3rem] border border-black/5 mx-4">
-            <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
-              <Waves size={40} />
+          <div className="text-center py-12 bg-white rounded-[2rem] border border-black/5 mx-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="w-16 h-16 bg-[#C78200]/5 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#C78200]">
+              <Waves size={32} />
             </div>
-            <p className="text-[#4A2C2A]/40 font-black uppercase tracking-widest text-[10px]">{t.noEntries}</p>
-            <button onClick={() => navigate('/ponds/new')} className="mt-6 text-[#C78200] font-black underline text-xs">{t.addFirstPond}</button>
+            <p className="text-[#4A2C2A] font-black tracking-tight text-sm mb-1">{t.noEntries}</p>
+            <p className="text-[9px] text-[#4A2C2A]/30 font-bold uppercase tracking-widest mb-6 max-w-[200px] mx-auto leading-relaxed">{t.addFirstPondDesc}</p>
+            <button onClick={() => navigate('/ponds/new')} 
+              className="px-8 py-3.5 bg-[#C78200] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#C78200]/20 active:scale-95 transition-all">
+              {t.addFirstPond}
+            </button>
           </div>
         )}
       </div>

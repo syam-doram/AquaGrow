@@ -5,6 +5,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
+import { GoogleGenAI } from '@google/genai';
 import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, RefreshToken, connectDB, isMock, MockDB } from './db.js';
 
 declare global {
@@ -24,8 +25,12 @@ const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_refresh';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
 
-app.use(express.json({ limit: '50kb' }));
-app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(cors({ 
+  origin: ['http://localhost:3000', 'https://aqua-grow.vercel.app', 'https://aquagrow.onrender.com'],
+  credentials: true 
+}));
 
 // ─── Refresh token persistence logic ─────────────────────────────────────────
 const saveRefreshToken = async (userId: string, token: string) => {
@@ -110,9 +115,9 @@ app.get('/api/health', (_req, res) =>
 
 app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
-    const { name, mobile, password, location, role, farmSize, language } = req.body;
-    if (!name || !mobile || !password)
-      return res.status(400).json({ error: 'name, mobile and password are required' });
+    const { name, mobile, email, password, location, role, farmSize, language } = req.body;
+    if (!name || !mobile || !email || !password)
+      return res.status(400).json({ error: 'name, mobile, email and password are required' });
     if (password.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
@@ -120,15 +125,15 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     let user, sub;
 
     if (isMock()) {
-      if (await MockDB.findOne('users', { phoneNumber: mobile }))
-        return res.status(409).json({ error: 'Phone number already registered' });
-      user = await MockDB.save('users', { name, phoneNumber: mobile, password: hash, location, role: role||'farmer', farmSize: +farmSize||0, language: language||'English', subscriptionStatus: 'free' });
+      if (await MockDB.findOne('users', { $or: [{ phoneNumber: mobile }, { email }] }))
+        return res.status(409).json({ error: 'Phone or Email already registered' });
+      user = await MockDB.save('users', { name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: +farmSize||0, language: language||'English', subscriptionStatus: 'free' });
       sub  = await MockDB.save('subscriptions', { userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] });
     } else {
       if (mongoose.connection.readyState !== 1) throw new Error('DB not ready');
-      if (await UserMongo.findOne({ phoneNumber: mobile }))
-        return res.status(409).json({ error: 'Phone number already registered' });
-      user = await new UserMongo({ name, phoneNumber: mobile, password: hash, location, role: role||'farmer', farmSize: farmSize||0, language: language||'English', subscriptionStatus: 'free' }).save();
+      if (await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email }] }))
+        return res.status(409).json({ error: 'Phone or Email already registered' });
+      user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: farmSize||0, language: language||'English', subscriptionStatus: 'free' }).save();
       sub  = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] }).save();
     }
 
@@ -143,20 +148,19 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { mobile, password } = req.body;
     if (!mobile || !password)
-      return res.status(400).json({ error: 'mobile and password are required' });
+      return res.status(400).json({ error: 'identifier and password are required' });
 
     let user, sub;
     if (isMock()) {
-      user = await MockDB.findOne('users', { phoneNumber: mobile });
+      user = await MockDB.findOne('users', { $or: [{ phoneNumber: mobile }, { email: mobile }] });
       if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-      // Support legacy plain-text passwords (migration path to hashed)
       const ok = user.password?.startsWith('$2')
         ? await bcrypt.compare(password, user.password)
         : password === user.password;
       if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
       sub = await MockDB.findOne('subscriptions', { userId: user._id });
     } else {
-      user = await UserMongo.findOne({ phoneNumber: mobile });
+      user = await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email: mobile }] });
       if (!user || !await bcrypt.compare(password, user.password))
         return res.status(401).json({ error: 'Invalid credentials' });
       sub = await SubscriptionMongo.findOne({ userId: user._id });
@@ -241,10 +245,28 @@ app.post('/api/subscription/upgrade', authenticate, async (req, res) => {
 
 app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req, res) => {
   try {
-    const sub = isMock()
-      ? await MockDB.findOne('subscriptions', { userId: req.params.userId })
-      : await SubscriptionMongo.findOne({ userId: req.params.userId });
-    if (!sub) return res.status(404).json({ error: 'Subscription not found' });
+    const userId = req.params.userId;
+    let sub = isMock()
+      ? await MockDB.findOne('subscriptions', { userId })
+      : await SubscriptionMongo.findOne({ userId });
+    
+    // Auto-create or return default free plan if missing
+    if (!sub) {
+      const defaultSub = {
+        userId,
+        planName: 'free',
+        status: 'active',
+        features: ['basic_dashboard', 'pond_management'],
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 365*24*60*60*1000)
+      };
+      
+      if (isMock()) {
+        sub = await MockDB.save('subscriptions', defaultSub);
+      } else {
+        sub = await new SubscriptionMongo(defaultSub).save();
+      }
+    }
     res.json(sub);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -259,6 +281,28 @@ app.put('/api/user/:userId/notifications', authenticate, requireSelf, async (req
     const user = isMock()
       ? await MockDB.findOneAndUpdate('users', { _id: req.params.userId }, { fcmToken, notifications })
       : await UserMongo.findByIdAndUpdate(req.params.userId, { fcmToken, notifications }, { new: true });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/user/:userId', authenticate, requireSelf, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const updates = req.body;
+    
+    // Safety: don't allow password or role updates via this endpoint
+    delete updates.password;
+    delete updates.role;
+    delete updates.mobile; // Phone is fixed for now
+
+    let user;
+    if (isMock()) {
+      user = await MockDB.findOneAndUpdate('users', { _id: userId }, updates);
+    } else {
+      user = await UserMongo.findByIdAndUpdate(userId, updates, { new: true });
+    }
+    
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -415,6 +459,64 @@ app.post('/api/medicine-logs', authenticate, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+// AI Client Instance
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+
+app.post('/api/ai/analyze-health', authenticate, async (req, res) => {
+  try {
+    const { base64Image, language } = req.body;
+    if (!base64Image) return res.status(400).json({ error: 'Image is required' });
+
+    const prompt = `
+      As a world-class Aquatic Veterinarian specializing in Vannamei Shrimp, analyze this image.
+      Look for:
+      1. White gut syndrome (WGD) or White fecal strings (WFD).
+      2. Shrunken or pale hepatopancreas (Signs of EHP).
+      3. White spots on carapace (WSSV).
+      4. Redness or deformities (Vibriosis).
+      
+      Respond only in a strict JSON format:
+      {
+        "disease": "string (localized in ${language})",
+        "confidence": number (0-100),
+        "severity": "Safe | Warning | Critical",
+        "markerAnalysis": "brief description of what you see",
+        "reasoning": "Scientific explanation of clinical symptoms (localized in ${language})",
+        "action": "immediate treatment steps (localized in ${language})"
+      }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { 
+              inlineData: { 
+                data: base64Image.split(',')[1] || base64Image, 
+                mimeType: 'image/jpeg' 
+              } 
+            }
+          ]
+        }
+      ]
+    });
+
+    const text = response.text;
+    
+    // Final check for valid JSON in response
+    const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
+    const diagnosis = JSON.parse(jsonStr);
+
+    res.json(diagnosis);
+  } catch (e) {
+    console.error("AI Analysis Backend Error:", e);
+    res.status(500).json({ error: 'AI processing failed' });
+  }
+});
+
 // ─── Admin: list all users ────────────────────────────────────────────────────
 app.get('/api/admin/users', authenticate, requireRole('admin'), async (_req, res) => {
   try {
@@ -533,8 +635,10 @@ const runPushEngine = async () => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
-    app.listen(PORT, () => {
-      console.log('Server is running and listening on port ' + PORT);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Aqua Server] Running on http://0.0.0.0:${PORT}`);
+      console.log(`[Aqua Server] Database: ${isMock() ? 'MOCK' : 'MONGODB'}`);
+      console.log(`[Aqua Server] AI SDK: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
       // Run the engine every 2 minutes for check-conditions
       setInterval(runPushEngine, 120000);
     });

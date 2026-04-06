@@ -16,6 +16,7 @@ interface DataContextType {
   sopLogs: any[];
   expenses: any[];
   setUser: (user: User | null) => void;
+  updateUser: (updates: Partial<User>) => Promise<boolean>;
   register: (user: Omit<User, 'id' | 'subscriptionStatus'>) => Promise<{ success: boolean; error?: string }>;
   login: (phoneNumber: string, password?: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   addPond: (pond: Omit<Pond, 'id'>) => Promise<void>;
@@ -53,14 +54,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [medicineLogs, setMedicineLogs] = useState<MedicineRecord[]>([]);
   const [sopLogs, setSopLogs] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
-  const [completedReminderIds, setCompletedReminderIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('completed_reminders');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [notifications, setNotifications] = useState<any[]>(() => {
-    const saved = localStorage.getItem('aqua_notifications_v2');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [completedReminderIds, setCompletedReminderIds] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(() => {
     const saved = localStorage.getItem('aqua_tokens');
@@ -87,8 +82,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                  user?.subscriptionStatus === 'pro_diamond'
                 );
 
-  const refreshAccessToken = async () => {
-    if (!tokens?.refresh) return null;
+  const refreshAccessToken = async (providedRefreshToken?: string) => {
+    const refreshToken = providedRefreshToken || tokens?.refresh;
+    if (!refreshToken) return null;
     if (refreshInProgress.current) return refreshInProgress.current;
 
     refreshInProgress.current = (async () => {
@@ -96,11 +92,15 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: tokens.refresh })
+          body: JSON.stringify({ refresh_token: refreshToken })
         });
         if (response.ok) {
           const data = await response.json();
-          const newTokens = { ...tokens, access: data.access_token };
+          // Crucial: preserve the refresh token if the response doesn't provide a new one
+          const newTokens = { 
+            access: data.access_token, 
+            refresh: data.refresh_token || refreshToken 
+          };
           setTokens(newTokens);
           localStorage.setItem('aqua_tokens', JSON.stringify(newTokens));
           refreshInProgress.current = null;
@@ -110,7 +110,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Token refresh failed:", e);
       }
       refreshInProgress.current = null;
-      setUser(null); // Force logout if refresh fails or returns error status
+      // setUser(null); // Optional: don't force logout immediately on network failure, let 401 handle it
       return null;
     })();
 
@@ -123,13 +123,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       headers: { ...getAuthHeaders(options.overrideTokens), ...options.headers }
     });
 
-    if (response.status === 401 && retry && tokens?.refresh) {
-      const newTokens = await refreshAccessToken();
-      if (newTokens) {
-        return fetch(url, {
-          ...options,
-          headers: { ...getAuthHeaders(newTokens), ...options.headers }
-        });
+    if (response.status === 401 && retry) {
+      const refreshToken = options.overrideTokens?.refresh || tokens?.refresh;
+      if (refreshToken) {
+        const newTokens = await refreshAccessToken(refreshToken);
+        if (newTokens) {
+          return fetch(url, {
+            ...options,
+            headers: { ...getAuthHeaders(newTokens), ...options.headers }
+          });
+        }
       }
     }
     return response;
@@ -225,6 +228,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (savedUser && savedUser !== 'null') {
         const u = JSON.parse(savedUser);
         if (u) {
+          setCompletedReminderIds(u.completedReminders || []);
+          setNotifications(u.notificationHistory || []);
           const t = JSON.parse(localStorage.getItem('aqua_tokens') || 'null');
           
           // Re-generate tokens for preview user if missing
@@ -303,6 +308,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         body: JSON.stringify({
           name: userData.name,
           mobile: userData.phoneNumber,
+          email: userData.email,
           password: userData.password,
           location: userData.location,
           role: userData.role,
@@ -546,29 +552,53 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       date: new Date().toISOString(),
       isRead: false
     };
-    setNotifications(prev => {
-       const next = [newNotif, ...prev].slice(0, 50); 
-       localStorage.setItem('aqua_notifications_v2', JSON.stringify(next));
-       return next;
-    });
+    const next = [newNotif, ...notifications].slice(0, 50);
+    setNotifications(next);
+    updateUser({ notificationHistory: next });
   };
 
   const markNotificationsRead = () => {
-    setNotifications(prev => {
-      const next = prev.map(n => ({ ...n, isRead: true }));
-      localStorage.setItem('aqua_notifications_v2', JSON.stringify(next));
-      return next;
-    });
+    const next = notifications.map(n => ({ ...n, isRead: true }));
+    setNotifications(next);
+    updateUser({ notificationHistory: next });
   };
 
   const unreadCount = React.useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
 
   const reminders = React.useMemo(() => {
-    return generateReminders(ponds, feedLogs, waterRecords, translations[user?.language || 'English']).map((r: any) => ({
+    const lang = translations[user?.language || 'English'];
+    const todayReminders = generateReminders(ponds, feedLogs, waterRecords, lang, new Date());
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowReminders = generateReminders(ponds, feedLogs, waterRecords, lang, tomorrow);
+
+    return [...todayReminders, ...tomorrowReminders].map((r: any) => ({
       ...r,
       status: completedReminderIds.includes(r.id) ? 'completed' : r.status
     }));
   }, [ponds, feedLogs, waterRecords, user?.language, completedReminderIds]);
+
+  const updateUser = async (updates: Partial<User>) => {
+    if (!user) return;
+    const uid = user.id || (user as any)._id;
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/user/${uid}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        const fullUser = { ...user, ...updated, id: updated._id || updated.id };
+        setUser(fullUser);
+        localStorage.setItem('aqua_user', JSON.stringify(fullUser));
+        return true;
+      }
+    } catch (e) {
+      console.error("Profile sync error:", e);
+    }
+    return false;
+  };
 
   return (
     <DataContext.Provider value={{ 
@@ -582,6 +612,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       sopLogs,
       expenses,
       setUser,
+      updateUser,
       register: register as any,
       login: login as any,
       addPond,
@@ -609,11 +640,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       markNotificationsRead,
       unreadCount,
       toggleReminder: (id: string) => {
-        setCompletedReminderIds(prev => {
-          const next = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id];
-          localStorage.setItem('completed_reminders', JSON.stringify(next));
-          return next;
-        });
+        const next = completedReminderIds.includes(id) 
+          ? completedReminderIds.filter(i => i !== id) 
+          : [...completedReminderIds, id];
+        setCompletedReminderIds(next);
+        updateUser({ completedReminders: next });
       }
     }}>
       {children}

@@ -420,15 +420,17 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
           </div>
         ) : (
           /* No Ponds Empty State */
-          <div className="mt-8 bg-white rounded-[2.5rem] p-10 text-center border border-dashed border-[#4A2C2A]/10 shadow-sm">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5 text-emerald-500">
-              <Plus size={36} />
+          <div className="mt-6 bg-white rounded-[2rem] p-8 text-center border border-dashed border-[#4A2C2A]/10 shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-emerald-500">
+              <Plus size={32} />
             </div>
-            <h3 className="text-[#4A2C2A] font-black text-lg tracking-tighter mb-2">{t.addFirstPond}</h3>
-            <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-6">Add a pond to start tracking your medicine SOP schedule.</p>
+            <h3 className="text-[#4A2C2A] font-black text-sm tracking-tighter mb-1">{t.addFirstPond}</h3>
+            <p className="text-[#4A2C2A]/30 text-[9px] font-black uppercase tracking-widest leading-relaxed mb-6 max-w-[200px] mx-auto">
+              Add a pond to start tracking your medicine SOP schedule.
+            </p>
             <button
               onClick={() => navigate('/ponds/new')}
-              className="bg-[#0D523C] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
+              className="bg-[#0D523C] text-white px-8 py-3.5 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
             >
               {t.addPond}
             </button>

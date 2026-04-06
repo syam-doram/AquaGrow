@@ -23,6 +23,8 @@ export interface User {
     expert: boolean;
     security: boolean;
   };
+  completedReminders?: string[];
+  notificationHistory?: any[];
   bankDetails?: {
     bankName: string;
     accountNumber: string;
@@ -42,6 +44,9 @@ export interface Pond {
   seedSource: string;
   species: 'Vannamei' | 'Tiger';
   status: 'active' | 'harvested' | 'archive';
+  waterType: string;
+  initialSalinity: number;
+  isStocked: boolean;
   sensorId?: string; // Unique IoT Node ID assigned to this pond
   currentWeight?: number;
   history?: PondLog[];

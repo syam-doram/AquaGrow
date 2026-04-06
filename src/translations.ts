@@ -22,8 +22,17 @@ export interface Translations {
   alertHistory: string;
   expert: string;
   notifications: string;
+  allActivities: string;
   systemHealthOptimal: string;
   systemTestMessage: string;
+  waterType: string;
+  borewell: string;
+  canal: string;
+  creek: string;
+  initialSalinity: string;
+  released: string;
+  needToRelease: string;
+  stockingStatus: string;
 
   // Greetings & Status
   systemLive: string;
@@ -150,6 +159,11 @@ export interface Translations {
   addFirstPondDesc: string;
   save: string;
   cancel: string;
+  newPondEntry: string;
+  primaryDetails: string;
+  stockingAnalytics: string;
+  operationalData: string;
+  completePondEntry: string;
   kg: string;
   acres: string;
   hectares: string;
@@ -453,6 +467,13 @@ export interface Translations {
   majorExpenses: string;
   viewPdfLog: string;
   logDailyExpense: string;
+  timeToFeed: string;
+  checkFeedTrays: string;
+  aeratorNightOn: string;
+  moonCycleAlert: string;
+  reduceFeedAmavasya: string;
+  addMineralsAshtami: string;
+  applyLimePhLow: string;
 }
 
 const English: Translations = {
@@ -475,7 +496,8 @@ const English: Translations = {
   missedActivities: 'Missed Activities',
   alertHistory: 'Cloud Alert History',
   expert: 'Expert',
-  notifications: 'Notifications',
+  notifications: 'Intelligence Center',
+  allActivities: 'Operations Feed',
   systemHealthOptimal: 'System Health: Optimal',
   systemTestMessage: 'Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.',
   systemLive: 'System Live',
@@ -597,7 +619,19 @@ const English: Translations = {
   addFirstPond: 'Add First Pond',
   addFirstPondDesc: 'Add your first pond to begin tracking.',
   save: 'Save',
+  timeToFeed: 'Time to Feed',
+  checkFeedTrays: 'Check Feed Trays',
+  aeratorNightOn: 'Aerator Night Mode ON',
+  moonCycleAlert: 'Lunar Cycle Alert',
+  reduceFeedAmavasya: 'Reduce Feed - Amavasya SOP',
+  addMineralsAshtami: 'Apply Minerals - Ashtami Molting',
+  applyLimePhLow: 'Apply Lime - Low pH Detected',
   cancel: 'Cancel',
+  newPondEntry: 'New Pond Entry',
+  primaryDetails: 'Primary Details',
+  stockingAnalytics: 'Stocking Analytics',
+  operationalData: 'Operational Data',
+  completePondEntry: 'Complete Pond Entry',
   kg: 'kg',
   acres: 'Acres',
   hectares: 'Hectares',
@@ -899,6 +933,14 @@ const English: Translations = {
   paymentGlitch: 'Facing a payment glitch?',
   supportContact: 'Contact Support',
   refundPolicy: 'Refund Policy',
+  waterType: 'Water Source Type',
+  borewell: 'Borewell Water',
+  canal: 'Canal Water',
+  creek: 'Creek / Penna Water',
+  initialSalinity: 'Initial Salinity',
+  released: 'Released (Stocked)',
+  needToRelease: 'Need to Release (Planned)',
+  stockingStatus: 'Stocking Status'
 };
 
 const Telugu: Translations = {
@@ -921,6 +963,9 @@ const Telugu: Translations = {
   pondMonitor: 'చెరువు పర్యవేక్షణ',
   missedActivities: 'తప్పిపోయిన కార్యకలాపాలు',
   alertHistory: 'క్లౌడ్ హెచ్చరికల చరిత్ర',
+  expert: 'నిపుణుల సంప్రదింపులు',
+  notifications: 'నోటిఫికేషన్లు',
+  allActivities: 'కార్యకలాపాలు',
   systemLive: 'సిస్టమ్ లైవ్',
   systemActive: 'సిస్టమ్ యాక్టివ్',
   goodMorning: 'శుభోదయం,',
@@ -992,9 +1037,6 @@ const Telugu: Translations = {
   measurementUnit: 'కొలత యూనిట్',
   units: 'యూనిట్లు',
   appTheme: 'యాప్ థీమ్',
-  notifications: 'ప్రకటనలు',
-  systemHealthOptimal: 'సిస్టమ్ ఆరోగ్యం: అద్భుతంగా ఉంది',
-  systemTestMessage: 'స్టైలిష్ అలర్ట్‌లను పరీక్షిస్తున్నాము. ఆక్వాగ్రో పుష్ ఇంజిన్ ఇప్పుడు మీ ఫామ్ కోసం యాక్టివ్‌గా ఉంది.',
   waterQualityAlerts: 'నీటి నాణ్యత హెచ్చరికలు',
   feedingReminders: 'మేత రిమైండర్లు',
   scheduleSync: 'షెడ్యూల్ సమకాలీకరణ',
@@ -1044,6 +1086,15 @@ const Telugu: Translations = {
   addFirstPondDesc: 'ట్రాకింగ్ ప్రారంభించడానికి మీ మొదటి చెరువును జోడించండి.',
   save: 'సేవ్ చేయండి',
   cancel: 'రద్దు చేయండి',
+  waterType: 'నీటి మూల రకం',
+  borewell: 'బోరు బావి నీరు',
+  canal: 'కాలువ నీరు',
+  creek: 'క్రీక్ / పెన్నా నీరు',
+  newPondEntry: 'కొత్త చెరువు ఎంట్రీ',
+  primaryDetails: 'ప్రాథమిక వివరాలు',
+  stockingAnalytics: 'స్టాకింగ్ విశ్లేషణలు',
+  operationalData: 'నిర్వహణ డేటా',
+  completePondEntry: 'చెరువు ఎంట్రీని పూర్తి చేయండి',
   kg: 'కిలోలు',
   acres: 'ఎకరాలు',
   hectares: 'హెక్టార్లు',
@@ -1298,6 +1349,17 @@ const Telugu: Translations = {
   majorExpenses: 'ప్రధాన ఖర్చులు',
   viewPdfLog: 'PDF లాగ్ చూడండి',
   logDailyExpense: 'రోజువారీ ఖర్చును నమోదు చేయండి',
+  timeToFeed: 'మేత సమయం',
+  checkFeedTrays: 'మేత ట్రేలను తనిఖీ చేయండి',
+  aeratorNightOn: 'నైట్ మోడ్ ఎరేటర్ ఆన్',
+  moonCycleAlert: 'చంద్ర చక్ర హెచ్చరిక',
+  reduceFeedAmavasya: 'మేత తగ్గించండి - అమావాస్య SOP',
+  addMineralsAshtami: 'ఖనిజాలను అన్వయించండి - అష్టమి ఘటం',
+  applyLimePhLow: 'సున్నం అన్వయించండి - తక్కువ pH',
+  initialSalinity: 'ప్రారంభ ఉప్పదనం (Salinity)',
+  released: 'విడుదల చేయబడింది (Stocked)',
+  needToRelease: 'విడుదల చేయాలి (Planned)',
+  stockingStatus: 'స్టాకింగ్ స్థితి'
 };
 
 export const translations: Record<Language, Translations> = {

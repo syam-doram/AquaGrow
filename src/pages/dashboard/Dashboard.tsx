@@ -471,14 +471,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   useEffect(() => {
     if (engineAlerts.length > 0) {
       engineAlerts.forEach(async (alert) => {
-        // 1. ADD TO PERSISTENT TABBED HISTORY (New shared context feature)
+        // 1. ADD TO PERSISTENT TABBED HISTORY
         const alreadyInHistory = sessionStorage.getItem(`added_to_history_${alert.alertKey}`);
         if (!alreadyInHistory) {
           addNotification(`${t.sopEngineAlert} · ${alert.pondName}`, alert.title, alert.type);
           sessionStorage.setItem(`added_to_history_${alert.alertKey}`, 'true');
         }
 
-        // 2. TRIGGER NATIVE PUSH (Mobile only)
+        // 2. TRIGGER NATIVE PUSH
         if (Capacitor.isNativePlatform()) {
           const notifiedInSession = sessionStorage.getItem(`notified_eng_${alert.alertKey}`);
           if (!notifiedInSession) {
@@ -502,6 +502,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           }
         }
       });
+
+      // 3. AUTO-DISMISS AFTER 10 SECONDS
+      const timer = setTimeout(() => {
+        engineAlerts.forEach(alert => handleDismiss(alert.alertKey));
+      }, 10000);
+      return () => clearTimeout(timer);
     }
   }, [engineAlerts, t, addNotification]);
 
@@ -583,34 +589,36 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
       <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
 
-      <div className="px-6 pt-32 space-y-6">
+      <div className="px-6 pt-24 space-y-6">
         {/* ── MANUALLY "RAISED" ENGINE ALERTS ── */}
         {/* ── NEW ELITE TOP NAV ── */}
-        <div className="grid grid-cols-4 gap-2 mb-8">
-          {[
-            { label: t.monitor,   icon: Activity,    path: '/monitor',           color: '#0369A1', bg: '#EFF6FF' },
-            { label: t.liveMonitor,icon: Eye,        path: '/live-monitor',      color: '#0891b2', bg: '#ECFEFF' },
-            { label: t.disease,   icon: HeartPulse, path: '/disease-detection', color: '#dc2626', bg: '#FEF2F2' },
-            { label: t.market,    icon: TrendingUp,  path: '/market',            color: '#059669', bg: '#ECFDF5' },
-            { label: t.weather,   icon: Wind,        path: '/weather',           color: '#6366f1', bg: '#EEF2FF' },
-            { label: t.learn,     icon: Box,         path: '/learn',             color: '#8B5CF6', bg: '#F5F3FF' },
-            { label: t.expert,    icon: Target,      path: '/expert-consultations', color: '#D97706', bg: '#FFF7ED' },
-            { label: t.profile,   icon: Fish,        path: '/profile',           color: '#e11d48', bg: '#FFF1F2' },
-          ].map(n => (
-            <motion.button 
-              key={n.path} 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(n.path)}
-              className="bg-white rounded-[1.2rem] p-3 border border-white/50 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.04)] flex flex-col items-center gap-2 hover:shadow-xl transition-all group relative overflow-hidden"
-            >
-              <div className="absolute inset-x-0 bottom-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: n.color }} />
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110 shadow-inner" style={{ background: n.bg }}>
-                <n.icon size={18} style={{ color: n.color }} />
-              </div>
-              <span className="text-[8px] font-black text-[#012B1D]/40 uppercase tracking-widest text-center leading-tight">{n.label}</span>
-            </motion.button>
-          ))}
-        </div>
+        {ponds.length > 0 && (
+          <div className="grid grid-cols-4 gap-2 mb-8">
+            {[
+              { label: t.monitor,   icon: Activity,    path: '/monitor',           color: '#0369A1', bg: '#EFF6FF' },
+              { label: t.liveMonitor,icon: Eye,        path: '/live-monitor',      color: '#0891b2', bg: '#ECFEFF' },
+              { label: t.disease,   icon: HeartPulse, path: '/disease-detection', color: '#dc2626', bg: '#FEF2F2' },
+              { label: t.market,    icon: TrendingUp,  path: '/market',            color: '#059669', bg: '#ECFDF5' },
+              { label: t.weather,   icon: Wind,        path: '/weather',           color: '#6366f1', bg: '#EEF2FF' },
+              { label: t.learn,     icon: Box,         path: '/learn',             color: '#8B5CF6', bg: '#F5F3FF' },
+              { label: t.expert,    icon: Target,      path: '/expert-consultations', color: '#D97706', bg: '#FFF7ED' },
+              { label: t.profile,   icon: Fish,        path: '/profile',           color: '#e11d48', bg: '#FFF1F2' },
+            ].map(n => (
+              <motion.button 
+                key={n.path} 
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate(n.path)}
+                className="bg-white rounded-[1.2rem] p-3 border border-white/50 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.04)] flex flex-col items-center gap-2 hover:shadow-xl transition-all group relative overflow-hidden"
+              >
+                <div className="absolute inset-x-0 bottom-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: n.color }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110 shadow-inner" style={{ background: n.bg }}>
+                  <n.icon size={18} style={{ color: n.color }} />
+                </div>
+                <span className="text-[8px] font-black text-[#012B1D]/40 uppercase tracking-widest text-center leading-tight">{n.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        )}
 
         {/* ── Personal Greeting ── */}
         <div className="flex items-center justify-between py-2 border-t border-black/5 pt-6">
@@ -638,69 +646,83 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           </div>
         </div>
 
-        {/* ── FLOATING NOTIFICATION CENTER ── */}
-        <div className="fixed top-20 left-4 right-4 z-40 pointer-events-none space-y-3">
-          <AnimatePresence mode="popLayout">
-            {/* 1. SOP Engine Alerts (Floating) */}
-            {engineAlerts.length > 0 && (
-              <div className="space-y-2 pointer-events-auto">
-                {engineAlerts.map((alert, i) => (
-                  <motion.div 
-                    key={`floating-eng-${i}`}
-                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                    className={cn(
-                      'p-4 rounded-[2.2rem] border flex items-start gap-4 shadow-2xl backdrop-blur-xl relative overflow-hidden',
-                      alert.type === 'critical' 
-                        ? 'bg-red-600/90 border-red-400/30 text-white' 
-                        : 'bg-[#C78200]/90 border-[#C78200]/30 text-white'
-                    )}
-                  >
-                    <button 
-                      onClick={() => handleDismiss(alert.alertKey)}
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 text-white/50 hover:text-white transition-all"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className={cn(
-                      'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg',
-                      alert.type === 'critical' ? 'bg-white/20' : 'bg-white/20'
-                    )}>
-                      <AlertTriangle size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0 pr-6">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/60">
-                          {t.sopEngineAlert} · {alert.pondName}
-                        </p>
-                        <div className="w-1 h-1 rounded-full bg-white/30" />
-                        <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40">Live</p>
-                      </div>
-                      <h3 className="font-black text-[13px] leading-tight tracking-tight">{alert.title}</h3>
-                      
-                      {!user.fcmToken && (
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleSyncPush}
-                          disabled={isSyncingPush}
-                          className="mt-3 w-full bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl py-2 px-3 flex items-center justify-center gap-2 border border-white/10 group transition-all"
-                        >
-                          <RefreshCw size={10} className={cn("text-white", isSyncingPush && "animate-spin")} />
-                          <span className="text-[8px] font-black uppercase tracking-widest">
-                            {isSyncingPush ? 'Activating...' : 'Link Device for Push alerts'}
-                          </span>
-                        </motion.button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+        {/* ── ALERTS SECTION (Inline & Auto-dismissing) ── */}
+        <AnimatePresence mode="popLayout">
+          {engineAlerts.length > 0 && (
+            <motion.div 
+              key="alert-hub-inline"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="space-y-3 overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-1 mb-2 mt-2">
+                <div className="flex items-center gap-2">
+                   <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                      <span className="text-[9px] font-black text-white">{engineAlerts.length}</span>
+                   </div>
+                   <p className="text-[10px] font-black text-[#012B1D]/40 uppercase tracking-widest">{t.sopEngineAlert}s · System Detected</p>
+                </div>
+                <button 
+                  onClick={() => engineAlerts.forEach(a => handleDismiss(a.alertKey))}
+                  className="text-[8px] font-black text-[#C78200] uppercase tracking-widest bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#C78200]/10"
+                >
+                  Clear All
+                </button>
               </div>
-            )}
 
-            {/* 2. Firebase Real-time Alerts (Floating) - MOVED TO GLOBAL COUNTERPART */}
+              {engineAlerts.map((alert, i) => (
+                <motion.div 
+                  key={alert.alertKey}
+                  layout
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className={cn(
+                    'p-4 rounded-[2rem] border flex items-start gap-4 shadow-xl relative overflow-hidden transition-all duration-300',
+                    alert.type === 'critical' 
+                      ? 'bg-red-500/95 border-red-400/30 text-white shadow-red-500/10' 
+                      : 'bg-[#C78200]/95 border-[#C78200]/30 text-white shadow-amber-500/10'
+                  )}
+                >
+                  <button 
+                    onClick={() => handleDismiss(alert.alertKey)}
+                    className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 text-white/50 hover:text-white transition-all"
+                  >
+                    <X size={12} />
+                  </button>
+                  <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/70">
+                        {alert.pondName}
+                      </p>
+                      <div className="w-1 h-1 rounded-full bg-white/30" />
+                      <span className="text-[7px] font-bold uppercase tracking-widest text-white/40">Real-time SOP</span>
+                    </div>
+                    <h3 className="font-black text-[13px] leading-tight tracking-tight mb-1">{alert.title}</h3>
+                    
+                    {/* Progress Bar for Auto-dismiss (10s) */}
+                    <div className="mt-2 w-full h-0.5 bg-white/10 rounded-full overflow-hidden">
+                       <motion.div 
+                         initial={{ width: '100%' }}
+                         animate={{ width: '0%' }}
+                         transition={{ duration: 10, ease: "linear" }}
+                         className="h-full bg-white/40"
+                       />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* 3. Lunar Cycle Alerts (Floating) */}
+        {/* ── LUNAR / WEATHER FLOATING (Secondary Only) ── */}
+        <div className="fixed top-24 left-4 right-4 z-[60] pointer-events-none">
+          <AnimatePresence mode="popLayout">
             {showLunarAlert && ['AMAVASYA', 'POURNAMI', 'ASHTAMI', 'NAVAMI'].includes(lunar.phase) && (
               <motion.div 
                 key="floating-lunar"
@@ -723,14 +745,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                     <div>
                       <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-0.5">{t.moonPhaseTitle || 'Moon Phase'}</p>
                       <h3 className="font-black text-sm tracking-tight">{lunar.phase} Phase Alert</h3>
-                      <p className="text-[10px] text-white/40 font-medium">
-                        SOP: {
-                          lunar.phase === 'AMAVASYA' ? 'Reduce feed 20%' : 
-                          lunar.phase === 'POURNAMI' ? 'Increase aeration' : 
-                          lunar.phase === 'ASHTAMI' ? 'Add minerals' : 
-                          lunar.phase === 'NAVAMI' ? 'Light feeding' : ''
-                        }
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -741,13 +755,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
         {/* ── MAIN CONTENT ── */}
         {activePonds.length === 0 ? (
-          <div className="mt-10 bg-white p-10 rounded-[3rem] text-center shadow-xl border border-black/5">
-            <div className="w-20 h-20 bg-[#F8F9FE] rounded-full flex items-center justify-center mx-auto mb-6 text-[#C78200]">
-              <Plus size={40} />
+          <div className="mt-6 bg-white p-8 rounded-[2.5rem] text-center shadow-lg border border-black/5 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="w-16 h-16 bg-[#F8F9FE] rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#C78200] shadow-inner">
+              <Plus size={32} strokeWidth={3} />
             </div>
-            <h3 className="text-[#4A2C2A] font-black text-xl tracking-tighter mb-3">{t.startYourFirstPond}</h3>
+            <h3 className="text-[#4A2C2A] font-black text-sm tracking-tight mb-2">{t.startYourFirstPond}</h3>
+            <p className="text-[10px] text-[#4A2C2A]/30 font-bold uppercase tracking-widest mb-6">{t.addFirstPondDesc}</p>
             <button onClick={() => navigate('/ponds/new')}
-              className="w-full py-5 bg-[#C78200] text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl">
+              className="w-full py-4 bg-gradient-to-br from-[#C78200] to-[#A66C00] text-white font-black rounded-xl text-[9px] uppercase tracking-[0.2em] shadow-xl shadow-[#C78200]/20 active:scale-95 transition-all">
               {t.addPond}
             </button>
           </div>

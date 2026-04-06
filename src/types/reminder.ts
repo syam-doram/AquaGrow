@@ -11,4 +11,5 @@ export interface Reminder {
   time: string; // ISO string or just HH:mm for daily ones
   status: ReminderStatus;
   priority: 'high' | 'medium' | 'low';
+  date?: string; // ISO date string (YYYY-MM-DD)
 }

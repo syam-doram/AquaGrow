@@ -29,6 +29,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [locationValue, setLocationValue] = useState('');
   const [pondCount, setPondCount] = useState('');
@@ -48,16 +49,44 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
     setError('');
     
     if (step === 'form') {
+      const phoneClean = phone.replace(/\D/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      const passRegex = /^(?=.*[0-9!@#$%^&*])(?=.{6,})/;
+
       if (!phone || !password) {
         setError(t.fillAllFields);
         return;
       }
-      if (isRegister && (!name || !locationValue || !pondCount || !acres)) {
-        setError(t.fillAllFields);
-        return;
-      }
-      
       if (isRegister) {
+        // EXHAUSTIVE FIELD VERIFICATION (Block registration if ANY field is empty)
+        if (!name.trim() || !phone.trim() || !email.trim() || !password || !locationValue.trim() || !pondCount || !acres) {
+          setError(t.fillAllFields || "Please fill all required profile fields");
+          return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          setError("Please enter a valid email address");
+          return;
+        }
+        
+        if (name.trim().length < 3) {
+          setError("Name must be at least 3 characters");
+          return;
+        }
+        if (locationValue.length > 20) {
+          setError("Location must be 20 characters only");
+          return;
+        }
+        if (!phoneRegex.test(phoneClean)) {
+          setError("Phone must be 10 digits starting with 6,7,8 or 9");
+          return;
+        }
+        if (!passRegex.test(password)) {
+          setError("Password: Min 6 chars with 1 number or symbol");
+          return;
+        }
+        
         setLoading(true);
         if (onLanguageChange) onLanguageChange(lang);
         setTimeout(() => {
@@ -65,6 +94,12 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
           setStep('otp');
         }, 1200);
         return;
+      } else {
+        // Login handles both phone and email
+        if (!phoneRegex.test(phoneClean) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(phone)) {
+          setError("Please enter a valid phone number or email");
+          return;
+        }
       }
     } else if (step === 'otp') {
       if (!otp || otp.length !== 4) {
@@ -83,6 +118,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
         const result = await register({
           name,
           phoneNumber: `+91 ${phone}`,
+          email,
           password,
           location: locationValue || 'Unknown',
           farmSize: parseFloat(acres) || 0,
@@ -289,12 +325,28 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                         </div>
                         <input 
                           className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
-                          placeholder={t.phoneNumber || "Phone Number"} 
-                          type="tel"
+                          placeholder={isRegister ? (t.phoneNumber || "Phone Number") : "Phone or Email"} 
+                          type={isRegister ? "tel" : "text"}
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          maxLength={isRegister ? 10 : 50}
+                          onChange={(e) => setPhone(isRegister ? e.target.value.replace(/\D/g, '') : e.target.value)}
                         />
                       </div>
+
+                      {isRegister && (
+                        <div className="relative group/input">
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-emerald-400 transition-colors pointer-events-none">
+                            <span className="text-xl font-bold">@</span>
+                          </div>
+                          <input 
+                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                            placeholder={t.email || "Email Address"} 
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Business Details Group (Only during Register for Farmers) */}
@@ -312,6 +364,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                             className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                             placeholder={t.farmLocation || "Farm Location"}
                             value={locationValue}
+                            maxLength={20}
                             onChange={(e) => setLocationValue(e.target.value)}
                           />
                         </div>

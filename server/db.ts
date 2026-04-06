@@ -38,6 +38,7 @@ const SubscriptionSchema = new mongoose.Schema({
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phoneNumber: { type: String, required: true, unique: true },
+  email: { type: String, unique: true },
   password: { type: String, required: true },
   location: { type: String },
   farmSize: { type: Number, default: 0 },
@@ -49,7 +50,16 @@ const UserSchema = new mongoose.Schema({
     water: { type: Boolean, default: true },
     feed: { type: Boolean, default: true },
     market: { type: Boolean, default: false }
-  }
+  },
+  completedReminders: [String],
+  notificationHistory: [{
+    id: String,
+    title: String,
+    body: String,
+    type: { type: String, default: 'alert' },
+    date: { type: String },
+    isRead: { type: Boolean, default: false }
+  }]
 }, { timestamps: true });
 
 const PondSchema = new mongoose.Schema({
@@ -61,6 +71,8 @@ const PondSchema = new mongoose.Schema({
   seedSource: { type: String },
   species: { type: String, enum: ['Vannamei', 'Tiger'], default: 'Vannamei' },
   status: { type: String, enum: ['active', 'harvested', 'archive'], default: 'active' },
+  waterType: { type: String, default: 'Borewell' },
+  initialSalinity: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const FeedLogSchema = new mongoose.Schema({
