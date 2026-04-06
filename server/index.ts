@@ -28,7 +28,13 @@ const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({ 
-  origin: ['https://aqua-grow.vercel.app', 'https://aquagrow.onrender.com'],
+  origin: [
+    'https://aquagrow.onrender.com', 
+    'https://localhost', 
+    'http://localhost', 
+    'http://localhost:5173',
+    'capacitor://localhost'
+  ],
   credentials: true 
 }));
 
