@@ -138,7 +138,7 @@ const SpendBar = ({ label, amount, total, color }: { label: string; amount: numb
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export const ROIEntry = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { ponds } = useData();
+  const { ponds, expenses } = useData();
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'harvested');
 
   const STEPS = [
@@ -151,6 +151,27 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({ ...EMPTY, pondId: activePonds[0]?.id || '' });
   const [saved, setSaved] = useState(false);
+
+  // Auto-fill costs from daily logs when pond changes
+  React.useEffect(() => {
+     if (!form.pondId) return;
+     const pondExpenses = (expenses || []).filter(e => e.pondId === form.pondId);
+     const feed = pondExpenses.filter(e => e.category === 'feed').reduce((acc, e) => acc + (e.amount || 0), 0);
+     const med = pondExpenses.filter(e => e.category === 'medicine').reduce((acc, e) => acc + (e.amount || 0), 0);
+     const diesel = pondExpenses.filter(e => e.category === 'diesel').reduce((acc, e) => acc + (e.amount || 0), 0);
+     const power = pondExpenses.filter(e => e.category === 'power').reduce((acc, e) => acc + (e.amount || 0), 0);
+     const labor = pondExpenses.filter(e => e.category === 'labor').reduce((acc, e) => acc + (e.amount || 0), 0);
+     const other = pondExpenses.filter(e => e.category === 'other').reduce((acc, e) => acc + (e.amount || 0), 0);
+
+     setForm(f => ({
+        ...f,
+        feedCost: feed > 0 ? feed.toString() : f.feedCost,
+        medicineCost: med > 0 ? med.toString() : f.medicineCost,
+        utilityCost: (diesel + power) > 0 ? (diesel + power).toString() : f.utilityCost,
+        laborCost: labor > 0 ? labor.toString() : f.laborCost,
+        otherCost: other > 0 ? other.toString() : f.otherCost
+     }));
+  }, [form.pondId, expenses]);
 
   const set = (key: keyof FormData) => (v: string) => setForm(f => ({ ...f, [key]: v }));
   const n = (v: string) => parseFloat(v) || 0;

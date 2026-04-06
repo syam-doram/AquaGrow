@@ -346,6 +346,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         return { success: false, error: data.error || 'Login failed' };
       }
       const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      localStorage.setItem('aqua_phone', phoneNumber); // Store for automatic biometric lookup
       setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
       setSubscription(data.subscription);
       return { success: true, user: loggedUser };

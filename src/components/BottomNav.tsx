@@ -20,7 +20,7 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   const activeItem = navItems.find(item => location.pathname === item.path) || navItems[0];
   
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-50">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] sm:max-w-[420px] z-50">
       <nav 
         className="nav-blur px-2 py-3 flex justify-around items-center rounded-[2.5rem] border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden transition-all duration-700 ease-in-out"
         style={{ backgroundColor: activeItem.bg }}

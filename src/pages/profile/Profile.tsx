@@ -82,21 +82,7 @@ export const Profile = ({ t, onMenuClick }: { t: Translations, onMenuClick: () =
     }, 2500);
   };
 
-  if (!user) return (
-    <div className="min-h-screen bg-[#FFFDF5] flex flex-col items-center justify-center p-10 text-center">
-      <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-        <UserIcon size={32} className="text-[#C78200]" />
-      </div>
-      <h2 className="text-xl font-black text-[#4A2C2A] tracking-tighter mb-1">Not Logged In</h2>
-      <p className="text-[#4A2C2A]/60 text-xs mb-6">Please login to view and manage your profile.</p>
-      <button 
-        onClick={() => navigate('/')}
-        className="bg-[#C78200] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-600/20"
-      >
-        Go to Login
-      </button>
-    </div>
-  );
+  // With path-based routing, user is guaranteed to be present if this page is rendered
 
   const containerVariants = {
     hidden: { opacity: 0 },

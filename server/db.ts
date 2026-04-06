@@ -134,7 +134,7 @@ export const connectDB = async () => {
     console.log('MongoDB Connected Successfully (Production Mode)');
   } catch (error) {
     console.error('CRITICAL DATABASE ERROR: Online connection failed.');
-    console.error('Server will not start without MongoDB Atlas connectivity.');
-    process.exit(1); 
+    console.error('Server will continue to listen but DB routes will fail until connection is fixed.');
+    throw error;
   }
 };

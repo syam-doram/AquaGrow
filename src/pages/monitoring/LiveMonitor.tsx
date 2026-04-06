@@ -173,10 +173,10 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
         {/* AI Overlays - Digital HUD */}
         <div className="absolute inset-0 pointer-events-none p-6">
           {/* Diagnostic Corners */}
-          <div className="absolute top-10 left-10 w-24 h-24 border-t-2 border-l-2 border-[#C78200]/40 rounded-tl-[2rem]" />
-          <div className="absolute top-10 right-10 w-24 h-24 border-t-2 border-r-2 border-[#C78200]/40 rounded-tr-[2rem]" />
-          <div className="absolute bottom-10 left-10 w-24 h-24 border-b-2 border-l-2 border-[#C78200]/40 rounded-bl-[2rem]" />
-          <div className="absolute bottom-10 right-10 w-24 h-24 border-b-2 border-r-2 border-[#C78200]/40 rounded-br-[2rem]" />
+          <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] left-8 w-24 h-24 border-t-2 border-l-2 border-[#C78200]/40 rounded-tl-[2rem]" />
+          <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] right-8 w-24 h-24 border-t-2 border-r-2 border-[#C78200]/40 rounded-tr-[2rem]" />
+          <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-8 w-24 h-24 border-b-2 border-l-2 border-[#C78200]/40 rounded-bl-[2rem]" />
+          <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-8 w-24 h-24 border-b-2 border-r-2 border-[#C78200]/40 rounded-br-[2rem]" />
           
           <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/5 shadow-[0_0_10px_white/20]" />
           <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/5 shadow-[0_0_10px_white/20]" />
@@ -239,7 +239,7 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
           </motion.div>
         </div>
 
-        <div className="absolute top-10 left-8 right-8 flex justify-between items-start">
+        <div className="absolute top-[calc(env(safe-area-inset-top)+1.5rem)] left-8 right-8 flex justify-between items-start">
           <button 
             onClick={() => navigate(-1)}
             className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white"
@@ -259,7 +259,7 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
           </div>
         </div>
 
-        <div className="absolute bottom-10 left-8 right-8 grid grid-cols-3 gap-4">
+        <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-8 right-8 grid grid-cols-3 gap-4">
           <div className="bg-[#4A2C2A]/60 backdrop-blur-xl p-4 rounded-3xl border border-white/10">
             <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1">Behavior</p>
             <p className="text-white text-xl font-black">ACTIVE</p>

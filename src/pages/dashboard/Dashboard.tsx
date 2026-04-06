@@ -589,7 +589,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
       <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
 
-      <div className="px-6 pt-24 space-y-6">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+6.5rem)] space-y-6">
         {/* ── MANUALLY "RAISED" ENGINE ALERTS ── */}
         {/* ── NEW ELITE TOP NAV ── */}
         {ponds.length > 0 && (

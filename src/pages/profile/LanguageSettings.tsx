@@ -9,7 +9,7 @@ import { API_BASE_URL } from '../../config';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../../types';
 
-export const LanguageSettings = ({ t }: { t: Translations }) => {
+export const LanguageSettings = ({ t, onLanguageChange }: { t: Translations, onLanguageChange?: (l: Language) => void }) => {
   const navigate = useNavigate();
   const { user, setUser } = useData();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -25,6 +25,9 @@ export const LanguageSettings = ({ t }: { t: Translations }) => {
   ];
 
   const handleLanguageChange = async (newLang: Language) => {
+    // Also trigger global state update for instant UI feedback and Persistence in localStorage
+    if (onLanguageChange) onLanguageChange(newLang);
+
     if (user?.id || (user as any)?._id) {
        // 1. Optimistic Update
        const uInfo = { ...user, language: newLang };

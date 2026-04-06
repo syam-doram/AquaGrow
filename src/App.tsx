@@ -30,7 +30,8 @@ import { EditProfile } from './pages/profile/EditProfile';
 import { SecurityPrivacy } from './pages/profile/SecurityPrivacy';
 import { SubscriptionPlan } from './pages/profile/SubscriptionPlan';
 import { SystemSettings } from './pages/profile/SystemSettings';
-import { AuthScreen } from './pages/auth/AuthScreen';
+import { Login } from './pages/auth/Login';
+import { Register } from './pages/auth/Register';
 import { SplashScreen } from './pages/auth/SplashScreen';
 import { OnboardingScreen } from './pages/auth/OnboardingScreen';
 import { FeedManagement } from './pages/management/FeedManagement';
@@ -78,14 +79,21 @@ const AppContent = () => {
   const { user, loading, isSyncing } = useData();
   const navigate = useNavigate();
   const location = useLocation();
-  const [lang, setLang] = useState<Language>('English');
+  const [lang, setLang] = useState<Language>(() => {
+    return (localStorage.getItem('aqua_lang') as Language) || 'English';
+  });
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const t = translations[lang];
 
+  const handleLanguageChange = (l: Language) => {
+    setLang(l);
+    localStorage.setItem('aqua_lang', l);
+  };
+
   useEffect(() => {
     if (user?.language) {
-      setLang(user.language);
+      handleLanguageChange(user.language);
     }
   }, [user]);
 
@@ -189,16 +197,20 @@ const AppContent = () => {
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
 
   return (
-    <div className="w-full max-w-md mx-auto bg-paper min-h-[100dvh] relative sm:shadow-2xl overflow-x-hidden font-sans sm:border-none">
+    <div className="w-full sm:max-w-[420px] mx-auto bg-paper min-h-[100dvh] relative sm:shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-x-hidden font-sans border-x border-black/[0.02]">
       {/* ── GLOBAL MESH GRADIENT ACCENTS ── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-5%] left-[-10%] w-[70%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute top-[20%] right-[-10%] w-[60%] h-[35%] bg-blue-50/50 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[30%] bg-purple-50/40 rounded-full blur-[90px]" />
-        <div className="absolute bottom-[-10%] right-[0%] w-[80%] h-[40%] bg-emerald-50/30 rounded-full blur-[110px]" />
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-20%] w-[120%] h-[50%] bg-emerald-100/30 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute top-[30%] right-[-30%] w-[100%] h-[40%] bg-blue-50/40 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[15%] left-[-15%] w-[80%] h-[35%] bg-purple-50/30 rounded-full blur-[110px]" />
+        <div className="absolute bottom-[-15%] right-[-20%] w-[130%] h-[55%] bg-emerald-50/20 rounded-full blur-[130px]" />
       </div>
       {!user ? (
-        <AuthScreen t={t} onLanguageChange={setLang} />
+        <Routes>
+          <Route path="/login" element={<Login t={t} lang={lang} onLanguageChange={handleLanguageChange} />} />
+          <Route path="/register" element={<Register t={t} lang={lang} onLanguageChange={handleLanguageChange} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
       ) : (
         <div className="relative z-10 w-full min-h-[100dvh] flex flex-col">
           <PushSyncManager />
@@ -274,7 +286,7 @@ const AppContent = () => {
                 <Route path="/profile/edit" element={<EditProfile user={user as User} t={t} />} />
                 <Route path="/profile/security" element={<SecurityPrivacy t={t} />} />
                 <Route path="/profile/subscription" element={<SubscriptionPlan t={t} />} />
-                <Route path="/profile/language" element={<LanguageSettings t={t} />} />
+                <Route path="/profile/language" element={<LanguageSettings t={t} onLanguageChange={handleLanguageChange} />} />
                 <Route path="/profile/settings" element={<SystemSettings t={t} />} />
                 <Route path="/roi" element={<ProfitROI t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/export-trends" element={<ExportMarketTrends user={user} t={t} onMenuClick={() => navigate('/profile')} />} />

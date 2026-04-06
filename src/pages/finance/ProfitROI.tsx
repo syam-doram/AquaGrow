@@ -16,6 +16,8 @@ import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
+import { Wheat, Pill, Droplets, Users } from 'lucide-react';
+import { calculateDOC } from '../../utils/pondUtils';
 
 // ─── METRIC CARD ──────────────────────────────────────────────────────────────
 const MetricCard = ({ label, value, sub, icon: Icon, color, bg, t }: any) => (
@@ -105,7 +107,7 @@ const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => vo
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="w-full max-w-md mx-auto bg-[#F8F9FE] rounded-t-[3rem] p-6 pb-12 max-h-[92vh] overflow-y-auto"
+        className="w-full sm:max-w-[420px] mx-auto bg-[#F8F9FE] rounded-t-[3rem] p-6 pb-12 max-h-[92vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-6" />
@@ -168,7 +170,7 @@ const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => vo
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { user, ponds } = useData();
+  const { user, ponds, expenses, feedLogs, medicineLogs } = useData();
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const [viewMode, setViewMode] = useState<'overall' | 'pond' | 'year'>('overall');
   const [generatingPDF, setGeneratingPDF] = useState(false);
@@ -318,10 +320,10 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
       </AnimatePresence>
 
       {/* Filter Tabs & PDF Export Strip */}
-      <div className="fixed top-[72px] left-0 right-0 max-w-md mx-auto z-40 bg-white/95 backdrop-blur-md px-4 py-3 border-b border-black/5 flex items-center justify-between">
+      <div className="fixed top-[calc(env(safe-area-inset-top)+4.5rem)] left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-40 bg-white/95 backdrop-blur-md px-4 py-3 border-b border-black/5 flex items-center justify-between">
          <div className="flex bg-slate-100 p-1 rounded-xl">
             {['overall', 'pond', 'year'].map(mode => (
-              <button 
+               <button 
                 key={mode}
                 onClick={() => setViewMode(mode as any)}
                 className={cn(
@@ -342,7 +344,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
          </button>
       </div>
 
-      <div className="pt-36 px-5 space-y-6">
+      <div className="pt-[calc(env(safe-area-inset-top)+9.5rem)] px-5 space-y-6">
 
         {/* ── OVERALL VIEW ── */}
         {viewMode === 'overall' && (
@@ -398,6 +400,100 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
              )}
 
              {/* Profits Contribution Breakdown (Top 3 Ponds) */}
+             {/* ── LIVE CYCLE MONITORING (Real-time data from Daily Logs) ── */}
+             <div className="space-y-4 pt-4 mb-2">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">{t.liveCycleStats || 'Live Cycle Economics'}</h3>
+                  <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                     <Activity size={12} className="text-emerald-600 animate-pulse" />
+                     <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Live Logs</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {ponds.filter(p => p.status === 'active').map(pond => {
+                    const pondExpenses = (expenses || []).filter((e: any) => e.pondId === pond.id);
+                    const pondFeedLogs = (feedLogs || []).filter((l: any) => l.pondId === pond.id);
+                    const pondMedLogs = (medicineLogs || []).filter((l: any) => l.pondId === pond.id);
+
+                    const feedCostTotal = pondExpenses.filter((e: any) => e.category === 'feed').reduce((acc: number, e: any) => acc + (e.amount || 0), 0) +
+                                         pondFeedLogs.reduce((acc: number, l: any) => acc + (l.cost || 0), 0);
+                                         
+                    const medCostTotal = pondExpenses.filter((e: any) => e.category === 'medicine').reduce((acc: number, e: any) => acc + (e.amount || 0), 0) +
+                                        pondMedLogs.reduce((acc: number, l: any) => acc + (l.cost || 0), 0);
+
+                    const otherCostTotal = pondExpenses.filter((e: any) => e.category !== 'feed' && e.category !== 'medicine').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+                    const totalLiveInvested = feedCostTotal + medCostTotal + otherCostTotal;
+                    
+                    return (
+                      <motion.div 
+                        key={pond.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white rounded-[2.5rem] p-6 border border-black/5 shadow-sm relative overflow-hidden group mb-4"
+                      >
+                         <div className="flex justify-between items-start mb-5 relative z-10">
+                            <div>
+                               <h4 className="font-black text-lg text-[#4A2C2A] tracking-tight">{pond.name}</h4>
+                               <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{t.doc} {calculateDOC(pond.stockingDate)} · {t.liveCycle || 'Live Cycle'}</p>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-[8px] font-black text-[#4A2C2A]/20 uppercase tracking-widest mb-1">Total Burn</p>
+                               <p className="text-xl font-black text-[#4A2C2A]">₹{totalLiveInvested.toLocaleString()}</p>
+                            </div>
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-4 relative z-10">
+                            <div className={cn("p-4 rounded-3xl border transition-all", feedCostTotal > 0 ? "bg-amber-500/5 border-amber-500/10" : "bg-slate-50 border-black/5 opacity-40")}>
+                               <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center text-white">
+                                     <Wheat size={12} />
+                                  </div>
+                                  <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Feed</span>
+                               </div>
+                               <p className="text-lg font-black text-[#4A2C2A]">₹{feedCostTotal.toLocaleString()}</p>
+                               <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mt-1">{pondFeedLogs.length} Records</p>
+                            </div>
+
+                            <div className={cn("p-4 rounded-3xl border transition-all", medCostTotal > 0 ? "bg-blue-500/5 border-blue-500/10" : "bg-slate-50 border-black/5 opacity-40")}>
+                               <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                                     <Pill size={12} />
+                                  </div>
+                                  <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Medicine</span>
+                               </div>
+                               <p className="text-lg font-black text-[#4A2C2A]">₹{medCostTotal.toLocaleString()}</p>
+                               <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mt-1">{pondMedLogs.length} Applications</p>
+                            </div>
+                         </div>
+
+                         <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between">
+                            <div className="flex -space-x-2">
+                               {['diesel', 'power', 'labor'].map(cat => {
+                                 const catCost = pondExpenses.filter((e: any) => e.category === cat).reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+                                 if (catCost === 0) return null;
+                                 return (
+                                   <div key={cat} className="w-6 h-6 rounded-full bg-slate-100 border border-white flex items-center justify-center" title={cat}>
+                                      {cat === 'diesel' && <Droplets size={10} className="text-orange-500" />}
+                                      {cat === 'power' && <Zap size={10} className="text-emerald-500" />}
+                                      {cat === 'labor' && <Users size={10} className="text-purple-500" />}
+                                   </div>
+                                 );
+                               })}
+                            </div>
+                            <button 
+                              onClick={() => navigate('/roi-entry')}
+                              className="text-[9px] font-black text-[#C78200] uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all"
+                            >
+                               {t.projectRoi || 'Project Analysis'} <ArrowUpRight size={14} />
+                            </button>
+                         </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+             </div>
+
              {pondWiseStats.length > 0 && (
                <div className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm space-y-4">
                  <div className="flex items-center justify-between pl-1">

@@ -3,13 +3,43 @@ import { Lock, Shield, Eye, Database, ChevronRight, Fingerprint } from 'lucide-r
 import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
+import { useData } from '../../context/DataContext';
+import { checkBiometric, deleteBiometric } from '../../utils/biometric';
 
 export const SecurityPrivacy = ({ t }: { t: Translations }) => {
-  const [biometricEnabled, setBiometricEnabled] = useState(true);
+  const { user, updateUser } = useData();
+  const [biometricEnabled, setBiometricEnabled] = useState(user?.biometricEnabled ?? false);
+  const [checkingBio, setCheckingBio] = useState(false);
+
+  const toggleBiometric = async () => {
+    const nextValue = !biometricEnabled;
+    setCheckingBio(true);
+    try {
+      if (nextValue) {
+        const available = await checkBiometric();
+        if (available) {
+          // Typically we should verify with a password before enabling, but for MVP we'll just toggle the preference
+          // Real functionality happens at login when we save or retrieve
+          await updateUser({ biometricEnabled: true });
+          setBiometricEnabled(true);
+        } else {
+          alert('Biometrics not available on this device.');
+        }
+      } else {
+        await deleteBiometric();
+        await updateUser({ biometricEnabled: false });
+        setBiometricEnabled(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCheckingBio(false);
+    }
+  };
 
   const securitySections = [
     { id: 'password', icon: Lock, label: t.changePassword, desc: 'Update your account access', color: 'text-[#C78200]' },
-    { id: 'biometric', icon: Fingerprint, label: t.biometricLogin, desc: 'Use FaceID or Fingerprint', color: 'text-amber-500', isToggle: true, value: biometricEnabled, onToggle: () => setBiometricEnabled(!biometricEnabled) },
+    { id: 'biometric', icon: Fingerprint, label: t.biometricLogin, desc: checkingBio ? 'Checking...' : 'Use FaceID or Fingerprint', color: 'text-amber-500', isToggle: true, value: biometricEnabled, onToggle: toggleBiometric },
   ];
 
   const privacySections = [

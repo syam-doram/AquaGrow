@@ -399,7 +399,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
         }
       />
 
-      <div className="pt-28 px-5 space-y-5">
+      <div className="pt-[calc(env(safe-area-inset-top)+6.5rem)] px-5 space-y-5">
         {/* Pond Selector Tabs */}
         {ponds.length > 0 ? (
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">

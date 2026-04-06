@@ -26,7 +26,7 @@ export const Header = ({ title, showBack = false, onBack, rightElement, onMenuCl
   const shouldShowNotifications = showNotifications ?? !showBack;
 
   return (
-    <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/80 backdrop-blur-xl border-b border-black/[0.03] px-6 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-[0.8rem] flex items-center grid grid-cols-3">
+    <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-50 bg-white/80 backdrop-blur-xl border-b border-black/[0.03] px-6 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-[0.8rem] flex items-center grid grid-cols-3">
       <div className="flex items-center justify-start">
         {showBack ? (
           <button onClick={handleBack} className="w-10 h-10 -ml-2 flex items-center justify-center rounded-xl text-[#012B1D] hover:bg-[#012B1D]/5 transition-all">

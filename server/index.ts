@@ -1,32 +1,42 @@
-import express from 'express';
-import mongoose from 'mongoose';
+import express, { Request } from 'express';
 import dotenv from 'dotenv';
-import cors from 'cors';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import rateLimit from 'express-rate-limit';
-import { GoogleGenAI } from '@google/genai';
-import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, RefreshToken, connectDB } from './db.js';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
 dotenv.config();
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    role: string;
+    [key: string]: any;
+  };
+}
+import mongoose from 'mongoose';
+import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo } from './db.js';
+import { apiLimiter, authenticate, requireRole, requireSelf } from './middleware/auth.js';
+import { GoogleGenAI } from "@google/genai";
+import authRoutes from './routes/auth.js';
+
+// --- MOCK PERSISTENCE LOGIC ---
+const DB_FILE = path.join(process.cwd(), 'server', 'db.json');
+const getMockData = () => {
+    if (!fs.existsSync(DB_FILE)) {
+      const initial = { users: [], ponds: [], subscriptions: [], waterLogs: [], feedLogs: [], medicineLogs: [], sopLogs: [], expenses: [] };
+      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+      return initial;
+    }
+    return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+};
+const saveMockData = (data: any) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+
 const app = express();
 app.set('trust proxy', 1);
-const PORT = Number(process.env.PORT) || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
-const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_refresh';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
-const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '7d';
+const PORT = Number(process.env.PORT) || 3005;
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
 app.use(cors({
   origin: [
     'https://aquagrow.onrender.com',
@@ -35,62 +45,9 @@ app.use(cors({
   credentials: true
 }));
 
-// ─── Refresh token persistence logic ─────────────────────────────────────────
-const saveRefreshToken = async (userId: string, token: string) => {
-  const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 7); // 7 days refresh
-  await new RefreshToken({ userId, token, expiryDate }).save();
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const signAccess = (p: any) => jwt.sign(p, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
-const signRefresh = (p: any) => jwt.sign(p, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions);
-
-// ─── Rate limiters ────────────────────────────────────────────────────────────
-// Auth: 10 req / 15 min  — brute-force protection
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many attempts. Try again in 15 minutes.' }, standardHeaders: true, legacyHeaders: false });
-// General API: 120 req / min per IP
-const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: 'Rate limit exceeded.' }, standardHeaders: true, legacyHeaders: false });
-
+// Use modular routes
 app.use('/api', apiLimiter);
-
-// ─── JWT Auth middleware ──────────────────────────────────────────────────────
-const authenticate = (req, res, next) => {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer '))
-    return res.status(401).json({ error: 'Missing Authorization header' });
-  try {
-    req.user = jwt.verify(header.split(' ')[1], JWT_SECRET);
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: e.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token' });
-  }
-};
-
-// ─── Role guard ───────────────────────────────────────────────────────────────
-const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role))
-    return res.status(403).json({ error: 'Access denied. Required role: ' + roles.join('|') });
-  next();
-};
-
-// Own-resource guard — user can only access their own data (admin bypasses)
-const requireSelf = (req, res, next) => {
-  const id = req.params.userId || req.body?.userId;
-  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-
-  if (req.user.id !== id && req.user.role !== 'admin')
-    return res.status(403).json({ error: 'Cannot access another user data' });
-  next();
-};
-
-// ─── Feature / subscription guard ────────────────────────────────────────────
-const checkFeature = (feature) => async (req, res, next) => {
-  const sub = await SubscriptionMongo.findOne({ userId: req.user.id });
-  if (!sub || sub.status !== 'active' || !sub.features.includes(feature))
-    return res.status(403).json({ error: 'Feature requires higher plan: ' + feature });
-  next();
-};
+app.use('/api/auth', authRoutes);
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) =>
@@ -98,106 +55,10 @@ app.get('/api/health', (_req, res) =>
 );
 
 // ═══════════════════════════════╗
-//  AUTH                          ║
-// ═══════════════════════════════╝
-
-app.post('/api/auth/check', authLimiter, async (req, res) => {
-  try {
-    const { mobile, email } = req.body;
-    if (mobile && await UserMongo.findOne({ phoneNumber: mobile }))
-      return res.status(409).json({ error: 'Phone number already registered' });
-    if (email && await UserMongo.findOne({ email }))
-      return res.status(409).json({ error: 'Email address already registered' });
-    res.json({ success: true });
-  } catch (e) {
-    console.error('[Check Error]', e.message);
-    res.status(500).json({ error: 'Check failed' });
-  }
-});
-
-app.post('/api/auth/register', authLimiter, async (req, res) => {
-  try {
-    const { name, mobile, email, password, location, role, farmSize, language } = req.body;
-    if (!name || !mobile || !email || !password)
-      return res.status(400).json({ error: 'name, mobile, email and password are required' });
-    if (password.length < 6)
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-
-    const hash = await bcrypt.hash(password, 12);
-    let user, sub;
-
-    if (mongoose.connection.readyState !== 1) throw new Error('DB not ready');
-    if (await UserMongo.findOne({ phoneNumber: mobile }))
-      return res.status(409).json({ error: 'Phone number already registered' });
-    if (await UserMongo.findOne({ email }))
-      return res.status(409).json({ error: 'Email address already registered' });
-
-    user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role || 'farmer', farmSize: farmSize || 0, language: language || 'English', subscriptionStatus: 'free' }).save();
-    sub = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard', 'pond_management'] }).save();
-
-    const access = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
-    const refresh = signRefresh({ id: user._id });
-    await saveRefreshToken(user._id, refresh);
-    res.status(201).json({ user, subscription: sub, access_token: access, refresh_token: refresh });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-app.post('/api/auth/login', authLimiter, async (req, res) => {
-  try {
-    const { mobile, password } = req.body;
-    if (!mobile || !password)
-      return res.status(400).json({ error: 'identifier and password are required' });
-
-    let user, sub;
-    user = await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email: mobile }] });
-    if (!user || !await bcrypt.compare(password, user.password))
-      return res.status(401).json({ error: 'Invalid credentials' });
-    sub = await SubscriptionMongo.findOne({ userId: user._id });
-
-    const id = user._id || user.id;
-    const access = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
-    const refresh = signRefresh({ id });
-    await saveRefreshToken(id, refresh);
-    res.json({ user, subscription: sub, access_token: access, refresh_token: refresh });
-  } catch (e) { res.status(500).json({ error: 'Internal Server Error' }); }
-});
-
-// Rotate access token using refresh token
-app.post('/api/auth/refresh', authLimiter, async (req, res) => {
-  const { refresh_token } = req.body;
-  if (!refresh_token) return res.status(401).json({ error: 'Missing refresh token' });
-
-  try {
-    const p = jwt.verify(refresh_token, REFRESH_SECRET) as any;
-    const storedToken = await RefreshToken.findOne({ token: refresh_token });
-
-    if (!storedToken) return res.status(401).json({ error: 'Refresh token not recognized' });
-
-    const user = await UserMongo.findById(p.id);
-
-    if (!user) return res.status(401).json({ error: 'User not found' });
-
-    const newAccess = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
-    res.json({ access_token: newAccess });
-  } catch (e) {
-    await RefreshToken.deleteMany({ token: refresh_token });
-    res.status(401).json({ error: 'Refresh token expired or invalid. Please login again.' });
-  }
-});
-
-// Revoke refresh token on logout
-app.post('/api/auth/logout', authenticate, async (req, res) => {
-  if (req.body?.refresh_token) {
-    await RefreshToken.deleteMany({ token: req.body.refresh_token });
-  }
-  res.json({ message: 'Logged out successfully' });
-});
-
-// ═══════════════════════════════╗
 //  SUBSCRIPTION                  ║
 // ═══════════════════════════════╝
 
-app.post('/api/subscription/upgrade', authenticate, async (req, res) => {
+app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const { planName } = req.body;
     const userId = req.user.id;
@@ -276,14 +137,14 @@ app.get('/api/user/:userId/ponds', authenticate, requireSelf, async (req, res) =
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/ponds', authenticate, async (req, res) => {
+app.post('/api/ponds', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     res.json(await new PondMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.delete('/api/ponds/:id', authenticate, async (req, res) => {
+app.delete('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
     const pond = await PondMongo.findById(id);
@@ -309,7 +170,7 @@ app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, r
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/water-logs', authenticate, async (req, res) => {
+app.post('/api/water-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     res.json(await new WaterLogMongo(data).save());
@@ -327,7 +188,7 @@ app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/sop-logs', authenticate, async (req, res) => {
+app.post('/api/sop-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     res.json(await new SOPLogMongo(data).save());
@@ -345,7 +206,7 @@ app.get('/api/user/:userId/expenses', authenticate, requireSelf, async (req, res
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/expenses', authenticate, async (req, res) => {
+app.post('/api/expenses', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     res.json(await new ExpenseMongo(data).save());
@@ -363,7 +224,7 @@ app.get('/api/user/:userId/feed-logs', authenticate, requireSelf, async (req, re
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/feed-logs', authenticate, async (req, res) => {
+app.post('/api/feed-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     res.json(await new FeedLogMongo(data).save());
@@ -381,7 +242,7 @@ app.get('/api/user/:userId/medicine-logs', authenticate, requireSelf, async (req
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/medicine-logs', authenticate, async (req, res) => {
+app.post('/api/medicine-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     res.json(await new MedicineLogMongo(data).save());
@@ -559,13 +420,20 @@ const runPushEngine = async () => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  connectDB().then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`[Aqua Server] Running on http://0.0.0.0:${PORT}`);
-      console.log(`[Aqua Server] Database: MONGODB (Online Mode)`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Aqua Server] Running on http://0.0.0.0:${PORT}`);
+    console.log(`[Aqua Server] Port ${PORT} claimed.`);
+
+    connectDB().then(() => {
+      console.log(`[Aqua Server] Database: MONGODB (Online Mode Connect Success)`);
       console.log(`[Aqua Server] AI SDK: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
-      // Run the engine every 2 minutes for check-conditions
       setInterval(runPushEngine, 120000);
+    }).catch(err => {
+      console.warn("[Aqua Server] ONLINE DB FAILED. Defaulting to LOCAL MOCK DB (db.json)");
+      console.warn("[Reason]:", err.message);
+      
+      // Seed initial mock file if missing
+      getMockData();
     });
   });
 }

@@ -99,7 +99,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
 
   return (
     <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-8 flex items-center justify-between border-b border-black/5">
+      <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-50 bg-white/95 backdrop-blur-md px-4 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-4 flex items-center justify-between border-b border-black/5">
         <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
           <ChevronLeft size={24} />
         </button>
@@ -112,7 +112,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
         </button>
       </header>
       
-      <div className="pt-32 px-4 py-8 space-y-8">
+      <div className="pt-[calc(env(safe-area-inset-top)+6.5rem)] px-4 pb-8 space-y-8">
         {/* Growth Stats Hero */}
         <div className="bg-[#0D523C] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
            <div className="relative z-10">

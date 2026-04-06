@@ -150,7 +150,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
       />
 
-      <div className="px-5 py-4 space-y-4 pt-20">
+      <div className="px-5 py-4 space-y-4 pt-[calc(env(safe-area-inset-top)+5.5rem)]">
         {ponds.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {ponds.map(p => (

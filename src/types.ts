@@ -31,6 +31,7 @@ export interface User {
     ifscCode: string;
     isVerified: boolean;
   };
+  biometricEnabled?: boolean;
 }
 
 export interface Pond {
@@ -83,6 +84,7 @@ export interface FeedRecord {
   brand: string;
   quantity: number; // kg
   weight?: number; // average weight recorded at this time
+  cost?: number;
 }
 
 export interface MedicineRecord {
@@ -92,6 +94,7 @@ export interface MedicineRecord {
   name: string;
   dosage: string;
   doc: number;
+  cost?: number;
 }
 
 export interface MarketPrice {

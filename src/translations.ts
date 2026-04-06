@@ -271,6 +271,12 @@ export interface Translations {
   email: string;
   startYourFirstPond: string;
   phoneOrEmail: string;
+  changePassword: string;
+  biometricLogin: string;
+  privacyPolicy: string;
+  dataExport: string;
+  security: string;
+  privacy: string;
 
   // Lunar & Water
   amavasyaWarning: string;
@@ -477,6 +483,37 @@ export interface Translations {
   addMineralsAshtami: string;
   applyLimePhLow: string;
   syncingData: string;
+  harvestDetails: string;
+  whatDidYouHarvest: string;
+  investments: string;
+  whatDidYouSpend: string;
+  revenueEarned: string;
+  whatDidYouReceive: string;
+  profileSummary: string;
+  yourROIAnalysis: string;
+  roiProfileSaved: string;
+  redirectingDashboard: string;
+  postHarvestROI: string;
+  totalHarvestWeight: string;
+  countPerKgSize: string;
+  survival: string;
+  cultureDuration: string;
+  gradeSplit: string;
+  feedCostLabel: string;
+  infrastructurePower: string;
+  totalInvestment: string;
+  totalSaleAmount: string;
+  pricePerKgReceived: string;
+  buyerCompanyName: string;
+  subsidyGovtSupport: string;
+  additionalNotes: string;
+  netProfitLoss: string;
+  breakEven: string;
+  lossCycle: string;
+  continue: string;
+  liveCycleStats: string;
+  liveCycle: string;
+  projectRoi: string;
 }
 
 const English: Translations = {
@@ -947,6 +984,43 @@ const English: Translations = {
   needToRelease: 'Need to Release (Planned)',
   stockingStatus: 'Stocking Status',
   syncingData: 'Syncing Farm Data',
+  changePassword: 'Change Password',
+  biometricLogin: 'Biometric Login',
+  privacyPolicy: 'Privacy Policy',
+  dataExport: 'Data Export',
+  security: 'Security',
+  privacy: 'Privacy',
+  harvestDetails: 'Harvest Details',
+  whatDidYouHarvest: 'What did you harvest?',
+  investments: 'Investments',
+  whatDidYouSpend: 'What did you spend?',
+  revenueEarned: 'Revenue Earned',
+  whatDidYouReceive: 'What did you receive?',
+  profileSummary: 'Profile Summary',
+  yourROIAnalysis: 'Your ROI Analysis',
+  roiProfileSaved: 'ROI Profile Saved',
+  redirectingDashboard: 'Redirecting to Dashboard...',
+  postHarvestROI: 'Post-Harvest ROI',
+  totalHarvestWeight: 'Total Harvest Weight',
+  countPerKgSize: 'Count Per KG (Size)',
+  survival: 'Survival',
+  cultureDuration: 'Culture Duration',
+  gradeSplit: 'Grade Split (%)',
+  feedCostLabel: 'Feed Cost',
+  infrastructurePower: 'Infrastructure & Power',
+  totalInvestment: 'Total Investment',
+  totalSaleAmount: 'Total Sale Amount',
+  pricePerKgReceived: 'Price Per KG Received',
+  buyerCompanyName: 'Buyer / Company Name',
+  subsidyGovtSupport: 'Subsidy / Govt Support',
+  additionalNotes: 'Additional Notes',
+  netProfitLoss: 'Net Profit / Loss',
+  breakEven: 'Break Even',
+  lossCycle: 'Loss Cycle',
+  continue: 'Continue',
+  liveCycleStats: 'Live Cycle Stats',
+  liveCycle: 'Live Cycle',
+  projectRoi: 'Project ROI',
 };
 
 const Telugu: Translations = {
@@ -1369,6 +1443,12 @@ const Telugu: Translations = {
   needToRelease: 'విడుదల చేయాలి (Planned)',
   stockingStatus: 'స్టాకింగ్ స్థితి',
   syncingData: 'ఫామ్ డేటాను సమకాలీకరిస్తోంది',
+  changePassword: 'పాస్‌వర్డ్ మార్చండి',
+  biometricLogin: 'బయోమెట్రిక్ లాగిన్',
+  privacyPolicy: 'గోప్యతా విధానం',
+  dataExport: 'డేటా ఎగుమతి',
+  security: 'భద్రత',
+  privacy: 'గోప్యత',
 };
 
 export const translations: Record<Language, Translations> = {

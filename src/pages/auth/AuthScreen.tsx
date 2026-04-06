@@ -14,16 +14,18 @@ import {
   ShieldCheck,
   ArrowLeft,
   Eye,
-  EyeOff
+  EyeOff,
+  Fingerprint
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { API_BASE_URL } from '../../config';
+import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 
 export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguageChange?: (l: 'English' | 'Telugu') => void }) => {
-  const { register, login, user: currentUser, setUser } = useData();
+  const { register, login, user: currentUser, setUser, updateUser } = useData();
   const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
   const [lang, setLang] = useState<'English' | 'Telugu'>('English');
   const [isRegister, setIsRegister] = useState(false);
@@ -40,6 +42,36 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [canBiometric, setCanBiometric] = useState(false);
+
+  React.useEffect(() => {
+    checkBiometric().then(setCanBiometric);
+  }, []);
+
+  const handleBiometricLogin = async () => {
+    if (!phone) {
+      setError("Enter your phone/email first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const pass = await getBiometric(phone);
+      if (pass) {
+        const result = await login(phone, pass);
+        if (result.success) {
+          navigate('/dashboard');
+        } else {
+          setError(result.error || "Biometric login failed");
+        }
+      } else {
+        setError("Biometric not set for this account");
+      }
+    } catch (e) {
+      setError("Biometric auth error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const primaryColor = role === 'farmer' ? '#10B981' : '#F59E0B';
   const accentColor = role === 'farmer' ? '#059669' : '#D97706';
@@ -147,8 +179,10 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
           role: role
         }) as any;
         
-        if (result.success) navigate('/dashboard');
-        else setError(result.error || t.registrationFailed);
+        if (result.success) {
+          await handlePostLoginBiometric(result.user || {}, password);
+          navigate('/dashboard');
+        } else setError(result.error || t.registrationFailed);
       } else {
         const result = await login(`+91 ${phone}`, password);
         if (result.success) {
@@ -165,16 +199,34 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                 });
              } catch (err) {}
           }
-          if (onLanguageChange) onLanguageChange(lang);
-          navigate('/dashboard');
-        } else {
-          setError(result.error || t.loginFailed);
-        }
+            if (onLanguageChange) onLanguageChange(lang);
+            await handlePostLoginBiometric(loggedUser, password);
+            navigate('/dashboard');
+          } else {
+            setError(result.error || t.loginFailed);
+          }
       }
     } catch (e) {
       setError('Connection Error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePostLoginBiometric = async (u: any, pass: string) => {
+    if (!canBiometric) return;
+
+    if (u.biometricEnabled) {
+      await setBiometric(phone, pass);
+    } else if (!localStorage.getItem('aqua_bio_asked')) {
+      const wantBio = window.confirm("Enable Fingerprint/FaceID for faster logins?");
+      if (wantBio) {
+        const success = await setBiometric(phone, pass);
+        if (success) {
+          await updateUser({ biometricEnabled: true });
+        }
+      }
+      localStorage.setItem('aqua_bio_asked', 'true');
     }
   };
 
@@ -312,6 +364,18 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                   </motion.div>
                 )}
               </AnimatePresence>
+              {/* BIOMETRIC LOGIN BUTTON */}
+              {!isRegister && canBiometric && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={handleBiometricLogin}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-[1.8rem] border border-amber-500/20 bg-amber-500/5 text-amber-500 group/bio hover:bg-amber-500/10 transition-all mb-4 shadow-lg shadow-amber-500/5"
+                >
+                  <Fingerprint size={18} className="group-hover/bio:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t.biometricLogin}</span>
+                </motion.button>
+              )}
 
               {/* INPUTS CONTAINER */}
               <AnimatePresence mode="popLayout" initial={false}>

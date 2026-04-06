@@ -11,7 +11,7 @@ import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3005;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_refresh';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
