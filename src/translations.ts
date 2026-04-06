@@ -476,6 +476,7 @@ export interface Translations {
   reduceFeedAmavasya: string;
   addMineralsAshtami: string;
   applyLimePhLow: string;
+  syncingData: string;
 }
 
 const English: Translations = {
@@ -944,7 +945,8 @@ const English: Translations = {
   initialSalinity: 'Initial Salinity',
   released: 'Released (Stocked)',
   needToRelease: 'Need to Release (Planned)',
-  stockingStatus: 'Stocking Status'
+  stockingStatus: 'Stocking Status',
+  syncingData: 'Syncing Farm Data',
 };
 
 const Telugu: Translations = {
@@ -1098,7 +1100,6 @@ const Telugu: Translations = {
   primaryDetails: 'ప్రాథమిక వివరాలు',
   stockingAnalytics: 'స్టాకింగ్ విశ్లేషణలు',
   email: 'ఈమెయిల్ చిరునామా',
-  startYourFirstPond: 'మీ మొదటి చెరువును ప్రారంభించండి',
   phoneOrEmail: 'ఫోన్ లేదా ఈమెయిల్',
   operationalData: 'నిర్వహణ డేటా',
   completePondEntry: 'చెరువు ఎంట్రీని పూర్తి చేయండి',
@@ -1366,7 +1367,8 @@ const Telugu: Translations = {
   initialSalinity: 'ప్రారంభ ఉప్పదనం (Salinity)',
   released: 'విడుదల చేయబడింది (Stocked)',
   needToRelease: 'విడుదల చేయాలి (Planned)',
-  stockingStatus: 'స్టాకింగ్ స్థితి'
+  stockingStatus: 'స్టాకింగ్ స్థితి',
+  syncingData: 'ఫామ్ డేటాను సమకాలీకరిస్తోంది',
 };
 
 export const translations: Record<Language, Translations> = {
