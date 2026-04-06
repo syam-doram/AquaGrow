@@ -204,17 +204,40 @@ const AppContent = () => {
           <PushSyncManager />
           <GlobalAlertCenter t={t} />
           
-          {isSyncing && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -20 }}
-              className="fixed top-12 left-1/2 -translate-x-1/2 z-[100] bg-[#02130F]/90 backdrop-blur-md border border-emerald-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-2xl"
-            >
-              <div className="w-3 h-3 border-[1.5px] border-emerald-400 border-t-transparent rounded-full animate-spin" />
-              <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mt-px">Syncing</span>
-            </motion.div>
-          )}
+          {/* ── GLOBAL API HANDSHAKE INDICATOR ── */}
+          <AnimatePresence>
+            {(isSyncing || loading) && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed top-0 left-0 right-0 z-[1000] pointer-events-none"
+              >
+                {/* Slim Top Bar */}
+                <div className="h-0.5 bg-emerald-500/10 w-full overflow-hidden">
+                  <motion.div 
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '100%' }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="h-full w-1/3 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                  />
+                </div>
+                
+                {/* Floating Badge (Already defined but now part of AnimatePresence) */}
+                {isSyncing && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -20 }}
+                    className="fixed top-8 left-1/2 -translate-x-1/2 bg-[#02130F]/90 backdrop-blur-md border border-emerald-500/30 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-2xl pointer-events-auto"
+                  >
+                    <div className="w-3 h-3 border-[1.5px] border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mt-px">Syncing</span>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
