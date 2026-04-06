@@ -30,6 +30,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({ 
   origin: [
     'https://aquagrow.onrender.com', 
+    'https://aqua-grow.vercel.app',
     'https://localhost', 
     'http://localhost', 
     'http://localhost:5173',
@@ -89,9 +90,7 @@ const requireSelf = (req, res, next) => {
 
 // ─── Feature / subscription guard ────────────────────────────────────────────
 const checkFeature = (feature) => async (req, res, next) => {
-  const sub = isMock()
-    ? await MockDB.findOne('subscriptions', { userId: req.user.id })
-    : await SubscriptionMongo.findOne({ userId: req.user.id });
+  const sub = await SubscriptionMongo.findOne({ userId: req.user.id });
   if (!sub || sub.status !== 'active' || !sub.features.includes(feature))
     return res.status(403).json({ error: 'Feature requires higher plan: ' + feature });
   next();
@@ -99,7 +98,7 @@ const checkFeature = (feature) => async (req, res, next) => {
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) =>
-  res.json({ status: 'ok', db: mongoose.connection.readyState, mock: isMock() })
+  res.json({ status: 'ok', db: mongoose.connection.readyState })
 );
 
 // ═══════════════════════════════╗
@@ -234,11 +233,7 @@ app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req,
         endDate: new Date(Date.now() + 365*24*60*60*1000)
       };
       
-      if (isMock()) {
-        sub = await MockDB.save('subscriptions', defaultSub);
-      } else {
-        sub = await new SubscriptionMongo(defaultSub).save();
-      }
+      sub = await new SubscriptionMongo(defaultSub).save();
     }
     res.json(sub);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -458,9 +453,7 @@ app.post('/api/ai/analyze-health', authenticate, async (req, res) => {
 // ─── Admin: list all users ────────────────────────────────────────────────────
 app.get('/api/admin/users', authenticate, requireRole('admin'), async (_req, res) => {
   try {
-    const users = isMock()
-      ? await MockDB.find('users', {})
-      : await UserMongo.find({}, '-password');
+    const users = await UserMongo.find({}, '-password');
     res.json(users);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -498,7 +491,7 @@ const runPushEngine = async () => {
 
     console.log(`[Push Engine] Scanning active ponds at ${now.toLocaleTimeString()}...`);
 
-    const users = isMock() ? await MockDB.find('users', {}) : await UserMongo.find({});
+    const users = await UserMongo.find({});
     for (const u of users) {
       if (!u.fcmToken || !u.notifications) continue;
       

@@ -131,13 +131,10 @@ export const connectDB = async () => {
   
   try {
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
-    console.log('MongoDB Connected Successfully (Online Mode Always)');
+    console.log('MongoDB Connected Successfully (Production Mode)');
   } catch (error) {
     console.error('CRITICAL DATABASE ERROR: Online connection failed.');
     console.error('Server will not start without MongoDB Atlas connectivity.');
     process.exit(1); 
   }
 };
-
-export const isMock = () => false;
-export const MockDB = { save: async () => ({}), findOne: async () => null, find: async () => [], findOneAndUpdate: async () => null, delete: async () => false };
