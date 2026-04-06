@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI } from '@google/genai';
-import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, RefreshToken, connectDB, isMock, MockDB } from './db.js';
+import { User as UserMongo, Subscription as SubscriptionMongo, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, RefreshToken, connectDB } from './db.js';
 
 declare global {
   namespace Express {
@@ -36,11 +36,7 @@ app.use(cors({
 const saveRefreshToken = async (userId: string, token: string) => {
   const expiryDate = new Date();
   expiryDate.setDate(expiryDate.getDate() + 7); // 7 days refresh
-  if (isMock()) {
-    await MockDB.save('refreshTokens', { userId: String(userId), token, expiryDate });
-  } else {
-    await new RefreshToken({ userId, token, expiryDate }).save();
-  }
+  await new RefreshToken({ userId, token, expiryDate }).save();
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,11 +53,6 @@ app.use('/api', apiLimiter);
 
 // ─── JWT Auth middleware ──────────────────────────────────────────────────────
 const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (isMock() && authHeader && authHeader.split(' ')[1] === 'mock_access_token') {
-    req.user = { id: 'preview_user', role: 'farmer', subscriptionStatus: 'pro_gold' };
-    return next();
-  }
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer '))
     return res.status(401).json({ error: 'Missing Authorization header' });
@@ -85,10 +76,6 @@ const requireSelf = (req, res, next) => {
   const id = req.params.userId || req.body?.userId;
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
   
-  if (isMock() && (req.user.id === 'preview_user' || (req.user.id && req.user.id.startsWith('id_')))) {
-    return next();
-  }
-
   if (req.user.id !== id && req.user.role !== 'admin')
     return res.status(403).json({ error: 'Cannot access another user data' });
   next();
@@ -142,24 +129,14 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     let user, sub;
 
-    if (isMock()) {
-      if (await MockDB.findOne('users', { phoneNumber: mobile }))
-        return res.status(409).json({ error: 'Phone number already registered' });
-      if (await MockDB.findOne('users', { email }))
-        return res.status(409).json({ error: 'Email address already registered' });
-      
-      user = await MockDB.save('users', { name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: +farmSize||0, language: language||'English', subscriptionStatus: 'free' });
-      sub  = await MockDB.save('subscriptions', { userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] });
-    } else {
-      if (mongoose.connection.readyState !== 1) throw new Error('DB not ready');
-      if (await UserMongo.findOne({ phoneNumber: mobile }))
-        return res.status(409).json({ error: 'Phone number already registered' });
-      if (await UserMongo.findOne({ email }))
-        return res.status(409).json({ error: 'Email address already registered' });
+    if (mongoose.connection.readyState !== 1) throw new Error('DB not ready');
+    if (await UserMongo.findOne({ phoneNumber: mobile }))
+      return res.status(409).json({ error: 'Phone number already registered' });
+    if (await UserMongo.findOne({ email }))
+      return res.status(409).json({ error: 'Email address already registered' });
         
-      user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: farmSize||0, language: language||'English', subscriptionStatus: 'free' }).save();
-      sub  = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] }).save();
-    }
+    user = await new UserMongo({ name, phoneNumber: mobile, email, password: hash, location, role: role||'farmer', farmSize: farmSize||0, language: language||'English', subscriptionStatus: 'free' }).save();
+    sub  = await new SubscriptionMongo({ userId: user._id, planName: 'free', status: 'active', features: ['basic_dashboard','pond_management'] }).save();
 
     const access  = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id: user._id });
@@ -175,20 +152,10 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'identifier and password are required' });
 
     let user, sub;
-    if (isMock()) {
-      user = await MockDB.findOne('users', { $or: [{ phoneNumber: mobile }, { email: mobile }] });
-      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-      const ok = user.password?.startsWith('$2')
-        ? await bcrypt.compare(password, user.password)
-        : password === user.password;
-      if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
-      sub = await MockDB.findOne('subscriptions', { userId: user._id });
-    } else {
-      user = await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email: mobile }] });
-      if (!user || !await bcrypt.compare(password, user.password))
-        return res.status(401).json({ error: 'Invalid credentials' });
-      sub = await SubscriptionMongo.findOne({ userId: user._id });
-    }
+    user = await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email: mobile }] });
+    if (!user || !await bcrypt.compare(password, user.password))
+      return res.status(401).json({ error: 'Invalid credentials' });
+    sub = await SubscriptionMongo.findOne({ userId: user._id });
 
     const id      = user._id || user.id;
     const access  = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
@@ -205,26 +172,18 @@ app.post('/api/auth/refresh', authLimiter, async (req, res) => {
   
   try {
     const p = jwt.verify(refresh_token, REFRESH_SECRET) as any;
-    const storedToken = isMock() 
-      ? await MockDB.findOne('refreshTokens', { token: refresh_token })
-      : await RefreshToken.findOne({ token: refresh_token });
+    const storedToken = await RefreshToken.findOne({ token: refresh_token });
 
     if (!storedToken) return res.status(401).json({ error: 'Refresh token not recognized' });
     
-    const user = isMock()
-      ? await MockDB.findOne('users', { _id: p.id })
-      : await UserMongo.findById(p.id);
+    const user = await UserMongo.findById(p.id);
 
     if (!user) return res.status(401).json({ error: 'User not found' });
 
     const newAccess = signAccess({ id: user._id, role: user.role, subscriptionStatus: user.subscriptionStatus });
     res.json({ access_token: newAccess });
   } catch (e) {
-    if (isMock()) {
-      await MockDB.delete('refreshTokens', { token: refresh_token });
-    } else {
-      await RefreshToken.deleteMany({ token: refresh_token });
-    }
+    await RefreshToken.deleteMany({ token: refresh_token });
     res.status(401).json({ error: 'Refresh token expired or invalid. Please login again.' });
   }
 });
@@ -232,11 +191,7 @@ app.post('/api/auth/refresh', authLimiter, async (req, res) => {
 // Revoke refresh token on logout
 app.post('/api/auth/logout', authenticate, async (req, res) => {
   if (req.body?.refresh_token) {
-    if (isMock()) {
-      await MockDB.delete('refreshTokens', { token: req.body.refresh_token });
-    } else {
-      await RefreshToken.deleteMany({ token: req.body.refresh_token });
-    }
+    await RefreshToken.deleteMany({ token: req.body.refresh_token });
   }
   res.json({ message: 'Logged out successfully' });
 });
@@ -255,14 +210,8 @@ app.post('/api/subscription/upgrade', authenticate, async (req, res) => {
       ? ['basic_dashboard','pond_management','advanced_analytics','agent_access','expert_consultation','market_trends']
       : ['basic_dashboard','pond_management'];
     const end = new Date(Date.now() + 365*24*60*60*1000);
-    let sub;
-    if (isMock()) {
-      sub = await MockDB.findOneAndUpdate('subscriptions', { userId }, { planName, features, status: 'active', endDate: end });
-      await MockDB.findOneAndUpdate('users', { _id: userId }, { subscriptionStatus: planName === 'free' ? 'free' : 'pro' });
-    } else {
-      sub = await SubscriptionMongo.findOneAndUpdate({ userId }, { planName, features, status: 'active', endDate: end }, { upsert: true, new: true });
-      await UserMongo.findByIdAndUpdate(userId, { subscriptionStatus: planName === 'free' ? 'free' : 'pro' });
-    }
+    const sub = await SubscriptionMongo.findOneAndUpdate({ userId }, { planName, features, status: 'active', endDate: end }, { upsert: true, new: true });
+    await UserMongo.findByIdAndUpdate(userId, { subscriptionStatus: planName === 'free' ? 'free' : 'pro' });
     res.json(sub);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -270,9 +219,7 @@ app.post('/api/subscription/upgrade', authenticate, async (req, res) => {
 app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req, res) => {
   try {
     const userId = req.params.userId;
-    let sub = isMock()
-      ? await MockDB.findOne('subscriptions', { userId })
-      : await SubscriptionMongo.findOne({ userId });
+    const sub = await SubscriptionMongo.findOne({ userId });
     
     // Auto-create or return default free plan if missing
     if (!sub) {
@@ -302,9 +249,7 @@ app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req,
 app.put('/api/user/:userId/notifications', authenticate, requireSelf, async (req, res) => {
   try {
     const { fcmToken, notifications } = req.body;
-    const user = isMock()
-      ? await MockDB.findOneAndUpdate('users', { _id: req.params.userId }, { fcmToken, notifications })
-      : await UserMongo.findByIdAndUpdate(req.params.userId, { fcmToken, notifications }, { new: true });
+    const user = await UserMongo.findByIdAndUpdate(req.params.userId, { fcmToken, notifications }, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -320,12 +265,7 @@ app.patch('/api/user/:userId', authenticate, requireSelf, async (req, res) => {
     delete updates.role;
     delete updates.mobile; // Phone is fixed for now
 
-    let user;
-    if (isMock()) {
-      user = await MockDB.findOneAndUpdate('users', { _id: userId }, updates);
-    } else {
-      user = await UserMongo.findByIdAndUpdate(userId, updates, { new: true });
-    }
+    const user = await UserMongo.findByIdAndUpdate(userId, updates, { new: true });
     
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
@@ -338,9 +278,7 @@ app.patch('/api/user/:userId', authenticate, requireSelf, async (req, res) => {
 
 app.get('/api/user/:userId/ponds', authenticate, requireSelf, async (req, res) => {
   try {
-    const ponds = isMock()
-      ? await MockDB.find('ponds', { userId: req.params.userId })
-      : await PondMongo.find({ userId: req.params.userId });
+    const ponds = await PondMongo.find({ userId: req.params.userId });
     res.json(ponds);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -348,7 +286,6 @@ app.get('/api/user/:userId/ponds', authenticate, requireSelf, async (req, res) =
 app.post('/api/ponds', authenticate, async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
-    if (isMock()) return res.json(await MockDB.save('ponds', data));
     res.json(await new PondMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -356,24 +293,14 @@ app.post('/api/ponds', authenticate, async (req, res) => {
 app.delete('/api/ponds/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    if (isMock()) {
-      const pond = await MockDB.findOne('ponds', { _id: id });
-      if (!pond) return res.status(404).json({ error: 'Pond not found' });
-      if (pond.userId !== req.user.id && req.user.role !== 'admin')
-        return res.status(403).json({ error: 'Access denied' });
-      await MockDB.delete('ponds', { _id: id });
-      await MockDB.delete('feedLogs', { pondId: id });
-      await MockDB.delete('medicineLogs', { pondId: id });
-    } else {
-      const pond = await PondMongo.findById(id);
-      if (!pond) return res.status(404).json({ error: 'Pond not found' });
-      if (String(pond.userId) !== req.user.id && req.user.role !== 'admin')
-        return res.status(403).json({ error: 'Access denied' });
-      await PondMongo.findByIdAndDelete(id);
-      await FeedLogMongo.deleteMany({ pondId: id });
-      await MedicineLogMongo.deleteMany({ pondId: id });
-      await WaterLogMongo.deleteMany({ pondId: id });
-    }
+    const pond = await PondMongo.findById(id);
+    if (!pond) return res.status(404).json({ error: 'Pond not found' });
+    if (String(pond.userId) !== req.user.id && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Access denied' });
+    await PondMongo.findByIdAndDelete(id);
+    await FeedLogMongo.deleteMany({ pondId: id });
+    await MedicineLogMongo.deleteMany({ pondId: id });
+    await WaterLogMongo.deleteMany({ pondId: id });
     res.status(204).send();
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -384,9 +311,7 @@ app.delete('/api/ponds/:id', authenticate, async (req, res) => {
 
 app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, res) => {
   try {
-    const logs = isMock()
-      ? await MockDB.find('waterLogs', { userId: req.params.userId })
-      : await WaterLogMongo.find({ userId: req.params.userId });
+    const logs = await WaterLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -394,7 +319,6 @@ app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, r
 app.post('/api/water-logs', authenticate, async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
-    if (isMock()) return res.json(await MockDB.save('waterLogs', data));
     res.json(await new WaterLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -405,9 +329,7 @@ app.post('/api/water-logs', authenticate, async (req, res) => {
 
 app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res) => {
   try {
-    const logs = isMock()
-      ? await MockDB.find('sopLogs', { userId: req.params.userId })
-      : await SOPLogMongo.find({ userId: req.params.userId });
+    const logs = await SOPLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -415,7 +337,6 @@ app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res
 app.post('/api/sop-logs', authenticate, async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
-    if (isMock()) return res.json(await MockDB.save('sopLogs', data));
     res.json(await new SOPLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -426,9 +347,7 @@ app.post('/api/sop-logs', authenticate, async (req, res) => {
 
 app.get('/api/user/:userId/expenses', authenticate, requireSelf, async (req, res) => {
   try {
-    const expenses = isMock()
-      ? await MockDB.find('expenses', { userId: req.params.userId })
-      : await ExpenseMongo.find({ userId: req.params.userId });
+    const expenses = await ExpenseMongo.find({ userId: req.params.userId });
     res.json(expenses);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -436,7 +355,6 @@ app.get('/api/user/:userId/expenses', authenticate, requireSelf, async (req, res
 app.post('/api/expenses', authenticate, async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
-    if (isMock()) return res.json(await MockDB.save('expenses', data));
     res.json(await new ExpenseMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -447,9 +365,7 @@ app.post('/api/expenses', authenticate, async (req, res) => {
 
 app.get('/api/user/:userId/feed-logs', authenticate, requireSelf, async (req, res) => {
   try {
-    const logs = isMock()
-      ? await MockDB.find('feedLogs', { userId: req.params.userId })
-      : await FeedLogMongo.find({ userId: req.params.userId });
+    const logs = await FeedLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -457,7 +373,6 @@ app.get('/api/user/:userId/feed-logs', authenticate, requireSelf, async (req, re
 app.post('/api/feed-logs', authenticate, async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
-    if (isMock()) return res.json(await MockDB.save('feedLogs', data));
     res.json(await new FeedLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -468,9 +383,7 @@ app.post('/api/feed-logs', authenticate, async (req, res) => {
 
 app.get('/api/user/:userId/medicine-logs', authenticate, requireSelf, async (req, res) => {
   try {
-    const logs = isMock()
-      ? await MockDB.find('medicineLogs', { userId: req.params.userId })
-      : await MedicineLogMongo.find({ userId: req.params.userId });
+    const logs = await MedicineLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -478,7 +391,6 @@ app.get('/api/user/:userId/medicine-logs', authenticate, requireSelf, async (req
 app.post('/api/medicine-logs', authenticate, async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
-    if (isMock()) return res.json(await MockDB.save('medicineLogs', data));
     res.json(await new MedicineLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -588,9 +500,7 @@ const runPushEngine = async () => {
     for (const u of users) {
       if (!u.fcmToken || !u.notifications) continue;
       
-      const ponds = isMock()
-        ? await MockDB.find('ponds', { userId: u._id||u.id })
-        : await PondMongo.find({ userId: u._id||u.id });
+      const ponds = await PondMongo.find({ userId: u._id||u.id });
 
       for (const p of ponds) {
         if (p.status !== 'active' || !p.stockingDate) continue;
@@ -661,7 +571,7 @@ if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Aqua Server] Running on http://0.0.0.0:${PORT}`);
-      console.log(`[Aqua Server] Database: ${isMock() ? 'MOCK' : 'MONGODB'}`);
+      console.log(`[Aqua Server] Database: MONGODB (Online Mode)`);
       console.log(`[Aqua Server] AI SDK: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
       // Run the engine every 2 minutes for check-conditions
       setInterval(runPushEngine, 120000);

@@ -2,28 +2,6 @@ import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 
-// --- MOCK DATABASE FALLBACK ---
-const MOCK_DB_PATH = path.join(process.cwd(), 'server', 'db.json');
-
-const loadMockDB = () => {
-  if (!fs.existsSync(MOCK_DB_PATH)) {
-    fs.writeFileSync(MOCK_DB_PATH, JSON.stringify({ users: [], subscriptions: [], ponds: [], feedLogs: [], medicineLogs: [], refreshTokens: [] }, null, 2));
-  }
-  const db = JSON.parse(fs.readFileSync(MOCK_DB_PATH, 'utf-8'));
-  if (!db.feedLogs) db.feedLogs = [];
-  if (!db.medicineLogs) db.medicineLogs = [];
-  if (!db.waterLogs) db.waterLogs = [];
-  if (!db.sopLogs) db.sopLogs = [];
-  if (!db.expenses) db.expenses = [];
-  if (!db.refreshTokens) db.refreshTokens = [];
-  return db;
-};
-
-const saveMockDB = (data: any) => {
-  fs.writeFileSync(MOCK_DB_PATH, JSON.stringify(data, null, 2));
-};
-
-let isUsingMock = false;
 
 // --- MONGODB SCHEMA ---
 const SubscriptionSchema = new mongoose.Schema({
@@ -147,66 +125,19 @@ export const SOPLog = mongoose.model('SOPLog', SOPLogSchema);
 export const Expense = mongoose.model('Expense', ExpenseSchema);
 export const RefreshToken = mongoose.model('RefreshToken', RefreshTokenSchema);
 
-// --- MOCK WRAPPERS ---
-export const MockDB = {
-  findOne: async (collection: string, query: any) => {
-    const db = loadMockDB();
-    const result = db[collection].find((item: any) => {
-      return Object.keys(query).every(key => item[key] === query[key]);
-    });
-    return result;
-  },
-  find: async (collection: string, query: any) => {
-    const db = loadMockDB();
-    return db[collection].filter((item: any) => {
-      return Object.keys(query).every(key => item[key] === query[key]);
-    });
-  },
-  save: async (collection: string, data: any) => {
-    const db = loadMockDB();
-    const newItem = { ...data, _id: `id_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, createdAt: new Date() };
-    db[collection].push(newItem);
-    saveMockDB(db);
-    return newItem;
-  },
-  findOneAndUpdate: async (collection: string, query: any, update: any) => {
-    const db = loadMockDB();
-    const index = db[collection].findIndex((item: any) => {
-      return Object.keys(query).every(key => item[key] == query[key]);
-    });
-    if (index === -1) {
-       // Optional: Insert if upsert? For now just return null
-       return null;
-    }
-    db[collection][index] = { ...db[collection][index], ...update, updatedAt: new Date() };
-    saveMockDB(db);
-    return db[collection][index];
-  },
-  delete: async (collection: string, query: any) => {
-    const db = loadMockDB();
-    const initialLength = db[collection].length;
-    db[collection] = db[collection].filter((item: any) => {
-      // Logic for delete: remove items matching the query
-      return !Object.keys(query).every(key => item[key] == query[key]);
-    });
-    saveMockDB(db);
-    return db[collection].length < initialLength;
-  }
-};
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://syamkdoram_db_user:xVMRfYAFMYYZvLzT@ac-k6ux81i-shard-00-00.mongodb.net:27017,ac-k6ux81i-shard-00-01.mongodb.net:27017,ac-k6ux81i-shard-00-02.mongodb.net:27017/aquagrow?ssl=true&replicaSet=atlas-k6ux81i-shard-0&authSource=admin&retryWrites=true&w=majority';
   
   try {
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
-    console.log('MongoDB Connected Successfully');
-    isUsingMock = false;
+    console.log('MongoDB Connected Successfully (Online Mode Always)');
   } catch (error) {
-    console.error('CRITICAL MONGODB ERROR: Failed to connect to your Database!');
-    console.error('Make sure your computer IP address is whitelisted in MongoDB Atlas and the password is correct.');
-    console.warn('Falling back to local mock DB temporarily to keep server alive.');
-    isUsingMock = true;
+    console.error('CRITICAL DATABASE ERROR: Online connection failed.');
+    console.error('Server will not start without MongoDB Atlas connectivity.');
+    process.exit(1); 
   }
 };
 
-export const isMock = () => isUsingMock;
+export const isMock = () => false;
+export const MockDB = { save: async () => ({}), findOne: async () => null, find: async () => [], findOneAndUpdate: async () => null, delete: async () => false };
