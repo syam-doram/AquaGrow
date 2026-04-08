@@ -40,7 +40,7 @@ const SettlementDetailSheet = ({ entry, onClose, t }: { entry: any, onClose: () 
         className="w-full max-w-md mx-auto bg-[#051F19] rounded-t-[3rem] p-6 pb-12 shadow-2xl border-t border-white/10"
         onClick={e => e.stopPropagation()}
       >
-        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-8" />
+        <div className="w-12 h-1.5 bg-card/20 rounded-full mx-auto mb-8" />
         
         <div className="flex items-center gap-4 mb-8">
            <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-center text-emerald-500">
@@ -82,7 +82,7 @@ const SettlementDetailSheet = ({ entry, onClose, t }: { entry: any, onClose: () 
 
         <button 
           onClick={onClose}
-          className="w-full py-5 bg-white/5 text-white rounded-[1.8rem] border border-white/5 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"
+          className="w-full py-5 bg-card/5 text-white rounded-[1.8rem] border border-white/5 font-black text-[10px] uppercase tracking-widest hover:bg-card/10 transition-all"
         >
           {t.closeLedger}
         </button>
@@ -121,7 +121,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
       
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#02130F]/90 backdrop-blur-xl px-5 py-6 flex items-center justify-between border-b border-white/5">
-        <button onClick={() => navigate(-1)} className="p-3 text-white/50 hover:bg-white/5 rounded-2xl transition-all">
+        <button onClick={() => navigate(-1)} className="p-3 text-white/50 hover:bg-card/5 rounded-2xl transition-all">
            <ChevronLeft size={22} />
         </button>
         <div className="flex flex-col items-center">
@@ -192,7 +192,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
         <div className="bg-[#051F19] rounded-[2.5rem] p-6 border border-white/5 space-y-6">
            <div className="flex items-center justify-between">
               <p className="text-emerald-500 text-[9px] font-black uppercase tracking-[0.2em]">{t.revenueComposition}</p>
-              <div className="bg-white/5 px-2 py-1 rounded-md">
+              <div className="bg-card/5 px-2 py-1 rounded-md">
                  <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">{t.totalAmount}</span>
               </div>
            </div>
@@ -203,7 +203,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
                     <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{t.baseBiomassSales}</span>
                     <span className="text-white text-base font-black">₹{baseRevenue.toLocaleString()}</span>
                  </div>
-                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                 <div className="h-1.5 w-full bg-card/5 rounded-full overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${(baseRevenue/netEarnings)*100}%` }} transition={{ duration: 1 }} className="h-full bg-emerald-500 rounded-full" />
                  </div>
               </div>
@@ -213,7 +213,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
                     <span className="text-white/60 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><Star size={10} className="text-[#EAB308]" /> {t.bonusSubsidies}</span>
                     <span className="text-[#EAB308] text-base font-black">₹{subsidyAmount.toLocaleString()}</span>
                  </div>
-                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                 <div className="h-1.5 w-full bg-card/5 rounded-full overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${(subsidyAmount/netEarnings)*100}%` }} transition={{ duration: 1, delay: 0.2 }} className="h-full bg-[#EAB308] rounded-full" />
                  </div>
               </div>
@@ -239,7 +239,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
                       className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all"
                     >
                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
+                          <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
                              <ShieldCheck size={20} />
                           </div>
                           <div>
@@ -289,7 +289,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
 const LedgerItem = ({ company, date, amount, status }: any) => (
   <div className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all">
      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
+        <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
            <ShieldCheck size={20} />
         </div>
         <div>

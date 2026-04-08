@@ -32,6 +32,11 @@ export interface Translations {
   initialSalinity: string;
   released: string;
   needToRelease: string;
+  preStockingPreparation: string;
+  activeStocking: string;
+  prepGuidance: string;
+  activeGuidance: string;
+  stockingGuidance: string;
   stockingStatus: string;
 
   // Greetings & Status
@@ -42,6 +47,7 @@ export interface Translations {
   goodEvening: string;
   welcome: string;
   activePonds: string;
+  planned: string;
 
   // Feed & ROI Metrics
   nextFeed: string;
@@ -277,6 +283,9 @@ export interface Translations {
   dataExport: string;
   security: string;
   privacy: string;
+  confirmStockingTitle: string;
+  confirmStockingAction: string;
+  editDate: string;
 
   // Lunar & Water
   amavasyaWarning: string;
@@ -475,6 +484,7 @@ export interface Translations {
   majorExpenses: string;
   viewPdfLog: string;
   logDailyExpense: string;
+  logDailyProtocol: string;
   timeToFeed: string;
   checkFeedTrays: string;
   aeratorNightOn: string;
@@ -514,6 +524,8 @@ export interface Translations {
   liveCycleStats: string;
   liveCycle: string;
   projectRoi: string;
+  forgotPassword: string;
+  noWaterData: string;
 }
 
 const English: Translations = {
@@ -547,6 +559,7 @@ const English: Translations = {
   goodEvening: 'Good Evening,',
   welcome: 'Welcome,',
   activePonds: 'Active Ponds',
+  planned: 'Planned',
   nextFeed: 'Next Feed',
   fcrCalculator: 'FCR Calculator',
   feedConversionRatio: 'Feed Conversion Ratio',
@@ -592,6 +605,11 @@ const English: Translations = {
   dailyExecutionRules: 'Daily Execution Rules',
   applicationFormula: 'Application Formula',
   pondStockingProfile: 'Pond Stocking Profile',
+  preStockingPreparation: 'Pre-Stocking (Preparation)',
+  activeStocking: 'Stocking (Active)',
+  prepGuidance: 'Guidance: Focus on Pond Drying, Liming and Water Treatment before stock.',
+  activeGuidance: 'Guidance: Focus on Feed, Medicine and Molting management for growing crop.',
+  stockingGuidance: 'Farmer Selection Guidance',
   doc: 'DOC',
   lakh: 'Lakh',
   estSurvivingCount: 'Est. Surviving Count',
@@ -875,6 +893,7 @@ const English: Translations = {
   logDailyExpense: 'Log Daily Expense',
   productionExpectation: 'Yield Forecast',
   logMedication: 'Log Medication',
+  logDailyProtocol: 'Log Protocol',
   dailySOP: 'Daily SOP Tracker',
   temperature: 'Temperature',
   salinity: 'Salinity',
@@ -1020,7 +1039,12 @@ const English: Translations = {
   continue: 'Continue',
   liveCycleStats: 'Live Cycle Stats',
   liveCycle: 'Live Cycle',
-  projectRoi: 'Project ROI',
+  projectRoi: 'Projected ROI',
+  forgotPassword: 'Forgot Password?',
+  noWaterData: 'No Data',
+  confirmStockingTitle: 'Time to Stock',
+  confirmStockingAction: 'YES, CONFIRM STOCKING',
+  editDate: 'Reschedule Stocking',
 };
 
 const Telugu: Translations = {
@@ -1053,6 +1077,7 @@ const Telugu: Translations = {
   goodEvening: 'శుభ సాయంత్రం,',
   welcome: 'స్వాగతం,',
   activePonds: 'క్రియాశీల చెరువులు',
+  planned: 'ప్రణాళికాబద్ధం',
   nextFeed: 'తదుపరి మేత',
   fcrCalculator: 'FCR కాలిక్యులేటర్',
   feedConversionRatio: 'మేత మార్పిడి నిష్పత్తి',
@@ -1098,6 +1123,11 @@ const Telugu: Translations = {
   dailyExecutionRules: 'రోజువారీ అమలు నియమాలు',
   applicationFormula: 'అన్వయ ఫార్ములా',
   pondStockingProfile: 'చెరువు స్టాకింగ్ ప్రొఫైల్',
+  preStockingPreparation: 'ముందస్తు తయారీ (ప్రె-స్టాకింగ్)',
+  activeStocking: 'పెంపకం దశ (యాక్టివ్)',
+  prepGuidance: 'సూచన: విత్తనం వేసే ముందు చెరువు ఎండబెట్టడం మరియు నీటి శుద్ధిపై దృష్టి పెట్టండి.',
+  activeGuidance: 'సూచన: మేత, మందులు మరియు మొల్టింగ్ మేనేజ్మెంట్ పై దృష్టి పెట్టండి.',
+  stockingGuidance: 'రైతు ఎంపిక మార్గదర్శకం',
   doc: 'రోజు (DOC)',
   lakh: 'లక్ష',
   estSurvivingCount: 'అంచనా వేసిన రొయ్యల సంఖ్య',
@@ -1449,6 +1479,11 @@ const Telugu: Translations = {
   dataExport: 'డేటా ఎగుమతి',
   security: 'భద్రత',
   privacy: 'గోప్యత',
+  forgotPassword: 'పాస్‌వర్డ్ మర్చిపోయారా?',
+  noWaterData: 'డేటా లేదు',
+  confirmStockingTitle: 'స్టాకింగ్ సమయం',
+  confirmStockingAction: 'అవును, స్టాకింగ్ ధృవీకరించు',
+  editDate: 'తేదీని మార్చు',
 };
 
 export const translations: Record<Language, Translations> = {

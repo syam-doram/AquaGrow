@@ -107,7 +107,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
     <div className="min-h-[100dvh] bg-[#0D1B17] text-white flex flex-col overflow-x-hidden pb-8 relative font-sans text-left">
       <button 
         onClick={() => navigate(-1)}
-        className="absolute top-6 left-6 p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all z-50 active:scale-90"
+        className="absolute top-6 left-6 p-2 rounded-xl bg-card/5 border border-white/10 hover:bg-card/10 transition-all z-50 active:scale-90"
       >
         <ChevronLeft size={20} className="text-white/60" />
       </button>
@@ -118,7 +118,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
           <div className="w-20 h-20 bg-[#C78200] rounded-full flex items-center justify-center relative z-10 shadow-[0_0_30px_rgba(199,130,0,0.2)]">
             <Waves size={40} className="text-white" />
           </div>
-          <div className="absolute -top-1 -right-1 bg-white p-1.5 rounded-full border-2 border-[#4A2C2A] shadow-lg">
+          <div className="absolute -top-1 -right-1 bg-card p-1.5 rounded-full border-2 border-[#4A2C2A] shadow-lg">
             <Sparkles size={12} className="text-[#C78200]" />
           </div>
         </div>
@@ -161,7 +161,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
                   </div>
                </div>
 
-               <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between">
+               <div className="bg-card/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between">
                   <div>
                      <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">New Potential Expiry</p>
                      <p className="text-emerald-400 text-sm font-black tracking-tight">
@@ -187,7 +187,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
             onClick={() => setSelectedPlan(plan.id as any)}
             className={cn(
               "relative overflow-hidden rounded-[1.8rem] p-5 transition-all duration-500 cursor-pointer border",
-              selectedPlan === plan.id ? "bg-white text-[#4A2C2A] border-white shadow-xl scale-[1.01]" : "bg-white/5 border-white/10 text-white"
+              selectedPlan === plan.id ? "bg-card text-ink border-white shadow-xl scale-[1.01]" : "bg-card/5 border-white/10 text-white"
             )}
           >
             <div className="flex justify-between items-start mb-4">
@@ -223,8 +223,8 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
       <div className="px-6 space-y-3 mb-8">
         <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 mb-1">Included Benefits</h2>
         {features.map((f, i) => (
-          <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-4 group">
-            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-[#C78200] border border-white/10">
+          <div key={i} className="bg-card/5 border border-white/5 rounded-2xl p-4 flex items-center gap-4 group">
+            <div className="w-10 h-10 bg-card/5 rounded-xl flex items-center justify-center text-[#C78200] border border-white/10">
               <f.icon size={18} strokeWidth={2} />
             </div>
             <div>
@@ -244,7 +244,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
             "w-full font-black py-5 rounded-[1.5rem] shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-[0.3em] text-[10px] active:scale-95",
             selectedPlan 
               ? "bg-[#C78200] text-white shadow-[#C78200]/20" 
-              : "bg-white/10 text-white/20 cursor-not-allowed shadow-none"
+              : "bg-card/10 text-white/20 cursor-not-allowed shadow-none"
           )}
         >
           {selectedPlan ? t.unlockPro : "Select a Plan"} <Sparkles size={16} />
@@ -317,35 +317,35 @@ const PaymentModal = ({ onClose, plan, price, existingCredit, usedDays, usedAmou
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        className="relative w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 overflow-hidden"
+        className="relative w-full max-w-md bg-card rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 overflow-hidden"
       >
         {isSuccess ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-xl animate-bounce">
               <CheckCircle2 size={40} className="text-white" />
             </div>
-            <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">{t.paymentSuccess}</h2>
-            <p className="text-[#4A2C2A]/40 text-xs font-bold uppercase tracking-widest">Upgrade confirmed. Credit Applied.</p>
+            <h2 className="text-2xl font-black tracking-tighter text-ink mb-3">{t.paymentSuccess}</h2>
+            <p className="text-ink/40 text-xs font-bold uppercase tracking-widest">Upgrade confirmed. Credit Applied.</p>
           </div>
         ) : isProcessing ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 border-4 border-[#C78200]/20 border-t-[#C78200] rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A] mb-3">{processStep}</h2>
-            <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-[0.2em]">Transaction Securely Managed</p>
+            <h2 className="text-xl font-black tracking-tighter text-ink mb-3">{processStep}</h2>
+            <p className="text-ink/40 text-[9px] font-black uppercase tracking-[0.2em]">Transaction Securely Managed</p>
           </div>
         ) : (
           <>
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Prorated Transition</h2>
-                <p className="text-[#4A2C2A]/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{plan.replace('_', ' ').toUpperCase()} Expansion</p>
+                <h2 className="text-xl font-black tracking-tighter text-ink">Prorated Transition</h2>
+                <p className="text-ink/40 text-[9px] font-black uppercase tracking-widest mt-0.5">{plan.replace('_', ' ').toUpperCase()} Expansion</p>
               </div>
-              <button onClick={onClose} className="p-2 bg-[#4A2C2A]/5 rounded-xl text-[#4A2C2A]/40 hover:text-[#4A2C2A] transition-colors">
+              <button onClick={onClose} className="p-2 bg-[#4A2C2A]/5 rounded-xl text-ink/40 hover:text-ink transition-colors">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-black/5 mb-8 space-y-3">
+            <div className="bg-card/50 p-6 rounded-[2rem] border border-card-border mb-8 space-y-3">
                <div className="flex justify-between items-center opacity-40">
                   <span className="text-[9px] font-black uppercase tracking-widest">Selected Plan Price</span>
                   <span className="text-xs font-bold font-mono">₹{basePriceNum.toLocaleString()}</span>
@@ -358,8 +358,8 @@ const PaymentModal = ({ onClose, plan, price, existingCredit, usedDays, usedAmou
                   <span className="text-[9px] font-black uppercase tracking-widest">Adjustment Credit</span>
                   <span className="text-xs font-bold font-mono">- ₹{(basePriceNum - finalPayable).toLocaleString()}</span>
                </div>
-               <div className="pt-3 border-t border-black/5 flex justify-between items-center">
-                  <span className="text-[10px] font-black text-[#4A2C2A] uppercase tracking-widest">Net Payable</span>
+               <div className="pt-3 border-t border-card-border flex justify-between items-center">
+                  <span className="text-[10px] font-black text-ink uppercase tracking-widest">Net Payable</span>
                   <span className="text-2xl font-black tracking-tighter text-[#C78200]">₹{finalPayable.toLocaleString()}</span>
                </div>
             </div>
@@ -375,7 +375,7 @@ const PaymentModal = ({ onClose, plan, price, existingCredit, usedDays, usedAmou
                   onClick={() => setMethod(m.id as any)}
                   className={cn(
                     "flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all",
-                    method === m.id ? "bg-[#C78200]/10 border-[#C78200] text-[#C78200]" : "bg-white border-black/5 text-[#4A2C2A]/40"
+                    method === m.id ? "bg-[#C78200]/10 border-[#C78200] text-[#C78200]" : "bg-card border-card-border text-ink/40"
                   )}
                 >
                   <m.icon size={24} />
@@ -388,25 +388,25 @@ const PaymentModal = ({ onClose, plan, price, existingCredit, usedDays, usedAmou
               {method === 'card' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">Card Number</label>
-                    <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="0000 0000 0000 0000" />
+                    <label className="text-[8px] font-black text-ink/30 uppercase tracking-widest ml-1">Card Number</label>
+                    <input className="w-full bg-[#F8F9FE] border border-card-border p-4 rounded-xl text-ink font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="0000 0000 0000 0000" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">Expiry</label>
-                      <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="MM/YY" />
+                      <label className="text-[8px] font-black text-ink/30 uppercase tracking-widest ml-1">Expiry</label>
+                      <input className="w-full bg-[#F8F9FE] border border-card-border p-4 rounded-xl text-ink font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="MM/YY" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">CVV</label>
-                      <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="***" type="password" />
+                      <label className="text-[8px] font-black text-ink/30 uppercase tracking-widest ml-1">CVV</label>
+                      <input className="w-full bg-[#F8F9FE] border border-card-border p-4 rounded-xl text-ink font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="***" type="password" />
                     </div>
                   </div>
                 </>
               )}
               {method === 'upi' && (
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest ml-1">UPI ID</label>
-                  <input className="w-full bg-[#F8F9FE] border border-black/5 p-4 rounded-xl text-[#4A2C2A] font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="username@upi" />
+                  <label className="text-[8px] font-black text-ink/30 uppercase tracking-widest ml-1">UPI ID</label>
+                  <input className="w-full bg-[#F8F9FE] border border-card-border p-4 rounded-xl text-ink font-black outline-none focus:border-[#C78200] transition-all text-sm" placeholder="username@upi" />
                 </div>
               )}
             </div>

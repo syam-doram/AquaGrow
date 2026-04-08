@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home, Waves, Pill, Utensils, Calculator } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Translations } from '../translations';
+import { useData } from '../context/DataContext';
 
 export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useData();
 
   const navItems = [
     { icon: Home,       label: t.home,     path: '/dashboard', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
@@ -22,7 +24,7 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] sm:max-w-[420px] z-50">
       <nav 
-        className="nav-blur px-2 py-3 flex justify-around items-center rounded-[2.5rem] border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-2xl relative overflow-hidden transition-all duration-700 ease-in-out"
+        className="premium-glass px-2 py-3 flex justify-around items-center rounded-[2.5rem] border border-card-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] relative overflow-hidden transition-all duration-700 ease-in-out"
         style={{ backgroundColor: activeItem.bg }}
       >
         {/* Soft Inner Glow */}
@@ -30,21 +32,22 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
         
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
+          const labelColor = theme === 'dark' ? '#FFFFFF' : '#4A2C2A';
+          const iconColor = isActive ? item.color : labelColor;
+          
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={cn(
-                "flex flex-col items-center gap-1.5 transition-all duration-500 relative group flex-1 min-w-0",
-                isActive ? "text-[#4A2C2A]" : "text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40"
-              )}
+              className="flex flex-col items-center gap-1.5 transition-all duration-500 relative group flex-1 min-w-0"
+              style={{ color: isActive ? item.color : labelColor }}
             >
               <div className="relative">
                 <item.icon 
                   size={isActive ? 22 : 20} 
                   strokeWidth={isActive ? 2.5 : 1.5} 
                   className={cn("transition-all duration-500", isActive ? "opacity-100" : "opacity-20")}
-                  style={{ color: isActive ? item.color : '#4A2C2A' }}
+                  style={{ color: iconColor }}
                 />
                 {isActive && (
                   <motion.div 
@@ -65,12 +68,18 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 5 }}
                     className="text-[8px] font-black uppercase tracking-widest text-center truncate w-full px-1"
-                    style={{ color: item.color }}
+                    style={{ color: theme === 'dark' ? '#FFFFFF' : item.color }}
                   >
                     {item.label.split(' ')[0]}
                   </motion.span>
                 )}
               </AnimatePresence>
+              
+              {!isActive && (
+                 <span className="text-[7px] font-bold uppercase tracking-widest text-center truncate w-full px-1 opacity-20 group-hover:opacity-40 transition-opacity" style={{ color: labelColor }}>
+                    {item.label.split(' ')[0]}
+                 </span>
+              )}
 
               {isActive && (
                 <motion.div 

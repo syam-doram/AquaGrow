@@ -167,23 +167,23 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
       </div>
 
       {/* 2. Medicine Protocol */}
-      <div className="bg-white border border-black/5 rounded-[2rem] p-6">
+      <div className="bg-card border border-card-border rounded-[2rem] p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white scale-90"><Plus size={14} /></div>
-          <h4 className="text-[#4A2C2A] font-black text-xs uppercase tracking-widest">Medicine Protocol</h4>
+          <h4 className="text-ink font-black text-xs uppercase tracking-widest">Medicine Protocol</h4>
         </div>
         
         <div className="space-y-4">
           <div>
             <p className="text-[#0D523C] text-[9px] font-black uppercase tracking-widest mb-2 px-2 py-0.5 bg-emerald-50 rounded-full inline-block">Water Treatment</p>
             <ul className="space-y-1.5 ml-1">
-              {sop.protocol.water.map((m, i) => <li key={i} className="text-[10px] font-bold text-[#4A2C2A]/60 flex gap-2"><span>•</span> {m}</li>)}
+              {sop.protocol.water.map((m, i) => <li key={i} className="text-[10px] font-bold text-ink/60 flex gap-2"><span>•</span> {m}</li>)}
             </ul>
           </div>
           <div className="pt-2">
             <p className="text-blue-600 text-[9px] font-black uppercase tracking-widest mb-2 px-2 py-0.5 bg-blue-50 rounded-full inline-block">Feed Medication (5 Days)</p>
             <ul className="space-y-1.5 ml-1">
-              {sop.protocol.feed.map((m, i) => <li key={i} className="text-[10px] font-bold text-[#4A2C2A]/60 flex gap-2"><span>•</span> {m}</li>)}
+              {sop.protocol.feed.map((m, i) => <li key={i} className="text-[10px] font-bold text-ink/60 flex gap-2"><span>•</span> {m}</li>)}
             </ul>
           </div>
         </div>
@@ -200,7 +200,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
         </div>
         <div className="grid grid-cols-5 gap-2">
            {sop.feedManagement.map((f, i) => (
-             <div key={i} className="bg-white/60 rounded-xl p-2 text-center border border-amber-200/50">
+             <div key={i} className="bg-card/60 rounded-xl p-2 text-center border border-amber-200/50">
                 <p className="text-[7px] font-black text-amber-800 uppercase mb-1">Day {f.day}</p>
                 <p className="text-[10px] font-black text-amber-900">{f.quantity}</p>
              </div>
@@ -228,7 +228,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
       </div>
 
        {/* 5. Avoid These Mistakes */}
-       <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6">
+       <div className="bg-card/50 border border-slate-200 rounded-[2rem] p-6">
         <h4 className="text-slate-900 font-black text-[9px] uppercase tracking-widest mb-4 flex items-center gap-2">
           <X size={12} className="text-red-500" /> Avoid These Mistakes
         </h4>
@@ -262,17 +262,17 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
 
   if (!isPro) {
     return (
-      <div className="min-h-screen bg-[#FFFDF5]">
+      <div className="min-h-screen bg-paper">
         <Header title={t.aiDisease} showBack />
         <div className="p-6 pt-24">
-          <div className="mt-8 relative overflow-hidden rounded-[3rem] bg-[#4A2C2A] p-10 text-center shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#C78200]/20 to-transparent" />
+          <div className="mt-8 relative overflow-hidden rounded-[3rem] bg-card p-10 text-center shadow-2xl border border-primary/10">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-8 border border-white/10">
-                <Sparkles size={32} className="text-[#C78200]" />
+              <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-8 border border-primary/10">
+                <Sparkles size={32} className="text-primary" />
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tighter mb-4">Smart <span className="text-[#C78200]">Diagnostic AI</span></h2>
-              <p className="text-white/40 text-xs font-bold leading-relaxed mb-10 px-6 uppercase tracking-widest leading-relaxed">“Like X-ray vision for your pond — powered by AI insights.” Deep AI scanning for early detection and decision support.</p>
+              <h2 className="text-2xl font-black text-ink tracking-tighter mb-4">Smart <span className="text-primary">Diagnostic AI</span></h2>
+              <p className="text-ink/40 text-xs font-bold leading-relaxed mb-10 px-6 uppercase tracking-widest leading-relaxed">“Like X-ray vision for your pond — powered by AI insights.” Deep AI scanning for early detection and decision support.</p>
               <button 
                 onClick={() => navigate('/subscription')}
                 className="w-full bg-[#C78200] text-white font-black py-5 rounded-[1.8rem] shadow-xl shadow-[#C78200]/20 uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all"
@@ -287,13 +287,13 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                 <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-500">
                   <CheckCircle2 size={18} />
                 </div>
-                <p className="text-[#4A2C2A]/60 text-[10px] font-black uppercase tracking-widest leading-normal">Deep AI Scanning for EHP, WFD & Vibriosis</p>
+                <p className="text-ink/60 text-[10px] font-black uppercase tracking-widest leading-normal">Deep AI Scanning for EHP, WFD & Vibriosis</p>
              </div>
              <div className="flex gap-4 items-center">
                 <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-500">
                   <CheckCircle2 size={18} />
                 </div>
-                <p className="text-[#4A2C2A]/60 text-[10px] font-black uppercase tracking-widest leading-normal">Bio-Security Protocols for Your Region</p>
+                <p className="text-ink/60 text-[10px] font-black uppercase tracking-widest leading-normal">Bio-Security Protocols for Your Region</p>
              </div>
           </div>
         </div>
@@ -302,14 +302,14 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDF5] flex flex-col">
+    <div className="min-h-screen bg-paper flex flex-col">
       <Header title={t.aiDisease} showBack />
       
       <main className="flex-1 mt-20 p-6">
         {step === 'intro' && (
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500 pb-12">
             <div className="text-center space-y-2 mb-10 pt-4">
-              <h2 className="text-2xl font-black text-[#4A2C2A] tracking-tighter uppercase italic">Preparation <span className="text-[#C78200]">Checklist</span></h2>
+              <h2 className="text-2xl font-black text-ink tracking-tighter uppercase italic">Preparation <span className="text-[#C78200]">Checklist</span></h2>
               <div className="h-1 w-12 bg-[#C78200] mx-auto rounded-full" />
             </div>
 
@@ -320,13 +320,13 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                 { title: 'Gut Line Focus', desc: 'Ensure the back of the shrimp is centered and clear.', icon: <ShieldCheck size={18} /> },
                 { title: 'Dry Surface', desc: 'Wipe excess water to prevent glare from the surface.', icon: <CheckCircle2 size={18} /> }
               ].map((item, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-black/5 shadow-sm flex items-start gap-4 active:scale-[0.98] transition-all">
+                <div key={idx} className="bg-card p-6 rounded-[2.5rem] border border-card-border shadow-sm flex items-start gap-4 active:scale-[0.98] transition-all">
                   <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-[#C78200] shrink-0 border border-amber-100/50">
                     {item.icon}
                   </div>
                   <div>
-                    <h4 className="text-[11px] font-black text-[#4A2C2A] uppercase tracking-wider mb-1 mt-0.5">{item.title}</h4>
-                    <p className="text-[9px] font-bold text-[#4A2C2A]/40 uppercase tracking-widest leading-relaxed">
+                    <h4 className="text-[11px] font-black text-ink uppercase tracking-wider mb-1 mt-0.5">{item.title}</h4>
+                    <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest leading-relaxed">
                       {item.desc}
                     </p>
                   </div>
@@ -342,7 +342,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
             </button>
             <button 
               onClick={() => setStep('manual')}
-              className="w-full text-[#4A2C2A]/40 font-black py-2 uppercase tracking-[0.3em] text-[8px] active:scale-95 transition-all"
+              className="w-full text-ink/40 font-black py-2 uppercase tracking-[0.3em] text-[8px] active:scale-95 transition-all"
             >
               Skip to Manual Diagnosis
             </button>
@@ -351,12 +351,12 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
 
         {step === 'upload' && (
           <div className="space-y-6">
-            <div className="bg-white p-8 rounded-[3rem] border-2 border-dashed border-[#4A2C2A]/10 flex flex-col items-center text-center">
+            <div className="bg-card p-8 rounded-[3rem] border-2 border-dashed border-[#4A2C2A]/10 flex flex-col items-center text-center">
               <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-6 text-[#C78200]">
                 <Camera size={32} />
               </div>
-              <h2 className="text-xl font-black text-[#4A2C2A] tracking-tight mb-2">{t.scanShrimp || 'Scan Shrimp'}</h2>
-              <p className="text-[#4A2C2A]/40 text-xs font-bold uppercase tracking-widest leading-relaxed px-4">
+              <h2 className="text-xl font-black text-ink tracking-tight mb-2">{t.scanShrimp || 'Scan Shrimp'}</h2>
+              <p className="text-ink/40 text-xs font-bold uppercase tracking-widest leading-relaxed px-4">
                 {t.uploadPhotoDesc || 'Upload a clear photo for high-accuracy disease detection'}
               </p>
               
@@ -374,7 +374,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                     onChange={handleUpload}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
-                  <button className="w-full bg-white border border-black/5 text-[#4A2C2A]/60 font-black py-5 rounded-3xl uppercase tracking-[0.2em] text-[10px]">
+                  <button className="w-full bg-card border border-card-border text-ink/60 font-black py-5 rounded-3xl uppercase tracking-[0.2em] text-[10px]">
                     {t.uploadPhoto || 'Upload from Gallery'}
                   </button>
                 </div>
@@ -388,7 +388,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                      <h3 className="text-lg font-black tracking-tighter">Manual Diagnostic</h3>
                      <p className="text-white/40 text-[9px] font-black uppercase tracking-widest leading-relaxed">No photo? Select symptoms manually</p>
                   </div>
-                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-[#C78200] transition-colors">
+                  <div className="w-12 h-12 bg-card/10 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-[#C78200] transition-colors">
                      <AlertTriangle size={20} className="text-white/60 group-hover:text-white" />
                   </div>
                </div>
@@ -399,7 +399,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                 <AlertTriangle className="text-[#C78200] shrink-0" size={20} />
                 <div className="space-y-1">
                   <h4 className="text-[10px] font-black text-[#C78200] uppercase tracking-widest">{t.photoInstructions || 'Photo Instructions'}</h4>
-                  <p className="text-[9px] font-bold text-[#4A2C2A]/40 leading-relaxed uppercase tracking-widest">Clear Lighting • No Glare • Centered Subject</p>
+                  <p className="text-[9px] font-bold text-ink/40 leading-relaxed uppercase tracking-widest">Clear Lighting • No Glare • Centered Subject</p>
                 </div>
               </div>
             </div>
@@ -409,14 +409,14 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
         {step === 'manual' && (
            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
               <div className="flex items-center justify-between mb-2">
-                 <button onClick={() => setStep('upload')} className="flex items-center gap-2 text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest">
+                 <button onClick={() => setStep('upload')} className="flex items-center gap-2 text-ink/40 text-[10px] font-black uppercase tracking-widest">
                     <ChevronLeft size={16} /> Back
                  </button>
                  <span className="text-[#C78200] text-[10px] font-black uppercase tracking-[0.3em]">Symptom Checker</span>
               </div>
 
               <div className="space-y-6">
-                 <h2 className="text-2xl font-black text-[#4A2C2A] tracking-tighter">What symptoms do you <span className="text-[#C78200]">observe?</span></h2>
+                 <h2 className="text-2xl font-black text-ink tracking-tighter">What symptoms do you <span className="text-[#C78200]">observe?</span></h2>
                  
                  <div className="grid grid-cols-1 gap-3">
                     {[
@@ -436,13 +436,13 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                           "p-5 rounded-2xl border text-left flex items-center justify-between transition-all duration-300",
                           selectedSymptoms.includes(symp) 
                             ? "bg-[#C78200] border-[#C78200] text-white shadow-lg" 
-                            : "bg-white border-black/5 text-[#4A2C2A]/60"
+                            : "bg-card border-card-border text-ink/60"
                         )}
                       >
                          <span className="text-[12px] font-black tracking-tight">{symp}</span>
                          <div className={cn(
                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                           selectedSymptoms.includes(symp) ? "bg-white border-white text-[#C78200]" : "border-black/5 text-transparent"
+                           selectedSymptoms.includes(symp) ? "bg-card border-white text-[#C78200]" : "border-card-border text-transparent"
                          )}>
                             <CheckCircle2 size={14} />
                          </div>
@@ -457,7 +457,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                        "w-full py-5 rounded-3xl font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all flex items-center justify-center gap-3",
                        selectedSymptoms.length > 0 
                          ? "bg-[#0D523C] text-white shadow-emerald-500/10 active:scale-95" 
-                         : "bg-white border-black/5 text-[#4A2C2A]/20 cursor-not-allowed"
+                         : "bg-card border-card-border text-ink/20 cursor-not-allowed"
                     )}
                  >
                     Analyze Symptoms <Sparkles size={18} />
@@ -482,8 +482,8 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                 <Sparkles size={40} className="text-[#C78200]" />
               </div>
             </div>
-            <h2 className="text-2xl font-black text-[#012B1D] tracking-tighter mb-2">{loadingMessage}</h2>
-            <p className="text-[#012B1D]/40 text-[10px] font-black uppercase tracking-[0.4em]">{t.scanningHealthMarkers || 'Checking bio-markers'}</p>
+            <h2 className="text-2xl font-black text-ink tracking-tighter mb-2">{loadingMessage}</h2>
+            <p className="text-ink/40 text-[10px] font-black uppercase tracking-[0.4em]">{t.scanningHealthMarkers || 'Checking bio-markers'}</p>
           </div>
         )}
 
@@ -491,14 +491,14 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-500 space-y-6 pb-20">
             {/* Header & Photo (if available) */}
             <div className="flex items-center justify-between mb-2">
-                 <button onClick={() => { setStep('upload'); setManualDiagnosedSOP(null); setSelectedSymptoms([]); }} className="flex items-center gap-2 text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest">
+                 <button onClick={() => { setStep('upload'); setManualDiagnosedSOP(null); setSelectedSymptoms([]); }} className="flex items-center gap-2 text-ink/40 text-[10px] font-black uppercase tracking-widest">
                     <ChevronLeft size={16} /> New Analysis
                  </button>
                  <span className="text-[#C78200] text-[10px] font-black uppercase tracking-[0.3em]">Diagnostic Complete</span>
             </div>
 
             {image && (
-              <div className="relative overflow-hidden rounded-[2.5rem] bg-black/5 aspect-video shadow-sm border border-black/5 group">
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-black/5 aspect-video shadow-sm border border-card-border group">
                  <img src={image} alt="Specimen" className="w-full h-full object-cover" />
                  <div className="absolute inset-0 pointer-events-none">
                     <motion.div animate={{ top: ['0%', '100%', '0%'] }} transition={{ duration: 4, repeat: Infinity }} className="absolute left-0 right-0 h-0.5 bg-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.8)] z-10" />
@@ -513,7 +513,7 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
                'bg-emerald-500 shadow-emerald-500/20'
             )}>
               <div className="absolute top-4 right-8 z-20">
-                   <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 flex items-center gap-2">
+                   <div className="bg-card/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 flex items-center gap-2">
                       <ShieldCheck size={14} className="text-white" />
                       <span className="text-[9px] font-black uppercase tracking-widest">Diagnostic Verdict</span>
                    </div>
@@ -542,14 +542,14 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
             </div>
 
             {manualDiagnosedSOP ? renderDetailedSOP(manualDiagnosedSOP) : (
-                <div className="bg-white p-8 rounded-[2.5rem] border border-black/5 shadow-sm">
-                    <h4 className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-[0.3em] mb-4">Recommended Actions</h4>
-                    <p className="text-[#4A2C2A] text-xs font-black leading-relaxed mb-6">{analysis.action}</p>
+                <div className="bg-card p-8 rounded-[2.5rem] border border-card-border shadow-sm">
+                    <h4 className="text-[10px] font-black text-ink/30 uppercase tracking-[0.3em] mb-4">Recommended Actions</h4>
+                    <p className="text-ink text-xs font-black leading-relaxed mb-6">{analysis.action}</p>
                     <button className="w-full py-4 bg-[#C78200] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest">Apply Treatment Log</button>
                 </div>
             )}
             
-            <p className="text-center text-[#4A2C2A]/20 text-[8px] font-black uppercase tracking-[0.3em] px-10 leading-relaxed">
+            <p className="text-center text-ink/20 text-[8px] font-black uppercase tracking-[0.3em] px-10 leading-relaxed">
               *AI and manual suggestions are based on standard aquaculture protocols. Always consult a local expert for severe cases.
             </p>
           </div>
@@ -566,8 +566,8 @@ export const DiseaseDetection = ({ user, t }: { user: User, t: Translations }) =
           >
             <video ref={videoRef} autoPlay playsInline className="flex-1 object-cover" />
             <div className="absolute bottom-12 left-0 right-0 px-12 flex justify-between items-center">
-              <button onClick={stopCamera} className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white"><X size={24} /></button>
-              <button onClick={capturePhoto} className="w-20 h-20 bg-white rounded-full p-2"><div className="w-full h-full border-4 border-black/5 rounded-full" /></button>
+              <button onClick={stopCamera} className="w-14 h-14 bg-card/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white"><X size={24} /></button>
+              <button onClick={capturePhoto} className="w-20 h-20 bg-card rounded-full p-2"><div className="w-full h-full border-4 border-card-border rounded-full" /></button>
               <div className="w-14 h-14 invisible" />
             </div>
           </motion.div>

@@ -147,14 +147,14 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
       {/* ── HEADER ── */}
       <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#02130F] text-white px-5 py-6 rounded-b-[2rem] shadow-xl">
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="p-2 bg-white/10 rounded-xl active:scale-95 transition-all">
+          <button onClick={() => navigate(-1)} className="p-2 bg-card/10 rounded-xl active:scale-95 transition-all">
             <ChevronLeft size={24} />
           </button>
           <div className="text-center">
             <h1 className="text-sm font-black tracking-widest uppercase">Auto Schedule Engine</h1>
             <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mt-0.5">{pond.name}</p>
           </div>
-          <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-xl relative">
+          <div className="w-10 h-10 flex items-center justify-center bg-card/10 rounded-xl relative">
              <Sparkles size={16} className="text-emerald-400" />
              <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
           </div>
@@ -188,7 +188,7 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
                 onClick={() => setSelectedPondId(p.id)}
                 className={cn(
                   'px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
-                  selectedPondId === p.id ? 'bg-[#C78200] text-white border-[#C78200] shadow-lg' : 'bg-white text-[#4A2C2A]/40 border-black/5'
+                  selectedPondId === p.id ? 'bg-[#C78200] text-white border-[#C78200] shadow-lg' : 'bg-card text-ink/40 border-card-border'
                 )}
               >{p.name}</button>
             ))}
@@ -196,12 +196,12 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         )}
 
         {pond.status === 'harvested' && (
-          <div className="bg-slate-100 rounded-[2.5rem] p-8 text-center border border-black/5">
+          <div className="bg-slate-100 rounded-[2.5rem] p-8 text-center border border-card-border">
              <div className="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 size={32} className="text-slate-400" />
              </div>
-             <h2 className="text-xl font-black text-[#4A2C2A] tracking-tighter">Pond Harvested</h2>
-             <p className="text-sm font-black text-[#4A2C2A]/40 mt-2 leading-relaxed">Active schedule, alerts, and suggestions are paused for this pond.</p>
+             <h2 className="text-xl font-black text-ink tracking-tighter">Pond Harvested</h2>
+             <p className="text-sm font-black text-ink/40 mt-2 leading-relaxed">Active schedule, alerts, and suggestions are paused for this pond.</p>
           </div>
         )}
 
@@ -214,7 +214,7 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
            </div>
            <div className="relative z-10">
               <div className="flex items-center gap-2 mb-3">
-                 <div className="bg-white/20 px-3 py-1 rounded-lg backdrop-blur-md">
+                 <div className="bg-card/20 px-3 py-1 rounded-lg backdrop-blur-md">
                     <p className="text-[9px] font-black uppercase tracking-widest text-white shadow-sm">{phaseInfo.title}</p>
                  </div>
               </div>
@@ -232,11 +232,11 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         </div>
 
         {/* ── 2. DAILY AUTO SCHEDULE ── */}
-        <div className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+        <div className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm">
            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Today's Plan</h3>
-              <div className="bg-[#F8F9FE] px-2 py-1 rounded border border-black/5">
-                <span className="text-[8px] font-black uppercase tracking-widest text-[#4A2C2A]/40">DOC {currentDoc} Gen.</span>
+              <h3 className="text-xl font-black tracking-tighter text-ink">Today's Plan</h3>
+              <div className="bg-[#F8F9FE] px-2 py-1 rounded border border-card-border">
+                <span className="text-[8px] font-black uppercase tracking-widest text-ink/40">DOC {currentDoc} Gen.</span>
               </div>
            </div>
            <div className="space-y-4 relative before:absolute before:inset-0 before:ml-[1.125rem] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-black/5 before:to-transparent">
@@ -252,10 +252,10 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
                      )}>
                         {isMed ? <Pill size={14} /> : isAerator ? <Wind size={14} /> : isCheck ? <Droplets size={14} /> : <CheckCircle2 size={14} />}
                      </div>
-                     <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] bg-[#F8F9FE] p-4 rounded-2xl border border-black/5 flex items-center justify-between shadow-sm">
+                     <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] bg-[#F8F9FE] p-4 rounded-2xl border border-card-border flex items-center justify-between shadow-sm">
                         <div>
-                          <p className="font-black text-sm text-[#4A2C2A] tracking-tight">{item.task}</p>
-                          <p className="text-[9px] font-black text-[#4A2C2A]/40 uppercase tracking-widest mt-0.5">{item.time}</p>
+                          <p className="font-black text-sm text-ink tracking-tight">{item.task}</p>
+                          <p className="text-[9px] font-black text-ink/40 uppercase tracking-widest mt-0.5">{item.time}</p>
                         </div>
                      </div>
                   </div>
@@ -294,15 +294,15 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
               )}
 
               {/* Upcoming List */}
-              <div className="bg-white/5 rounded-[2.2rem] p-6 border border-white/10">
+              <div className="bg-card/5 rounded-[2.2rem] p-6 border border-white/10">
                 <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Upcoming SOP Events</p>
                 <div className="space-y-3">
                   {upcomingEvents.map((ev, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 hover:bg-white/5 rounded-xl px-2 transition-all">
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 hover:bg-card/5 rounded-xl px-2 transition-all">
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                          ev.status.phase === 'AMAVASYA' ? "bg-slate-800" : ev.status.phase === 'POURNAMI' ? "bg-amber-100 text-amber-600" : "bg-white/10"
+                          ev.status.phase === 'AMAVASYA' ? "bg-slate-800" : ev.status.phase === 'POURNAMI' ? "bg-amber-100 text-amber-600" : "bg-card/10"
                         )}>
                           <Moon size={14} className={ev.status.phase === 'NORMAL' ? '' : 'fill-currentColor'} />
                         </div>
@@ -328,39 +328,39 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         <div className="grid grid-cols-2 gap-3">
            <div className={cn(
              "rounded-[2rem] p-5 border shadow-sm",
-             weather.isRaining ? "bg-blue-50 border-blue-200" : "bg-white border-black/5"
+             weather.isRaining ? "bg-blue-50 border-blue-200" : "bg-card border-card-border"
            )}>
               <CloudRain size={20} className={cn("mb-3", weather.isRaining ? "text-blue-500" : "text-black/10")} />
-              <p className="font-black text-xs text-[#4A2C2A] tracking-tight mb-1">Precipitation</p>
+              <p className="font-black text-xs text-ink tracking-tight mb-1">Precipitation</p>
               {weather.isRaining ? (
                 <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest leading-relaxed">Alert: Stop feeding temporarily & check salinity.</p>
               ) : (
-                <p className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">Clear Skies. Standard SOP.</p>
+                <p className="text-[9px] font-black text-ink/30 uppercase tracking-widest">Clear Skies. Standard SOP.</p>
               )}
            </div>
            <div className={cn(
              "rounded-[2rem] p-5 border shadow-sm",
-             weather.temp < 25 ? "bg-cyan-50 border-cyan-200" : weather.temp > 33 ? "bg-red-50 border-red-200" : "bg-white border-black/5"
+             weather.temp < 25 ? "bg-cyan-50 border-cyan-200" : weather.temp > 33 ? "bg-red-50 border-red-200" : "bg-card border-card-border"
            )}>
               <Thermometer size={20} className={cn("mb-3", weather.temp < 25 ? "text-cyan-500" : weather.temp > 33 ? "text-red-500" : "text-black/10")} />
-              <p className="font-black text-xs text-[#4A2C2A] tracking-tight mb-1">Temp ({weather.temp}°C)</p>
+              <p className="font-black text-xs text-ink tracking-tight mb-1">Temp ({weather.temp}°C)</p>
               {weather.temp < 25 ? (
                 <p className="text-[9px] font-black text-cyan-600 uppercase tracking-widest leading-relaxed">Alert: Reduce feed + check shrimp stress.</p>
               ) : weather.temp > 33 ? (
                 <p className="text-[9px] font-black text-red-600 uppercase tracking-widest leading-relaxed">Alert: Heat stress. Lower noon feeds.</p>
               ) : (
-                <p className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">Optimal range. Standard SOP.</p>
+                <p className="text-[9px] font-black text-ink/30 uppercase tracking-widest">Optimal range. Standard SOP.</p>
               )}
            </div>
         </div>
 
         {/* ── 5. SMART ALERTS SYSTEM RECAP ── */}
         {smartAlerts.length > 0 && (
-          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-red-500/20 relative overflow-hidden">
+          <div className="bg-card rounded-[2rem] p-6 shadow-sm border border-red-500/20 relative overflow-hidden">
              <div className="flex items-center justify-between mb-4">
                <div>
                   <p className="text-red-500 text-[9px] font-black uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5"><ShieldAlert size={12}/> Condition Based Flags</p>
-                  <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A]">Smart Alerts</h3>
+                  <h3 className="text-lg font-black tracking-tighter text-ink">Smart Alerts</h3>
                </div>
                <div className="bg-red-50 w-10 h-10 rounded-xl flex items-center justify-center text-red-500">
                   <span className="font-black text-lg">{smartAlerts.length}</span>
@@ -388,18 +388,18 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         )}
 
         {/* ── 5A. WEATHER ALERTS REFERENCE ── */}
-        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+        <section className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm">
            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">Weather Alerts (~15)</h3>
+              <h3 className="text-xl font-black tracking-tighter text-ink">Weather Alerts (~15)</h3>
               <Wind className="text-blue-500" size={20} />
            </div>
            <div className="space-y-3">
-              <div className="grid grid-cols-2 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="grid grid-cols-2 px-3 py-2 bg-card/50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
                  <span>Condition</span>
                  <span>SOP Alert</span>
               </div>
               {WEATHER_ALERTS.map((al, i) => (
-                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-card/50 transition-colors">
                     <span className="text-xs font-black text-slate-800 tracking-tight">{al.condition}</span>
                     <span className="text-xs font-black text-blue-600 tracking-tight">{al.alert}</span>
                  </div>
@@ -408,18 +408,18 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         </section>
 
         {/* ── 5B. WATER QUALITY ALERTS REFERENCE ── */}
-        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+        <section className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm">
            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">⚠️ Water Quality Alerts (~15)</h3>
+              <h3 className="text-xl font-black tracking-tighter text-ink">⚠️ Water Quality Alerts (~15)</h3>
               <Waves className="text-emerald-500" size={20} />
            </div>
            <div className="space-y-3">
-              <div className="grid grid-cols-2 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="grid grid-cols-2 px-3 py-2 bg-card/50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
                  <span>Condition</span>
                  <span>SOP Alert</span>
               </div>
               {WATER_QUALITY_ALERTS.map((al, i) => (
-                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-card/50 transition-colors">
                     <span className="text-xs font-black text-slate-800 tracking-tight">{al.condition}</span>
                     <span className="text-xs font-black text-emerald-600 tracking-tight">{al.alert}</span>
                  </div>
@@ -428,17 +428,17 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         </section>
 
         {/* ── 5C. DISEASE ALERTS REFERENCE ── */}
-        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+        <section className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm">
            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">🦠 Disease Alerts (~10)</h3>
+              <h3 className="text-xl font-black tracking-tighter text-ink">🦠 Disease Alerts (~10)</h3>
               <ShieldAlert className="text-red-500" size={20} />
            </div>
            <div className="space-y-3">
-              <div className="grid grid-cols-1 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="grid grid-cols-1 px-3 py-2 bg-card/50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
                  <span>Condition & Alert</span>
               </div>
               {DISEASE_ALERTS.map((al, i) => (
-                 <div key={i} className="px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                 <div key={i} className="px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-card/50 transition-colors">
                     <p className="text-xs font-black text-slate-800 tracking-tight mb-1">{al.condition}</p>
                     <p className="text-[10px] font-black text-red-600 uppercase tracking-widest leading-none">👉 {al.alert}</p>
                  </div>
@@ -447,18 +447,18 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         </section>
 
         {/* ── 5D. FEEDING ALERTS REFERENCE ── */}
-        <section className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+        <section className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm">
            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">🍤 Feeding Alerts (~10)</h3>
+              <h3 className="text-xl font-black tracking-tighter text-ink">🍤 Feeding Alerts (~10)</h3>
               <Utensils className="text-[#C78200]" size={20} />
            </div>
            <div className="space-y-3">
-              <div className="grid grid-cols-2 px-3 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="grid grid-cols-2 px-3 py-2 bg-card/50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
                  <span>Condition</span>
                  <span>SOP Alert</span>
               </div>
               {FEEDING_ALERTS.map((al, i) => (
-                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                 <div key={i} className="grid grid-cols-2 px-3 py-3 border-b border-slate-50 last:border-0 hover:bg-card/50 transition-colors">
                     <span className="text-xs font-black text-slate-800 tracking-tight">{al.condition}</span>
                     <span className="text-xs font-black text-amber-600 tracking-tight">{al.alert}</span>
                  </div>
@@ -469,9 +469,9 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
         )}
 
         {/* ── 6. FULL 100-DAY SCHEDULE TABLE ── */}
-        <div className="bg-white rounded-[2rem] border border-black/5 shadow-sm overflow-hidden">
-           <div className="p-5 border-b border-black/5 bg-[#F8F9FE]">
-              <h3 className="font-black text-lg text-[#4A2C2A] tracking-tighter mb-1">100-Day Master Schedule</h3>
+        <div className="bg-card rounded-[2rem] border border-card-border shadow-sm overflow-hidden">
+           <div className="p-5 border-b border-card-border bg-[#F8F9FE]">
+              <h3 className="font-black text-lg text-ink tracking-tighter mb-1">100-Day Master Schedule</h3>
               <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest leading-relaxed">
                 Feed logic specifically auto-scaled to {(pond.seedCount / 100000).toFixed(1)} Lakh seed density
               </p>
@@ -503,7 +503,7 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
                       >
                         <td className="p-4 space-y-1">
                            {isToday && <span className="block text-[7px] font-black text-[#C78200] uppercase tracking-widest">TODAY</span>}
-                           <span className={cn("font-black", isToday ? "text-[#C78200]" : "text-[#4A2C2A]")}>{row.doc}</span>
+                           <span className={cn("font-black", isToday ? "text-[#C78200]" : "text-ink")}>{row.doc}</span>
                         </td>
                         <td className="p-4">
                            {sopLogs.some((l: any) => l.pondId === selectedPondId && l.doc === row.doc) ? (
@@ -516,7 +516,7 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
                            )}
                         </td>
                         <td className="p-4 font-black text-[#0D523C]">{feedScaled} kg</td>
-                        <td className="p-4 text-xs font-black text-[#4A2C2A]/70">{row.action}</td>
+                        <td className="p-4 text-xs font-black text-ink/70">{row.action}</td>
                         <td className="p-4 text-xs font-black text-red-500/80">{row.alert !== '—' ? `⚠️ ${row.alert}` : '—'}</td>
                       </tr>
                     );
@@ -533,7 +533,7 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
 
 // Subcomponent for Lunar Rules
 const LunarRule = ({ rule, desc }: any) => (
-  <div className="bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/5 flex items-center gap-3">
+  <div className="bg-card/10 p-3 rounded-xl backdrop-blur-md border border-white/5 flex items-center gap-3">
     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
     <div>
       <p className="text-xs font-black text-emerald-300">{rule}</p>

@@ -36,7 +36,7 @@ export const GlobalAlertCenter = ({ t }: { t: Translations }) => {
               </div>
               <button 
                 onClick={clearAlert} 
-                className="text-white/20 hover:text-white p-1.5 rounded-xl bg-white/5 transition-colors"
+                className="text-white/20 hover:text-white p-1.5 rounded-xl bg-card/5 transition-colors"
               >
                 <X size={14} />
               </button>

@@ -33,7 +33,7 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
     { id: 'diesel',   label: t.dieselFuel,     icon: Droplets, color: 'bg-orange-500',   unit: 'Liters' },
     { id: 'power',    label: t.gridPowerBill, icon: Zap,      color: 'bg-emerald-500',  unit: 'Units (kWh)' },
     { id: 'labor',    label: t.laborWages,   icon: Users,    color: 'bg-purple-500',   unit: 'Days/Heads' },
-    { id: 'other',    label: t.otherTesting, icon: Box,      color: 'bg-slate-500',    unit: 'Items' }
+    { id: 'other',    label: t.otherTesting, icon: Box,      color: 'bg-card/500',    unit: 'Items' }
   ];
 
   const [pondId, setPondId] = useState(activePonds[0]?.id || '');
@@ -85,19 +85,19 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
                initial={{ scale: 0.5, opacity: 0 }}
                animate={{ scale: 1, opacity: 1 }}
                transition={{ type: "spring", damping: 12 }}
-               className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center text-[#C78200] shadow-2xl mb-8 border border-white/10"
+               className="w-32 h-32 bg-card rounded-[2.5rem] flex items-center justify-center text-[#C78200] shadow-2xl mb-8 border border-white/10"
              >
                 <CheckCircle2 size={64} />
              </motion.div>
              <h3 className="text-3xl font-black tracking-tighter mb-2">{t.expenseLogged}</h3>
              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{t.updatingFinancialTrajectory}</p>
              
-             <div className="mt-8 bg-white/5 border border-white/5 rounded-2xl p-4 flex gap-4 text-left min-w-[200px]">
+             <div className="mt-8 bg-card/5 border border-white/5 rounded-2xl p-4 flex gap-4 text-left min-w-[200px]">
                <div>
                   <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">{t.added}</p>
                   <p className="font-black text-xl text-[#C78200]">₹{amtNum.toLocaleString()}</p>
                </div>
-               <div className="w-px h-full bg-white/10" />
+               <div className="w-px h-full bg-card/10" />
                <div>
                   <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">+ {t.dailyTraj}</p>
                   <p className="font-black text-xl text-red-400">₹{Math.round(runRateImpact).toLocaleString()}</p>
@@ -107,12 +107,12 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
         )}
       </AnimatePresence>
 
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-black/5">
-        <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
+      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-card/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-card-border">
+        <button onClick={() => navigate(-1)} className="p-3 text-ink hover:bg-black/5 rounded-2xl transition-all">
           <ChevronLeft size={24} />
         </button>
         <div className="text-center">
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-tighter uppercase tracking-[0.1em]">{t.logLiveExpense}</h1>
+          <h1 className="text-sm font-black text-ink tracking-tighter uppercase tracking-[0.1em]">{t.logLiveExpense}</h1>
           <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">{t.dailyOpexEntry}</p>
         </div>
         <div className="w-10" />
@@ -167,11 +167,11 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
                       "flex-shrink-0 px-6 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest border transition-all",
                       pondId === p.id 
                         ? "bg-[#02130F] text-white border-[#02130F] shadow-lg shadow-black/10" 
-                        : "bg-white text-[#4A2C2A]/40 border-black/5 shadow-sm"
+                        : "bg-card text-ink/40 border-card-border shadow-sm"
                     )}
                   >{p.name}</button>
                 )) : (
-                  <p className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{t.noActivePonds}</p>
+                  <p className="text-[10px] font-black text-ink/30 uppercase tracking-widest">{t.noActivePonds}</p>
                 )}
               </div>
            </div>
@@ -181,12 +181,12 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
               <div className="space-y-2">
                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-2">{t.date}</label>
                  <div className="relative">
-                    <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4A2C2A]/30" />
+                    <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30" />
                     <input 
                       type="date" 
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full bg-white border border-black/5 rounded-[1.5rem] py-4 pl-12 pr-4 text-xs font-black text-[#4A2C2A] outline-none shadow-sm"
+                      className="w-full bg-card border border-card-border rounded-[1.5rem] py-4 pl-12 pr-4 text-xs font-black text-ink outline-none shadow-sm"
                     />
                  </div>
               </div>
@@ -215,8 +215,8 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
                      className={cn(
                         "p-4 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest border transition-all text-left flex items-center gap-3",
                         category.id === cat.id 
-                          ? "bg-white border-[#C78200] text-[#C78200] shadow-md shadow-[#C78200]/5 ring-2 ring-[#C78200]/10" 
-                          : "bg-white border-black/5 text-[#4A2C2A]/40 shadow-sm"
+                          ? "bg-card border-[#C78200] text-[#C78200] shadow-md shadow-[#C78200]/5 ring-2 ring-[#C78200]/10" 
+                          : "bg-card border-card-border text-ink/40 shadow-sm"
                      )}
                    >
                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center text-white", cat.color)}>
@@ -229,39 +229,39 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
            </div>
 
            {/* Invoice details */}
-           <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm space-y-4">
+           <div className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm space-y-4">
               <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A2C2A]/40 px-1">{category.unit} {t.purchased}</label>
+                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-ink/40 px-1">{category.unit} {t.purchased}</label>
                  <div className="relative">
                     <input 
                       type="number" 
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
                       placeholder={`${t.total} ${category.unit.toLowerCase()}...`}
-                      className="w-full bg-slate-50 border border-black/5 rounded-[1.2rem] py-3 pl-4 pr-16 text-sm font-black text-[#4A2C2A] outline-none focus:border-black/10 transition-all"
+                      className="w-full bg-card/50 border border-card-border rounded-[1.2rem] py-3 pl-4 pr-16 text-sm font-black text-ink outline-none focus:border-black/10 transition-all"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-ink/30 uppercase tracking-widest">
                       {category.unit}
                     </span>
                  </div>
               </div>
               
               {unitPrice > 0 && (
-                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between">
-                   <p className="text-[8px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">{t.calculatedUnitPrice}</p>
-                   <p className="font-black text-sm text-[#4A2C2A]">₹{unitPrice.toLocaleString()}<span className="text-[10px] text-[#4A2C2A]/40"> / {category.unit.split('/')[0]}</span></p>
+                <div className="bg-card/50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between">
+                   <p className="text-[8px] font-black text-ink/40 uppercase tracking-widest">{t.calculatedUnitPrice}</p>
+                   <p className="font-black text-sm text-ink">₹{unitPrice.toLocaleString()}<span className="text-[10px] text-ink/40"> / {category.unit.split('/')[0]}</span></p>
                 </div>
               )}
 
               <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A2C2A]/40 px-1">{t.merchantNotes}</label>
+                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-ink/40 px-1">{t.merchantNotes}</label>
                  <div className="relative">
-                    <FileText size={16} className="absolute left-4 top-4 text-[#4A2C2A]/20" />
+                    <FileText size={16} className="absolute left-4 top-4 text-ink/20" />
                     <textarea 
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder={t.merchantNotesPlaceholder}
-                      className="w-full bg-slate-50 border border-black/5 rounded-[1.2rem] py-3 pl-11 pr-4 text-sm font-bold text-[#4A2C2A] outline-none focus:border-black/10 transition-all h-20 resize-none"
+                      className="w-full bg-card/50 border border-card-border rounded-[1.2rem] py-3 pl-11 pr-4 text-sm font-bold text-ink outline-none focus:border-black/10 transition-all h-20 resize-none"
                     />
                  </div>
               </div>

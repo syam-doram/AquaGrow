@@ -31,10 +31,10 @@ export const MetricCard = ({ label, value, target, status, t }: MetricCardProps)
         {status === 'optimal' ? t.optimal : t.warning}
       </span>
     </div>
-    <p className="text-[10px] font-black uppercase tracking-widest text-[#4A2C2A]/30 mb-1 relative z-10">{label}</p>
+    <p className="text-[10px] font-black uppercase tracking-widest text-ink/30 mb-1 relative z-10">{label}</p>
     <div className="flex items-baseline gap-2 relative z-10">
-      <h4 className="text-2xl font-black text-[#4A2C2A] tracking-tighter">{value}</h4>
-      <span className="text-[9px] font-black text-[#4A2C2A]/20 uppercase tracking-widest">{t.targetLabel}: {target}</span>
+      <h4 className="text-2xl font-black text-ink tracking-tighter">{value}</h4>
+      <span className="text-[9px] font-black text-ink/20 uppercase tracking-widest">{t.targetLabel}: {target}</span>
     </div>
   </div>
 );

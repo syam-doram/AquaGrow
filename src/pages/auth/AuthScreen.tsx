@@ -237,13 +237,13 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-20%] right-[-10%] w-[80%] h-[80%] bg-[#10B981]/10 rounded-full blur-[150px] animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-[#F59E0B]/5 rounded-full blur-[120px]" />
-        <div className="absolute top-[40%] left-[20%] w-40 h-40 bg-white/5 rounded-full blur-[80px]" />
+        <div className="absolute top-[40%] left-[20%] w-40 h-40 bg-card/5 rounded-full blur-[80px]" />
       </div>
 
       {/* ── TOP UTILITIES (Language Selector Only) ── */}
       <div className="absolute top-8 left-8 right-8 flex justify-end items-center z-50">
 
-        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-white/10 shadow-2xl transition-all hover:bg-white/[0.08]">
+        <div className="flex bg-card/5 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-white/10 shadow-2xl transition-all hover:bg-card/[0.08]">
           {(['English', 'Telugu'] as const).map((l) => (
             <button
               key={l}
@@ -253,7 +253,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
               }}
               className={cn(
                 "px-5 py-2.5 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
-                lang === l ? "bg-white text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
+                lang === l ? "bg-card text-[#021811] shadow-xl scale-105" : "text-white/40 hover:text-white/70"
               )}
             >
               {l === 'English' ? 'EN' : 'తె'}
@@ -269,7 +269,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/[0.03] backdrop-blur-3xl rounded-[3rem] p-8 border border-white/10 shadow-2xl relative overflow-hidden flex flex-col max-h-full"
+          className="bg-card/[0.03] backdrop-blur-3xl rounded-[3rem] p-8 border border-white/10 shadow-2xl relative overflow-hidden flex flex-col max-h-full"
         >
           {/* Subtle overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
@@ -310,7 +310,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
           {/* LOGO AREA (Inside Card) */}
           <motion.div className="text-center mb-8 shrink-0">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-white/10 backdrop-blur-3xl rounded-xl flex items-center justify-center border border-white/10 shadow-2xl group">
+              <div className="w-10 h-10 bg-card/10 backdrop-blur-3xl rounded-xl flex items-center justify-center border border-white/10 shadow-2xl group">
                 <Waves size={20} className="text-emerald-400 group-hover:scale-110 transition-transform" />
               </div>
               <h1 className="text-2xl font-serif italic text-white tracking-tight">AquaGrow</h1>
@@ -395,7 +395,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                             <UserIcon size={16} />
                           </div>
                           <input 
-                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/30 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                             placeholder={t.fullName || "Full Name"}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -408,7 +408,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                           <Smartphone size={16} />
                         </div>
                         <input 
-                          className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                          className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/30 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                           placeholder={isRegister ? (t.phoneNumber || "Phone Number") : "Phone or Email"} 
                           type={isRegister ? "tel" : "text"}
                           value={phone}
@@ -423,7 +423,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                             <span className="text-xl font-bold">@</span>
                           </div>
                           <input 
-                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/30 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                             placeholder={t.email || "Email Address"} 
                             type="email"
                             value={email}
@@ -445,7 +445,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                             <MapPin size={16} />
                           </div>
                           <input 
-                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                            className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/30 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                             placeholder={t.farmLocation || "Farm Location"}
                             value={locationValue}
                             maxLength={20}
@@ -458,7 +458,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                               <Layers size={14} />
                             </div>
                             <input 
-                              className="w-full pl-12 pr-4 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest shadow-inner" 
+                              className="w-full pl-12 pr-4 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/30 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest shadow-inner" 
                               placeholder={t.ponds || "Ponds"}
                               type="number"
                               value={pondCount}
@@ -470,7 +470,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                               <Maximize size={14} />
                             </div>
                             <input 
-                              className="w-full pl-12 pr-4 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/30 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest shadow-inner" 
+                              className="w-full pl-12 pr-4 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/30 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest shadow-inner" 
                               placeholder={t.acres || "Acres"}
                               type="number"
                               value={acres}
@@ -488,7 +488,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
                           <Lock size={16} />
                         </div>
                         <input 
-                          className="w-full pl-14 pr-14 py-4 rounded-[1.8rem] border border-white/5 bg-white/[0.02] focus:border-emerald-500/40 focus:bg-white/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
+                          className="w-full pl-14 pr-14 py-4 rounded-[1.8rem] border border-white/5 bg-card/[0.02] focus:border-emerald-500/40 focus:bg-card/[0.08] outline-none transition-all text-sm font-semibold text-white placeholder:text-white/10 placeholder:font-black placeholder:uppercase placeholder:text-[8.5px] placeholder:tracking-widest shadow-inner" 
                           placeholder={t.password || "Set Password"} 
                           type={showPassword ? "text" : "password"}
                           value={password}
@@ -551,7 +551,7 @@ export const AuthScreen = ({ t, onLanguageChange }: { t: Translations, onLanguag
             className="shrink-0 w-full py-4.5 rounded-[1.8rem] shadow-2xl transition-all flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white relative overflow-hidden group/btn z-20"
             style={{ backgroundColor: primaryColor, boxShadow: `0 15px 40px ${shadowColor}` }}
           >
-            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
+            <div className="absolute inset-0 bg-card/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
             {loading ? (
               <div className="animate-spin"><Waves size={18} /></div>
             ) : (

@@ -49,7 +49,7 @@ const CategoryProgressCard = ({ icon: Icon, label, value, progress, color, bg }:
          <p className="text-[10px] font-black uppercase tracking-widest text-opacity-50 mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
          <h4 className="text-xl font-black tracking-tight text-white">₹{value.toLocaleString()}</h4>
       </div>
-      <div className="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+      <div className="mt-4 h-1.5 w-full bg-card/5 rounded-full overflow-hidden">
          <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
@@ -63,7 +63,7 @@ const CategoryProgressCard = ({ icon: Icon, label, value, progress, color, bg }:
 const LineItem = ({ icon: Icon, title, desc, amount, tag, tagColor }: any) => (
    <div className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all">
       <div className="flex items-center gap-4">
-         <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white/40 group-hover:bg-[#C78200]/10 group-hover:text-[#C78200] transition-all border border-white/5">
+         <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-white/40 group-hover:bg-[#C78200]/10 group-hover:text-[#C78200] transition-all border border-white/5">
             <Icon size={20} />
          </div>
          <div>
@@ -128,7 +128,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick
       <div className="pb-[180px] bg-[#02130F] min-h-[100dvh] text-left font-sans text-white">
          {/* HEADER */}
          <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#02130F]/90 backdrop-blur-xl px-5 py-6 flex items-center justify-between border-b border-white/5">
-            <button onClick={() => navigate(-1)} className="p-3 text-white/50 hover:bg-white/5 rounded-2xl transition-all">
+            <button onClick={() => navigate(-1)} className="p-3 text-white/50 hover:bg-card/5 rounded-2xl transition-all">
                <ChevronLeft size={22} />
             </button>
             <div className="flex flex-col items-center">
@@ -172,7 +172,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick
                      <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.fourteenDayTrajectory}</p>
                      <h3 className="text-white font-black tracking-tight">{t.dailyExpenses}</h3>
                   </div>
-                  <div className="bg-white/5 border border-white/5 px-3 py-1.5 rounded-xl text-[8px] font-black text-white/40 uppercase tracking-widest">
+                  <div className="bg-card/5 border border-white/5 px-3 py-1.5 rounded-xl text-[8px] font-black text-white/40 uppercase tracking-widest">
                      {t.live}
                   </div>
                </div>

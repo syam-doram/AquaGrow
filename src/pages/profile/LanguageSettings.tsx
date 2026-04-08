@@ -65,7 +65,7 @@ export const LanguageSettings = ({ t, onLanguageChange }: { t: Translations, onL
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}
              exit={{ opacity: 0 }}
-             className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center"
+             className="fixed inset-0 z-[100] bg-card/60 backdrop-blur-sm flex flex-col items-center justify-center"
            >
               <div className="w-12 h-12 border-4 border-[#C78200] border-t-transparent rounded-full animate-spin mb-4" />
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C78200]">Syncing Experience...</p>
@@ -92,20 +92,20 @@ export const LanguageSettings = ({ t, onLanguageChange }: { t: Translations, onL
                 className={cn(
                   "w-full p-5 rounded-[1.8rem] flex items-center justify-between transition-all active:scale-[0.98] border",
                   isSelected 
-                    ? "bg-white border-[#C78200] shadow-xl shadow-amber-900/5 translate-x-2" 
-                    : "bg-white border-black/5 text-[#4A2C2A]/40"
+                    ? "bg-card border-[#C78200] shadow-xl shadow-amber-900/5 translate-x-2" 
+                    : "bg-card border-card-border text-ink/40"
                 )}
               >
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                    isSelected ? "bg-amber-50 text-[#C78200]" : "bg-slate-50 text-slate-300"
+                    isSelected ? "bg-amber-50 text-[#C78200]" : "bg-card/50 text-slate-300"
                   )}>
                     <Globe size={18} />
                   </div>
                   <span className={cn(
                     "font-black text-sm tracking-tight",
-                    isSelected ? "text-[#4A2C2A]" : "text-[#4A2C2A]/40"
+                    isSelected ? "text-ink" : "text-ink/40"
                   )}>{lang.label}</span>
                 </div>
                 {isSelected && (

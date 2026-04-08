@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
+import { Preferences } from '@capacitor/preferences';
 import { User, Pond, WaterQualityRecord, MarketPrice, FeedRecord, MedicineRecord } from '../types';
 import { API_BASE_URL } from '../config';
 import { translations } from '../translations';
@@ -9,6 +10,9 @@ interface DataContextType {
   user: User | null;
   loading: boolean;
   isSyncing: boolean;
+  isOffline: boolean;
+  theme: 'light' | 'dark';
+  setAppTheme: (theme: 'light' | 'dark') => void;
   ponds: Pond[];
   marketPrices: MarketPrice[];
   waterRecords: WaterQualityRecord[];
@@ -19,6 +23,7 @@ interface DataContextType {
   updateUser: (updates: Partial<User>) => Promise<boolean>;
   register: (user: Omit<User, 'id' | 'subscriptionStatus'>) => Promise<{ success: boolean; error?: string }>;
   login: (phoneNumber: string, password?: string) => Promise<{ success: boolean; user?: User; error?: string }>;
+  loginWithOtp: (phoneNumber: string, otp: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   addPond: (pond: Omit<Pond, 'id'>) => Promise<void>;
   updatePond: (id: string, updates: Partial<Pond>) => void;
   deletePond: (id: string) => Promise<void>;
@@ -38,6 +43,7 @@ interface DataContextType {
   addNotification: (title: string, body: string, type?: string) => void;
   markNotificationsRead: () => void;
   unreadCount: number;
+  resetPassword: (phoneNumber: string, otp: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -47,6 +53,28 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    const stored = localStorage.getItem('aqua_theme');
+    if (stored === 'midnight' || stored === 'dark') return 'dark';
+    return 'light';
+  });
+  
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const { value } = await Preferences.get({ key: 'aqua_theme' });
+        if (value) {
+          const mappedValue = (value === 'midnight' || value === 'oceanic' || value === 'dark') ? 'dark' : 'light';
+          setThemeState(mappedValue);
+          localStorage.setItem('aqua_theme', mappedValue);
+        }
+      } catch (e) {
+        console.error('Failed to load theme from native storage:', e);
+      }
+    };
+    loadTheme();
+  }, []);
   const [ponds, setPonds] = useState<Pond[]>([]);
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
   const [waterRecords, setWaterRecords] = useState<WaterQualityRecord[]>([]);
@@ -56,6 +84,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [completedReminderIds, setCompletedReminderIds] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [harvestRequests, setHarvestRequests] = useState<any[]>([]);
 
   const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(() => {
     const saved = localStorage.getItem('aqua_tokens');
@@ -118,24 +147,34 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const apiFetch = async (url: string, options: any = {}, retry = true): Promise<Response> => {
-    const response = await fetch(url, {
-      ...options,
-      headers: { ...getAuthHeaders(options.overrideTokens), ...options.headers }
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-    if (response.status === 401 && retry) {
-      const refreshToken = options.overrideTokens?.refresh || tokens?.refresh;
-      if (refreshToken) {
-        const newTokens = await refreshAccessToken(refreshToken);
-        if (newTokens) {
-          return fetch(url, {
-            ...options,
-            headers: { ...getAuthHeaders(newTokens), ...options.headers }
-          });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: { ...getAuthHeaders(options.overrideTokens), ...options.headers }
+      });
+      clearTimeout(timeout);
+
+      if (response.status === 401 && retry) {
+        const refreshToken = options.overrideTokens?.refresh || tokens?.refresh;
+        if (refreshToken) {
+          const newTokens = await refreshAccessToken(refreshToken);
+          if (newTokens) {
+            return fetch(url, {
+              ...options,
+              headers: { ...getAuthHeaders(newTokens), ...options.headers }
+            });
+          }
         }
       }
+      return response;
+    } catch (err) {
+      clearTimeout(timeout);
+      throw err;
     }
-    return response;
   };
 
   const fetchUserPonds = async (userId: string, overrideTokens?: any) => {
@@ -222,49 +261,79 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const fetchHarvestRequests = async (overrideTokens?: any) => {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/harvest-requests`, { overrideTokens });
+      if (response.ok) {
+        const data = await response.json();
+        setHarvestRequests(data.map((r: any) => ({ ...r, id: r._id || r.id })));
+      }
+    } catch (error) {
+      console.error("Error fetching harvest requests:", error);
+    }
+  };
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   useEffect(() => {
     const init = async () => {
-      const savedUser = localStorage.getItem('aqua_user');
-      if (savedUser && savedUser !== 'null') {
-        const u = JSON.parse(savedUser);
-        if (u) {
-          setCompletedReminderIds(u.completedReminders || []);
-          setNotifications(u.notificationHistory || []);
-          const t = JSON.parse(localStorage.getItem('aqua_tokens') || 'null');
-          
-          // Re-generate tokens for preview user if missing
-          let activeTokens = t;
-          if (u.id === 'preview_user' && !activeTokens) {
-            activeTokens = { access: 'mock_access_token', refresh: 'mock_refresh_token' };
-            localStorage.setItem('aqua_tokens', JSON.stringify(activeTokens));
-          }
-          if (activeTokens) setTokens(activeTokens);
+      try {
+        const savedUser = localStorage.getItem('aqua_user');
+        if (savedUser && savedUser !== 'null') {
+          const u = JSON.parse(savedUser);
+          if (u) {
+            setCompletedReminderIds(u.completedReminders || []);
+            setNotifications(u.notificationHistory || []);
+            const t = JSON.parse(localStorage.getItem('aqua_tokens') || 'null');
+            
+            // Re-generate tokens for preview user if missing
+            let activeTokens = t;
+            if (u.id === 'preview_user' && !activeTokens) {
+              activeTokens = { access: 'mock_access_token', refresh: 'mock_refresh_token' };
+              localStorage.setItem('aqua_tokens', JSON.stringify(activeTokens));
+            }
+            if (activeTokens) setTokens(activeTokens);
 
-          // Fallback for existing pro users who don't have an expiry set yet
-          if (u.subscriptionStatus !== 'free' && !u.subscriptionExpiry) {
-            const exp = new Date();
-            exp.setFullYear(exp.getFullYear() + 1);
-            u.subscriptionExpiry = exp.toISOString();
-            localStorage.setItem('aqua_user', JSON.stringify(u));
+            // Fallback for existing pro users who don't have an expiry set yet
+            if (u.subscriptionStatus !== 'free' && !u.subscriptionExpiry) {
+              const exp = new Date();
+              exp.setFullYear(exp.getFullYear() + 1);
+              u.subscriptionExpiry = exp.toISOString();
+              localStorage.setItem('aqua_user', JSON.stringify(u));
+            }
+            setUserState(u);
+            await Promise.all([
+              fetchUserPonds(u.id || u._id, activeTokens),
+              fetchSubscription(u.id || u._id, activeTokens),
+              fetchFeedLogs(u.id || u._id, activeTokens),
+              fetchMedicineLogs(u.id || u._id, activeTokens),
+              fetchWaterLogs(u.id || u._id, activeTokens),
+              fetchSOPLogs(u.id || u._id, activeTokens),
+              fetchExpenses(u.id || u._id, activeTokens),
+              fetchHarvestRequests(activeTokens)
+            ]);
           }
-          setUserState(u);
-          await Promise.all([
-            fetchUserPonds(u.id || u._id, activeTokens),
-            fetchSubscription(u.id || u._id, activeTokens),
-            fetchFeedLogs(u.id || u._id, activeTokens),
-            fetchMedicineLogs(u.id || u._id, activeTokens),
-            fetchWaterLogs(u.id || u._id, activeTokens),
-            fetchSOPLogs(u.id || u._id, activeTokens),
-            fetchExpenses(u.id || u._id, activeTokens)
-          ]);
+        } else {
+          setUserState(null);
         }
-      } else {
-        setUserState(null);
+      } catch (err) {
+        console.error("Initialization error:", err);
+      } finally {
+        setMarketPrices(mockMarketPrices);
+        // waterRecords now loaded from localStorage in useState initializer
+        setLoading(false);
       }
-      
-      setMarketPrices(mockMarketPrices);
-      // waterRecords now loaded from localStorage in useState initializer
-      setLoading(false);
     };
     init();
   }, []);
@@ -358,6 +427,52 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const loginWithOtp = async (phoneNumber: string, otp: string) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: phoneNumber, otp })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Login failed' };
+      }
+      const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      localStorage.setItem('aqua_phone', phoneNumber);
+      setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
+      setSubscription(data.subscription);
+      return { success: true, user: loggedUser };
+    } catch (error: any) {
+      console.error("Login error:", error);
+      return { success: false, error: 'Cannot connect to server.' };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const resetPassword = async (phoneNumber: string, otp: string, newPassword: string) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: phoneNumber, otp, newPassword })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Reset failed' };
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error("Reset error:", error);
+      return { success: false, error: 'Cannot connect to server.' };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const getPondLimit = () => {
     if (!isPro) return 1;
     const status = user?.subscriptionStatus;
@@ -394,8 +509,25 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updatePond = (id: string, updates: Partial<Pond>) => {
-    setPonds(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  const updatePond = async (id: string, updates: Partial<Pond>) => {
+    // Optimistic UI update
+    setPonds(prev => prev.map(p => {
+       const pId = p.id || (p as any)._id;
+       const targetId = id;
+       return pId === targetId ? { ...p, ...updates } : p;
+    }));
+    
+    setIsSyncing(true);
+    try {
+      await apiFetch(`${API_BASE_URL}/ponds/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+    } catch (error) {
+       console.error("Update pond error:", error);
+    } finally {
+       setIsSyncing(false);
+    }
   };
 
   const deletePond = async (id: string) => {
@@ -465,7 +597,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error("Add water record error:", error);
     } finally {
-      setIsSyncing(true);
+      setIsSyncing(false);
     }
   };
 
@@ -482,6 +614,24 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
        }
     } catch (error) {
        console.error("Add SOP Log error:", error);
+    } finally {
+       setIsSyncing(false);
+    }
+  };
+
+  const addHarvestRequest = async (request: any) => {
+    setIsSyncing(true);
+    try {
+       const response = await apiFetch(`${API_BASE_URL}/harvest-requests`, {
+          method: 'POST',
+          body: JSON.stringify({ ...request, userId: user?.id || (user as any)?._id })
+       });
+       if (response.ok) {
+          const newReq = await response.json();
+          setHarvestRequests(prev => [...prev, { ...newReq, id: newReq._id || newReq.id }]);
+       }
+    } catch (error) {
+       console.error("Add Harvest Request error:", error);
     } finally {
        setIsSyncing(false);
     }
@@ -544,6 +694,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
     return false;
   };
+  const setAppTheme = async (t: 'light' | 'dark') => {
+    setThemeState(t);
+    localStorage.setItem('aqua_theme', t);
+    try {
+      await Preferences.set({ key: 'aqua_theme', value: t });
+    } catch (e) {
+      console.error('Failed to save to Capacitor Preferences:', e);
+    }
+  };
+
   const addNotification = (title: string, body: string, type: string = 'alert') => {
     const newNotif = {
       id: Math.random().toString(36).substr(2, 9),
@@ -606,16 +766,21 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       loading, 
       isSyncing,
+      isOffline,
+      theme,
+      setAppTheme,
       ponds, 
       marketPrices, 
       waterRecords, 
       feedLogs, 
       sopLogs,
       expenses,
+      harvestRequests,
       setUser,
       updateUser,
       register: register as any,
       login: login as any,
+      loginWithOtp: loginWithOtp as any,
       addPond,
       updatePond,
       deletePond,
@@ -640,6 +805,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       addNotification,
       markNotificationsRead,
       unreadCount,
+      resetPassword,
+      addHarvestRequest,
       toggleReminder: (id: string) => {
         const next = completedReminderIds.includes(id) 
           ? completedReminderIds.filter(i => i !== id) 

@@ -91,18 +91,18 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
       <div className="fixed bottom-0 left-0 w-[60%] h-1/2 bg-amber-500/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
 
       {/* ── Elite Header ── */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/80 backdrop-blur-xl px-6 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-[0.8rem] flex items-center grid grid-cols-3 border-b border-black/[0.03]">
+      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-card/80 backdrop-blur-xl px-6 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-[0.8rem] flex items-center grid grid-cols-3 border-b border-black/[0.03]">
         <div className="flex items-center justify-start">
            <motion.button 
              whileTap={{ scale: 0.9 }}
              onClick={() => navigate(-1)} 
-             className="w-10 h-10 -ml-2 flex items-center justify-center text-[#012B1D] bg-black/[0.03] hover:bg-black/[0.06] rounded-xl transition-all"
+             className="w-10 h-10 -ml-2 flex items-center justify-center text-ink bg-black/[0.03] hover:bg-black/[0.06] rounded-xl transition-all"
            >
               <ChevronLeft size={22} />
            </motion.button>
         </div>
         <div className="flex items-center justify-center">
-           <h1 className="text-lg font-black text-[#012B1D] tracking-tight leading-tight whitespace-nowrap">{t.notifications}</h1>
+           <h1 className="text-lg font-black text-ink tracking-tight leading-tight whitespace-nowrap">{t.notifications}</h1>
         </div>
         <div className="flex items-center justify-end gap-2">
            {activeTab === 'history' && notifications.length > 0 && (
@@ -122,7 +122,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
 
       {/* ── Precision Tabs ── */}
       <div className="pt-32 px-6">
-         <div className="p-1.5 bg-black/[0.03] rounded-[2rem] flex gap-1 border border-black/5">
+         <div className="p-1.5 bg-black/[0.03] rounded-[2rem] flex gap-1 border border-card-border">
             {[
               { id: 'today', label: t.today, count: todayReminders.length },
               { id: 'missed', label: t.missedActivities || 'Missed', count: missedReminders.length },
@@ -134,15 +134,15 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                 className={cn(
                   "flex-1 py-3.5 rounded-[1.6rem] text-[9.5px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center gap-2",
                   activeTab === tab.id 
-                    ? "bg-white text-[#0D523C] shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-black/5" 
-                    : "text-[#012B1D]/40 hover:text-[#012B1D]/60"
+                    ? "bg-card text-[#0D523C] shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-card-border" 
+                    : "text-ink/40 hover:text-ink/60"
                 )}
               >
                 {tab.label}
                 {tab.count > 0 && (
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-[8px] font-bold",
-                    activeTab === tab.id ? "bg-[#0D523C] text-white" : "bg-black/[0.06] text-[#012B1D]/40"
+                    activeTab === tab.id ? "bg-[#0D523C] text-white" : "bg-black/[0.06] text-ink/40"
                   )}>
                     {tab.count}
                   </span>
@@ -165,10 +165,10 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
           >
             {(activeTab === 'history' ? notifications : (activeTab === 'today' ? todayReminders : activeTab === 'upcoming' ? upcomingReminders : missedReminders)).length === 0 ? (
               <div className="py-24 text-center space-y-5">
-                 <div className="w-20 h-20 bg-black/[0.02] rounded-[2.5rem] flex items-center justify-center mx-auto border border-black/5">
-                    <Navigation size={32} className="text-[#012B1D]/10" />
+                 <div className="w-20 h-20 bg-black/[0.02] rounded-[2.5rem] flex items-center justify-center mx-auto border border-card-border">
+                    <Navigation size={32} className="text-ink/10" />
                  </div>
-                 <p className="text-[#012B1D]/30 text-[10px] font-black uppercase tracking-[0.2em]">Zero pending items</p>
+                 <p className="text-ink/30 text-[10px] font-black uppercase tracking-[0.2em]">Zero pending items</p>
               </div>
             ) : activeTab === 'history' ? (
               notifications.map((h, i) => {
@@ -188,22 +188,22 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
                     key={`h-${h.id}`} 
-                    className="bg-white p-5 rounded-[2.2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.03] flex items-start gap-4 relative overflow-hidden group active:scale-[0.98] transition-all"
+                    className="bg-card p-5 rounded-[2.2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.03] flex items-start gap-4 relative overflow-hidden group active:scale-[0.98] transition-all"
                   >
                     <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all group-hover:scale-105 border", cfg.bg, cfg.text, cfg.border)}>
                        <cfg.icon size={22} strokeWidth={2.5} />
                     </div>
                     <div className="flex-1 min-w-0">
                        <div className="flex justify-between items-start mb-1 gap-2">
-                          <h3 className="text-[#012B1D] font-bold text-[15px] tracking-tight leading-tight flex-1 truncate">{h.title}</h3>
+                          <h3 className="text-ink font-bold text-[15px] tracking-tight leading-tight flex-1 truncate">{h.title}</h3>
                           {!h.isRead && <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-lg shrink-0 mt-1" />}
                        </div>
-                       <p className="text-[11px] text-[#012B1D]/50 leading-snug line-clamp-2">{h.body}</p>
+                       <p className="text-[11px] text-ink/50 leading-snug line-clamp-2">{h.body}</p>
                        <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-black/[0.02]">
                           <span className="text-[8.5px] font-bold text-[#C78200] uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
                             {new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          <span className={cn("text-[8.5px] font-black uppercase tracking-widest bg-black/[0.02] px-2 py-0.5 rounded-lg text-[#012B1D]/30")}>
+                          <span className={cn("text-[8.5px] font-black uppercase tracking-widest bg-black/[0.02] px-2 py-0.5 rounded-lg text-ink/30")}>
                             {h.type || 'Alert'}
                           </span>
                        </div>
@@ -219,7 +219,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                 key={r.id} 
                 onClick={() => toggleReminder(r.id)}
                 className={cn(
-                  "bg-white p-5 rounded-[2.2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.03] flex items-center justify-between group transition-all active:scale-[0.98] relative overflow-hidden",
+                  "bg-card p-5 rounded-[2.2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.03] flex items-center justify-between group transition-all active:scale-[0.98] relative overflow-hidden",
                   r.status === 'completed' && "opacity-60 grayscale-[0.5]"
                 )}
               >
@@ -233,9 +233,9 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                     {r.status === 'completed' ? <CheckCircle2 size={24} strokeWidth={2.5} /> : React.createElement(getIcon(r.type), { size: 24, strokeWidth: 2.5 })}
                   </div>
                   <div>
-                    <h3 className="text-[#012B1D] font-bold text-[15px] tracking-tight leading-tight">{r.title}</h3>
+                    <h3 className="text-ink font-bold text-[15px] tracking-tight leading-tight">{r.title}</h3>
                     <div className="flex items-center gap-2.5 mt-1.5 min-w-0">
-                       <span className="text-[#012B1D]/40 text-[9px] font-black uppercase tracking-widest">{r.pondName}</span>
+                       <span className="text-ink/40 text-[9px] font-black uppercase tracking-widest">{r.pondName}</span>
                        <div className="w-1 h-1 bg-black/[0.08] rounded-full" />
                        <span className="text-[9px] font-bold text-[#C78200] uppercase tracking-wider">{r.time}</span>
                     </div>
@@ -256,7 +256,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
            <div className="bg-gradient-to-br from-[#0D523C] to-[#012B1D] p-8 rounded-[2.8rem] text-white relative overflow-hidden shadow-2xl shadow-emerald-950/20 group">
               <div className="relative z-10">
                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
+                    <div className="w-10 h-10 bg-card/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
                        <Activity size={20} className="text-emerald-400" />
                     </div>
                     <h2 className="text-xl font-black tracking-tighter">Smart SOP Engine</h2>
@@ -267,7 +267,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick
                  <div className="flex items-center gap-5">
                     <div className="flex -space-x-3.5">
                        {[1,2,3].map(i => (
-                         <div key={i} className="w-11 h-11 bg-white/5 rounded-full border-2 border-[#0D523C] flex items-center justify-center backdrop-blur-md shadow-lg overflow-hidden group-hover:scale-110 transition-transform">
+                         <div key={i} className="w-11 h-11 bg-card/5 rounded-full border-2 border-[#0D523C] flex items-center justify-center backdrop-blur-md shadow-lg overflow-hidden group-hover:scale-110 transition-transform">
                             <span className="text-[10px] filter drop-shadow-md">💎</span>
                          </div>
                        ))}

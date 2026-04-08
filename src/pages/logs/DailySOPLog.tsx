@@ -25,13 +25,13 @@ const CheckboxField = ({ label, value, onChange }: any) => (
       "w-full p-6 rounded-[2rem] border transition-all flex items-center justify-between group",
       value 
         ? "bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-500/20" 
-        : "bg-white border-black/5 text-[#4A2C2A]/40 hover:border-[#C78200]/20"
+        : "bg-card border-card-border text-ink/40 hover:border-[#C78200]/20"
     )}
   >
     <span className="text-sm font-black tracking-tight">{label}</span>
     <div className={cn(
       "w-7 h-7 rounded-full flex items-center justify-center transition-all",
-      value ? "bg-white text-emerald-500" : "bg-black/5 text-transparent"
+      value ? "bg-card text-emerald-500" : "bg-black/5 text-transparent"
     )}>
       <CheckCircle2 size={18} />
     </div>
@@ -40,7 +40,7 @@ const CheckboxField = ({ label, value, onChange }: any) => (
 
 const InputField = ({ label, icon: Icon, value, onChange, placeholder, suffix }: any) => (
   <div className="space-y-3">
-    <label className="text-[10px] font-black uppercase tracking-widest text-[#4A2C2A]/20 ml-4">{label}</label>
+    <label className="text-[10px] font-black uppercase tracking-widest text-ink/20 ml-4">{label}</label>
     <div className="relative group">
       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-[#C78200]/30 group-focus-within:text-[#C78200] transition-colors">
         <Icon size={18} />
@@ -49,11 +49,11 @@ const InputField = ({ label, icon: Icon, value, onChange, placeholder, suffix }:
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-14 pr-6 py-5 rounded-[2.2rem] border border-black/5 bg-white shadow-sm focus:border-[#C78200] outline-none transition-all text-sm font-black text-[#4A2C2A] placeholder:text-[#4A2C2A]/10" 
+        className="w-full pl-14 pr-6 py-5 rounded-[2.2rem] border border-card-border bg-card shadow-sm focus:border-[#C78200] outline-none transition-all text-sm font-black text-ink placeholder:text-ink/10" 
         placeholder={placeholder}
       />
       {suffix && (
-        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[8px] font-black text-[#4A2C2A]/20 uppercase tracking-widest">{suffix}</span>
+        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[8px] font-black text-ink/20 uppercase tracking-widest">{suffix}</span>
       )}
     </div>
   </div>
@@ -148,12 +148,12 @@ export const DailySOPLog = ({ t }: { t: Translations }) => {
 
   return (
     <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white shadow-sm px-4 py-8 flex items-center justify-between border-b border-black/5">
-        <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
+      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-card shadow-sm px-4 py-8 flex items-center justify-between border-b border-card-border">
+        <button onClick={() => navigate(-1)} className="p-3 text-ink hover:bg-black/5 rounded-2xl transition-all">
           <ChevronLeft size={24} />
         </button>
         <div className="text-center">
-            <h1 className="text-sm font-black text-[#4A2C2A] tracking-tighter uppercase">{t.dailyLogTitle}</h1>
+            <h1 className="text-sm font-black text-ink tracking-tighter uppercase">{t.dailyLogTitle}</h1>
             <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest">{targetDate.toLocaleDateString()} • DOC {docOnDate}</p>
         </div>
         <div className="w-12 h-12 flex items-center justify-center text-emerald-500">
@@ -237,7 +237,7 @@ export const DailySOPLog = ({ t }: { t: Translations }) => {
         </button>
 
         <div className="p-8 text-center bg-[#4A2C2A]/5 rounded-[3rem] border border-dashed border-[#4A2C2A]/10">
-           <p className="text-[10px] text-[#4A2C2A]/40 font-black uppercase tracking-widest leading-loose">
+           <p className="text-[10px] text-ink/40 font-black uppercase tracking-widest leading-loose">
              Verified stage logs are stored in your Secure Journal.<br/>Required for Golden Export Certifications.
            </p>
         </div>

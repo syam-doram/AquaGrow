@@ -30,7 +30,7 @@ export const ProviderBottomNav = ({ t, onMenuClick }: { t: Translations, onMenuC
             onClick={() => navigate(item.path)}
             className={cn(
               "flex flex-col items-center gap-1.5 transition-all duration-500 relative group flex-1",
-              isActive ? "scale-110" : "text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40"
+              isActive ? "scale-110" : "text-ink/20 hover:text-ink/40"
             )}
             style={{ color: isActive ? item.color : '' }}
           >
@@ -51,7 +51,7 @@ export const ProviderBottomNav = ({ t, onMenuClick }: { t: Translations, onMenuC
       })}
       <button
         onClick={onMenuClick}
-        className="flex-1 flex flex-col items-center gap-1.5 text-[#4A2C2A]/20 hover:text-[#4A2C2A]/40 transition-all group"
+        className="flex-1 flex flex-col items-center gap-1.5 text-ink/20 hover:text-ink/40 transition-all group"
       >
         <Menu size={22} strokeWidth={1.5} />
         <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Menu</span>

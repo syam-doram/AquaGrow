@@ -11,12 +11,14 @@ import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen as CapSplash } from '@capacitor/splash-screen';
 import { Capacitor } from '@capacitor/core';
+import { cn } from './utils/cn';
 
 // Components
 import { BottomNav } from './components/BottomNav';
 import { ProviderBottomNav } from './components/ProviderBottomNav';
 import { PushSyncManager } from './components/PushSyncManager';
 import { GlobalAlertCenter } from './components/GlobalAlertCenter';
+import { WifiOff, Wifi } from 'lucide-react';
 
 // Pages
 import { Dashboard } from './pages/dashboard/Dashboard';
@@ -48,6 +50,8 @@ import { ProfitROI } from './pages/finance/ProfitROI';
 import { ExportMarketTrends } from './pages/market/ExportMarketTrends';
 import { AdminDashboard } from './pages/dashboard/AdminDashboard';
 import { PondMonitor } from './pages/ponds/PondMonitor';
+import { PondHarvest } from './pages/ponds/PondHarvest';
+import { HarvestTracking } from './pages/ponds/HarvestTracking';
 import { PondFeedingLog } from './pages/ponds/PondFeedingLog';
 import { CultureSOP } from './pages/logs/CultureSOP';
 import { DailySOPLog } from './pages/logs/DailySOPLog';
@@ -57,6 +61,8 @@ import { WaterLogDetail } from './pages/monitoring/WaterLogDetail';
 import { HarvestRevenue } from './pages/finance/HarvestRevenue';
 import { ExpenseReport } from './pages/finance/ExpenseReport';
 import { ROIEntry } from './pages/finance/ROIEntry';
+import { SOPLibrary } from './pages/management/SOPLibrary';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
 
 // Provider Pages
 import { ProviderDashboard } from './pages/provider/ProviderDashboard';
@@ -76,7 +82,7 @@ export default function App() {
 }
 
 const AppContent = () => {
-  const { user, loading, isSyncing } = useData();
+  const { user, loading, isSyncing, isOffline, theme } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   const [lang, setLang] = useState<Language>(() => {
@@ -96,6 +102,18 @@ const AppContent = () => {
       handleLanguageChange(user.language);
     }
   }, [user]);
+
+  useEffect(() => {
+    // ── THEME & STATUS BAR SYNC ──
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    
+    if (theme === 'dark') root.classList.add('dark');
+
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light });
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (!loading && user && location.pathname === '/') {
@@ -171,8 +189,8 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFDF5] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#C78200] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -197,18 +215,22 @@ const AppContent = () => {
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
 
   return (
-    <div className="w-full sm:max-w-[420px] mx-auto bg-paper min-h-[100dvh] relative sm:shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-x-hidden font-sans border-x border-black/[0.02]">
+    <div className={cn(
+      "w-full sm:max-w-[420px] mx-auto bg-paper min-h-[100dvh] relative sm:shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-x-hidden font-sans border-x border-card-border transition-all duration-700",
+      theme === 'dark' && "dark"
+    )}>
       {/* ── GLOBAL MESH GRADIENT ACCENTS ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-20%] w-[120%] h-[50%] bg-emerald-100/30 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute top-[30%] right-[-30%] w-[100%] h-[40%] bg-blue-50/40 rounded-full blur-[150px]" />
-        <div className="absolute bottom-[15%] left-[-15%] w-[80%] h-[35%] bg-purple-50/30 rounded-full blur-[110px]" />
-        <div className="absolute bottom-[-15%] right-[-20%] w-[130%] h-[55%] bg-emerald-50/20 rounded-full blur-[130px]" />
+        <div className={cn("absolute top-[-10%] left-[-20%] w-[120%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse", theme === 'dark' && "bg-glow-primary/20")} />
+        <div className={cn("absolute top-[30%] right-[-30%] w-[100%] h-[40%] bg-accent/5 rounded-full blur-[150px]", theme === 'dark' && "bg-primary/5")} />
+        <div className={cn("absolute bottom-[15%] left-[-15%] w-[80%] h-[35%] bg-primary-light/5 rounded-full blur-[110px]", theme === 'dark' && "bg-glow-primary/10")} />
+        <div className={cn("absolute bottom-[-15%] right-[-20%] w-[130%] h-[55%] bg-primary/10 rounded-full blur-[130px]", theme === 'dark' && "bg-accent/5")} />
       </div>
       {!user ? (
         <Routes>
           <Route path="/login" element={<Login t={t} lang={lang} onLanguageChange={handleLanguageChange} />} />
           <Route path="/register" element={<Register t={t} lang={lang} onLanguageChange={handleLanguageChange} />} />
+          <Route path="/forgot-password" element={<ForgotPassword t={t} lang={lang} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       ) : (
@@ -235,8 +257,8 @@ const AppContent = () => {
                   />
                 </div>
                 
-                {/* Floating Badge (Already defined but now part of AnimatePresence) */}
-                {isSyncing && (
+                {/* Floating Badge (Syncing) */}
+                {isSyncing && !isOffline && (
                   <motion.div 
                     initial={{ opacity: 0, y: -20 }} 
                     animate={{ opacity: 1, y: 0 }} 
@@ -247,6 +269,26 @@ const AppContent = () => {
                     <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mt-px">Syncing</span>
                   </motion.div>
                 )}
+              </motion.div>
+            )}
+            
+            {/* ── OFFLINE STATUS BAR ── */}
+            {isOffline && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-24 left-4 right-4 z-[1000] pointer-events-none flex justify-center"
+              >
+                <div className="bg-red-500/90 backdrop-blur-xl border border-red-400/30 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-[0_20px_40px_rgba(239,68,68,0.3)] pointer-events-auto">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <WifiOff className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white text-[11px] font-black uppercase tracking-wider leading-none">Offline Mode</h3>
+                    <p className="text-white/70 text-[10px] mt-0.5">Please check your internet connection</p>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -280,6 +322,8 @@ const AppContent = () => {
                 <Route path="/ponds/:id/monitor" element={<PondMonitor t={t} />} />
                 <Route path="/ponds/:id/water-log/:date?" element={<DailyConditionsLog t={t} />} />
                 <Route path="/ponds/:id/feeding" element={<PondFeedingLog t={t} />} />
+                <Route path="/ponds/:id/harvest" element={<PondHarvest t={t} />} />
+                <Route path="/ponds/:id/tracking" element={<HarvestTracking />} />
                 <Route path="/monitor" element={<WaterMonitoring t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/market" element={<MarketPrices t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/profile" element={<Profile t={t} onMenuClick={() => navigate('/profile')} />} />
@@ -296,6 +340,7 @@ const AppContent = () => {
                 <Route path="/expert-consultations" element={<ExpertConsultations user={user} t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/feed" element={<FeedManagement t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/medicine" element={<MedicineSchedule t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/sop-library" element={<SOPLibrary />} />
                 <Route path="/weather" element={<WeatherFeedAlert t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/learn" element={<LearningCenter t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/notifications" element={<Notifications t={t} onMenuClick={() => navigate('/profile')} />} />

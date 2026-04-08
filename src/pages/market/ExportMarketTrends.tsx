@@ -27,15 +27,15 @@ export const ExportMarketTrends = ({ user, t, onMenuClick }: { user: User, t: Tr
         <div className="w-24 h-24 bg-[#C78200] rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-[#C78200]/20">
           <Globe size={48} className="text-white" />
         </div>
-        <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.proFeature}</h2>
-        <p className="text-[#4A2C2A]/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.exportMarketTrends} is only available for AquaGrow Pro subscribers.</p>
+        <h2 className="text-3xl font-black tracking-tighter text-ink mb-4">{t.proFeature}</h2>
+        <p className="text-ink/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.exportMarketTrends} is only available for AquaGrow Pro subscribers.</p>
         <button 
           onClick={() => navigate('/subscription')}
           className="bg-[#C78200] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[#C78200]/20 active:scale-95 transition-all flex items-center gap-3"
         >
           {t.upgradeToPro} <Sparkles size={18} className="text-white/40" />
         </button>
-        <button onClick={() => navigate(-1)} className="mt-8 text-[#4A2C2A]/20 text-[10px] font-black uppercase tracking-widest hover:text-[#4A2C2A] transition-colors">{t.maybeLater}</button>
+        <button onClick={() => navigate(-1)} className="mt-8 text-ink/20 text-[10px] font-black uppercase tracking-widest hover:text-ink transition-colors">{t.maybeLater}</button>
       </div>
     );
   }
@@ -49,7 +49,7 @@ export const ExportMarketTrends = ({ user, t, onMenuClick }: { user: User, t: Tr
             <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] mb-4">{t.globalPriceAlerts}</p>
             <h2 className="text-4xl font-black tracking-tighter leading-tight">Global Demand is <span className="text-[#C78200]">Rising</span> in US & EU Markets</h2>
             <div className="mt-8 flex items-center gap-4">
-              <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+              <div className="bg-card/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
                 <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Avg. Export Price</p>
                 <p className="text-xl font-black tracking-tighter">$14.20<span className="text-xs ml-1">/kg</span></p>
               </div>
@@ -63,10 +63,10 @@ export const ExportMarketTrends = ({ user, t, onMenuClick }: { user: User, t: Tr
         </div>
 
         <div className="space-y-6">
-          <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A] px-1">Demand Mapping</h3>
+          <h3 className="text-lg font-black tracking-tighter text-ink px-1">Demand Mapping</h3>
           <div className="space-y-4">
             {mockGlobalTrends.map(trend => (
-              <div key={trend.country} className="bg-white p-6 rounded-[2rem] shadow-sm border border-black/5 flex items-center justify-between group hover:border-[#C78200]/30 transition-all">
+              <div key={trend.country} className="bg-card p-6 rounded-[2rem] shadow-sm border border-card-border flex items-center justify-between group hover:border-[#C78200]/30 transition-all">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-[#C78200]/5 rounded-2xl flex items-center justify-center group-hover:bg-[#C78200]/10 transition-colors">
                     <span className="text-xl">
@@ -74,15 +74,15 @@ export const ExportMarketTrends = ({ user, t, onMenuClick }: { user: User, t: Tr
                     </span>
                   </div>
                   <div>
-                    <p className="font-black text-base tracking-tight text-[#4A2C2A]">{trend.country}</p>
-                    <p className="text-[10px] font-bold text-[#4A2C2A]/30 uppercase tracking-widest">Demand: {trend.demand}</p>
+                    <p className="font-black text-base tracking-tight text-ink">{trend.country}</p>
+                    <p className="text-[10px] font-bold text-ink/30 uppercase tracking-widest">Demand: {trend.demand}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-lg tracking-tighter text-[#4A2C2A]">${trend.price}</p>
+                  <p className="font-black text-lg tracking-tighter text-ink">${trend.price}</p>
                   <p className={cn(
                     "text-[9px] font-black uppercase tracking-widest",
-                    trend.trend === 'UP' ? "text-emerald-500" : trend.trend === 'DOWN' ? "text-red-500" : "text-[#4A2C2A]/30"
+                    trend.trend === 'UP' ? "text-emerald-500" : trend.trend === 'DOWN' ? "text-red-500" : "text-ink/30"
                   )}>
                     {trend.trend === 'UP' ? '↑ Rising' : trend.trend === 'DOWN' ? '↓ Falling' : '→ Stable'}
                   </p>

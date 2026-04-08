@@ -31,8 +31,8 @@ export const WaterLogDetail = ({ t }: { t: Translations }) => {
 
   return (
     <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left font-sans">
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-6 py-8 flex items-center justify-between border-b border-black/5">
-        <button onClick={() => navigate(-1)} className="p-3 text-slate-800 hover:bg-slate-50 rounded-2xl transition-all">
+      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-card/95 backdrop-blur-md px-6 py-8 flex items-center justify-between border-b border-card-border">
+        <button onClick={() => navigate(-1)} className="p-3 text-slate-800 hover:bg-card/50 rounded-2xl transition-all">
           <ChevronLeft size={24} />
         </button>
         <div className="text-center">
@@ -53,21 +53,21 @@ export const WaterLogDetail = ({ t }: { t: Translations }) => {
                   <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Daily Average</p>
                   <h2 className="text-3xl font-black text-white tracking-tighter">Biological Audit</h2>
                </div>
-               <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-md">
+               <div className="bg-card/10 p-4 rounded-3xl backdrop-blur-md">
                   <Activity size={32} />
                </div>
             </div>
 
             <div className="grid grid-cols-3 gap-6">
-               <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+               <div className="bg-card/5 p-5 rounded-2xl border border-white/5">
                   <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1">TOTAL LOGS</p>
                   <p className="text-xl font-black">{dayRecords.length}</p>
                </div>
-               <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+               <div className="bg-card/5 p-5 rounded-2xl border border-white/5">
                   <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1">AVG PH</p>
                   <p className="text-xl font-black">7.8</p>
                </div>
-               <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+               <div className="bg-card/5 p-5 rounded-2xl border border-white/5">
                   <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1">STABILITY</p>
                   <p className="text-xl font-black text-emerald-400">92%</p>
                </div>
@@ -85,10 +85,10 @@ export const WaterLogDetail = ({ t }: { t: Translations }) => {
            
            <div className="space-y-4">
               {dayRecords.length > 0 ? dayRecords.map((record, i) => (
-                <div key={i} className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-[#C78200]/20 transition-all">
+                <div key={i} className="bg-card rounded-[2.5rem] p-8 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-[#C78200]/20 transition-all">
                    <div className="flex justify-between items-start mb-8">
                       <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C78200] group-hover:bg-[#C78200] group-hover:text-white transition-all">
+                         <div className="w-12 h-12 bg-card/50 rounded-2xl flex items-center justify-center text-[#C78200] group-hover:bg-[#C78200] group-hover:text-white transition-all">
                             <Clock size={22} />
                          </div>
                          <div>
@@ -134,8 +134,8 @@ export const WaterLogDetail = ({ t }: { t: Translations }) => {
                    </div>
                 </div>
               )) : (
-                <div className="bg-white rounded-[3rem] p-16 border border-dashed border-slate-200 flex flex-col items-center text-center">
-                   <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-6">
+                <div className="bg-card rounded-[3rem] p-16 border border-dashed border-slate-200 flex flex-col items-center text-center">
+                   <div className="w-20 h-20 bg-card/50 rounded-full flex items-center justify-center text-slate-200 mb-6">
                       <Clock size={40} />
                    </div>
                    <h4 className="text-lg font-black text-slate-800 tracking-tighter mb-2">No Records Found</h4>

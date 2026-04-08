@@ -62,7 +62,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
   const calculateOverallHealth = (record: any) => {
-    if (!record) return { score: 0, status: 'NO DATA', color: 'text-slate-300', bg: 'bg-slate-50' };
+    if (!record) return { score: 0, status: 'NO DATA', color: 'text-slate-300', bg: 'bg-card/50' };
     
     let points = 100;
     
@@ -144,11 +144,11 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
   };
 
   return (
-    <div className="pb-40 bg-[#FFFDF5] min-h-screen text-left font-sans relative overflow-x-hidden">
+    <div className="pb-40 bg-paper min-h-screen text-left font-sans relative overflow-x-hidden">
       {/* ── BACKGROUND ACCENTS ── */}
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FFFDF5]">
-         <div className="absolute top-0 right-0 w-full h-[45%] bg-gradient-to-b from-[#012B1D] to-[#FFFDF5]" />
-         <div className="absolute top-[10%] right-[-10%] w-[70%] h-[40%] bg-emerald-400/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-paper">
+         <div className="absolute top-0 right-0 w-full h-[45%] bg-gradient-to-b from-primary/10 to-paper" />
+         <div className="absolute top-[10%] right-[-10%] w-[70%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
       </div>
 
       <Header title={t.monitor} showBack onMenuClick={onMenuClick} />
@@ -161,15 +161,15 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
            className="pt-32 px-10 flex flex-col items-center text-center gap-10"
          >
             <div className="relative">
-               <div className="w-24 h-24 rounded-[2.5rem] bg-white border border-slate-100 flex items-center justify-center shadow-xl relative z-10">
+               <div className="w-24 h-24 rounded-[2.5rem] bg-card border border-slate-100 flex items-center justify-center shadow-xl relative z-10">
                   <Waves size={40} className="text-[#C78200]" />
                </div>
                <div className="absolute inset-0 bg-[#C78200]/10 rounded-full blur-[40px] animate-pulse" />
             </div>
             
             <div className="space-y-4">
-               <h2 className="text-2xl font-black text-white tracking-tighter uppercase tracking-[0.2em]">Zero Active Ponds</h2>
-               <p className="text-white/40 text-sm font-bold leading-relaxed px-4">
+               <h2 className="text-2xl font-black text-ink tracking-tighter uppercase tracking-[0.2em]">Zero Active Ponds</h2>
+               <p className="text-ink/40 text-sm font-bold leading-relaxed px-4">
                   Tactical monitoring requires at least one active sector. Initialize your first pond to begin autonomous health scans.
                </p>
             </div>
@@ -207,10 +207,10 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
              className="px-5"
            >
               <div className="flex justify-between items-center mb-4 px-1">
-                 <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Sector Audit</h2>
-                 <div className="flex items-center gap-1.5 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/20">
-                    <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
-                    <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">{ponds.length} Active Ponds</span>
+                 <h2 className="text-[10px] font-black text-ink/40 uppercase tracking-[0.3em]">Sector Audit</h2>
+                 <div className="flex items-center gap-1.5 bg-primary/20 px-3 py-1 rounded-full border border-primary/20">
+                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                    <span className="text-[7px] font-black text-primary uppercase tracking-widest">{ponds.length} Active Ponds</span>
                  </div>
               </div>
               
@@ -231,8 +231,8 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                          className={cn(
                            "flex-shrink-0 min-w-[125px] p-4 rounded-[1.8rem] border transition-all relative overflow-hidden group",
                            isActive 
-                             ? "bg-white border-white shadow-[0_20px_40px_rgba(0,0,0,0.1)] scale-105 z-10" 
-                             : "bg-white/5 border-white/10 backdrop-blur-md shadow-sm"
+                             ? "bg-card border-white shadow-[0_20px_40px_rgba(0,0,0,0.1)] scale-105 z-10" 
+                             : "bg-card/5 border-white/10 backdrop-blur-md shadow-sm"
                          )}
                        >
                           {/* Subtle Glow for Active */}
@@ -249,7 +249,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                                 )} />
                                 <span className={cn(
                                    "text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                                   isActive ? "bg-emerald-50 border-emerald-100 text-[#C78200]" : "bg-white/10 border-white/10 text-white/40"
+                                   isActive ? "bg-emerald-50 border-emerald-100 text-[#C78200]" : "bg-card/10 border-white/10 text-white/40"
                                 )}>
                                    D{pondDoc}
                                 </span>
@@ -258,7 +258,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                              <h4 className={cn("text-xs font-black tracking-tight mb-0.5", isActive ? "text-slate-800" : "text-white")}>{p.name}</h4>
                              <p className={cn("text-[8px] font-black uppercase tracking-widest mb-1", isActive ? "text-slate-400" : "text-white/30")}>{pHealth.status}</p>
                              
-                             <div className="mt-2.5 pt-2.5 border-t w-full border-black/5 flex items-baseline gap-1">
+                             <div className="mt-2.5 pt-2.5 border-t w-full border-card-border flex items-baseline gap-1">
                                 <p className={cn("text-xl font-black tracking-tighter leading-none", isActive ? pHealth.color : "text-white")}>
                                    {pHealth.score}%
                                 </p>
@@ -279,7 +279,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
              }}
              className="px-5"
            >
-              <div className="bg-white border-x border-b border-black/5 rounded-[2.2rem] p-5 shadow-sm relative overflow-hidden">
+              <div className="bg-card border-x border-b border-card-border rounded-[2.2rem] p-5 shadow-sm relative overflow-hidden">
                  <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2">
                        <Calendar size={14} className="text-[#C78200]" />
@@ -309,14 +309,14 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                                   "flex-shrink-0 w-12 py-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] border",
                                   isActive 
                                     ? "bg-[#C78200] border-[#C78200] text-white shadow-lg shadow-amber-500/20" 
-                                    : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100"
+                                    : "bg-card/50 border-slate-100 text-slate-400 hover:bg-slate-100"
                                )}
                              >
                                 <span className={cn("text-[6px] font-black uppercase tracking-widest leading-none", isActive ? "text-white/60" : "text-slate-300")}>
                                    {format(currentD, 'EEE')}
                                 </span>
                                 <span className="text-xs font-black leading-none">{format(currentD, 'd')}</span>
-                                <div className={cn("mt-1 px-1.5 py-0.5 rounded-full text-[5px] font-black uppercase tracking-tighter", isActive ? "bg-white/20 text-white" : "bg-white border border-slate-200 text-slate-400")}>
+                                <div className={cn("mt-1 px-1.5 py-0.5 rounded-full text-[5px] font-black uppercase tracking-tighter", isActive ? "bg-card/20 text-white" : "bg-card border border-slate-200 text-slate-400")}>
                                    D{docCount}
                                 </div>
                              </button>
@@ -339,7 +339,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                 "rounded-[2.2rem] p-6 flex flex-col gap-5 border shadow-xl transition-all duration-700 relative overflow-hidden group",
                 isLiveMode 
                   ? "bg-[#02130F] border-emerald-500/30 shadow-emerald-900/10" 
-                  : "bg-white border-white shadow-slate-200/40"
+                  : "bg-card border-white shadow-slate-200/40"
               )}>
                  {/* Background Accent for Active Node */}
                  {isLiveMode && <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full" />}
@@ -348,7 +348,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                     <div className="flex items-center gap-4">
                        <div className={cn(
                          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg",
-                         isLiveMode ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-slate-50 text-slate-300"
+                         isLiveMode ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-card/50 text-slate-300"
                        )}>
                           {isConnecting ? <RefreshCcw size={22} className="animate-spin" /> : (isLiveMode ? <Activity size={22} className="animate-pulse" /> : <TrendingUp size={22} />)}
                        </div>
@@ -381,14 +381,14 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                     <div className="flex gap-3 relative z-10">
                        <button 
                          onClick={() => handleSyncIoT('BLE')}
-                         className="flex-1 bg-white border border-slate-100 p-4 rounded-2xl flex flex-col items-center gap-2 group hover:border-[#C78200]/20 transition-all active:scale-95 shadow-sm"
+                         className="flex-1 bg-card border border-slate-100 p-4 rounded-2xl flex flex-col items-center gap-2 group hover:border-[#C78200]/20 transition-all active:scale-95 shadow-sm"
                        >
                           <Bluetooth size={20} className="text-[#C78200]" />
                           <span className="text-[7.5px] font-black uppercase tracking-widest text-slate-400 group-hover:text-[#C78200]">Direct Bluetooth</span>
                        </button>
                        <button 
                         onClick={() => handleSyncIoT('WiFi')}
-                        className="flex-1 bg-white border border-slate-100 p-4 rounded-2xl flex flex-col items-center gap-2 group hover:border-emerald-500/20 transition-all active:scale-95 shadow-sm"
+                        className="flex-1 bg-card border border-slate-100 p-4 rounded-2xl flex flex-col items-center gap-2 group hover:border-emerald-500/20 transition-all active:scale-95 shadow-sm"
                        >
                           <Wifi size={20} className="text-emerald-500" />
                           <span className="text-[7.5px] font-black uppercase tracking-widest text-slate-400 group-hover:text-emerald-500">Cloud Sync</span>
@@ -418,7 +418,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
            >
               <div className={cn(
                  "rounded-[2.2rem] p-6 transition-all duration-700 relative overflow-hidden backdrop-blur-3xl shadow-xl shadow-emerald-950/10 border-x border-t",
-                 isLiveMode ? "bg-[#02130F] border-emerald-500/30" : "bg-white border-white"
+                 isLiveMode ? "bg-[#02130F] border-emerald-500/30" : "bg-card border-white"
               )}>
                  <div className="relative z-10 flex items-center justify-between">
                     <div className="relative w-32 h-32 flex items-center justify-center">
@@ -461,7 +461,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
 
                        <div className={cn(
                           "w-full rounded-2xl p-4 border transition-all",
-                          isLiveMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-100 shadow-inner"
+                          isLiveMode ? "bg-card/5 border-white/5" : "bg-card/50 border-slate-100 shadow-inner"
                        )}>
                           <div className="flex items-center gap-1.5 mb-1.5">
                              <Activity size={8} className="text-[#C78200]" />
@@ -490,7 +490,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                     <p className="text-[7px] font-black text-[#C78200] uppercase tracking-[0.2em] mt-1.5">{isLiveMode ? 'REAL-TIME SENSOR FEED' : 'MANUALLY VERIFIED LOGS'}</p>
                  </div>
                  <div className="flex gap-2">
-                    <button className="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-[#C78200] transition-colors shadow-sm">
+                    <button className="w-9 h-9 rounded-xl bg-card border border-slate-100 flex items-center justify-center text-slate-400 hover:text-[#C78200] transition-colors shadow-sm">
                        <History size={16} />
                     </button>
                  </div>
@@ -514,12 +514,12 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuCli
                          initial={{ opacity: 0, y: 10 }}
                          animate={{ opacity: 1, y: 0 }}
                          transition={{ delay: i * 0.05 }}
-                         className="bg-white border-x border-b border-black/5 rounded-[2.2rem] p-5 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all"
+                         className="bg-card border-x border-b border-card-border rounded-[2.2rem] p-5 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all"
                        >
                           <div className="flex justify-between items-start mb-3.5 relative z-10">
                              <div className={cn(
                                 "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm border border-slate-50",
-                                status === 'warning' ? "bg-amber-50 text-amber-500" : status === 'good' ? "bg-emerald-50 text-emerald-500" : "bg-slate-50 text-slate-300"
+                                status === 'warning' ? "bg-amber-50 text-amber-500" : status === 'good' ? "bg-emerald-50 text-emerald-500" : "bg-card/50 text-slate-300"
                              )}>
                                 <m.icon size={18} />
                              </div>

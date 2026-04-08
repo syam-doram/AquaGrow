@@ -26,15 +26,15 @@ export const ExpertConsultations = ({ user, t, onMenuClick }: { user: User, t: T
         <div className="w-24 h-24 bg-[#C78200] rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-[#C78200]/20">
           <Users size={48} className="text-white" />
         </div>
-        <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.proFeature}</h2>
-        <p className="text-[#4A2C2A]/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.expertConsultations} {t.proSubscriptionRequired}</p>
+        <h2 className="text-3xl font-black tracking-tighter text-ink mb-4">{t.proFeature}</h2>
+        <p className="text-ink/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.expertConsultations} {t.proSubscriptionRequired}</p>
         <button 
           onClick={() => navigate('/subscription')}
           className="bg-[#C78200] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[#C78200]/20 active:scale-95 transition-all flex items-center gap-3"
         >
           {t.upgradeToPro} <Sparkles size={18} className="text-white/40" />
         </button>
-        <button onClick={() => navigate(-1)} className="mt-8 text-[#4A2C2A]/20 text-[10px] font-black uppercase tracking-widest hover:text-[#4A2C2A] transition-colors">{t.maybeLater}</button>
+        <button onClick={() => navigate(-1)} className="mt-8 text-ink/20 text-[10px] font-black uppercase tracking-widest hover:text-ink transition-colors">{t.maybeLater}</button>
       </div>
     );
   }
@@ -53,31 +53,31 @@ export const ExpertConsultations = ({ user, t, onMenuClick }: { user: User, t: T
         </div>
 
         <div className="space-y-6">
-          <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A] px-1">{t.availableExperts}</h3>
+          <h3 className="text-lg font-black tracking-tighter text-ink px-1">{t.availableExperts}</h3>
           <div className="space-y-6">
             {mockExperts.map(expert => (
-              <div key={expert.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-black/5 flex flex-col gap-6 group hover:border-[#C78200]/30 transition-all">
+              <div key={expert.id} className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-card-border flex flex-col gap-6 group hover:border-[#C78200]/30 transition-all">
                 <div className="flex items-center gap-5">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-[2rem] overflow-hidden border-2 border-black/5 group-hover:border-[#C78200]/30 transition-all">
+                    <div className="w-20 h-20 rounded-[2rem] overflow-hidden border-2 border-card-border group-hover:border-[#C78200]/30 transition-all">
                       <img src={expert.photo} className="w-full h-full object-cover" />
                     </div>
                     {expert.available && (
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <div className="w-2 h-2 bg-card rounded-full animate-pulse" />
                       </div>
                     )}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-black text-lg tracking-tight text-[#4A2C2A]">{expert.name}</h4>
+                      <h4 className="font-black text-lg tracking-tight text-ink">{expert.name}</h4>
                       <div className="flex items-center gap-1 text-[#C78200]">
                         <Sparkles size={14} fill="currentColor" />
                         <span className="text-xs font-black">{expert.rating}</span>
                       </div>
                     </div>
                     <p className="text-[#C78200] text-[10px] font-black uppercase tracking-widest mt-1">{expert.specialization}</p>
-                    <p className="text-[#4A2C2A]/30 text-[10px] font-black uppercase tracking-widest mt-1">{expert.experience} {t.experience}</p>
+                    <p className="text-ink/30 text-[10px] font-black uppercase tracking-widest mt-1">{expert.experience} {t.experience}</p>
                   </div>
                 </div>
                 <div className="flex gap-4">

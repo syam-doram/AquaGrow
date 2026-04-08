@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon, Mail, Phone, MapPin, Briefcase, Camera, Save } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Briefcase, Camera, Save, Maximize, Layers } from 'lucide-react';
 import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 import { User } from '../../types';
@@ -15,13 +15,19 @@ export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
     email: user.email || '',
     phoneNumber: user.phoneNumber || '',
     location: user.location || '',
+    farmSize: user.farmSize || 0,
+    pondCount: user.pondCount || 0,
     experience: (user as any).experience || '5 Years',
   });
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const success = await updateUser(formData);
+      const success = await updateUser({
+        ...formData,
+        farmSize: Number(formData.farmSize),
+        pondCount: Number(formData.pondCount)
+      });
       if (success) {
         navigate('/profile');
       } else {
@@ -80,10 +86,27 @@ export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
             label={t.phoneNumber} 
             icon={Phone} 
             value={formData.phoneNumber} 
-            onChange={(v) => setFormData({...formData, phoneNumber: v})} 
             placeholder="+91 00000 00000"
             disabled
           />
+          <div className="grid grid-cols-2 gap-4">
+             <InputGroup 
+                label={t.acres} 
+                icon={Maximize} 
+                value={formData.farmSize} 
+                type="number"
+                onChange={(v) => setFormData({...formData, farmSize: Number(v)})} 
+                placeholder="0"
+              />
+              <InputGroup 
+                label={t.numberOfPonds} 
+                icon={Layers} 
+                value={formData.pondCount} 
+                type="number"
+                onChange={(v) => setFormData({...formData, pondCount: Number(v)})} 
+                placeholder="0"
+              />
+          </div>
           <InputGroup 
             label={t.location} 
             icon={MapPin} 
@@ -120,7 +143,7 @@ export const EditProfile = ({ user, t }: { user: User, t: Translations }) => {
 
 const InputGroup = ({ label, icon: Icon, value, onChange, placeholder, type = 'text', disabled = false }: any) => (
   <div className="space-y-3">
-    <label className="text-[#4A2C2A]/30 text-[9px] font-black uppercase tracking-[0.2em] ml-2">{label}</label>
+    <label className="text-ink/30 text-[9px] font-black uppercase tracking-[0.2em] ml-2">{label}</label>
     <div className="relative group">
       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-[#C78200]/20 group-focus-within:text-[#C78200] transition-colors">
         <Icon size={20} />
@@ -128,7 +151,7 @@ const InputGroup = ({ label, icon: Icon, value, onChange, placeholder, type = 't
       <input 
         type={type}
         disabled={disabled}
-        className="w-full pl-16 pr-6 py-5 rounded-[2rem] border border-[#C78200]/10 bg-white shadow-sm focus:ring-4 focus:ring-[#C78200]/5 focus:border-[#C78200] outline-none transition-all text-sm font-black text-[#4A2C2A] disabled:opacity-50" 
+        className="w-full pl-16 pr-6 py-5 rounded-[2rem] border border-[#C78200]/10 bg-card shadow-sm focus:ring-4 focus:ring-[#C78200]/5 focus:border-[#C78200] outline-none transition-all text-sm font-black text-ink disabled:opacity-50" 
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}

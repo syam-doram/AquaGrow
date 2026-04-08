@@ -37,7 +37,7 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations, onMenuClick
         <Header title={t.weather} showBack onMenuClick={onMenuClick} />
         <div className="pt-48 flex flex-col items-center justify-center space-y-4">
           <div className="w-12 h-12 border-4 border-[#C78200] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[10px] font-black text-[#4A2C2A]/40 uppercase tracking-widest animate-pulse">Syncing satellite data...</p>
+          <p className="text-[10px] font-black text-ink/40 uppercase tracking-widest animate-pulse">Syncing satellite data...</p>
         </div>
       </div>
     );
@@ -94,7 +94,7 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations, onMenuClick
 
         {/* ALERTS SECTION - DYNAMIC */}
         <section className="space-y-6">
-          <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1 flex items-center gap-2">
+          <h3 className="text-xl font-black tracking-tighter text-ink px-1 flex items-center gap-2">
             <AlertTriangle size={20} className="text-amber-500" /> Real-time Warnings
           </h3>
           <AnimatePresence>
@@ -120,7 +120,7 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations, onMenuClick
                     <p className="text-[8px] font-black opacity-30 uppercase tracking-widest">Live Satellite Sync</p>
                   </div>
                 </div>
-                <p className="text-sm text-[#4A2C2A]/70 leading-relaxed font-medium">{alert.desc}</p>
+                <p className="text-sm text-ink/70 leading-relaxed font-medium">{alert.desc}</p>
                 <div className="flex justify-end pt-2">
                   <span className={cn("text-[9px] font-black uppercase tracking-widest", alert.type === 'critical' ? "text-red-400" : "text-amber-400")}>Action Required</span>
                 </div>
@@ -131,8 +131,8 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations, onMenuClick
 
         {/* 7-DAY FORECAST */}
         <section className="space-y-6">
-          <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A] px-1">{t.forecast7Day}</h3>
-          <div className="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-black/5 divide-y divide-[#4A2C2A]/5">
+          <h3 className="text-lg font-black tracking-tighter text-ink px-1">{t.forecast7Day}</h3>
+          <div className="bg-card rounded-[2.5rem] shadow-sm overflow-hidden border border-card-border divide-y divide-[#4A2C2A]/5">
             {weather?.forecast.map((f, i) => {
               const Icon = f.icon === 'CloudRain' ? CloudRain : (f.icon === 'Zap' ? Zap : CloudSun);
               return (
@@ -143,15 +143,15 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations, onMenuClick
                   transition={{ delay: i * 0.1 }}
                   className="p-6 flex items-center justify-between hover:bg-[#F8F9FE] transition-colors"
                 >
-                  <span className="font-black text-sm text-[#4A2C2A] w-14 uppercase tracking-widest">{f.day}</span>
+                  <span className="font-black text-sm text-ink w-14 uppercase tracking-widest">{f.day}</span>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-black/[0.03] rounded-xl flex items-center justify-center">
                       <Icon size={18} className="text-[#C78200]" />
                     </div>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-black text-lg text-[#4A2C2A] tracking-tighter">{f.temp}</span>
-                    <span className="text-[10px] text-[#4A2C2A]/30 font-bold uppercase">C</span>
+                    <span className="font-black text-lg text-ink tracking-tighter">{f.temp}</span>
+                    <span className="text-[10px] text-ink/30 font-bold uppercase">C</span>
                   </div>
                 </motion.div>
               );
@@ -172,24 +172,24 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations, onMenuClick
                   <h3 className="text-xl font-black tracking-tight">{t.feedEfficiency || 'AI Feed Adjustment'}</h3>
                   <p className="text-white/60 text-[8px] font-black uppercase tracking-widest mt-1">Satellite Weather-Driven Optimization</p>
                 </div>
-                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                <div className="p-3 bg-card/20 rounded-2xl backdrop-blur-md">
                   <TrendingUp size={24} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-white/10 rounded-3xl p-6 border border-white/10 backdrop-blur-sm">
+                <div className="bg-card/10 rounded-3xl p-6 border border-white/10 backdrop-blur-sm">
                   <p className="text-[7px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">PRECIPITATION RISK</p>
                   <p className="text-3xl font-black tracking-tighter">High</p>
                 </div>
-                <div className="bg-white/10 rounded-3xl p-6 border border-white/10 backdrop-blur-sm">
+                <div className="bg-card/10 rounded-3xl p-6 border border-white/10 backdrop-blur-sm">
                   <p className="text-[7px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">AUTO-ADJUST</p>
                   <p className="text-3xl font-black tracking-tighter text-emerald-300">-15%</p>
                 </div>
               </div>
               <p className="text-[9px] text-white/60 font-medium mb-6 leading-relaxed italic">"Heavy rain causes molting and changes water chemistry. AI suggests reducing feed ration to prevent wastage."</p>
               
-              <div className="w-full py-5 bg-white text-[#C78200] rounded-2xl font-black text-[10px] text-center uppercase tracking-[0.2em] shadow-xl shadow-black/10">
+              <div className="w-full py-5 bg-card text-[#C78200] rounded-2xl font-black text-[10px] text-center uppercase tracking-[0.2em] shadow-xl shadow-black/10">
                  APPLY AI RATION NOW
               </div>
             </div>

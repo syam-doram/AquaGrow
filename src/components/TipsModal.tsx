@@ -19,12 +19,12 @@ export const TipsModal = ({ isOpen, onClose, t }: { isOpen: boolean, onClose: ()
         initial={{ y: "100%" }} 
         animate={{ y: 0 }} 
         exit={{ y: "100%" }}
-        className="relative w-full max-w-lg bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg bg-card rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
       >
         <div className="w-16 h-1 bg-[#4A2C2A]/10 rounded-full mx-auto mb-8 sm:hidden" />
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A]">{t.viewTips}</h2>
-          <button onClick={onClose} className="p-3 rounded-2xl bg-[#4A2C2A]/5 text-[#4A2C2A] hover:bg-[#4A2C2A]/10 transition-all">
+          <h2 className="text-2xl font-black tracking-tighter text-ink">{t.viewTips}</h2>
+          <button onClick={onClose} className="p-3 rounded-2xl bg-[#4A2C2A]/5 text-ink hover:bg-[#4A2C2A]/10 transition-all">
             <X size={24} />
           </button>
         </div>
@@ -35,9 +35,9 @@ export const TipsModal = ({ isOpen, onClose, t }: { isOpen: boolean, onClose: ()
               <div className="w-10 h-10 rounded-xl bg-[#C78200] flex items-center justify-center text-white">
                 <Waves size={20} />
               </div>
-              <h4 className="font-black text-[#4A2C2A] tracking-tight">{t.phLevel} Management</h4>
+              <h4 className="font-black text-ink tracking-tight">{t.phLevel} Management</h4>
             </div>
-            <p className="text-sm text-[#4A2C2A]/60 leading-relaxed font-medium">
+            <p className="text-sm text-ink/60 leading-relaxed font-medium">
               Maintain pH between 7.5 and 8.5. If pH is too low, apply agricultural lime (CaCO3) at 100-200kg/acre. If too high, increase aeration and consider partial water exchange.
             </p>
           </div>
@@ -47,9 +47,9 @@ export const TipsModal = ({ isOpen, onClose, t }: { isOpen: boolean, onClose: ()
               <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white">
                 <AlertTriangle size={20} />
               </div>
-              <h4 className="font-black text-[#4A2C2A] tracking-tight">{t.dissolvedO2} Optimization</h4>
+              <h4 className="font-black text-ink tracking-tight">{t.dissolvedO2} Optimization</h4>
             </div>
-            <p className="text-sm text-[#4A2C2A]/60 leading-relaxed font-medium">
+            <p className="text-sm text-ink/60 leading-relaxed font-medium">
               Critical levels are below 4.0 mg/L. Increase paddlewheel aerator speed immediately. Avoid feeding during low DO periods (early morning) to reduce oxygen demand.
             </p>
           </div>
@@ -59,9 +59,9 @@ export const TipsModal = ({ isOpen, onClose, t }: { isOpen: boolean, onClose: ()
               <div className="w-10 h-10 rounded-xl bg-[#4A2C2A] flex items-center justify-center text-white">
                 <Info size={20} />
               </div>
-              <h4 className="font-black text-[#4A2C2A] tracking-tight">{t.ammonia} Control</h4>
+              <h4 className="font-black text-ink tracking-tight">{t.ammonia} Control</h4>
             </div>
-            <p className="text-sm text-[#4A2C2A]/60 leading-relaxed font-medium">
+            <p className="text-sm text-ink/60 leading-relaxed font-medium">
               High ammonia is toxic. Reduce feeding by 50% for 2 days. Apply probiotics to enhance nitrogen cycle. Ensure bottom sludge is removed during pond preparation.
             </p>
           </div>

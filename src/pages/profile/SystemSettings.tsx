@@ -11,7 +11,7 @@ import { API_BASE_URL } from '../../config';
 import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
 
 export const SystemSettings = ({ t }: { t: Translations }) => {
-  const { user, setUser, addNotification } = useData();
+  const { user, setUser, addNotification, theme, setAppTheme } = useData();
   const [notifications, setNotifications] = useState({
     water: user?.notifications?.water ?? true,
     feed: user?.notifications?.feed ?? true,
@@ -187,9 +187,17 @@ export const SystemSettings = ({ t }: { t: Translations }) => {
       id: 'appearance',
       icon: Layout,
       label: t.appTheme,
-      desc: 'Sunrise (Dynamic)',
+      desc: theme.charAt(0).toUpperCase() + theme.slice(1),
       color: 'text-purple-500',
-      locked: true
+      items: [
+        { 
+          label: 'Select Theme', 
+          value: theme, 
+          isSelect: true, 
+          options: ['Sunrise', 'Oceanic', 'Midnight', 'Harvest'], 
+          onSelect: (v: string) => setAppTheme(v.toLowerCase() as any) 
+        }
+      ]
     }
   ];
 

@@ -1,51 +1,120 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", serif;
   --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Work Sans", sans-serif;
   
-  --color-primary: #4A2C2A;
-  --color-primary-light: #C78200;
-  --color-accent: #C78200;
-  --color-paper: #FFFDF5;
-  --color-ink: #4A2C2A;
-  --color-line: rgba(74, 44, 42, 0.08);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-accent: var(--accent);
+  --color-paper: var(--paper);
+  --color-body-bg: var(--body-bg);
+  --color-ink: var(--ink);
+  --color-muted-ink: var(--muted-ink);
+  --color-line: var(--line);
   
-  --color-vibrant-blue: #C78200;
-  --color-vibrant-green: #D48806;
-  --color-vibrant-purple: #AD6800;
-  --color-vibrant-pink: #FFD700;
-  --color-vibrant-orange: #C78200;
+  --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
+  --color-card-border: var(--card-border);
+  --color-glow-primary: var(--glow-primary);
+  
+  --color-background-light: #f8fafc;
+  --color-background-dark: #0f172a;
+  --color-surface-dark: #1e293b;
+  --color-surface-light: #ffffff;
+  
+  --color-vibrant-blue: #3B82F6;
+  --color-vibrant-green: #10B981;
+  --color-vibrant-purple: #8B5CF6;
+  --color-vibrant-pink: #EC4899;
+  --color-vibrant-orange: #F97316;
+}
+
+:root {
+  --primary: #F59E0B;
+  --primary-light: #FCD34D;
+  --accent: #FB923C;
+  --paper: #FDFCFB;
+  --body-bg: #FDFCFB;
+  --card: rgba(255, 255, 255, 0.75);
+  --card-solid: #FFFFFF;
+  --card-border: rgba(0, 0, 0, 0.05);
+  --ink: #2D2621;
+  --muted-ink: rgba(45, 38, 33, 0.5);
+  --line: rgba(0, 0, 0, 0.04);
+  --glow-primary: rgba(245, 158, 11, 0.2);
+  --bg-pattern: 
+    radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(251, 146, 60, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(254, 215, 170, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(252, 211, 77, 0.08) 0px, transparent 50%);
+}
+
+.dark {
+  --primary: #17cf54;
+  --primary-light: #22c55e;
+  --accent: #1da31d;
+  --paper: #030E1B;
+  --body-bg: #030E1B;
+  --card: rgba(15, 23, 42, 0.7);
+  --card-solid: #0A1629;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --ink: #FFFFFF;
+  --muted-ink: rgba(255, 255, 255, 0.5);
+  --line: rgba(255, 255, 255, 0.1);
+  --glow-primary: rgba(23, 207, 84, 0.2);
+  --bg-pattern:
+    radial-gradient(circle at 20% 20%, rgba(23, 207, 84, 0.08), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(30, 41, 59, 0.05), transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(3, 14, 27, 0.4), transparent 80%);
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
-    @apply bg-paper text-ink font-sans antialiased;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+    @apply bg-body-bg text-ink font-sans antialiased overflow-x-hidden overflow-y-auto transition-colors duration-300;
+    font-size: 17px;
+    background-image: var(--bg-pattern);
     background-attachment: fixed;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 rounded-[2.5rem] shadow-xl shadow-primary/5;
+    @apply backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.37),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  
+  .premium-glass {
+    @apply backdrop-blur-3xl border border-white/10 shadow-2xl;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
   }
   
   .premium-shadow {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 40px -12px rgba(245, 158, 11, 0.12);
   }
   
   .vibrant-gradient-1 {
-    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    background: linear-gradient(135deg, #F59E0B 0%, #FB923C 100%);
   }
   
   .vibrant-gradient-2 {
-    background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+    background: linear-gradient(135deg, #10B981 0%, #F59E0B 100%);
   }
   
   .vibrant-gradient-3 {
@@ -57,7 +126,16 @@
   }
 
   .nav-blur {
-    @apply bg-white/80 backdrop-blur-md border-t border-line;
+    @apply bg-card/95 backdrop-blur-md border-t border-card-border;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 

@@ -61,7 +61,7 @@ export const SecurityPrivacy = ({ t }: { t: Translations }) => {
         </div>
 
         <section className="space-y-6">
-          <h3 className="text-[#4A2C2A]/30 text-[9px] font-black uppercase tracking-[0.2em] ml-2">{t.security}</h3>
+          <h3 className="text-ink/30 text-[9px] font-black uppercase tracking-[0.2em] ml-2">{t.security}</h3>
           <div className="space-y-4">
             {securitySections.map((s, i) => (
               <SectionItem key={i} {...s} />
@@ -70,7 +70,7 @@ export const SecurityPrivacy = ({ t }: { t: Translations }) => {
         </section>
 
         <section className="space-y-6">
-          <h3 className="text-[#4A2C2A]/30 text-[9px] font-black uppercase tracking-[0.2em] ml-2">{t.privacy}</h3>
+          <h3 className="text-ink/30 text-[9px] font-black uppercase tracking-[0.2em] ml-2">{t.privacy}</h3>
           <div className="space-y-4">
             {privacySections.map((s, i) => (
               <SectionItem key={i} {...s} />
@@ -83,14 +83,14 @@ export const SecurityPrivacy = ({ t }: { t: Translations }) => {
 };
 
 const SectionItem = ({ icon: Icon, label, desc, color, isToggle, value, onToggle }: any) => (
-  <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-black/5 flex items-center justify-between group hover:border-[#C78200]/30 transition-all cursor-pointer">
+  <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-card-border flex items-center justify-between group hover:border-[#C78200]/30 transition-all cursor-pointer">
     <div className="flex items-center gap-6">
       <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center bg-paper shadow-sm", color)}>
         <Icon size={26} strokeWidth={1.5} />
       </div>
       <div>
-        <h4 className="font-black text-base tracking-tight text-[#4A2C2A]">{label}</h4>
-        <p className="text-[#4A2C2A]/40 text-[10px] font-bold uppercase tracking-widest mt-1">{desc}</p>
+        <h4 className="font-black text-base tracking-tight text-ink">{label}</h4>
+        <p className="text-ink/40 text-[10px] font-bold uppercase tracking-widest mt-1">{desc}</p>
       </div>
     </div>
     {isToggle ? (
@@ -102,12 +102,12 @@ const SectionItem = ({ icon: Icon, label, desc, color, isToggle, value, onToggle
         )}
       >
         <div className={cn(
-          "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-500",
+          "absolute top-1 w-4 h-4 bg-card rounded-full transition-all duration-500",
           value ? "right-1" : "left-1"
         )} />
       </button>
     ) : (
-      <ChevronRight size={18} className="text-[#4A2C2A]/10 group-hover:text-[#C78200] group-hover:translate-x-1 transition-all" />
+      <ChevronRight size={18} className="text-ink/10 group-hover:text-[#C78200] group-hover:translate-x-1 transition-all" />
     )}
   </div>
 );

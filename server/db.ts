@@ -48,7 +48,8 @@ const PondSchema = new mongoose.Schema({
   seedCount: { type: Number },
   seedSource: { type: String },
   species: { type: String, enum: ['Vannamei', 'Tiger'], default: 'Vannamei' },
-  status: { type: String, enum: ['active', 'harvested', 'archive'], default: 'active' },
+  status: { type: String, enum: ['active', 'harvested', 'archive', 'planned'], default: 'active' },
+  harvestData: { type: Map, of: String },
   waterType: { type: String, default: 'Borewell' },
   initialSalinity: { type: Number, default: 0 },
 }, { timestamps: true });
@@ -115,6 +116,28 @@ const ExpenseSchema = new mongoose.Schema({
   isSynced: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const HarvestRequestSchema = new mongoose.Schema({
+  pondId: { type: String, required: true },
+  userId: { type: String, required: true },
+  providerId: { type: String }, // The buyer/agent who accepts
+  biomass: { type: Number, required: true },
+  avgWeight: { type: Number, required: true },
+  price: { type: Number },
+  status: { 
+    type: String, 
+    enum: ['pending', 'accepted', 'quality_checked', 'weighed', 'completed', 'cancelled'], 
+    default: 'pending' 
+  },
+  qualityReports: [{
+    parameter: String,
+    value: String,
+    status: String,
+    date: { type: Date, default: Date.now }
+  }],
+  finalWeight: { type: Number },
+  finalTotal: { type: Number },
+}, { timestamps: true });
+
 export const User = mongoose.model('User', UserSchema);
 export const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 export const Pond = mongoose.model('Pond', PondSchema);
@@ -124,13 +147,14 @@ export const WaterLog = mongoose.model('WaterLog', WaterLogSchema);
 export const SOPLog = mongoose.model('SOPLog', SOPLogSchema);
 export const Expense = mongoose.model('Expense', ExpenseSchema);
 export const RefreshToken = mongoose.model('RefreshToken', RefreshTokenSchema);
+export const HarvestRequest = mongoose.model('HarvestRequest', HarvestRequestSchema);
 
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://syamkdoram_db_user:xVMRfYAFMYYZvLzT@ac-k6ux81i-shard-00-00.mongodb.net:27017,ac-k6ux81i-shard-00-01.mongodb.net:27017,ac-k6ux81i-shard-00-02.mongodb.net:27017/aquagrow?ssl=true&replicaSet=atlas-k6ux81i-shard-0&authSource=admin&retryWrites=true&w=majority';
   
   try {
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 2000 });
     console.log('MongoDB Connected Successfully (Production Mode)');
   } catch (error) {
     console.error('CRITICAL DATABASE ERROR: Online connection failed.');

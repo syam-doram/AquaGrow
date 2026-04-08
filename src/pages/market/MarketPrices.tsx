@@ -67,7 +67,7 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
               </div>
               <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-4">Updated: Today, 09:30 AM</p>
             </div>
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md">
+            <div className="w-12 h-12 bg-card/10 rounded-2xl flex items-center justify-center backdrop-blur-md">
                <Activity size={24} className="text-emerald-400" />
             </div>
           </div>
@@ -78,14 +78,14 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
 
         {/* Area & Species Selector */}
         <div className="flex flex-col gap-4 mb-8">
-          <div className="flex bg-white/50 backdrop-blur-md p-1.5 rounded-3xl border border-[#C78200]/10 shadow-sm overflow-x-auto scrollbar-hide">
+          <div className="flex bg-card/50 backdrop-blur-md p-1.5 rounded-3xl border border-[#C78200]/10 shadow-sm overflow-x-auto scrollbar-hide">
             {areas.map(a => (
               <button 
                 key={a.id}
                 onClick={() => setSelectedArea(a.id)}
                 className={cn(
                   "px-6 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                  selectedArea === a.id ? "bg-[#C78200] text-white shadow-lg" : "text-[#4A2C2A]/40"
+                  selectedArea === a.id ? "bg-[#C78200] text-white shadow-lg" : "text-ink/40"
                 )}
               >
                 {a.name}
@@ -99,7 +99,7 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
                  onClick={() => setActiveTab(s.id)}
                  className={cn(
                    "px-5 py-2.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap border",
-                   activeTab === s.id ? "bg-[#4A2C2A] text-white border-[#4A2C2A]" : "bg-white text-[#4A2C2A]/30 border-black/5"
+                   activeTab === s.id ? "bg-[#4A2C2A] text-white border-[#4A2C2A]" : "bg-card text-ink/30 border-card-border"
                  )}
                >
                  {s.name}
@@ -109,7 +109,7 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
         </div>
 
          {/* Price Table Section */}
-        <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-black/5">
+        <div className="bg-card rounded-[2rem] overflow-hidden shadow-sm border border-card-border">
            <div className="bg-[#0D523C] p-4 flex text-white text-[9px] font-black uppercase tracking-widest text-left">
              <div className="flex-[0.8] pl-2">{t.count}</div>
              <div className="flex-1 text-center">Price (₹/KG)</div>
@@ -127,11 +127,11 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
                  <div 
                    key={i} 
                    onClick={() => setSelectedCount(price)}
-                   className={cn("p-6 flex items-center group transition-colors cursor-pointer", i % 2 === 1 ? "bg-[#F8F9FE]" : "bg-white")}
+                   className={cn("p-6 flex items-center group transition-colors cursor-pointer", i % 2 === 1 ? "bg-[#F8F9FE]" : "bg-card")}
                  >
                    <div className="flex-[0.8] text-left pl-2">
-                     <p className="font-black text-base text-[#4A2C2A] tracking-tight">{price.shrimpSize} {t.count}</p>
-                     <p className="text-[8px] text-[#4A2C2A]/30 uppercase font-black tracking-widest mt-0.5">{price.demand === 'HIGH' ? t.premium : t.standard}</p>
+                     <p className="font-black text-base text-ink tracking-tight">{price.shrimpSize} {t.count}</p>
+                     <p className="text-[8px] text-ink/30 uppercase font-black tracking-widest mt-0.5">{price.demand === 'HIGH' ? t.premium : t.standard}</p>
                    </div>
                    <div className="flex-1 text-center font-black text-lg text-[#0D523C] tracking-tighter">
                      ₹{price.price}.00
@@ -144,12 +144,12 @@ export const MarketPrices = ({ t, onMenuClick }: { t: Translations, onMenuClick:
                            <><TrendingUp size={12} className="text-red-500 rotate-180" /> <span className="text-red-500">{t.priceDown}</span></>
                          )}
                       </div>
-                      <p className="text-[7px] text-[#4A2C2A]/40 font-black uppercase tracking-widest mt-1 text-right max-w-[80px] leading-tight opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-[7px] text-ink/40 font-black uppercase tracking-widest mt-1 text-right max-w-[80px] leading-tight opacity-0 group-hover:opacity-100 transition-opacity">
                          {reason}
                       </p>
                    </div>
                    <div className="w-6 flex justify-end">
-                     <ChevronRight size={16} className="text-[#4A2C2A]/10 group-hover:text-[#C78200] group-hover:translate-x-1 transition-all" />
+                     <ChevronRight size={16} className="text-ink/10 group-hover:text-[#C78200] group-hover:translate-x-1 transition-all" />
                    </div>
                  </div>
                );
@@ -188,7 +188,7 @@ const CountDetailView = ({ price, t, onBack }: { price: any, t: Translations, on
             </div>
             <h2 className="text-5xl font-black tracking-tighter tracking-tight mb-2">₹{price.price}<span className="text-xl opacity-50 ml-1">/kg</span></h2>
             <div className="flex items-center gap-4 mt-6">
-              <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest">
+              <div className="px-4 py-2 bg-card/10 rounded-xl backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest">
                 {price.location}
               </div>
               <div className="text-emerald-300 text-[10px] font-black uppercase tracking-widest">
@@ -200,12 +200,12 @@ const CountDetailView = ({ price, t, onBack }: { price: any, t: Translations, on
         </div>
 
         {/* 7-Day Trend Section */}
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-black/5">
+        <div className="bg-card rounded-[2.5rem] p-8 shadow-sm border border-card-border">
           <div className="mb-10">
-            <h3 className="text-[#4A2C2A] font-black text-lg tracking-tight">7-Day Price Trend</h3>
-            <p className="text-[#4A2C2A]/40 text-[9px] font-bold uppercase tracking-widest mt-0.5">{t.priceHistory} (Market Avg)</p>
+            <h3 className="text-ink font-black text-lg tracking-tight">7-Day Price Trend</h3>
+            <p className="text-ink/40 text-[9px] font-bold uppercase tracking-widest mt-0.5">{t.priceHistory} (Market Avg)</p>
           </div>
-          <div className="relative h-48 flex items-end justify-between gap-3 pt-4 border-b border-black/5 pb-8">
+          <div className="relative h-48 flex items-end justify-between gap-3 pt-4 border-b border-card-border pb-8">
              {trendData.map((d, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-4 group h-full justify-end">
                    <div className="relative w-full h-full flex items-end">
@@ -226,7 +226,7 @@ const CountDetailView = ({ price, t, onBack }: { price: any, t: Translations, on
                    </div>
                    <span className={cn(
                       "text-[8px] font-black tracking-widest uppercase",
-                      i === trendData.length - 1 ? "text-emerald-500" : "text-[#4A2C2A]/20"
+                      i === trendData.length - 1 ? "text-emerald-500" : "text-ink/20"
                    )}>{d.day}</span>
                 </div>
              ))}
@@ -235,14 +235,14 @@ const CountDetailView = ({ price, t, onBack }: { price: any, t: Translations, on
 
         {/* Analytics Card */}
         <div className="grid grid-cols-2 gap-6">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-black/5">
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#4A2C2A]/30 mb-2">{t.profitMargin}</p>
-            <p className="text-2xl font-black text-[#4A2C2A] tracking-tighter tracking-tight tracking-tight">₹145<span className="text-xs text-emerald-500 ml-2">HIGH</span></p>
+          <div className="bg-card p-8 rounded-[2.5rem] shadow-sm border border-card-border">
+            <p className="text-[9px] font-black uppercase tracking-widest text-ink/30 mb-2">{t.profitMargin}</p>
+            <p className="text-2xl font-black text-ink tracking-tighter tracking-tight tracking-tight">₹145<span className="text-xs text-emerald-500 ml-2">HIGH</span></p>
           </div>
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-black/5 text-[#C78200]">
+          <div className="bg-card p-8 rounded-[2.5rem] shadow-sm border border-card-border text-[#C78200]">
             <Zap size={20} className="mb-2" />
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#4A2C2A]/30">{t.recommendationStatus}</p>
-            <p className="text-2xl font-black text-[#4A2C2A] tracking-tighter tracking-tight tracking-tight mt-1">{t.harvestLabel}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-ink/30">{t.recommendationStatus}</p>
+            <p className="text-2xl font-black text-ink tracking-tighter tracking-tight tracking-tight mt-1">{t.harvestLabel}</p>
           </div>
         </div>
 
@@ -253,7 +253,7 @@ const CountDetailView = ({ price, t, onBack }: { price: any, t: Translations, on
               <Activity size={20} />
               <h3 className="text-xs font-black uppercase tracking-widest">{t.harvestAdvice}</h3>
             </div>
-            <p className="text-sm leading-relaxed font-bold text-[#4A2C2A]/70">
+            <p className="text-sm leading-relaxed font-bold text-ink/70">
               The current market velocity for {price.shrimpSize} {t.count} indicates a supply shortage in the next 48 hours. Secure your export contract now for maximum premium.
             </p>
           </div>

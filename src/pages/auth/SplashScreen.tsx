@@ -110,7 +110,7 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
              transition={{ duration: 3, repeat: Infinity }}
            />
            <motion.div
-             className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl sm:rounded-[4rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] bg-white/5 backdrop-blur-3xl"
+             className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl sm:rounded-[4rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] bg-card/5 backdrop-blur-3xl"
              initial={{ rotateX: 45, rotateY: -10 }}
              animate={{ rotateX: 0, rotateY: 0 }}
              transition={{ duration: 2, ease: 'easeOut' }}
@@ -159,7 +159,7 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <div className="relative h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="relative h-[2px] w-full bg-card/5 rounded-full overflow-hidden">
                <motion.div 
                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-600 to-emerald-400"
                  style={{ width: `${progress}%` }}

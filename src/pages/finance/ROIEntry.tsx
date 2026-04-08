@@ -75,7 +75,7 @@ const Field = ({
     <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-1">{label}</label>
     <div className="relative">
       {Icon && (
-        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#4A2C2A]/20">
+        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-ink/20">
           <Icon size={18} />
         </div>
       )}
@@ -85,12 +85,12 @@ const Field = ({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          'w-full bg-white border border-black/5 rounded-[1.6rem] py-5 pr-5 text-sm font-black text-[#4A2C2A] placeholder:text-slate-200 outline-none focus:border-[#C78200]/40 transition-all shadow-sm',
+          'w-full bg-card border border-card-border rounded-[1.6rem] py-5 pr-5 text-sm font-black text-ink placeholder:text-slate-200 outline-none focus:border-[#C78200]/40 transition-all shadow-sm',
           Icon ? 'pl-12' : 'pl-5'
         )}
       />
       {unit && (
-        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">
+        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-ink/30 uppercase tracking-widest">
           {unit}
         </span>
       )}
@@ -100,17 +100,17 @@ const Field = ({
 
 // ─── METRIC TILE (for summary) ────────────────────────────────────────────────
 const MetricTile = ({
-  label, value, sub, color = 'text-[#4A2C2A]', bg = 'bg-white', icon: Icon,
+  label, value, sub, color = 'text-ink', bg = 'bg-card', icon: Icon,
 }: any) => (
-  <div className={cn('rounded-[1.8rem] p-5 border border-black/5 shadow-sm', bg)}>
+  <div className={cn('rounded-[1.8rem] p-5 border border-card-border shadow-sm', bg)}>
     {Icon && (
       <div className={cn('w-8 h-8 rounded-xl bg-black/5 flex items-center justify-center mb-3', color)}>
         <Icon size={16} />
       </div>
     )}
-    <p className="text-[8px] font-black uppercase tracking-widest text-[#4A2C2A]/30 mb-1">{label}</p>
+    <p className="text-[8px] font-black uppercase tracking-widest text-ink/30 mb-1">{label}</p>
     <p className={cn('font-black text-xl tracking-tighter', color)}>{value}</p>
-    {sub && <p className="text-[8px] font-bold text-[#4A2C2A]/30 mt-0.5">{sub}</p>}
+    {sub && <p className="text-[8px] font-bold text-ink/30 mt-0.5">{sub}</p>}
   </div>
 );
 
@@ -120,8 +120,8 @@ const SpendBar = ({ label, amount, total, color }: { label: string; amount: numb
   return (
     <div>
       <div className="flex justify-between items-baseline mb-1">
-        <p className="text-[10px] font-black text-[#4A2C2A]/60 uppercase tracking-widest">{label}</p>
-        <p className="text-[11px] font-black text-[#4A2C2A]">₹{amount.toLocaleString()}</p>
+        <p className="text-[10px] font-black text-ink/60 uppercase tracking-widest">{label}</p>
+        <p className="text-[11px] font-black text-ink">₹{amount.toLocaleString()}</p>
       </div>
       <div className="h-2 bg-black/5 rounded-full overflow-hidden">
         <motion.div
@@ -211,17 +211,17 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
               initial={{ scale: 0.4, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', damping: 10 }}
-              className="w-28 h-28 bg-white rounded-[2.5rem] flex items-center justify-center text-emerald-500 shadow-2xl mb-8"
+              className="w-28 h-28 bg-card rounded-[2.5rem] flex items-center justify-center text-emerald-500 shadow-2xl mb-8"
             >
               <CheckCircle2 size={60} />
             </motion.div>
             <h3 className="text-3xl font-black tracking-tighter mb-2">{t.roiProfileSaved}</h3>
             <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{t.redirectingDashboard}</p>
             <div className="mt-8 flex items-center gap-3">
-              <div className="px-5 py-2.5 bg-white/10 rounded-2xl border border-white/10">
+              <div className="px-5 py-2.5 bg-card/10 rounded-2xl border border-white/10">
                 <p className="font-black text-sm">ROI: <span className={roi >= 0 ? 'text-emerald-300' : 'text-red-300'}>{roi.toFixed(1)}%</span></p>
               </div>
-              <div className="px-5 py-2.5 bg-white/10 rounded-2xl border border-white/10">
+              <div className="px-5 py-2.5 bg-card/10 rounded-2xl border border-white/10">
                 <p className="font-black text-sm">Net: <span className="text-emerald-300">₹{netProfit.toLocaleString()}</span></p>
               </div>
             </div>
@@ -238,7 +238,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
       />
 
       {/* STEP PROGRESS PILLS */}
-      <div className="fixed top-[72px] left-0 right-0 max-w-md mx-auto z-40 bg-white/95 backdrop-blur-md px-5 py-3 flex gap-2 border-b border-black/5">
+      <div className="fixed top-[72px] left-0 right-0 max-w-md mx-auto z-40 bg-card/95 backdrop-blur-md px-5 py-3 flex gap-2 border-b border-card-border">
         {STEPS.map((s) => (
           <div
             key={s.id}
@@ -269,8 +269,8 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
               )}>
                 {React.createElement(STEPS[step - 1].icon, { size: 24, className: 'text-white' })}
               </div>
-              <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A]">{STEPS[step - 1].title}</h2>
-              <p className="text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest mt-1">{STEPS[step - 1].subtitle}</p>
+              <h2 className="text-2xl font-black tracking-tighter text-ink">{STEPS[step - 1].title}</h2>
+              <p className="text-ink/40 text-[10px] font-black uppercase tracking-widest mt-1">{STEPS[step - 1].subtitle}</p>
             </div>
 
             {/* ── STEP 1: Harvest Details ── */}
@@ -288,11 +288,11 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                           'flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all',
                           form.pondId === p.id
                             ? 'bg-[#C78200] text-white border-[#C78200] shadow-lg'
-                            : 'bg-white text-[#4A2C2A]/40 border-black/5'
+                            : 'bg-card text-ink/40 border-card-border'
                         )}
                       >{p.name}</button>
                     )) : (
-                      <p className="text-[10px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">No ponds available</p>
+                      <p className="text-[10px] font-black text-ink/30 uppercase tracking-widest">No ponds available</p>
                     )}
                   </div>
                 </div>
@@ -351,12 +351,12 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                 <div className="space-y-2">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C78200] px-1">{t.additionalNotes}</label>
                   <div className="relative">
-                    <FileText size={18} className="absolute left-5 top-5 text-[#4A2C2A]/20" />
+                    <FileText size={18} className="absolute left-5 top-5 text-ink/20" />
                     <textarea
                       value={form.notes}
                       onChange={e => set('notes')(e.target.value)}
                       placeholder="Market conditions, deductions, remarks…"
-                      className="w-full bg-white border border-black/5 rounded-[1.6rem] py-5 pl-12 pr-5 text-sm font-black text-[#4A2C2A] placeholder:text-slate-200 outline-none focus:border-[#C78200]/40 transition-all shadow-sm h-28 resize-none"
+                      className="w-full bg-card border border-card-border rounded-[1.6rem] py-5 pl-12 pr-5 text-sm font-black text-ink placeholder:text-slate-200 outline-none focus:border-[#C78200]/40 transition-all shadow-sm h-28 resize-none"
                     />
                   </div>
                 </div>
@@ -393,7 +393,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                   roi >= 0  ? 'bg-gradient-to-br from-[#C78200] to-[#8a5900]' :
                               'bg-gradient-to-br from-red-700 to-red-900'
                 )}>
-                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 blur-[60px] rounded-full" />
+                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-card/10 blur-[60px] rounded-full" />
                   <div className="relative z-10">
                     <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40 mb-1">{t.postHarvestROI} Profile</p>
                     <p className="text-white/60 text-xs font-black mb-4">
@@ -403,7 +403,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                       <p className="text-6xl font-black tracking-tighter">{roi.toFixed(1)}<span className="text-2xl text-white/40 ml-1">%</span></p>
                       <span className={cn('text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border',
                         roi >= 40 ? 'bg-emerald-400/20 border-emerald-400/30 text-emerald-200' :
-                        roi >= 0  ? 'bg-white/20 border-white/20 text-white' :
+                        roi >= 0  ? 'bg-card/20 border-white/20 text-white' :
                                     'bg-red-400/20 border-red-400/30 text-red-200'
                       )}>
                         {roi >= 40 ? `🏆 ${t.excellent}` : roi >= 20 ? `✅ ${t.good}` : roi >= 0 ? `⚠️ ${t.breakEven}` : `🔴 ${t.lossCycle}`}
@@ -442,7 +442,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                 </div>
 
                 {/* Per-kg economics */}
-                <div className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm">
+                <div className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm">
                   <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest mb-4">Per-kg Economics</p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
@@ -451,16 +451,16 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                       { label: 'Profit/kg',  value: `₹${profitPerKg.toFixed(0)}`,  sub: 'margin',           color: profitPerKg >= 0 ? 'text-emerald-600' : 'text-red-500' },
                     ].map((m, i) => (
                       <div key={i} className="text-center">
-                        <p className="text-[7px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{m.label}</p>
+                        <p className="text-[7px] font-black text-ink/30 uppercase tracking-widest">{m.label}</p>
                         <p className={cn('font-black text-lg tracking-tighter mt-1', m.color)}>{m.value}</p>
-                        <p className="text-[7px] font-black text-[#4A2C2A]/20 uppercase tracking-widest mt-0.5">{m.sub}</p>
+                        <p className="text-[7px] font-black text-ink/20 uppercase tracking-widest mt-0.5">{m.sub}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Investment breakdown bars */}
-                <div className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm space-y-4">
+                <div className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm space-y-4">
                   <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">Investment Breakdown</p>
                   {[
                     { label: t.seedCount,       amount: n(form.seedCost),           color: 'bg-blue-400' },
@@ -479,15 +479,15 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
                 {/* Survival & Quality */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm">
-                    <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mb-2">{t.survival}</p>
+                  <div className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm">
+                    <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest mb-2">{t.survival}</p>
                     <p className="text-3xl font-black text-emerald-500 tracking-tighter">{form.survivalRate}%</p>
                     <div className="mt-3 h-1.5 bg-black/5 rounded-full overflow-hidden">
                       <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${form.survivalRate}%` }} />
                     </div>
                   </div>
-                  <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm">
-                    <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mb-2">Grade A</p>
+                  <div className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm">
+                    <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest mb-2">Grade A</p>
                     <p className="text-3xl font-black text-[#C78200] tracking-tighter">{form.gradeA}%</p>
                     <div className="mt-3 h-1.5 bg-black/5 rounded-full overflow-hidden">
                       <div className="h-full bg-[#C78200] rounded-full" style={{ width: `${form.gradeA}%` }} />
@@ -497,15 +497,15 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
                 {/* Buyer & notes */}
                 {(form.buyerName || form.notes) && (
-                  <div className="bg-[#F8F9FE] rounded-[2rem] p-5 border border-black/5">
+                  <div className="bg-[#F8F9FE] rounded-[2rem] p-5 border border-card-border">
                     {form.buyerName && (
                       <div className="flex items-center gap-3 mb-3">
                         <Building2 size={16} className="text-[#C78200]" />
-                        <p className="font-black text-sm text-[#4A2C2A]">{form.buyerName}</p>
+                        <p className="font-black text-sm text-ink">{form.buyerName}</p>
                       </div>
                     )}
                     {form.notes && (
-                      <p className="text-[10px] text-[#4A2C2A]/50 font-medium leading-relaxed italic">"{form.notes}"</p>
+                      <p className="text-[10px] text-ink/50 font-medium leading-relaxed italic">"{form.notes}"</p>
                     )}
                   </div>
                 )}
@@ -528,7 +528,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
             {step > 1 && (
               <button
                 onClick={() => setStep(s => s - 1)}
-                className="flex-1 py-5 bg-white border border-black/5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest text-[#4A2C2A]/40 active:scale-95 transition-all"
+                className="flex-1 py-5 bg-card border border-card-border rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest text-ink/40 active:scale-95 transition-all"
               >
                 {t.back}
               </button>

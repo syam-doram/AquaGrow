@@ -127,7 +127,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
 
   if (!pond) {
     return (
-      <div className="p-10 text-center text-[#4A2C2A] font-black uppercase tracking-widest bg-white min-h-screen flex items-center justify-center">
+      <div className="p-10 text-center text-ink font-black uppercase tracking-widest bg-card min-h-screen flex items-center justify-center">
         Pond not found
       </div>
     );
@@ -227,19 +227,19 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-w-md mx-auto bg-white rounded-t-[3rem] p-6 pb-12 max-h-[85vh] overflow-y-auto"
+              className="w-full max-w-md mx-auto bg-card rounded-t-[3rem] p-6 pb-12 max-h-[85vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h2 className="text-[#4A2C2A] font-black text-xl tracking-tight">{showExtension.label}</h2>
+                  <h2 className="text-ink font-black text-xl tracking-tight">{showExtension.label}</h2>
                   <p className="text-[9px] text-[#C78200] font-black uppercase tracking-widest mt-0.5">
                     Culture continues to DOC {showExtension.maxDoc}
                   </p>
                 </div>
                 <button onClick={() => setShowExtension(null)} className="w-10 h-10 bg-[#F8F9FE] rounded-2xl flex items-center justify-center">
-                  <X size={18} className="text-[#4A2C2A]/40" />
+                  <X size={18} className="text-ink/40" />
                 </button>
               </div>
 
@@ -249,17 +249,17 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                 {showExtension.sopSteps.map((step, i) => (
                   <div key={i} className="flex items-start gap-3 bg-emerald-50 rounded-2xl px-4 py-3 border border-emerald-100">
                     <span className="text-emerald-500 font-black text-xs flex-shrink-0 mt-0.5">{i + 1}.</span>
-                    <p className="text-[#4A2C2A] text-[11px] font-bold leading-snug">{step}</p>
+                    <p className="text-ink text-[11px] font-bold leading-snug">{step}</p>
                   </div>
                 ))}
 
                 {/* Medicines */}
                 <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest mt-4">Extension Medicines</p>
                 {showExtension.medicines.map((med, i) => (
-                  <div key={i} className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-                    <p className="text-[#4A2C2A] font-black text-xs tracking-tight">{med.name}</p>
+                  <div key={i} className="bg-card rounded-2xl p-4 border border-card-border shadow-sm">
+                    <p className="text-ink font-black text-xs tracking-tight">{med.name}</p>
                     <p className="text-[9px] text-[#C78200] font-black mt-0.5">{med.brand}</p>
-                    <p className="text-[9px] text-[#4A2C2A]/40 font-medium mt-1">{med.schedule}</p>
+                    <p className="text-[9px] text-ink/40 font-medium mt-1">{med.schedule}</p>
                   </div>
                 ))}
 
@@ -324,7 +324,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                 )}
               </div>
               <div className="text-right">
-                <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center mb-1.5 ml-auto">
+                <div className="w-12 h-12 bg-card/15 rounded-xl flex items-center justify-center mb-1.5 ml-auto">
                   <Activity size={24} className="text-white" />
                 </div>
                 <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">
@@ -335,7 +335,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
 
             {/* Score bar */}
             {latestRecord && (
-              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mt-1">
+              <div className="w-full h-1.5 rounded-full bg-card/10 overflow-hidden mt-1">
                 <motion.div
                   initial={{ width: 0 }} animate={{ width: `${healthScore}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -344,7 +344,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
               </div>
             )}
           </div>
-          <div className="absolute -right-12 -top-12 w-40 h-40 bg-white/5 rounded-full" />
+          <div className="absolute -right-12 -top-12 w-40 h-40 bg-card/5 rounded-full" />
           <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/10 rounded-full" />
         </div>
 
@@ -360,7 +360,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                 <Clock size={20} />
               </div>
               <div className="text-left">
-                <p className="font-black text-sm text-[#4A2C2A] tracking-tight">Log Today's Conditions</p>
+                <p className="font-black text-sm text-ink tracking-tight">Log Today's Conditions</p>
                 <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest">Not logged yet today</p>
               </div>
             </div>
@@ -378,7 +378,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                 'py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border',
                 activeTab === tab
                   ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
-                  : 'bg-white text-[#4A2C2A]/40 border-black/5'
+                  : 'bg-card text-ink/40 border-card-border'
               )}
             >
               {tab === 'health' ? '📊 Health' : tab === 'history' ? '📅 History' : '🌾 Harvest'}
@@ -393,10 +393,10 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
             <motion.div key="health" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
 
               {!latestRecord ? (
-                <div className="bg-white rounded-[2rem] p-10 border border-dashed border-[#4A2C2A]/10 text-center">
-                  <Droplets size={36} className="text-[#4A2C2A]/20 mx-auto mb-3" />
-                  <p className="font-black text-sm text-[#4A2C2A]/40 tracking-tight">No condition data yet</p>
-                  <p className="text-[9px] text-[#4A2C2A]/25 font-medium mt-1">Tap the + button to log today's water parameters</p>
+                <div className="bg-card rounded-[2rem] p-10 border border-dashed border-[#4A2C2A]/10 text-center">
+                  <Droplets size={36} className="text-ink/20 mx-auto mb-3" />
+                  <p className="font-black text-sm text-ink/40 tracking-tight">No condition data yet</p>
+                  <p className="text-[9px] text-ink/25 font-medium mt-1">Tap the + button to log today's water parameters</p>
                   <button
                     onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
                     className="mt-5 bg-[#0D523C] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest"
@@ -407,8 +407,8 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                   {/* Parameter Grid */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
-                      <h2 className="text-[#4A2C2A] font-black text-sm tracking-tight uppercase opacity-60">Live Metrics</h2>
-                      <span className="text-[7px] font-black text-[#4A2C2A]/30 bg-white px-2.5 py-1 rounded-lg border border-black/5 uppercase tracking-widest">
+                      <h2 className="text-ink font-black text-sm tracking-tight uppercase opacity-60">Live Metrics</h2>
+                      <span className="text-[7px] font-black text-ink/30 bg-card px-2.5 py-1 rounded-lg border border-card-border uppercase tracking-widest">
                         {latestRecord.date}
                       </span>
                     </div>
@@ -431,16 +431,16 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                                <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center', sc.icon)}>
                                  <cfg.icon size={12} />
                                </div>
-                               <p className="text-[7px] font-black text-[#4A2C2A]/40 uppercase tracking-widest leading-none">{cfg.label}</p>
+                               <p className="text-[7px] font-black text-ink/40 uppercase tracking-widest leading-none">{cfg.label}</p>
                              </div>
                              <div className="flex items-baseline gap-1">
                                <p className={cn('font-black text-xl tracking-tighter', sc.text)}>{val}</p>
-                               <p className="text-[7px] font-black text-[#4A2C2A]/30">{cfg.unit}</p>
+                               <p className="text-[7px] font-black text-ink/30">{cfg.unit}</p>
                                {trend && (
                                  <span className="ml-auto">
                                    {trend === 'up' ? <TrendingUp size={10} className="text-blue-400" /> :
                                     trend === 'down' ? <TrendingDown size={10} className="text-red-400" /> :
-                                    <Minus size={10} className="text-[#4A2C2A]/20" />}
+                                    <Minus size={10} className="text-ink/20" />}
                                  </span>
                                )}
                              </div>
@@ -448,7 +448,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                                <span className={cn('text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded-full', sc.badge)}>
                                  {st}
                                </span>
-                               <span className="text-[6px] text-[#4A2C2A]/20 font-black">{cfg.min}–{cfg.max}{cfg.unit}</span>
+                               <span className="text-[6px] text-ink/20 font-black">{cfg.min}–{cfg.max}{cfg.unit}</span>
                              </div>
                            </motion.div>
                          );
@@ -467,7 +467,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                         'rounded-xl px-3.5 py-2.5 border',
                         action.severity === 'high' ? 'bg-red-900/40 border-red-500/10' :
                         action.severity === 'medium' ? 'bg-amber-900/30 border-amber-500/10' :
-                        'bg-white/5 border-white/5'
+                        'bg-card/5 border-white/5'
                       )}>
                         <p className="text-white font-bold text-[9px] leading-relaxed">{action.text}</p>
                       </div>
@@ -482,7 +482,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
           {activeTab === 'history' && (
             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <h2 className="text-[#4A2C2A] font-black text-base tracking-tight">Condition History</h2>
+                <h2 className="text-ink font-black text-base tracking-tight">Condition History</h2>
                 <button
                   onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
                   className="bg-[#0D523C] text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
@@ -492,9 +492,9 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
               </div>
 
               {pondRecords.length === 0 ? (
-                <div className="bg-white rounded-[2rem] p-10 border border-dashed border-[#4A2C2A]/10 text-center">
-                  <Calendar size={36} className="text-[#4A2C2A]/20 mx-auto mb-3" />
-                  <p className="text-[#4A2C2A]/40 font-black text-sm tracking-tight">No history yet</p>
+                <div className="bg-card rounded-[2rem] p-10 border border-dashed border-[#4A2C2A]/10 text-center">
+                  <Calendar size={36} className="text-ink/20 mx-auto mb-3" />
+                  <p className="text-ink/40 font-black text-sm tracking-tight">No history yet</p>
                 </div>
               ) : pondRecords.slice(0, 10).map((rec, i) => {
                 let score = 0, count = 0;
@@ -514,14 +514,14 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm"
+                    className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="font-black text-sm text-[#4A2C2A] tracking-tight">
+                        <p className="font-black text-sm text-ink tracking-tight">
                           {isToday ? 'Today' : new Date(rec.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </p>
-                        <p className="text-[8px] text-[#4A2C2A]/30 font-black uppercase tracking-widest">DOC {calculateDOC(pond.stockingDate)}</p>
+                        <p className="text-[8px] text-ink/30 font-black uppercase tracking-widest">DOC {calculateDOC(pond.stockingDate)}</p>
                       </div>
                       <div className={cn(
                         'px-3 py-1.5 rounded-xl text-[9px] font-black',
@@ -541,7 +541,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                             'rounded-xl px-2 py-1.5 text-center',
                             st === 'optimal' ? 'bg-emerald-50' : st === 'warning' ? 'bg-amber-50' : 'bg-red-50'
                           )}>
-                            <p className="text-[7px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{cfg.label}</p>
+                            <p className="text-[7px] font-black text-ink/30 uppercase tracking-widest">{cfg.label}</p>
                             <p className={cn('font-black text-xs', statusColor[st].text)}>{v}</p>
                           </div>
                         );
@@ -593,7 +593,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                   )}
 
                   {/* Progress bar */}
-                  <div className="w-full h-1.5 rounded-full bg-white/10 mt-3 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-card/10 mt-3 overflow-hidden">
                     <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${Math.min(100, (doc / 90) * 100)}%` }} />
                   </div>
                   <div className="flex justify-between mt-1 opacity-20">
@@ -608,10 +608,10 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                 <div className="flex items-center gap-3 px-1">
                   <PackageCheck size={18} className="text-[#C78200]" />
                   <div>
-                    <h2 className="text-[#4A2C2A] font-black text-base tracking-tight">
+                    <h2 className="text-ink font-black text-base tracking-tight">
                       {harvestReady ? 'Can\'t Harvest Yet? Extension Plans' : 'Pre-Harvest Extension Options'}
                     </h2>
-                    <p className="text-[9px] text-[#4A2C2A]/40 font-black uppercase tracking-widest">
+                    <p className="text-[9px] text-ink/40 font-black uppercase tracking-widest">
                       If you need to delay harvest — tap to view full SOP
                     </p>
                   </div>
@@ -625,7 +625,7 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                     transition={{ delay: i * 0.06 }}
                     onClick={() => setShowExtension(plan)}
                     className={cn(
-                      'w-full bg-white rounded-[2rem] p-5 border shadow-sm text-left transition-all active:scale-[0.98]',
+                      'w-full bg-card rounded-[2rem] p-5 border shadow-sm text-left transition-all active:scale-[0.98]',
                       i === 2 ? 'border-red-100 hover:border-red-200' :
                       i === 1 ? 'border-amber-100 hover:border-amber-200' : 'border-emerald-100 hover:border-emerald-200'
                     )}
@@ -640,8 +640,8 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                           <Calendar size={20} />
                         </div>
                         <div>
-                          <p className="font-black text-sm text-[#4A2C2A] tracking-tight">{plan.label}</p>
-                          <p className="text-[9px] text-[#4A2C2A]/40 font-black uppercase tracking-widest">
+                          <p className="font-black text-sm text-ink tracking-tight">{plan.label}</p>
+                          <p className="text-[9px] text-ink/40 font-black uppercase tracking-widest">
                             Up to DOC {plan.maxDoc} • {plan.sopSteps.length} SOP steps
                           </p>
                         </div>
@@ -654,12 +654,12 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                         )}>
                           {i === 2 ? 'HIGH RISK' : i === 1 ? 'MEDIUM' : 'SAFE'}
                         </span>
-                        <ArrowRight size={16} className="text-[#4A2C2A]/20" />
+                        <ArrowRight size={16} className="text-ink/20" />
                       </div>
                     </div>
 
                     {/* Risk preview */}
-                    <div className="mt-3 text-[9px] text-[#4A2C2A]/40 font-medium">
+                    <div className="mt-3 text-[9px] text-ink/40 font-medium">
                       {plan.risks[0]}
                     </div>
                   </motion.button>
@@ -672,11 +672,11 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                       <AlertTriangle size={18} />
                     </div>
                     <div>
-                      <p className="font-black text-sm text-[#4A2C2A] tracking-tight">Emergency Harvest Protocol</p>
+                      <p className="font-black text-sm text-ink tracking-tight">Emergency Harvest Protocol</p>
                       <p className="text-[9px] text-red-500 font-black uppercase tracking-widest">Immediate action</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-[#4A2C2A]/60 font-medium leading-relaxed">
+                  <p className="text-[10px] text-ink/60 font-medium leading-relaxed">
                     If disease, DO crash, or mass mortality begins: harvest immediately even if weight target not met. Partial harvest retains remaining shrimp. Contact your nearest buyer — emergency pricing is recoverable.
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -794,7 +794,7 @@ const CountHarvestAlert = ({
             </p>
           </div>
         ) : (
-          <div className="bg-white/5 rounded-xl px-3 py-2.5 mb-3.5 border border-white/10">
+          <div className="bg-card/5 rounded-xl px-3 py-2.5 mb-3.5 border border-white/10">
             <p className="text-[9px] font-bold text-white/50 leading-snug">
               Currently at <span className="text-white font-black">{currentStage.label}</span>. 
               Premium window approaches at DOC 90+.
@@ -816,11 +816,11 @@ const CountHarvestAlert = ({
                   isCurrent
                     ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]'
                     : isPast
-                    ? 'bg-white/20 border-white/30'
-                    : 'bg-white/5 border-white/10'
+                    ? 'bg-card/20 border-white/30'
+                    : 'bg-card/5 border-white/10'
                 }`}>
                   {isPast && !isCurrent && <CheckCircle2 size={10} className="text-white" />}
-                  {isCurrent && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                  {isCurrent && <div className="w-2 h-2 bg-card rounded-full animate-pulse" />}
                 </div>
                 <p className="text-[6px] font-black text-white/40 uppercase whitespace-nowrap leading-none mt-1">D{stage.doc}</p>
                 <p className={`text-[7px] font-black whitespace-nowrap mt-0.5 ${
@@ -884,7 +884,7 @@ const LiveMarketTicker = ({
 
   return (
     <div className="bg-[#02130F] rounded-[1.8rem] overflow-hidden border border-white/5 shadow-2xl">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/5">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-card/5">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">Live Market Rates</p>
@@ -907,10 +907,10 @@ const LiveMarketTicker = ({
                   isCurrentCount
                     ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_10px_rgba(52,211,153,0.15)]'
                     : rate.trend === 'up'
-                    ? 'bg-white/5 border-white/10'
+                    ? 'bg-card/5 border-white/10'
                     : rate.trend === 'down'
                     ? 'bg-red-900/10 border-red-500/10'
-                    : 'bg-white/10 border-white/5'
+                    : 'bg-card/10 border-white/5'
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">

@@ -42,9 +42,9 @@ export const WeatherFeedAlert = ({ t }: { t: Translations, onMenuClick: () => vo
       </div>
 
       <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-[100] px-5 py-6">
-        <div className="absolute inset-0 bg-white/70 backdrop-blur-xl border-b border-cyan-900/[0.03]" />
+        <div className="absolute inset-0 bg-card/70 backdrop-blur-xl border-b border-cyan-900/[0.03]" />
         <div className="relative flex items-center justify-between w-full">
-            <button onClick={() => navigate(-1)} className="p-2.5 bg-white border border-cyan-100 rounded-xl text-cyan-950 shadow-sm active:scale-95 transition-all">
+            <button onClick={() => navigate(-1)} className="p-2.5 bg-card border border-cyan-100 rounded-xl text-cyan-950 shadow-sm active:scale-95 transition-all">
               <ChevronLeft size={16} />
             </button>
             <div className="flex items-center gap-2">
@@ -63,7 +63,7 @@ export const WeatherFeedAlert = ({ t }: { t: Translations, onMenuClick: () => vo
       <div className="pt-24 px-5 space-y-5 relative z-10">
         
         {/* ── SOLAR TRACKER ── */}
-        <div className="bg-white rounded-[2rem] p-6 border border-black/[0.02] shadow-sm relative overflow-hidden">
+        <div className="bg-card rounded-[2rem] p-6 border border-black/[0.02] shadow-sm relative overflow-hidden">
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h3 className="text-lg font-serif italic font-bold text-cyan-950 tracking-tight leading-none flex items-center gap-2">Solar Lifecycle</h3>
@@ -103,7 +103,7 @@ export const WeatherFeedAlert = ({ t }: { t: Translations, onMenuClick: () => vo
               <div className="bg-red-500 rounded-[2.5rem] p-7 border border-red-400 shadow-xl relative overflow-hidden group">
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-5">
-                      <div className="px-3 py-1 bg-white/10 rounded-full border border-white/10 flex items-center gap-2">
+                      <div className="px-3 py-1 bg-card/10 rounded-full border border-white/10 flex items-center gap-2">
                         <AlertTriangle size={12} className="text-white animate-pulse" />
                         <span className="text-[8px] font-black text-white uppercase tracking-widest">Environmental Risk Detected</span>
                       </div>
@@ -111,14 +111,14 @@ export const WeatherFeedAlert = ({ t }: { t: Translations, onMenuClick: () => vo
                     <h2 className="text-2xl font-serif italic font-bold text-white tracking-tight leading-none uppercase">ADAPT FEED INTENSITY</h2>
                     <p className="text-[10px] text-white/80 leading-relaxed font-medium mt-4">Metabolic transit slowing due to rain. Prevent organic load peaks by skipping slot 4.</p>
                     <button onClick={() => navigate('/feed')} className="mt-8 flex items-center gap-3 text-[10px] font-black text-white uppercase tracking-widest">
-                      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center transition-all group-hover:bg-white/20"><TrendingUp size={14} /></div>
+                      <div className="w-8 h-8 bg-card/10 rounded-full flex items-center justify-center transition-all group-hover:bg-card/20"><TrendingUp size={14} /></div>
                       Execute Adapt Strategy
                     </button>
                   </div>
                   <AlertTriangle size={100} className="absolute -bottom-10 -right-10 text-white opacity-5 -rotate-12" />
               </div>
             ) : (
-              <div className="bg-white rounded-[2.5rem] p-7 border border-black/[0.02] shadow-[0_15px_45px_rgba(2,131,124,0.05)] relative overflow-hidden group">
+              <div className="bg-card rounded-[2.5rem] p-7 border border-black/[0.02] shadow-[0_15px_45px_rgba(2,131,124,0.05)] relative overflow-hidden group">
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-6">
                       <div className="px-3 py-1 bg-[#02837C]/5 rounded-full border border-[#02837C]/10 flex items-center gap-2">
@@ -172,7 +172,7 @@ export const WeatherFeedAlert = ({ t }: { t: Translations, onMenuClick: () => vo
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.05 }}
                         key={item.day} 
-                        className="flex-shrink-0 w-28 bg-white rounded-[2.2rem] p-5 border border-black/[0.01] flex flex-col items-center flex-1 shadow-sm"
+                        className="flex-shrink-0 w-28 bg-card rounded-[2.2rem] p-5 border border-black/[0.01] flex flex-col items-center flex-1 shadow-sm"
                     >
                         <p className="text-[7px] font-black text-cyan-900/30 uppercase mb-2">{item.day}</p>
                         <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center mb-3 shadow-inner", item.bg)}><item.icon size={18} className={item.color} /></div>
@@ -190,7 +190,7 @@ export const WeatherFeedAlert = ({ t }: { t: Translations, onMenuClick: () => vo
       <AnimatePresence>
         {showPlan && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-cyan-950/20 backdrop-blur-sm flex items-end justify-center px-4 pb-10">
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-white rounded-[3rem] w-full max-w-md p-8 shadow-2xl relative overflow-hidden">
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-card rounded-[3rem] w-full max-w-md p-8 shadow-2xl relative overflow-hidden">
               <button onClick={() => setShowPlan(false)} className="absolute top-6 right-6 p-2 bg-[#F6F8F7] rounded-full text-cyan-950"><X size={18} /></button>
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 bg-[#02837C] rounded-2xl flex items-center justify-center text-white"><FileCheck size={24} /></div>
@@ -228,7 +228,7 @@ const PlanItem = ({ icon: Icon, label, val, note, color }: { icon: any, label: s
 };
 
 const MiniChip = ({ icon: Icon, label, value, note, color }: { icon: any, label: string, value: string, note: string, color: 'cyan' | 'emerald' }) => (
-    <div className="bg-white p-5 rounded-[2.2rem] border border-black/[0.01] shadow-sm flex flex-col items-center">
+    <div className="bg-card p-5 rounded-[2.2rem] border border-black/[0.01] shadow-sm flex flex-col items-center">
         <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center mb-3", color === 'cyan' ? 'bg-cyan-50 text-cyan-700' : 'bg-emerald-50 text-emerald-600')}><Icon size={16} /></div>
         <p className="text-[7px] font-black text-cyan-900/30 uppercase tracking-widest leading-none mb-1.5">{label}</p>
         <p className="text-base font-black text-cyan-950 tracking-tighter leading-none mb-1">{value}</p>

@@ -200,7 +200,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const scoreBg = healthScore >= 80
     ? 'bg-emerald-50 border-emerald-200' : healthScore >= 60 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!pond) return;
     const ph = parseFloat(form.ph) || 7.8;
     const doVal = parseFloat(form.do) || 5.0;
@@ -211,7 +211,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
     const turb = parseFloat(form.turbidity) || 30;
     const mort = parseFloat(form.mortality) || 0;
 
-    addWaterRecord({
+    await addWaterRecord({
       pondId: pond.id,
       date: activeDate,
       ph, do: doVal, temperature: temp,
@@ -235,7 +235,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
           >
             <motion.div
               initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 12 }}
-              className="w-28 h-28 bg-white rounded-[2.5rem] flex items-center justify-center text-[#0D523C] shadow-2xl mb-6"
+              className="w-28 h-28 bg-card rounded-[2.5rem] flex items-center justify-center text-[#0D523C] shadow-2xl mb-6"
             >
               <CheckCircle2 size={56} />
             </motion.div>
@@ -245,23 +245,34 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-black/5 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-3 text-[#4A2C2A] hover:bg-black/5 rounded-2xl transition-all">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-sm font-black text-[#4A2C2A] tracking-[0.1em] uppercase">Daily Conditions</h1>
-          <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">
-            {pond?.name} • DOC {adjustedDoc} • {new Date(activeDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-          </p>
+      {/* AquaGrow Premium Fixed Header (Grid Pattern) */}
+      <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-[200] bg-card/95 backdrop-blur-xl border-b border-card-border shadow-sm px-6 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-[0.8rem] flex items-center grid grid-cols-3 rounded-b-[2rem]">
+        <div className="flex justify-start">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="w-10 h-10 -ml-2 flex items-center justify-center rounded-xl text-ink/40 hover:text-ink active:scale-95 transition-all outline-none"
+          >
+            <ChevronLeft size={22} />
+          </button>
         </div>
-        <div className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center">
-          <Droplets size={20} className="text-blue-500" />
+        
+        <div className="flex flex-col items-center justify-center">
+            <h1 className="text-ink font-black text-sm tracking-tight whitespace-nowrap">{t.waterLog}</h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+               <span className="text-[7px] font-black text-ink/30 uppercase tracking-widest">{pond?.name}</span>
+               <div className="w-0.5 h-0.5 rounded-full bg-ink/10" />
+               <span className="text-[7px] font-black text-[#C78200] uppercase tracking-widest">DOC {adjustedDoc}</span>
+            </div>
+        </div>
+
+        <div className="flex justify-end">
+           <div className="w-10 h-10 -mr-2 bg-blue-500/5 rounded-xl flex items-center justify-center">
+             <Droplets size={18} className="text-blue-500" />
+           </div>
         </div>
       </header>
 
-      <div className="pt-28 px-5 space-y-5">
+      <div className="pt-32 px-5 pb-10 space-y-5">
         {/* Health score preview */}
         {hasAnyValue && (
           <motion.div
@@ -270,14 +281,14 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
           >
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[9px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">Pond Health Score</p>
+                <p className="text-[9px] font-black text-ink/40 uppercase tracking-widest">Pond Health Score</p>
                 <p className={cn('font-black text-4xl tracking-tighter', scoreColor)}>{healthScore}<span className="text-xl">/100</span></p>
               </div>
               <div className="text-right">
                 <p className={cn('font-black text-sm', scoreColor)}>
                   {healthScore >= 80 ? '✅ Healthy' : healthScore >= 60 ? '⚠️ Monitor' : '🔴 Action needed'}
                 </p>
-                <p className="text-[8px] text-[#4A2C2A]/30 font-black uppercase tracking-widest mt-0.5">Live preview</p>
+                <p className="text-[8px] text-ink/30 font-black uppercase tracking-widest mt-0.5">Live preview</p>
               </div>
             </div>
             {/* Progress bar */}
@@ -292,7 +303,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
 
         {/* Parameter inputs */}
         <div className="space-y-3">
-          <h2 className="text-[#4A2C2A] font-black text-base tracking-tight px-1">Water Parameters</h2>
+          <h2 className="text-ink font-black text-base tracking-tight px-1">Water Parameters</h2>
           {PARAMS.map((param, i) => {
             const rawVal = parseFloat(form[param.key] as string);
             const hasVal = !isNaN(rawVal) && form[param.key] !== '';
@@ -306,10 +317,10 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
                 className={cn(
-                  'bg-white rounded-[2rem] border overflow-hidden shadow-sm transition-all',
+                  'bg-card rounded-[2rem] border overflow-hidden shadow-sm transition-all',
                   status === 'danger' ? 'border-red-200' :
                   status === 'warning' ? 'border-amber-200' :
-                  status === 'optimal' ? 'border-emerald-200' : 'border-black/5'
+                  status === 'optimal' ? 'border-emerald-200' : 'border-card-border'
                 )}
               >
                 <div className="px-5 py-4 flex items-center gap-4">
@@ -327,8 +338,8 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
                   {/* Label + Input */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-[#4A2C2A] font-black text-xs tracking-tight">{param.label}</p>
-                      {param.unit && <span className="text-[8px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{param.unit}</span>}
+                      <p className="text-ink font-black text-xs tracking-tight">{param.label}</p>
+                      {param.unit && <span className="text-[8px] font-black text-ink/25 uppercase tracking-widest">{param.unit}</span>}
                       {status === 'danger' && <span className="text-[7px] font-black bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full uppercase tracking-widest">DANGER</span>}
                       {status === 'warning' && <span className="text-[7px] font-black bg-amber-100 text-amber-500 px-1.5 py-0.5 rounded-full uppercase tracking-widest">CHECK</span>}
                       {status === 'optimal' && <span className="text-[7px] font-black bg-emerald-100 text-emerald-500 px-1.5 py-0.5 rounded-full uppercase tracking-widest">OK</span>}
@@ -339,9 +350,9 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
                       value={form[param.key] as string}
                       onChange={e => setForm(prev => ({ ...prev, [param.key]: e.target.value }))}
                       placeholder={param.placeholder}
-                      className="w-full text-[#4A2C2A] font-black text-sm bg-transparent outline-none placeholder:text-[#4A2C2A]/20"
+                      className="w-full text-ink font-black text-sm bg-transparent outline-none placeholder:text-ink/20"
                     />
-                    <p className="text-[8px] text-[#4A2C2A]/25 font-black mt-0.5 uppercase tracking-widest">
+                    <p className="text-[8px] text-ink/25 font-black mt-0.5 uppercase tracking-widest">
                       Optimal: {param.min}–{param.max} {param.unit}
                     </p>
                   </div>
@@ -349,7 +360,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
                   {/* Tip toggle */}
                   <button
                     onClick={() => setExpandedTip(isTipOpen ? null : param.key)}
-                    className="w-8 h-8 bg-[#F8F9FE] rounded-xl flex items-center justify-center text-[#4A2C2A]/30 hover:text-[#C78200] transition-colors flex-shrink-0"
+                    className="w-8 h-8 bg-[#F8F9FE] rounded-xl flex items-center justify-center text-ink/30 hover:text-[#C78200] transition-colors flex-shrink-0"
                   >
                     <span className="text-xs font-black">?</span>
                   </button>
@@ -394,7 +405,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
             'w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3',
             (hasAnyValue && pond) && !(isExistingRecord && !isModified)
               ? 'bg-[#0D523C] text-white shadow-2xl shadow-emerald-900/20 active:scale-95'
-              : 'bg-[#F0F0F0] text-[#4A2C2A]/20 cursor-not-allowed'
+              : 'bg-[#F0F0F0] text-ink/20 cursor-not-allowed'
           )}
         >
           {isExistingRecord ? (

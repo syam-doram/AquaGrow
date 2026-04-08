@@ -30,8 +30,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="w-20 h-20 bg-red-100 rounded-[2rem] flex items-center justify-center mb-8">
             <span className="text-4xl">⚠️</span>
           </div>
-          <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">Something went wrong.</h2>
-          <p className="text-[#4A2C2A]/60 text-sm leading-relaxed mb-10 max-w-[240px]">
+          <h2 className="text-3xl font-black tracking-tighter text-ink mb-4">Something went wrong.</h2>
+          <p className="text-ink/60 text-sm leading-relaxed mb-10 max-w-[240px]">
             We're sorry for the inconvenience. Please try refreshing the page.
           </p>
           <button

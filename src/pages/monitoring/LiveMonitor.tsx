@@ -118,18 +118,18 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
 
   if (!isPro) {
     return (
-      <div className="min-h-screen bg-[#FFFDF5]">
+      <div className="min-h-screen bg-paper">
       <Header title={t.liveMonitor} showBack onBack={() => navigate(-1)} />
         
         <div className="p-6">
-          <div className="mt-6 relative overflow-hidden rounded-[2.5rem] bg-[#0D3025] p-8 text-center shadow-2xl border border-white/5">
-             <div className="absolute inset-0 bg-gradient-to-br from-[#C78200]/10 to-transparent" />
+          <div className="mt-6 relative overflow-hidden rounded-[2.5rem] bg-card p-8 text-center shadow-2xl border border-primary/10">
+             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
              <div className="relative z-10 flex flex-col items-center">
-                <div className="w-16 h-16 bg-emerald-500/5 rounded-2xl flex items-center justify-center mb-6 border border-emerald-500/10 shadow-inner">
-                   <TrendingUp size={28} className="text-[#C78200] animate-pulse" />
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/10 shadow-inner">
+                   <TrendingUp size={28} className="text-primary animate-pulse" />
                 </div>
-                <h3 className="text-2xl font-black text-white tracking-tighter mb-3 uppercase">Smart <span className="text-[#C78200]">Visibility</span></h3>
-                <p className="text-white/40 text-[9px] font-bold uppercase tracking-[0.2em] mb-10 leading-relaxed px-4">“Like X-ray vision for your pond — powered by AI insights.” Real-time behavior intelligence to track feeding response and stress.</p>
+                <h3 className="text-2xl font-black text-ink tracking-tighter mb-3 uppercase">Smart <span className="text-primary">Visibility</span></h3>
+                <p className="text-ink/40 text-[9px] font-bold uppercase tracking-[0.2em] mb-10 leading-relaxed px-4">“Like X-ray vision for your pond — powered by AI insights.” Real-time behavior intelligence to track feeding response and stress.</p>
                 
                 <button 
                   onClick={() => navigate('/subscription')}
@@ -147,10 +147,10 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
                { icon: Waves, label: 'Feeding Response', desc: 'Decision support' },
                { icon: Lock, label: 'Risk Indication', desc: 'Early warning' }
              ].map((f, i) => (
-                <div key={i} className="bg-white p-6 rounded-[2rem] border border-black/5 shadow-sm">
+                <div key={i} className="bg-card p-6 rounded-[2rem] border border-card-border shadow-sm">
                    <f.icon size={18} className="text-[#C78200] mb-3" />
-                   <p className="text-[#4A2C2A] text-[10px] font-black uppercase tracking-tight mb-1">{f.label}</p>
-                   <p className="text-[#4A2C2A]/40 text-[8px] font-bold uppercase tracking-widest">{f.desc}</p>
+                   <p className="text-ink text-[10px] font-black uppercase tracking-tight mb-1">{f.label}</p>
+                   <p className="text-ink/40 text-[8px] font-bold uppercase tracking-widest">{f.desc}</p>
                 </div>
              ))}
           </div>
@@ -178,8 +178,8 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
           <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-8 w-24 h-24 border-b-2 border-l-2 border-[#C78200]/40 rounded-bl-[2rem]" />
           <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-8 w-24 h-24 border-b-2 border-r-2 border-[#C78200]/40 rounded-br-[2rem]" />
           
-          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/5 shadow-[0_0_10px_white/20]" />
-          <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/5 shadow-[0_0_10px_white/20]" />
+          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-card/5 shadow-[0_0_10px_white/20]" />
+          <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-card/5 shadow-[0_0_10px_white/20]" />
 
           {isAnalyzing && (
             <motion.div 
@@ -242,7 +242,7 @@ export const LiveMonitor = ({ user, t }: { user: User, t: Translations }) => {
         <div className="absolute top-[calc(env(safe-area-inset-top)+1.5rem)] left-8 right-8 flex justify-between items-start">
           <button 
             onClick={() => navigate(-1)}
-            className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white"
+            className="w-12 h-12 bg-card/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white"
           >
             <ChevronLeft size={24} />
           </button>

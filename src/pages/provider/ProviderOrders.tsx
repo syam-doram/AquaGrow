@@ -17,7 +17,7 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations, onMenuClic
           {['all', 'pending', 'shipped', 'delivered'].map(status => (
             <button key={status} className={cn(
               "px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-              status === 'all' ? "bg-[#C78200] text-white shadow-lg shadow-[#C78200]/20" : "bg-white border border-black/5 text-[#4A2C2A]/40 hover:text-[#C78200]"
+              status === 'all' ? "bg-[#C78200] text-white shadow-lg shadow-[#C78200]/20" : "bg-card border border-card-border text-ink/40 hover:text-[#C78200]"
             )}>
               {status === 'all' ? 'All' : t[status as keyof Translations] || status}
             </button>
@@ -26,11 +26,11 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations, onMenuClic
         
         <div className="space-y-6">
           {mockOrders.map(order => (
-            <div key={order.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-black/5 group hover:border-[#C78200]/30 transition-all">
+            <div key={order.id} className="bg-card p-6 rounded-[2rem] shadow-sm border border-card-border group hover:border-[#C78200]/30 transition-all">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-[10px] font-black text-[#4A2C2A]/20 uppercase tracking-widest mb-1">{order.id}</p>
-                  <p className="font-black text-lg text-[#4A2C2A] tracking-tighter">{order.farmer}</p>
+                  <p className="text-[10px] font-black text-ink/20 uppercase tracking-widest mb-1">{order.id}</p>
+                  <p className="font-black text-lg text-ink tracking-tighter">{order.farmer}</p>
                 </div>
                 <span className={cn(
                   "text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl",
@@ -39,9 +39,9 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations, onMenuClic
                   {order.status === 'pending' ? t.pending : t.shipped}
                 </span>
               </div>
-              <p className="text-[#4A2C2A]/60 text-sm font-medium mb-4">{order.items}</p>
-              <div className="flex justify-between items-center pt-4 border-t border-black/5">
-                <p className="font-black text-xl text-[#4A2C2A] tracking-tighter">₹{order.total}</p>
+              <p className="text-ink/60 text-sm font-medium mb-4">{order.items}</p>
+              <div className="flex justify-between items-center pt-4 border-t border-card-border">
+                <p className="font-black text-xl text-ink tracking-tighter">₹{order.total}</p>
                 <button className="bg-[#4A2C2A] text-white text-[10px] font-black px-6 py-3 rounded-xl uppercase tracking-widest shadow-xl shadow-[#4A2C2A]/10 active:scale-95 transition-all">
                   {t.viewDetails}
                 </button>

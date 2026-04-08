@@ -21,15 +21,15 @@ import { calculateDOC } from '../../utils/pondUtils';
 
 // ─── METRIC CARD ──────────────────────────────────────────────────────────────
 const MetricCard = ({ label, value, sub, icon: Icon, color, bg, t }: any) => (
-  <div className={cn('rounded-[2rem] p-5 border border-black/5 shadow-sm', bg || 'bg-white')}>
+  <div className={cn('rounded-[2rem] p-5 border border-card-border shadow-sm', bg || 'bg-card')}>
     {Icon && (
       <div className={cn('w-9 h-9 rounded-2xl bg-black/5 flex items-center justify-center mb-3', color)}>
         <Icon size={18} />
       </div>
     )}
-    <p className="text-[8px] font-black uppercase tracking-widest text-[#4A2C2A]/30 mb-1">{label}</p>
-    <p className={cn('font-black text-xl tracking-tighter', color || 'text-[#4A2C2A]')}>{value}</p>
-    {sub && <p className="text-[8px] font-bold text-[#4A2C2A]/30 mt-0.5">{sub}</p>}
+    <p className="text-[8px] font-black uppercase tracking-widest text-ink/30 mb-1">{label}</p>
+    <p className={cn('font-black text-xl tracking-tighter', color || 'text-ink')}>{value}</p>
+    {sub && <p className="text-[8px] font-bold text-ink/30 mt-0.5">{sub}</p>}
   </div>
 );
 
@@ -41,12 +41,12 @@ const EntryCard = ({ entry, onTap, t }: { entry: any; onTap: () => void; t: Tran
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onTap}
-      className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm cursor-pointer active:scale-[0.98] transition-all hover:border-[#C78200]/20 group"
+      className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm cursor-pointer active:scale-[0.98] transition-all hover:border-[#C78200]/20 group"
     >
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest">{entry.harvestDate}</p>
-          <p className="font-black text-sm text-[#4A2C2A] tracking-tight mt-0.5">
+          <p className="font-black text-sm text-ink tracking-tight mt-0.5">
             {entry.buyerName || 'Harvest Cycle'} · {entry.countPerKg ? `${entry.countPerKg}/kg` : ''}
           </p>
         </div>
@@ -61,15 +61,15 @@ const EntryCard = ({ entry, onTap, t }: { entry: any; onTap: () => void; t: Tran
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{t.totalInvested}</p>
-          <p className="font-black text-sm text-[#4A2C2A] tracking-tight">₹{(entry.totalInvested / 100000).toFixed(1)}L</p>
+          <p className="text-[7px] font-black text-ink/25 uppercase tracking-widest">{t.totalInvested}</p>
+          <p className="font-black text-sm text-ink tracking-tight">₹{(entry.totalInvested / 100000).toFixed(1)}L</p>
         </div>
         <div>
-          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{t.revenue}</p>
+          <p className="text-[7px] font-black text-ink/25 uppercase tracking-widest">{t.revenue}</p>
           <p className="font-black text-sm text-emerald-600 tracking-tight">₹{(entry.totalRevenue / 100000).toFixed(1)}L</p>
         </div>
         <div>
-          <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">Net</p>
+          <p className="text-[7px] font-black text-ink/25 uppercase tracking-widest">Net</p>
           <p className={cn('font-black text-sm tracking-tight', entry.netProfit >= 0 ? 'text-emerald-600' : 'text-red-500')}>
             {entry.netProfit >= 0 ? '+' : ''}₹{(entry.netProfit / 100000).toFixed(1)}L
           </p>
@@ -107,7 +107,7 @@ const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => vo
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="w-full sm:max-w-[420px] mx-auto bg-[#F8F9FE] rounded-t-[3rem] p-6 pb-12 max-h-[92vh] overflow-y-auto"
+        className="w-full sm:max-w-[420px] mx-auto bg-card rounded-t-[3rem] p-6 pb-12 max-h-[92vh] overflow-y-auto border border-card-border"
         onClick={e => e.stopPropagation()}
       >
         <div className="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-6" />
@@ -118,7 +118,7 @@ const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => vo
           roi >= 0  ? 'bg-gradient-to-br from-[#C78200] to-[#8a5900]' :
                       'bg-gradient-to-br from-red-700 to-red-900'
         )}>
-          <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 blur-[50px] rounded-full" />
+          <div className="absolute -right-8 -top-8 w-32 h-32 bg-card/10 blur-[50px] rounded-full" />
           <div className="relative z-10">
             <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">{entry.harvestDate}</p>
             <p className="text-3xl font-black tracking-tighter">{roi.toFixed(1)}% ROI</p>
@@ -128,7 +128,7 @@ const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => vo
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm mb-4">
+        <div className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm mb-4">
           <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest mb-4">Per-kg Economics</p>
           <div className="grid grid-cols-3 gap-4">
             {[
@@ -137,20 +137,20 @@ const EntryDetailSheet = ({ entry, onClose, t }: { entry: any; onClose: () => vo
               { l: t.profitPerKg,  v: n(entry.pricePerKg) > 0 && entry.harvestWeightKg > 0 ? `₹${(entry.netProfit / n(entry.harvestWeightKg)).toFixed(0)}` : '—', c: entry.netProfit >= 0 ? 'text-emerald-600' : 'text-red-500' },
             ].map((m, i) => (
               <div key={i} className="text-center">
-                <p className="text-[7px] font-black text-[#4A2C2A]/25 uppercase tracking-widest">{m.l}</p>
+                <p className="text-[7px] font-black text-ink/25 uppercase tracking-widest">{m.l}</p>
                 <p className={cn('font-black text-base tracking-tighter mt-1', m.c)}>{m.v}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm mb-4 space-y-3">
+        <div className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm mb-4 space-y-3">
           <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{t.investmentBreakdown}</p>
           {categories.map((c, i) => (
             <div key={i}>
               <div className="flex justify-between items-baseline mb-1">
-                <p className="text-[9px] font-black text-[#4A2C2A]/50 uppercase tracking-widest">{c.label}</p>
-                <p className="text-[10px] font-black text-[#4A2C2A]">₹{c.value.toLocaleString()}</p>
+                <p className="text-[9px] font-black text-ink/50 uppercase tracking-widest">{c.label}</p>
+                <p className="text-[10px] font-black text-ink">₹{c.value.toLocaleString()}</p>
               </div>
               <div className="h-1.5 bg-black/5 rounded-full overflow-hidden">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${(c.value / totalInvested) * 100}%` }} transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.06 }} className={cn('h-full rounded-full', c.color)} />
@@ -251,7 +251,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
 
   if (!user || user.subscriptionStatus === 'free') {
     return (
-      <div className="min-h-screen bg-[#FFFDF5] relative overflow-hidden flex flex-col">
+      <div className="min-h-screen bg-transparent relative overflow-hidden flex flex-col">
         <Header title={t.roi} showBack={false} onMenuClick={onMenuClick} />
         <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
           <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
@@ -260,8 +260,8 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
           <div className="w-24 h-24 bg-[#C78200] rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-[#C78200]/20">
             <Calculator size={48} className="text-white" />
           </div>
-          <h2 className="text-3xl font-black tracking-tighter text-[#4A2C2A] mb-4">{t.proFeature}</h2>
-          <p className="text-[#4A2C2A]/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.profitCalculator} is only available for AquaGrow Pro subscribers.</p>
+          <h2 className="text-3xl font-black tracking-tighter text-ink mb-4">{t.proFeature}</h2>
+          <p className="text-ink/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.profitCalculator} is only available for AquaGrow Pro subscribers.</p>
           <button onClick={() => navigate('/subscription')} className="bg-[#C78200] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[#C78200]/20 active:scale-95 transition-all flex items-center gap-3">
             {t.upgradeToPro} <Sparkles size={18} className="text-white/40" />
           </button>
@@ -273,14 +273,14 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   // Check if any ponds exist (active or otherwise)
   if (ponds.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F8F9FE] flex flex-col">
+      <div className="min-h-screen bg-transparent flex flex-col">
         <Header title={t.roi} showBack={false} onMenuClick={onMenuClick} />
         <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
           <div className="w-20 h-20 bg-[#C78200]/10 rounded-[2rem] flex items-center justify-center mb-6">
             <Fish size={40} className="text-[#C78200]" />
           </div>
-          <h2 className="text-2xl font-black tracking-tighter text-[#4A2C2A] mb-3">No Ponds Found</h2>
-          <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-8 max-w-[260px]">You need at least one pond to calculate ROI and view financial analytics. Add your first pond to get started.</p>
+          <h2 className="text-2xl font-black tracking-tighter text-ink mb-3">No Ponds Found</h2>
+          <p className="text-ink/40 text-xs leading-relaxed mb-8 max-w-[260px]">You need at least one pond to calculate ROI and view financial analytics. Add your first pond to get started.</p>
           <button 
             onClick={() => navigate('/dashboard')} 
             className="bg-[#C78200] text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
@@ -320,15 +320,15 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
       </AnimatePresence>
 
       {/* Filter Tabs & PDF Export Strip */}
-      <div className="fixed top-[calc(env(safe-area-inset-top)+4.5rem)] left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-40 bg-white/95 backdrop-blur-md px-4 py-3 border-b border-black/5 flex items-center justify-between">
-         <div className="flex bg-slate-100 p-1 rounded-xl">
+      <div className="fixed top-[calc(env(safe-area-inset-top)+4.5rem)] left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-40 bg-card/95 backdrop-blur-md px-4 py-3 border-b border-card-border flex items-center justify-between">
+         <div className="flex bg-ink/5 p-1 rounded-xl">
             {['overall', 'pond', 'year'].map(mode => (
                <button 
                 key={mode}
                 onClick={() => setViewMode(mode as any)}
                 className={cn(
                   "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
-                  viewMode === mode ? "bg-white text-[#C78200] shadow-sm" : "text-[#4A2C2A]/40"
+                  viewMode === mode ? "bg-card text-[#C78200] shadow-sm" : "text-ink/40"
                 )}
               >
                 {mode}
@@ -359,11 +359,11 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                                 totalCycles === 0 ? 'bg-[#C78200]' : 'bg-gradient-to-br from-red-700 to-red-900'
                )}
              >
-               <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/10 blur-[80px] rounded-full" />
+               <div className="absolute -right-16 -top-16 w-64 h-64 bg-card/10 blur-[80px] rounded-full" />
                <div className="relative z-10">
                  <div className="flex justify-between items-start mb-4">
                    <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.2em]">{t.projectedEfficiency}</p>
-                   <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 text-[8px] font-black uppercase tracking-widest">
+                   <div className="bg-card/10 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 text-[8px] font-black uppercase tracking-widest">
                      {totalCycles > 0 ? `${totalCycles} Cycles` : t.premiumModel}
                    </div>
                  </div>
@@ -403,7 +403,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
              {/* ── LIVE CYCLE MONITORING (Real-time data from Daily Logs) ── */}
              <div className="space-y-4 pt-4 mb-2">
                 <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A]">{t.liveCycleStats || 'Live Cycle Economics'}</h3>
+                  <h3 className="text-xl font-black tracking-tighter text-ink">{t.liveCycleStats || 'Live Cycle Economics'}</h3>
                   <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
                      <Activity size={12} className="text-emerald-600 animate-pulse" />
                      <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Live Logs</span>
@@ -430,44 +430,44 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                         key={pond.id}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-[2.5rem] p-6 border border-black/5 shadow-sm relative overflow-hidden group mb-4"
+                        className="bg-card rounded-[2.5rem] p-6 border border-card-border shadow-sm relative overflow-hidden group mb-4"
                       >
                          <div className="flex justify-between items-start mb-5 relative z-10">
                             <div>
-                               <h4 className="font-black text-lg text-[#4A2C2A] tracking-tight">{pond.name}</h4>
+                               <h4 className="font-black text-lg text-ink tracking-tight">{pond.name}</h4>
                                <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest">{t.doc} {calculateDOC(pond.stockingDate)} · {t.liveCycle || 'Live Cycle'}</p>
                             </div>
                             <div className="text-right">
-                               <p className="text-[8px] font-black text-[#4A2C2A]/20 uppercase tracking-widest mb-1">Total Burn</p>
-                               <p className="text-xl font-black text-[#4A2C2A]">₹{totalLiveInvested.toLocaleString()}</p>
+                               <p className="text-[8px] font-black text-ink/20 uppercase tracking-widest mb-1">Total Burn</p>
+                               <p className="text-xl font-black text-ink">₹{totalLiveInvested.toLocaleString()}</p>
                             </div>
                          </div>
 
                          <div className="grid grid-cols-2 gap-4 relative z-10">
-                            <div className={cn("p-4 rounded-3xl border transition-all", feedCostTotal > 0 ? "bg-amber-500/5 border-amber-500/10" : "bg-slate-50 border-black/5 opacity-40")}>
+                            <div className={cn("p-4 rounded-3xl border transition-all", feedCostTotal > 0 ? "bg-amber-500/5 border-amber-500/10" : "bg-card/50 border-card-border opacity-40")}>
                                <div className="flex items-center gap-2 mb-2">
                                   <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center text-white">
                                      <Wheat size={12} />
                                   </div>
                                   <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Feed</span>
                                </div>
-                               <p className="text-lg font-black text-[#4A2C2A]">₹{feedCostTotal.toLocaleString()}</p>
-                               <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mt-1">{pondFeedLogs.length} Records</p>
+                               <p className="text-lg font-black text-ink">₹{feedCostTotal.toLocaleString()}</p>
+                               <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest mt-1">{pondFeedLogs.length} Records</p>
                             </div>
 
-                            <div className={cn("p-4 rounded-3xl border transition-all", medCostTotal > 0 ? "bg-blue-500/5 border-blue-500/10" : "bg-slate-50 border-black/5 opacity-40")}>
+                            <div className={cn("p-4 rounded-3xl border transition-all", medCostTotal > 0 ? "bg-blue-500/5 border-blue-500/10" : "bg-card/50 border-card-border opacity-40")}>
                                <div className="flex items-center gap-2 mb-2">
                                   <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center text-white">
                                      <Pill size={12} />
                                   </div>
                                   <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Medicine</span>
                                </div>
-                               <p className="text-lg font-black text-[#4A2C2A]">₹{medCostTotal.toLocaleString()}</p>
-                               <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mt-1">{pondMedLogs.length} Applications</p>
+                               <p className="text-lg font-black text-ink">₹{medCostTotal.toLocaleString()}</p>
+                               <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest mt-1">{pondMedLogs.length} Applications</p>
                             </div>
                          </div>
 
-                         <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between">
+                         <div className="mt-4 pt-4 border-t border-card-border flex items-center justify-between">
                             <div className="flex -space-x-2">
                                {['diesel', 'power', 'labor'].map(cat => {
                                  const catCost = pondExpenses.filter((e: any) => e.category === cat).reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
@@ -495,14 +495,14 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
              </div>
 
              {pondWiseStats.length > 0 && (
-               <div className="bg-white rounded-[2rem] p-6 border border-black/5 shadow-sm space-y-4">
+               <div className="bg-card rounded-[2rem] p-6 border border-card-border shadow-sm space-y-4">
                  <div className="flex items-center justify-between pl-1">
                    <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest flex items-center gap-1.5"><PieChart size={12}/> Profit Contributions</p>
                  </div>
                  {pondWiseStats.slice(0,3).map((p, i) => (
                    <div key={i}>
                      <div className="flex justify-between items-baseline mb-1">
-                       <p className="text-[10px] font-black text-[#4A2C2A]/60 tracking-widest">{p.name}</p>
+                       <p className="text-[10px] font-black text-ink/60 tracking-widest">{p.name}</p>
                        <p className="text-[11px] font-black text-emerald-600">₹{(p.profit/100000).toFixed(2)}L</p>
                      </div>
                      <div className="h-1.5 bg-black/5 rounded-full overflow-hidden">
@@ -520,13 +520,13 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
              {/* Chart: Bar & Line combined visual representation */}
              {chartData.length > 0 && (
                <div className="space-y-3">
-                 <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A] px-1">Recent Cycle Performance</h3>
-                 <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-black/5 h-[300px] flex flex-col justify-end pb-0">
+                 <h3 className="text-lg font-black tracking-tighter text-ink px-1">Recent Cycle Performance</h3>
+                 <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-card-border h-[300px] flex flex-col justify-end pb-0">
                    <div className="h-[220px] w-full">
                      <ResponsiveContainer width="100%" height="100%">
                        <BarChart data={chartData} barGap={1}>
-                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                         <XAxis dataKey="cycle" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#4A2C2A', opacity: 0.4 }} />
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-card-border)" opacity={0.1} />
+                         <XAxis dataKey="cycle" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: 'currentColor', opacity: 0.4 }} />
                          <YAxis hide />
                          <Tooltip cursor={{ fill: 'rgba(199,130,0,0.05)' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: 11, fontWeight: 900 }} formatter={(v: any, name: string) => [`₹${v}K`, name.charAt(0).toUpperCase() + name.slice(1)]} />
                          <Bar dataKey="invested" fill="#E5E7EB" radius={[4, 4, 0, 0]} maxBarSize={12} name="invested" />
@@ -535,11 +535,11 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                        </BarChart>
                      </ResponsiveContainer>
                    </div>
-                   <div className="flex justify-center gap-4 py-4 border-t border-black/5 mt-2">
+                   <div className="flex justify-center gap-4 py-4 border-t border-card-border mt-2">
                      {[['Invested', 'bg-gray-200'], ['Revenue', 'bg-[#C78200]'], ['Profit', 'bg-emerald-400']].map(([l, c]) => (
                        <div key={l} className="flex items-center gap-1.5">
                          <div className={cn('w-2 h-2 rounded-sm', c)} />
-                         <p className="text-[8px] font-black text-[#4A2C2A]/40 uppercase tracking-widest">{l}</p>
+                         <p className="text-[8px] font-black text-ink/40 uppercase tracking-widest">{l}</p>
                        </div>
                      ))}
                    </div>
@@ -552,19 +552,19 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
         {/* ── POND WISE VIEW ── */}
         {viewMode === 'pond' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
-            <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1">{t.pondPerformance}</h3>
+            <h3 className="text-xl font-black tracking-tighter text-ink px-1">{t.pondPerformance}</h3>
             {pondWiseStats.length === 0 ? (
-               <p className="text-center text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest py-10">No data available</p>
+               <p className="text-center text-ink/40 text-[10px] font-black uppercase tracking-widest py-10">No data available</p>
             ) : pondWiseStats.map((p, i) => (
-               <div key={i} className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b border-black/5">
+               <div key={i} className="bg-card p-5 rounded-[2rem] border border-card-border shadow-sm space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-card-border">
                      <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500">
                            <Target size={18} />
                         </div>
                         <div>
-                           <h4 className="text-sm font-black text-[#4A2C2A]">{p.name}</h4>
-                           <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{p.cycles} {t.cyclesLogged}</p>
+                           <h4 className="text-sm font-black text-ink">{p.name}</h4>
+                           <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest">{p.cycles} {t.cyclesLogged}</p>
                         </div>
                      </div>
                      <div className={cn("px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest", p.avgRoi >= 30 ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "bg-amber-50 border-amber-200 text-amber-600")}>
@@ -573,11 +573,11 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mb-1">Gross Revenue</p>
+                        <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest mb-1">Gross Revenue</p>
                         <p className="text-base font-black text-[#C78200]">₹{(p.revenue/100000).toFixed(1)}L</p>
                      </div>
                      <div>
-                        <p className="text-[8px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mb-1">Net Yield Profit</p>
+                        <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest mb-1">Net Yield Profit</p>
                         <p className="text-base font-black text-emerald-600">₹{(p.profit/100000).toFixed(1)}L</p>
                      </div>
                   </div>
@@ -589,16 +589,16 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
         {/* ── YEARLY VIEW ── */}
         {viewMode === 'year' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-            <h3 className="text-xl font-black tracking-tighter text-[#4A2C2A] px-1">{t.annualFiscalReport}</h3>
+            <h3 className="text-xl font-black tracking-tighter text-ink px-1">{t.annualFiscalReport}</h3>
             
             {yearWiseStats.length > 0 && (
-              <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-black/5 h-[320px] pb-4">
-                <p className="text-[9px] font-black text-[#4A2C2A]/30 uppercase tracking-widest mb-4">Invested vs Revenue (In Lakhs)</p>
+              <div className="bg-card p-6 rounded-[2.5rem] shadow-sm border border-card-border h-[320px] pb-4">
+                <p className="text-[9px] font-black text-ink/30 uppercase tracking-widest mb-4">Invested vs Revenue (In Lakhs)</p>
                 <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={yearWiseStats} barGap={4}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                      <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#4A2C2A' }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-card-border)" opacity={0.1} />
+                      <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor' }} />
                       <YAxis hide />
                       <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: 11, fontWeight: 900 }} formatter={(v: any, name: string) => [`₹${v}L`, name.charAt(0).toUpperCase() + name.slice(1)]} />
                       <Bar dataKey="displayInv" fill="#E5E7EB" radius={[6, 6, 0, 0]} maxBarSize={24} name="Invested" />
@@ -610,7 +610,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
             )}
 
             {yearWiseStats.length === 0 ? (
-               <p className="text-center text-[#4A2C2A]/40 text-[10px] font-black uppercase tracking-widest py-10">No data available</p>
+               <p className="text-center text-ink/40 text-[10px] font-black uppercase tracking-widest py-10">No data available</p>
             ) : yearWiseStats.map((y, i) => (
                <div key={i} className="bg-gradient-to-br from-[#051F19] to-[#0D523C] p-6 rounded-[2rem] border border-[#0D523C]/20 shadow-lg text-white">
                   <div className="flex justify-between items-center mb-6">
@@ -625,7 +625,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                          <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t.opexInvested}</p>
                          <p className="text-sm font-black">₹{(y.invested/100000).toFixed(1)}L</p>
                        </div>
-                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                       <div className="h-1.5 bg-card/10 rounded-full overflow-hidden">
                          <motion.div initial={{ width: 0 }} animate={{ width: `${(y.invested / Math.max(1, y.revenue)) * 100}%` }} className="h-full bg-amber-400 rounded-full" />
                        </div>
                      </div>
@@ -634,7 +634,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
                          <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t.totalReceipts}</p>
                          <p className="text-sm font-black text-emerald-400">₹{(y.revenue/100000).toFixed(1)}L</p>
                        </div>
-                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                       <div className="h-1.5 bg-card/10 rounded-full overflow-hidden">
                          <motion.div initial={{ width: '100%' }} className="h-full bg-emerald-400 rounded-full" />
                        </div>
                      </div>
@@ -646,9 +646,9 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
 
         {/* ── HISTORY LIST (Only visible in overall) ── */}
         {viewMode === 'overall' && entries.length > 0 && (
-          <div className="space-y-3 pt-4 border-t border-black/5">
+          <div className="space-y-3 pt-4 border-t border-card-border">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-lg font-black tracking-tighter text-[#4A2C2A]">{t.harvestHistory}</h3>
+              <h3 className="text-lg font-black tracking-tighter text-ink">{t.harvestHistory}</h3>
               <span className="text-[8px] font-black text-[#C78200] bg-[#C78200]/10 px-3 py-1.5 rounded-xl uppercase tracking-widest">{entries.length} {t.doc}</span>
             </div>
             {entries.map((e, i) => (
@@ -661,12 +661,12 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
 
         {/* Empty State */}
         {entries.length === 0 && (
-          <div className="bg-white rounded-[2.5rem] p-10 text-center border border-dashed border-[#C78200]/30 shadow-sm mt-8">
+          <div className="bg-card rounded-[2.5rem] p-10 text-center border border-dashed border-[#C78200]/30 shadow-sm mt-8">
             <div className="w-16 h-16 bg-[#C78200]/10 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
               <BarChart2 size={32} className="text-[#C78200]" />
             </div>
-            <h3 className="text-[#4A2C2A] font-black text-lg tracking-tighter mb-2">{t.noRoiProfiles}</h3>
-            <p className="text-[#4A2C2A]/40 text-xs leading-relaxed mb-6">{t.logEntry}</p>
+            <h3 className="text-ink font-black text-lg tracking-tighter mb-2">{t.noRoiProfiles}</h3>
+            <p className="text-ink/40 text-xs leading-relaxed mb-6">{t.logEntry}</p>
             <button onClick={() => navigate('/roi-entry')} className="bg-[#C78200] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all">
               {t.logFirstHarvest}
             </button>

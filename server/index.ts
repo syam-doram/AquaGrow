@@ -14,21 +14,11 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo } from './db.js';
+import { getMockData, saveMockData } from './mockDbWrapper.js';
 import { apiLimiter, authenticate, requireRole, requireSelf } from './middleware/auth.js';
 import { GoogleGenAI } from "@google/genai";
 import authRoutes from './routes/auth.js';
 
-// --- MOCK PERSISTENCE LOGIC ---
-const DB_FILE = path.join(process.cwd(), 'server', 'db.json');
-const getMockData = () => {
-    if (!fs.existsSync(DB_FILE)) {
-      const initial = { users: [], ponds: [], subscriptions: [], waterLogs: [], feedLogs: [], medicineLogs: [], sopLogs: [], expenses: [] };
-      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-};
-const saveMockData = (data: any) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
 const app = express();
 app.set('trust proxy', 1);
@@ -39,6 +29,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.use(cors({
   origin: [
+    'http://localhost:3000',
     'https://aquagrow.onrender.com',
     'https://aqua-grow.vercel.app'
   ],
@@ -58,6 +49,31 @@ app.get('/api/health', (_req, res) =>
 //  SUBSCRIPTION                  ║
 // ═══════════════════════════════╝
 
+// --- MOCK RESPONSE HELPERS ---
+const respondWithMock = (res: any, collection: string, userId: string) => {
+  const db = getMockData();
+  const data = (db[collection] || []).filter((item: any) => item.userId === userId);
+  return res.json(data);
+};
+
+const saveWithMock = (res: any, collection: string, data: any) => {
+  const db = getMockData();
+  if (!db[collection]) db[collection] = [];
+  const newItem = { ...data, _id: 'mock_' + Date.now(), id: 'mock_' + Date.now(), createdAt: new Date() };
+  db[collection].push(newItem);
+  saveMockData(db);
+  return res.json(newItem);
+};
+
+const patchWithMock = (res: any, userId: string, updates: any) => {
+  const db = getMockData();
+  const uIdx = db.users.findIndex((u: any) => (u._id || u.id) === userId);
+  if (uIdx === -1) return res.status(404).json({ error: 'User not found (Offline Mode)' });
+  db.users[uIdx] = { ...db.users[uIdx], ...updates };
+  saveMockData(db);
+  return res.json(db.users[uIdx]);
+};
+
 app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const { planName } = req.body;
@@ -68,6 +84,28 @@ app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedReq
         ? ['basic_dashboard', 'pond_management', 'advanced_analytics', 'agent_access', 'expert_consultation', 'market_trends']
         : ['basic_dashboard', 'pond_management'];
     const end = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+    // --- OFFLINE MOCK FALLBACK ---
+    if (mongoose.connection.readyState !== 1) {
+       const db = getMockData();
+       let subIdx = db.subscriptions.findIndex((s: any) => s.userId === userId);
+       const subData = { userId, planName, features, status: 'active', endDate: end };
+       
+       if (subIdx !== -1) {
+         db.subscriptions[subIdx] = { ...db.subscriptions[subIdx], ...subData };
+       } else {
+         db.subscriptions.push(subData);
+       }
+       
+       const uIdx = db.users.findIndex((u: any) => (u._id || u.id) === userId);
+       if (uIdx !== -1) {
+         db.users[uIdx].subscriptionStatus = planName === 'free' ? 'free' : 'pro';
+       }
+       
+       saveMockData(db);
+       return res.json(subData);
+    }
+
     const sub = await SubscriptionMongo.findOneAndUpdate({ userId }, { planName, features, status: 'active', endDate: end }, { upsert: true, new: true });
     await UserMongo.findByIdAndUpdate(userId, { subscriptionStatus: planName === 'free' ? 'free' : 'pro' });
     res.json(sub);
@@ -77,8 +115,27 @@ app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedReq
 app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req, res) => {
   try {
     const userId = req.params.userId;
-    let sub = await SubscriptionMongo.findOne({ userId });
+    
+    // --- OFFLINE MOCK FALLBACK ---
+    if (mongoose.connection.readyState !== 1) {
+       const db = getMockData();
+       let sub = db.subscriptions.find((s: any) => s.userId === userId);
+       if (!sub) {
+         sub = {
+           userId,
+           planName: 'free',
+           status: 'active',
+           features: ['basic_dashboard', 'pond_management'],
+           startDate: new Date(),
+           endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+         };
+         db.subscriptions.push(sub);
+         saveMockData(db);
+       }
+       return res.json(sub);
+    }
 
+    let sub = await SubscriptionMongo.findOne({ userId });
     // Auto-create or return default free plan if missing
     if (!sub) {
       const defaultSub = {
@@ -89,7 +146,6 @@ app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req,
         startDate: new Date(),
         endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
       };
-
       sub = await new SubscriptionMongo(defaultSub).save();
     }
     res.json(sub);
@@ -103,6 +159,7 @@ app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req,
 app.put('/api/user/:userId/notifications', authenticate, requireSelf, async (req, res) => {
   try {
     const { fcmToken, notifications } = req.body;
+    if (mongoose.connection.readyState !== 1) return patchWithMock(res, req.params.userId, { fcmToken, notifications });
     const user = await UserMongo.findByIdAndUpdate(req.params.userId, { fcmToken, notifications }, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
@@ -119,6 +176,7 @@ app.patch('/api/user/:userId', authenticate, requireSelf, async (req, res) => {
     delete updates.role;
     delete updates.phoneNumber; // Phone is fixed for now
 
+    if (mongoose.connection.readyState !== 1) return patchWithMock(res, userId, updates);
     const user = await UserMongo.findByIdAndUpdate(userId, updates, { new: true });
 
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -132,6 +190,7 @@ app.patch('/api/user/:userId', authenticate, requireSelf, async (req, res) => {
 
 app.get('/api/user/:userId/ponds', authenticate, requireSelf, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'ponds', req.params.userId);
     const ponds = await PondMongo.find({ userId: req.params.userId });
     res.json(ponds);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -140,6 +199,7 @@ app.get('/api/user/:userId/ponds', authenticate, requireSelf, async (req, res) =
 app.post('/api/ponds', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'ponds', data);
     res.json(await new PondMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -159,12 +219,37 @@ app.delete('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.put('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const pond = await PondMongo.findById(id);
+    if (!pond) return res.status(404).json({ error: 'Pond not found' });
+    if (String(pond.userId) !== req.user.id && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Access denied' });
+    
+    // OFFLINE MOCK FALLBACK
+    if (mongoose.connection.readyState !== 1) {
+       const db = getMockData();
+       const idx = db.ponds.findIndex((p: any) => (p._id || p.id) === id);
+       if (idx !== -1) {
+          db.ponds[idx] = { ...db.ponds[idx], ...req.body };
+          saveMockData(db);
+          return res.json(db.ponds[idx]);
+       }
+    }
+
+    const updated = await PondMongo.findByIdAndUpdate(id, req.body, { new: true });
+    res.json(updated);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // ═══════════════════════════════╗
 //  WATER LOGS                    ║
 // ═══════════════════════════════╝
 
 app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'waterLogs', req.params.userId);
     const logs = await WaterLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -173,7 +258,61 @@ app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, r
 app.post('/api/water-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'waterLogs', data);
     res.json(await new WaterLogMongo(data).save());
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+//  HARVEST REQUESTS (MARKET)     ║
+// ═══════════════════════════════╝
+
+app.get('/api/harvest-requests', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'harvestRequests', req.user.id);
+    
+    let query = {};
+    if (req.user.role === 'farmer') {
+      query = { userId: req.user.id };
+    } else if (req.user.role === 'provider') {
+      // For now, providers see all pending or their accepted ones
+      query = { $or: [{ status: 'pending' }, { providerId: req.user.id }] };
+    }
+    
+    const requests = await HarvestRequest.find(query).sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/harvest-requests', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id, status: 'pending' };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'harvestRequests', data);
+    res.json(await new HarvestRequest(data).save());
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/harvest-requests/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    if (req.user.role === 'provider' && !updates.providerId) {
+       updates.providerId = req.user.id;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+       const db = getMockData();
+       const idx = db.harvestRequests.findIndex((r: any) => (r._id || r.id) === id);
+       if (idx !== -1) {
+          db.harvestRequests[idx] = { ...db.harvestRequests[idx], ...updates };
+          saveMockData(db);
+          return res.json(db.harvestRequests[idx]);
+       }
+    }
+
+    const updated = await HarvestRequest.findByIdAndUpdate(id, updates, { new: true });
+    res.json(updated);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -183,6 +322,7 @@ app.post('/api/water-logs', authenticate, async (req: AuthenticatedRequest, res)
 
 app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'sopLogs', req.params.userId);
     const logs = await SOPLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -191,6 +331,7 @@ app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res
 app.post('/api/sop-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'sopLogs', data);
     res.json(await new SOPLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -201,6 +342,7 @@ app.post('/api/sop-logs', authenticate, async (req: AuthenticatedRequest, res) =
 
 app.get('/api/user/:userId/expenses', authenticate, requireSelf, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'expenses', req.params.userId);
     const expenses = await ExpenseMongo.find({ userId: req.params.userId });
     res.json(expenses);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -209,6 +351,7 @@ app.get('/api/user/:userId/expenses', authenticate, requireSelf, async (req, res
 app.post('/api/expenses', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'expenses', data);
     res.json(await new ExpenseMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -219,6 +362,7 @@ app.post('/api/expenses', authenticate, async (req: AuthenticatedRequest, res) =
 
 app.get('/api/user/:userId/feed-logs', authenticate, requireSelf, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'feedLogs', req.params.userId);
     const logs = await FeedLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -227,6 +371,7 @@ app.get('/api/user/:userId/feed-logs', authenticate, requireSelf, async (req, re
 app.post('/api/feed-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'feedLogs', data);
     res.json(await new FeedLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -237,6 +382,7 @@ app.post('/api/feed-logs', authenticate, async (req: AuthenticatedRequest, res) 
 
 app.get('/api/user/:userId/medicine-logs', authenticate, requireSelf, async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) return respondWithMock(res, 'medicineLogs', req.params.userId);
     const logs = await MedicineLogMongo.find({ userId: req.params.userId });
     res.json(logs);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -245,6 +391,7 @@ app.get('/api/user/:userId/medicine-logs', authenticate, requireSelf, async (req
 app.post('/api/medicine-logs', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return saveWithMock(res, 'medicineLogs', data);
     res.json(await new MedicineLogMongo(data).save());
   } catch (e) { res.status(400).json({ error: e.message }); }
 });

@@ -100,7 +100,7 @@ const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPh
 
 export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, feedLogs } = useData();
+  const { ponds, feedLogs, theme } = useData();
   const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'schedule' | 'fcr'>('schedule');
   const [now, setNow] = useState(new Date());
@@ -136,16 +136,16 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   return (
     <div className="pb-40 bg-transparent min-h-screen text-left relative overflow-hidden">
       {/* Background Orbs */}
-      <div className="absolute top-10 right-[-10%] w-[70%] h-[30%] bg-emerald-100/10 rounded-full blur-[100px] -z-10" />
-      <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-amber-50/10 rounded-full blur-[120px] -z-10" />
+      <div className={cn("absolute top-10 right-[-10%] w-[70%] h-[30%] bg-primary/10 rounded-full blur-[100px] -z-10", theme === 'midnight' && "bg-glow-primary/20")} />
+      <div className={cn("absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-accent/5 rounded-full blur-[120px] -z-10", theme === 'midnight' && "bg-glow-primary/10")} />
 
       <Header 
         title={t.feedManagement} 
         showBack={false} 
         onMenuClick={onMenuClick} 
         rightElement={selectedPond && (
-          <div className="bg-white/80 backdrop-blur-md border border-black/5 px-4 py-2 rounded-full shadow-sm">
-            <span className="text-[9px] font-black text-[#0D523C] uppercase tracking-widest">{t.doc} {currentDoc}</span>
+          <div className="bg-card/80 backdrop-blur-md border border-card-border px-4 py-2 rounded-full shadow-sm">
+            <span className="text-[9px] font-black text-primary uppercase tracking-widest">{t.doc} {currentDoc}</span>
           </div>
         )}
       />
@@ -159,7 +159,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 onClick={() => setSelectedPondId(p.id)}
                 className={cn(
                   'px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
-                  selectedPondId === p.id ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg' : 'bg-white/60 backdrop-blur-md text-[#4A2C2A]/40 border-black/5'
+                  selectedPondId === p.id ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg' : 'bg-card/60 backdrop-blur-md text-ink/40 border-card-border'
                 )}
               >{p.name}</button>
             ))}
@@ -167,14 +167,42 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
 
         {!selectedPond ? (
-           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-6 text-center border border-black/5 shadow-xl mt-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-             <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Waves size={32} className="text-emerald-600/30" />
+           <div className="bg-card backdrop-blur-md rounded-[2.2rem] p-6 text-center border border-card-border shadow-xl max-w-sm mx-auto mt-4">
+             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-primary border border-primary/10 shadow-inner">
+                <Waves size={24} className="text-primary/40" />
              </div>
-             <h2 className="text-base font-black text-[#4A2C2A] leading-tight mb-2 uppercase tracking-tight">{t.noActivePonds}</h2>
-             <p className="text-[10px] text-[#4A2C2A]/30 font-bold uppercase tracking-widest mb-6 px-10">{t.addFirstPondDesc}</p>
-             <button onClick={() => navigate('/ponds')} className="bg-[#0D523C] text-white px-8 py-3.5 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
+             <h2 className="text-xs font-black text-ink leading-tight mb-1 uppercase tracking-tight">{t.noActivePonds}</h2>
+             <p className="text-[8px] text-muted-ink font-bold uppercase tracking-widest mb-4 px-6 leading-relaxed">{t.addFirstPondDesc}</p>
+             <button onClick={() => navigate('/ponds')} className="w-full py-3.5 bg-gradient-to-br from-primary to-accent text-white rounded-xl font-black text-[8px] uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all">
                {t.addPond}
+             </button>
+           </div>
+        ) : selectedPond.status === 'planned' ? (
+           <div className="bg-card backdrop-blur-md rounded-[3rem] p-10 text-center border border-card-border shadow-2xl max-w-sm mx-auto mt-6 relative overflow-hidden">
+             <div className="absolute -top-10 -right-10 opacity-[0.03] rotate-12">
+                <Scale size={200} />
+             </div>
+             <div className="w-20 h-20 bg-indigo-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-indigo-500 border border-indigo-500/10 shadow-inner">
+                <Info size={36} />
+             </div>
+             <h2 className="text-xl font-black text-ink leading-tight mb-3 uppercase tracking-tighter">Preparation Phase</h2>
+             <p className="text-[10px] text-muted-ink font-bold uppercase tracking-widest mb-8 px-4 leading-relaxed">
+               Feed management and FCR tracking will activate automatically after you confirm stocking. Focus on pond preparation today.
+             </p>
+             
+             <div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100/50 text-left mb-8 flex items-start gap-4">
+                <Clock size={20} className="text-indigo-500 mt-1 flex-shrink-0" />
+                <div>
+                   <p className="text-[11px] font-black text-indigo-900 mb-1">Pre-Stocking Strategy</p>
+                   <p className="text-[9px] font-bold text-indigo-700/60 leading-relaxed uppercase">Plan your feed arrivals 3 days before release to ensure nursery-grade quality.</p>
+                </div>
+             </div>
+
+             <button 
+                onClick={() => navigate('/medicine')} 
+                className="w-full py-5 bg-[#0D523C] text-white rounded-[2rem] font-black text-[9px] uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/30 active:scale-[0.98] transition-all"
+             >
+               Go to Prep SOPs
              </button>
            </div>
         ) : (
@@ -186,32 +214,32 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 { icon: Wind, label: t.wind, value: `${weather.windSpeed}k/h`, color: 'text-slate-500' },
                 { icon: Waves, label: 'DO', value: weather.doLevel, color: weather.doLevel === 'LOW' ? 'text-red-500' : 'text-emerald-500' },
               ].map((item, i) => (
-                <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 text-center border border-black/5 shadow-sm">
+                <div key={i} className="bg-card/80 backdrop-blur-sm rounded-xl p-2.5 text-center border border-card-border shadow-sm">
                   <item.icon size={12} className={cn('mx-auto mb-1', item.color)} />
-                  <p className="text-[6px] font-black text-[#4A2C2A]/30 uppercase tracking-widest">{item.label}</p>
+                  <p className="text-[6px] font-black text-ink/30 uppercase tracking-widest">{item.label}</p>
                   <p className={cn('text-[8px] font-black mt-0.5', item.color)}>{item.value}</p>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-[2.2rem] p-5 shadow-xl border border-black/5 relative overflow-hidden">
+            <div className="bg-card/90 backdrop-blur-md rounded-[2.2rem] p-5 shadow-xl border border-card-border relative overflow-hidden">
               <div className="flex justify-between items-center mb-4 relative z-10">
                 <div>
                   <p className="text-[7px] font-black text-[#C78200] uppercase tracking-widest bg-[#C78200]/10 px-3 py-1 rounded-full w-max mb-1.5">{t.scheduleSync}</p>
-                  <p className="text-[#4A2C2A] font-black text-xl tracking-tighter">{t.nextFeed}</p>
+                  <p className="text-ink font-black text-xl tracking-tighter">{t.nextFeed}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  <div className="bg-[#F8F9FE] px-4 py-2 rounded-xl text-center border border-black/5 shadow-inner">
+                  <div className="bg-[#F8F9FE] px-4 py-2 rounded-xl text-center border border-card-border shadow-inner">
                     <p className="text-2xl font-black tracking-tighter text-[#0D523C] mb-0">{countdownH.toString().padStart(2, '0')}</p>
                     <p className="text-[7px] font-black text-black/30 uppercase tracking-widest leading-none">{t.hrs}</p>
                   </div>
-                  <div className="bg-[#F8F9FE] px-4 py-2 rounded-xl text-center border border-black/5 shadow-inner">
+                  <div className="bg-[#F8F9FE] px-4 py-2 rounded-xl text-center border border-card-border shadow-inner">
                     <p className="text-2xl font-black tracking-tighter text-[#0D523C] mb-0">{countdownM.toString().padStart(2, '0')}</p>
                     <p className="text-[7px] font-black text-black/30 uppercase tracking-widest leading-none">{t.min}</p>
                   </div>
                 </div>
               </div>
-              <p className="text-center font-black text-sm text-[#4A2C2A]">{nextFeedSlot.label} ({nextFeedSlot.time}) — <span className="text-[#C78200]">{kgPerSlot} kg {t.dose}</span></p>
+              <p className="text-center font-black text-sm text-ink">{nextFeedSlot.label} ({nextFeedSlot.time}) — <span className="text-[#C78200]">{kgPerSlot} kg {t.dose}</span></p>
             </div>
 
             {adjustments.length > 0 && (
@@ -227,7 +255,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 </div>
                 <div className="space-y-1.5">
                    {adjustments.map((a, i) => (
-                     <div key={i} className="flex justify-between items-center bg-white/40 p-2.5 rounded-xl border border-red-200/10">
+                     <div key={i} className="flex justify-between items-center bg-card/40 p-2.5 rounded-xl border border-red-200/10">
                         <span className="text-[8px] font-black text-red-800 uppercase tracking-widest">{a.label}</span>
                         <span className="text-[7px] font-black bg-red-500 text-white px-2 py-0.5 rounded-full">{a.severity}</span>
                      </div>
@@ -236,14 +264,14 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               </motion.div>
             )}
 
-            <div className="flex bg-white/60 backdrop-blur-md p-1.5 rounded-3xl border border-black/5 shadow-inner">
+            <div className="flex bg-card/60 backdrop-blur-md p-1.5 rounded-3xl border border-card-border shadow-inner">
                {(['schedule', 'fcr'] as const).map(tab => (
                  <button
                    key={tab}
                    onClick={() => setActiveTab(tab)}
                    className={cn(
                      "flex-1 py-3.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all",
-                     activeTab === tab ? "bg-[#0D523C] text-white shadow-xl" : "text-[#4A2C2A]/30"
+                     activeTab === tab ? "bg-[#0D523C] text-white shadow-xl" : "text-ink/30"
                    )}
                  >
                    {tab === 'schedule' ? t.docFeedPlan : t.metricsFcr}
@@ -282,7 +310,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                   </div>
 
                   <div className="space-y-3">
-                     <h2 className="text-[#4A2C2A] font-black text-lg px-1 tracking-tighter">{t.todaysSequence}</h2>
+                     <h2 className="text-ink font-black text-lg px-1 tracking-tighter">{t.todaysSequence}</h2>
                      <motion.div className="space-y-2" variants={{ show: { transition: { staggerChildren: 0.05 } } }} initial="hidden" animate="show">
                        {feedSlots.map((slot, i) => {
                          const isNow = now.getHours() === slot.hour;
@@ -292,15 +320,15 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                              key={i} 
                              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
                              className={cn(
-                               "bg-white/90 rounded-[1.8rem] px-5 py-4 border shadow-sm flex items-center gap-4",
-                               isNow ? "border-[#C78200] ring-4 ring-[#C78200]/10" : "border-black/5 opacity-80"
+                               "bg-card/90 rounded-[1.8rem] px-5 py-4 border shadow-sm flex items-center gap-4",
+                               isNow ? "border-[#C78200] ring-4 ring-[#C78200]/10" : "border-card-border opacity-80"
                              )}
                            >
                               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white", isNow ? 'bg-[#C78200]' : isPast ? 'bg-emerald-500' : 'bg-slate-200')}>
                                  {isPast ? <CheckCircle2 size={18} /> : <Clock size={18} />}
                               </div>
                               <div className="flex-1">
-                                 <p className={cn("font-black text-sm", isNow ? "text-[#C78200]" : "text-[#4A2C2A]")}>{slot.label}</p>
+                                 <p className={cn("font-black text-sm", isNow ? "text-[#C78200]" : "text-ink")}>{slot.label}</p>
                                  <p className="text-[8px] font-black opacity-30 uppercase tracking-widest">{slot.time}</p>
                               </div>
                               <p className="font-black text-lg text-[#0D523C]">{kgPerSlot}<span className="text-[10px] ml-1 opacity-40">kg</span></p>
