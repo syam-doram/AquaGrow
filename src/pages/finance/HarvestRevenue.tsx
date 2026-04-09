@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../utils/cn';
+import { useData } from '../../context/DataContext';
 import type { Translations } from '../../translations';
+
 
 // ─── SETTLEMENT DETAIL SHEET ───────────────────────────────────────────────
 const SettlementDetailSheet = ({ entry, onClose, t }: { entry: any, onClose: () => void, t: Translations }) => {
@@ -96,11 +98,10 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClic
   const navigate = useNavigate();
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
 
-  // Load from local ROI entries to find actual harvest revenues!
-  const savedEntries = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('roi_entries') || '[]').reverse(); } 
-    catch { return []; }
-  }, []);
+  // Load from DB-backed ROI entries via DataContext
+  const { roiEntries } = useData();
+  const savedEntries = useMemo(() => roiEntries || [], [roiEntries]);
+
 
   const n = (v: any) => parseFloat(v) || 0;
 

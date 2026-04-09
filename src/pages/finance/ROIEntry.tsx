@@ -27,6 +27,8 @@ import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
+import { API_BASE_URL } from '../../config';
+
 
 type FormData = {
   pondId: string;
@@ -138,7 +140,7 @@ const SpendBar = ({ label, amount, total, color }: { label: string; amount: numb
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export const ROIEntry = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { ponds, expenses, feedLogs, medicineLogs } = useData();
+  const { ponds, expenses, feedLogs, medicineLogs, apiFetch } = useData();
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'harvested');
 
   const STEPS = [
@@ -206,11 +208,36 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   const revenuePerKg = n(form.harvestWeightKg) > 0 ? totalRevenue / n(form.harvestWeightKg) : 0;
   const profitPerKg = revenuePerKg - costPerKg;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaved(true);
-    const existing = JSON.parse(localStorage.getItem('roi_entries') || '[]');
-    existing.push({ ...form, savedAt: new Date().toISOString(), totalInvested, totalRevenue, netProfit, roi });
-    localStorage.setItem('roi_entries', JSON.stringify(existing));
+    try {
+      await apiFetch(`${API_BASE_URL}/roi-entries`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          harvestWeightKg: n(form.harvestWeightKg),
+          countPerKg:      n(form.countPerKg),
+          survivalRate:    n(form.survivalRate),
+          gradeA:          n(form.gradeA),
+          gradeB:          n(form.gradeB),
+          seedCost:        n(form.seedCost),
+          feedCost:        n(form.feedCost),
+          medicineCost:    n(form.medicineCost),
+          laborCost:       n(form.laborCost),
+          utilityCost:     n(form.utilityCost),
+          infrastructureCost: n(form.infrastructureCost),
+          otherCost:       n(form.otherCost),
+          cultureDays:     n(form.cultureDays),
+          saleAmountTotal: n(form.saleAmountTotal),
+          pricePerKg:      n(form.pricePerKg),
+          subsidyAmount:   n(form.subsidyAmount),
+          totalInvested, totalRevenue, netProfit, roi,
+          savedAt: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.error('[ROI] Save to DB failed:', err);
+    }
     setTimeout(() => navigate('/roi-report'), 2200);
   };
 

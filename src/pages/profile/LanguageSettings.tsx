@@ -21,7 +21,7 @@ const LANGUAGE_META: Record<string, { native: string; flag: string; region: stri
 
 export const LanguageSettings = ({ t, onLanguageChange }: { t: Translations; onLanguageChange?: (l: Language) => void }) => {
   const navigate = useNavigate();
-  const { user, setUser, theme } = useData();
+  const { user, setUser, updateUser, theme } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
   const [isSyncing, setIsSyncing] = useState(false);
   const [selected, setSelected]   = useState<Language>(user?.language || 'English');
@@ -46,10 +46,8 @@ export const LanguageSettings = ({ t, onLanguageChange }: { t: Translations; onL
       localStorage.setItem('aqua_user', JSON.stringify(uInfo));
       setIsSyncing(true);
       try {
-        await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/profile`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ language: newLang }),
-        });
+        // Persist language preference to MongoDB user doc
+        await updateUser({ language: newLang } as any);
         setTimeout(() => { setIsSyncing(false); navigate(-1); }, 700);
       } catch {
         setIsSyncing(false);

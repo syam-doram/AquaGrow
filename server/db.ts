@@ -19,8 +19,14 @@ const UserSchema = new mongoose.Schema({
   location: { type: String },
   farmSize: { type: Number, default: 0 },
   language: { type: String, default: 'English' },
+  theme: { type: String, enum: ['light', 'dark', 'midnight'], default: 'dark' },
   role: { type: String, enum: ['farmer', 'admin', 'provider'], default: 'farmer' },
-  subscriptionStatus: { type: String, enum: ['free', 'pro'], default: 'free' },
+  subscriptionStatus: {
+    type: String,
+    enum: ['free', 'pro', 'pro_silver', 'pro_gold', 'pro_diamond'],
+    default: 'free'
+  },
+  subscriptionExpiry: { type: String },          // ISO date string
   fcmToken: { type: String },
   notifications: {
     water: { type: Boolean, default: true },
@@ -37,6 +43,7 @@ const UserSchema = new mongoose.Schema({
     isRead: { type: Boolean, default: false }
   }]
 }, { timestamps: true });
+
 
 const PondSchema = new mongoose.Schema({
   userId: { type: String, required: true },
@@ -179,6 +186,47 @@ const HarvestRequestSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+const ROIEntrySchema = new mongoose.Schema({
+  userId:              { type: String, required: true },
+  pondId:              { type: String, required: true },
+  harvestDate:         { type: String },
+  harvestWeightKg:     { type: Number },
+  countPerKg:         { type: Number },
+  survivalRate:        { type: Number },
+  gradeA:              { type: Number },
+  gradeB:              { type: Number },
+  // Investments
+  seedCost:            { type: Number, default: 0 },
+  feedCost:            { type: Number, default: 0 },
+  medicineCost:        { type: Number, default: 0 },
+  laborCost:           { type: Number, default: 0 },
+  utilityCost:         { type: Number, default: 0 },
+  infrastructureCost:  { type: Number, default: 0 },
+  otherCost:           { type: Number, default: 0 },
+  cultureDays:         { type: Number },
+  // Revenue
+  saleAmountTotal:     { type: Number, default: 0 },
+  buyerName:           { type: String },
+  pricePerKg:          { type: Number },
+  subsidyAmount:       { type: Number, default: 0 },
+  notes:               { type: String },
+  // Computed
+  totalInvested:       { type: Number },
+  totalRevenue:        { type: Number },
+  netProfit:           { type: Number },
+  roi:                 { type: Number },
+}, { timestamps: true });
+
+const NotificationLogSchema = new mongoose.Schema({
+  userId:    { type: String, required: true },
+  title:     { type: String },
+  body:      { type: String },
+  type:      { type: String, default: 'alert' },  // 'alert' | 'harvest' | 'aerator' | 'feed'
+  deepLink:  { type: String },
+  isRead:    { type: Boolean, default: false },
+  date:      { type: String },
+}, { timestamps: true });
+
 export const User = mongoose.model('User', UserSchema);
 export const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 export const Pond = mongoose.model('Pond', PondSchema);
@@ -189,6 +237,8 @@ export const SOPLog = mongoose.model('SOPLog', SOPLogSchema);
 export const Expense = mongoose.model('Expense', ExpenseSchema);
 export const RefreshToken = mongoose.model('RefreshToken', RefreshTokenSchema);
 export const HarvestRequest = mongoose.model('HarvestRequest', HarvestRequestSchema);
+export const ROIEntry = mongoose.model('ROIEntry', ROIEntrySchema);
+export const NotificationLog = mongoose.model('NotificationLog', NotificationLogSchema);
 
 
 export const connectDB = async () => {

@@ -10,13 +10,12 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 
 export const ROIYearWise = ({ t }: { t: Translations }) => {
-  const { theme } = useData();
+  const { theme, roiEntries } = useData();
   const isDark    = theme === 'dark' || theme === 'midnight';
 
-  const entries: any[] = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('roi_entries') || '[]'); }
-    catch { return []; }
-  }, []);
+  const entries: any[] = useMemo(() => roiEntries || [], [roiEntries]);
+
+
 
   const yearStats = useMemo(() => {
     const map = new Map<string, any>();

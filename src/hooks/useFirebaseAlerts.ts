@@ -1,23 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { requestFcmToken, onMessageListener } from '../lib/firebase';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
 import { parseAeratorNotification } from '../services/aeratorPushService';
 import { parseHarvestNotification } from '../services/harvestPushService';
+import { API_BASE_URL } from '../config';
+
+// Helper: get JWT token from stored session (no localStorage for business data)
+const getAuthHeaders = (): HeadersInit => {
+  const raw = localStorage.getItem('aqua_tokens'); // auth tokens are OK in localStorage
+  if (!raw) return { 'Content-Type': 'application/json' };
+  try {
+    const tokens = JSON.parse(raw);
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${tokens.access || tokens.accessToken || ''}`,
+    };
+  } catch {
+    return { 'Content-Type': 'application/json' };
+  }
+};
+
+const getUserId = (): string | null => {
+  try {
+    const u = localStorage.getItem('aqua_user');
+    if (!u) return null;
+    const parsed = JSON.parse(u);
+    return parsed?.id || parsed?._id || null;
+  } catch { return null; }
+};
 
 export const useFirebaseAlerts = (userLanguage: string) => {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [incomingAlert, setIncomingAlert] = useState<{
     title: string; body: string; timestamp: number; type?: string; color?: string;
   } | null>(null);
-  const [alertHistory, setAlertHistory] = useState<{
-    title: string; body: string; timestamp: number; type?: string;
-  }[]>(() => {
-    const saved = localStorage.getItem('aqua_alert_history');
-    return saved ? JSON.parse(saved) : [];
-  });
 
-  // Deep-link queued from a notification tap (works in both foreground & background)
+  // Alert history starts empty — gets populated from DB via DataContext or on-arrival
+  const [alertHistory, setAlertHistory] = useState<{
+    title: string; body: string; timestamp: number; type?: string; color?: string;
+  }[]>([]);
+
+  // Deep-link queued from a notification tap
   const [deepLinkUrl, setDeepLinkUrl] = useState<string | null>(() =>
     sessionStorage.getItem('aqua_notification_deeplink') || null
   );
@@ -27,24 +51,65 @@ export const useFirebaseAlerts = (userLanguage: string) => {
     sessionStorage.setItem('aqua_notification_deeplink', link);
   };
 
+  // ── Persist a new notification to MongoDB ────────────────────────────────────
+  const persistNotification = useCallback(async (alert: {
+    title: string; body: string; type?: string; deepLink?: string;
+  }) => {
+    try {
+      await fetch(`${API_BASE_URL}/notifications`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...alert,
+          date: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.warn('[ALERTS] Failed to persist notification to DB:', err);
+    }
+  }, []);
+
+  // ── Load alert history from DB on mount ──────────────────────────────────────
+  useEffect(() => {
+    const loadHistory = async () => {
+      const uid = getUserId();
+      if (!uid) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/user/${uid}/notifications`, {
+          headers: getAuthHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAlertHistory(data.map((n: any) => ({
+            title: n.title || '',
+            body: n.body || '',
+            timestamp: new Date(n.createdAt || n.date || Date.now()).getTime(),
+            type: n.type || 'general',
+            color: n.type === 'harvest' ? '#10B981' : n.type === 'aerator' ? '#3B82F6' : '#6366F1',
+          })));
+        }
+      } catch (err) {
+        console.warn('[ALERTS] Could not load notification history from DB:', err);
+      }
+    };
+    loadHistory();
+  }, []);
+
   const requestNotificationPermission = async () => {
     if (Capacitor.isNativePlatform()) {
       try {
-        // Main farming alerts channel
         await PushNotifications.createChannel({
           id: 'aquagrow-premium',
           name: 'AquaGrow Farming Alerts',
           description: 'Critical notifications for pond conditions',
           importance: 5, visibility: 1, vibration: true,
         });
-        // Aerator check channel
         await PushNotifications.createChannel({
           id: 'aquagrow-aerator',
           name: 'AquaGrow Aerator Checks',
           description: 'Stage-wise aerator management reminders',
           importance: 4, visibility: 1, vibration: true,
         });
-        // Harvest tracking channel (highest visibility — real money!)
         await PushNotifications.createChannel({
           id: 'aquagrow-harvest',
           name: 'AquaGrow Harvest & Payments',
@@ -75,7 +140,6 @@ export const useFirebaseAlerts = (userLanguage: string) => {
           );
           if (token) {
             setFcmToken(token);
-            console.log(`[FCM-WEB] Token ready → ${userLanguage}`);
             return token;
           }
         }
@@ -86,19 +150,32 @@ export const useFirebaseAlerts = (userLanguage: string) => {
     return null;
   };
 
-  // ── Parse notification data and extract deep-link ─────────────────────────
+  // ── Parse deep-link from notification data ───────────────────────────────────
   const handleNotificationData = (data: Record<string, any>): string | null => {
-    // Harvest tracking
     const harvestData = parseHarvestNotification(data);
     if (harvestData) return harvestData.deepLink;
-
-    // Aerator check
     const aeratorData = parseAeratorNotification(data);
     if (aeratorData) return aeratorData.deepLink;
-
-    // Generic fallback
     return data?.deepLink || null;
   };
+
+  // ── Incoming push handlers ───────────────────────────────────────────────────
+  const addAlert = useCallback((rawData: {
+    title: string; body: string; type?: string; color?: string; deepLink?: string;
+  }) => {
+    const newAlert = {
+      title: rawData.title,
+      body: rawData.body,
+      timestamp: Date.now(),
+      type: rawData.type || 'general',
+      color: rawData.color || '#6366F1',
+    };
+    setIncomingAlert(newAlert);
+    setAlertHistory(prev => [newAlert, ...prev].slice(0, 50));
+
+    // Persist to DB (fire-and-forget)
+    persistNotification({ title: rawData.title, body: rawData.body, type: rawData.type, deepLink: rawData.deepLink });
+  }, [persistNotification]);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -111,7 +188,7 @@ export const useFirebaseAlerts = (userLanguage: string) => {
         console.error('FCM Registration error:', err.error);
       });
 
-      // ── Foreground: show in-app banner ────────────────────────────────────
+      // Foreground: show in-app banner + save to DB
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
         const data = notification.data || {};
         const meta = data.type === 'harvest_update'
@@ -120,31 +197,20 @@ export const useFirebaseAlerts = (userLanguage: string) => {
           ? { type: 'aerator', color: '#3B82F6' }
           : { type: 'general', color: '#6366F1' };
 
-        const newAlert = {
+        addAlert({
           title: notification.title || 'New Alert',
           body: notification.body || '',
-          timestamp: Date.now(),
           type: meta.type,
           color: meta.color,
-        };
-        setIncomingAlert(newAlert);
-        setAlertHistory(prev => {
-          const updated = [newAlert, ...prev].slice(0, 50);
-          localStorage.setItem('aqua_alert_history', JSON.stringify(updated));
-          return updated;
+          deepLink: handleNotificationData(data) || undefined,
         });
       });
 
-      // ── Notification tap → deep-link routing ──────────────────────────────
+      // Notification tap → deep-link routing
       PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
         const data: Record<string, any> = action.notification?.data || {};
-        console.log('[FCM-TAP] actionId:', action.actionId, '| type:', data.type);
-
         const link = handleNotificationData(data);
-        if (link) {
-          console.log('[FCM-TAP] Routing to:', link);
-          queueDeepLink(link);
-        }
+        if (link) queueDeepLink(link);
       });
 
       return () => { PushNotifications.removeAllListeners(); };
@@ -154,27 +220,19 @@ export const useFirebaseAlerts = (userLanguage: string) => {
       onMessageListener().then((payload: any) => {
         if (payload?.notification) {
           const data = payload?.data || {};
-          const newAlert = {
+          addAlert({
             title: payload.notification.title,
             body: payload.notification.body,
-            timestamp: Date.now(),
             type: data.type || 'general',
             color: data.type === 'harvest_update' ? '#10B981' : '#6366F1',
-          };
-          setIncomingAlert(newAlert);
-          setAlertHistory(prev => {
-            const updated = [newAlert, ...prev].slice(0, 50);
-            localStorage.setItem('aqua_alert_history', JSON.stringify(updated));
-            return updated;
+            deepLink: handleNotificationData(data) || undefined,
           });
-
-          // Web foreground deep-link queue
           const link = handleNotificationData(data);
           if (link) queueDeepLink(link);
         }
       }).catch(err => console.warn('Web message listener failed:', err));
     }
-  }, [fcmToken]);
+  }, [fcmToken, addAlert]);
 
   return {
     requestNotificationPermission,
@@ -187,13 +245,17 @@ export const useFirebaseAlerts = (userLanguage: string) => {
       sessionStorage.removeItem('aqua_notification_deeplink');
     },
     triggerLocalAlert: (title: string, body: string, type = 'general', color = '#6366F1') => {
-      const newAlert = { title, body, timestamp: Date.now(), type, color };
-      setIncomingAlert(newAlert);
-      setAlertHistory(prev => [newAlert, ...prev].slice(0, 50));
+      addAlert({ title, body, type, color });
     },
     clearAlert: () => setIncomingAlert(null),
-    clearHistory: () => {
-      localStorage.removeItem('aqua_alert_history');
+    clearHistory: async () => {
+      // Mark all as read in DB
+      try {
+        await fetch(`${API_BASE_URL}/notifications/mark-read`, {
+          method: 'PATCH',
+          headers: getAuthHeaders(),
+        });
+      } catch { /* silent */ }
       setAlertHistory([]);
     },
   };

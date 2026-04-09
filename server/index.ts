@@ -11,7 +11,7 @@ interface AuthenticatedRequest extends Request {
 }
 import mongoose from 'mongoose';
 import cors from 'cors';
-import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest } from './db.js';
+import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo } from './db.js';
 import { apiLimiter, authenticate, requireRole, requireSelf } from './middleware/auth.js';
 import { GoogleGenAI } from "@google/genai";
 import authRoutes from './routes/auth.js';
@@ -208,6 +208,67 @@ app.put('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) =
     const updated = await PondMongo.findByIdAndUpdate(id, req.body, { new: true });
     res.json(updated);
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+// ═══════════════════════════════╗
+//  ROI ENTRIES                   ║
+// ═══════════════════════════════╝
+
+app.get('/api/user/:userId/roi-entries', authenticate, requireSelf, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const filter: any = { userId: req.params.userId };
+    if (req.query.pondId) filter.pondId = req.query.pondId;
+    const entries = await ROIEntryMongo.find(filter).sort({ createdAt: -1 }).limit(200);
+    res.json(entries);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/roi-entries', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const entry = await new ROIEntryMongo(data).save();
+    res.json(entry);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/roi-entries/:id', authenticate, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await ROIEntryMongo.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+//  NOTIFICATION HISTORY          ║
+// ═══════════════════════════════╝
+
+app.get('/api/user/:userId/notifications', authenticate, requireSelf, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const logs = await NotificationLogMongo.find({ userId: req.params.userId }).sort({ createdAt: -1 }).limit(100);
+    res.json(logs);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/notifications', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id };
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const log = await new NotificationLogMongo(data).save();
+    res.json(log);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.patch('/api/notifications/mark-read', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await NotificationLogMongo.updateMany({ userId: req.user.id, isRead: false }, { isRead: true });
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 // ═══════════════════════════════╗

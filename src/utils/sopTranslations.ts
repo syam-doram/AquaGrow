@@ -244,13 +244,13 @@ const Telugu: SOPTranslations = {
   medicineLimeDue: 'సున్నం అనువర్తనం సమయం',
   medicineLimeDetail: 'pH మరియు క్షారత స్థిరీకరించడానికి నేడు రాత్రి సున్నం (50 కిలో/ఎకరా) వేయండి.',
   medicineWithdrawalWarning: '⚠ ఉపసంహరణ కాలం చురుకుగా ఉంది',
-  medicineWithdrawalDetail: 'గత 14 రోజులలో మందు వేయబడింది. ఉపసంహరణ కాలం పూర్తయ్యే వరకు కోత వద్దు.',
+  medicineWithdrawalDetail: 'గత 14 రోజులలో మందు వేయబడింది. ఉపసంహరణ కాలం పూర్తయ్యే వరకు పట్టివేత వద్దు.',
 
   // Harvest
-  harvestReadyAlert: '🎉 చెరువు కోతకు సిద్ధంగా ఉంది',
-  harvestReadyDetail: 'రొయ్యలు 90+ DOC చేరాయి. సగటు బరువు 20g+ అంచనా. సరైన కోత సమయం ఇప్పుడు.',
-  harvestWithdrawalPeriod: 'ఉపసంహరణ కాలం — ఇంకా కోత చేయలేరు',
-  harvestBestWindow: 'అత్యుత్తమ కోత సమయం: DOC 90–120',
+  harvestReadyAlert: '🎉 చెరువు పట్టివేతకు సిద్ధంగా ఉంది',
+  harvestReadyDetail: 'రొయ్యలు 90+ DOC చేరాయి. సగటు బరువు 20g+ అంచనా. సరైన పట్టివేత సమయం ఇప్పుడు.',
+  harvestWithdrawalPeriod: 'ఉపసంహరణ కాలం — ఇంకా పట్టివేత చేయలేరు',
+  harvestBestWindow: 'అత్యుత్తమ పట్టివేత సమయం: DOC 90–120',
 
   // Compliance
   noWaterLogToday: 'నేడు నీటి నాణ్యత నమోదు చేయలేదు',
@@ -267,10 +267,10 @@ const Telugu: SOPTranslations = {
   // Stage
   stageJuvenile: 'కిశోర దశ (DOC 1–30)',
   stageGrowing: 'వృద్ధి దశ (DOC 31–60)',
-  stagePreharvest: 'కోత ముందు దశ (DOC 61–90)',
+  stagePreharvest: 'పట్టివేత ముందు దశ (DOC 61–90)',
   milestoneDoc30: '🎯 30-రోజుల మైలురాయి — FCR & వృద్ధి తనిఖీ',
-  milestoneDoc60: '🎯 60-రోజుల మైలురాయి — కోత వ్యూహం సిద్ధం చేయండి',
-  milestoneDoc90: '🏆 90-రోజుల మైలురాయి — కోత సమయం తెరుచుకుంది',
+  milestoneDoc60: '🎯 60-రోజుల మైలురాయి — పట్టివేత వ్యూహం సిద్ధం చేయండి',
+  milestoneDoc90: '🏆 90-రోజుల మైలురాయి — పట్టివేత సమయం తెరుచుకుంది',
 };
 
 // ─── Exports ───────────────────────────────────────────────────────────────────

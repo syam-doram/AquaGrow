@@ -162,14 +162,12 @@ const EntryDetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () 
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export const ROIOverview = ({ t }: { t: Translations }) => {
   const navigate  = useNavigate();
-  const { theme } = useData();
+  const { theme, roiEntries } = useData();
   const isDark    = theme === 'dark' || theme === 'midnight';
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
 
-  const entries: any[] = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('roi_entries') || '[]').reverse(); }
-    catch { return []; }
-  }, []);
+  const entries: any[] = useMemo(() => roiEntries || [], [roiEntries]);
+
 
   const totalCycles    = entries.length;
   const avgROI         = totalCycles > 0 ? entries.reduce((a, e) => a + (e.roi ?? 0), 0) / totalCycles : 0;

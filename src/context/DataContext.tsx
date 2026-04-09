@@ -19,6 +19,7 @@ interface DataContextType {
   waterRecords: WaterQualityRecord[];
   feedLogs: FeedRecord[];
   sopLogs: any[];
+  roiEntries: any[];
   expenses: any[];
   setUser: (user: User | null) => void;
   updateUser: (updates: Partial<User>) => Promise<boolean>;
@@ -85,6 +86,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [feedLogs, setFeedLogs] = useState<FeedRecord[]>([]);
   const [medicineLogs, setMedicineLogs] = useState<MedicineRecord[]>([]);
   const [sopLogs, setSopLogs] = useState<any[]>([]);
+  const [roiEntries, setRoiEntries] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [completedReminderIds, setCompletedReminderIds] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -253,6 +255,18 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const fetchROIEntries = async (userId: string, overrideTokens?: any) => {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/user/${userId}/roi-entries`, { overrideTokens });
+      if (response.ok) {
+        const data = await response.json();
+        setRoiEntries(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+      }
+    } catch (error) {
+      console.error('Error fetching ROI entries:', error);
+    }
+  };
+
   const fetchExpenses = async (userId: string, overrideTokens?: any) => {
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/expenses`, { overrideTokens });
@@ -324,6 +338,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
               fetchMedicineLogs(u.id || u._id, activeTokens),
               fetchWaterLogs(u.id || u._id, activeTokens),
               fetchSOPLogs(u.id || u._id, activeTokens),
+              fetchROIEntries(u.id || u._id, activeTokens),
               fetchExpenses(u.id || u._id, activeTokens),
               fetchHarvestRequests(activeTokens)
             ]);
@@ -360,6 +375,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         fetchFeedLogs(uid, currentTokens);
         fetchWaterLogs(uid, currentTokens);
         fetchSOPLogs(uid, currentTokens);
+        fetchROIEntries(uid, currentTokens);
         fetchExpenses(uid, currentTokens);
       }
     } else {
@@ -840,6 +856,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       waterRecords, 
       feedLogs, 
       sopLogs,
+      roiEntries,
       expenses,
       harvestRequests,
       setUser,

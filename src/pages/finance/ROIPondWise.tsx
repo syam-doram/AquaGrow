@@ -12,13 +12,12 @@ import type { Translations } from '../../translations';
 
 export const ROIPondWise = ({ t }: { t: Translations }) => {
   const navigate  = useNavigate();
-  const { ponds, theme } = useData();
+  const { ponds, theme, roiEntries } = useData();
   const isDark    = theme === 'dark' || theme === 'midnight';
 
-  const entries: any[] = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('roi_entries') || '[]'); }
-    catch { return []; }
-  }, []);
+  const entries: any[] = useMemo(() => roiEntries || [], [roiEntries]);
+
+
 
   const pondStats = useMemo(() => {
     const map = new Map<string, any>();
