@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -28,6 +29,9 @@ import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 import { API_BASE_URL } from '../../config';
+import { Home, ArrowRight } from 'lucide-react';
+
+
 
 
 type FormData = {
@@ -140,8 +144,19 @@ const SpendBar = ({ label, amount, total, color }: { label: string; amount: numb
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export const ROIEntry = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { ponds, expenses, feedLogs, medicineLogs, apiFetch } = useData();
+  const [searchParams] = useSearchParams();
+  const { ponds, expenses, feedLogs, medicineLogs, apiFetch, updatePond } = useData();
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'harvested');
+
+  // ── Detect harvest context from query params ──
+  const fromHarvest = searchParams.get('fromHarvest') === 'self';
+  const harvestPondId = searchParams.get('pondId') || '';
+  const harvestBiomass = searchParams.get('biomass') || '';
+  const harvestAvgWeight = searchParams.get('avgWeight') || '';
+  const harvestSalePrice = searchParams.get('salePrice') || '';
+  const harvestDoc = searchParams.get('doc') || '';
+  const harvestReason = searchParams.get('reason') ? decodeURIComponent(searchParams.get('reason')!) : '';
+
 
   const STEPS = [
     { id: 1, title: t.harvestDetails,  subtitle: t.whatDidYouHarvest,          icon: Fish },
@@ -151,7 +166,22 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   ];
 
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormData>({ ...EMPTY, pondId: activePonds[0]?.id || '' });
+  // If coming from self-harvest, pre-fill pond + harvest fields immediately
+  const harvestPond = harvestPondId ? ponds.find(p => p.id === harvestPondId) : null;
+  const initialForm: FormData = {
+    ...EMPTY,
+    pondId: harvestPondId || activePonds[0]?.id || '',
+    harvestWeightKg: harvestBiomass || '',
+    pricePerKg: harvestSalePrice || '',
+    saleAmountTotal: harvestBiomass && harvestSalePrice
+      ? String(Math.round(parseFloat(harvestBiomass) * parseFloat(harvestSalePrice)))
+      : '',
+    cultureDays: harvestDoc || '',
+    buyerName: harvestReason ? `Self Harvest — ${harvestReason}` : '',
+    harvestDate: new Date().toISOString().split('T')[0],
+  };
+  const [form, setForm] = useState<FormData>(initialForm);
+
   const [saved, setSaved] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
 
@@ -233,13 +263,16 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
           subsidyAmount:   n(form.subsidyAmount),
           totalInvested, totalRevenue, netProfit, roi,
           savedAt: new Date().toISOString(),
+          harvestType: fromHarvest ? 'self' : 'market',
         }),
       });
     } catch (err) {
       console.error('[ROI] Save to DB failed:', err);
     }
-    setTimeout(() => navigate('/roi-report'), 2200);
+    // If came from self-harvest flow, redirect back to ponds (harvest is now fully closed)
+    setTimeout(() => navigate(fromHarvest ? '/ponds' : '/roi-report'), 2200);
   };
+
 
   return (
     <div className="min-h-[100dvh] bg-[#F8F9FE] font-sans pb-[180px]">
@@ -261,8 +294,12 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
             >
               <CheckCircle2 size={60} />
             </motion.div>
-            <h3 className="text-3xl font-black tracking-tighter mb-2">{t.roiProfileSaved}</h3>
-            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{t.redirectingDashboard}</p>
+            <h3 className="text-3xl font-black tracking-tighter mb-2">
+              {fromHarvest ? '🎉 Harvest Fully Closed!' : t.roiProfileSaved}
+            </h3>
+            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">
+              {fromHarvest ? 'ROI saved · Returning to your ponds...' : t.redirectingDashboard}
+            </p>
             <div className="mt-8 flex items-center gap-3">
               <div className="px-5 py-2.5 bg-card/10 rounded-2xl border border-white/10">
                 <p className="font-black text-sm">ROI: <span className={roi >= 0 ? 'text-emerald-300' : 'text-red-300'}>{roi.toFixed(1)}%</span></p>
@@ -275,13 +312,32 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
         )}
       </AnimatePresence>
 
+
       {/* HEADER */}
       <Header 
-        title={t.postHarvestROI} 
+        title={fromHarvest ? 'Complete Harvest' : t.postHarvestROI} 
         showBack={true}
         onBack={() => step === 1 ? navigate(-1) : setStep(s => s - 1)}
         rightElement={<div className="w-10" />}
       />
+
+      {/* ── HARVEST COMPLETION BANNER (self-harvest flow) ── */}
+      {fromHarvest && (
+        <div className="fixed top-[62px] left-0 right-0 max-w-md mx-auto z-50 px-4 pt-2">
+          <div className="bg-gradient-to-r from-[#C78200] to-[#a06600] rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg shadow-amber-700/20">
+            <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Home size={15} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[7.5px] font-black text-white/60 uppercase tracking-widest">Step 2 of 2 — Harvest Closing</p>
+              <p className="text-[11px] font-black text-white truncate">
+                {harvestPond?.name || 'Pond'} · {harvestBiomass}kg collected · Fill ROI to close
+              </p>
+            </div>
+            <ArrowRight size={14} className="text-white/60 flex-shrink-0" />
+          </div>
+        </div>
+      )}
 
       {/* STEP PROGRESS PILLS */}
       <div className="fixed top-[72px] left-0 right-0 max-w-md mx-auto z-40 bg-card/95 backdrop-blur-md px-5 py-3 flex gap-2 border-b border-card-border">

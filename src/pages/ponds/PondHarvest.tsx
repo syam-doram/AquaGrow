@@ -143,13 +143,25 @@ export const PondHarvest = ({ t }: { t: Translations }) => {
           harvestStartedAt: new Date().toISOString(),
         },
       });
-      navigate('/ponds');
+
+      // ── Route to ROI Entry to complete the harvest cycle ──
+      const params = new URLSearchParams({
+        pondId:       pond.id,
+        fromHarvest:  'self',
+        biomass:      selfForm.totalBiomass,
+        avgWeight:    selfForm.avgWeight,
+        salePrice:    selfForm.salePrice || '',
+        doc:          String(currentDoc),
+        reason:       encodeURIComponent(reason),
+      });
+      navigate(`/roi-entry?${params.toString()}`);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
 
   const BUYERS = [
     { name: 'Reddy Aqua Exports',    loc: 'Bhimavaram', rate: '₹680/kg', company: 'Global Aqua',   rating: 4.9, icon: 'RA' },
@@ -569,10 +581,11 @@ export const PondHarvest = ({ t }: { t: Translations }) => {
                 ) : (
                   <>
                     <Home size={15} />
-                    {t.confirmSelfHarvest}
+                    Confirm Harvest → Complete ROI Entry
                   </>
                 )}
               </button>
+
             </motion.form>
           )}
         </AnimatePresence>
