@@ -26,9 +26,18 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.use(cors({
   origin: [
+    // Web dev
     'http://localhost:3000',
+    'http://localhost:5173',
+    // Render production
     'https://aquagrow.onrender.com',
-    'https://aqua-grow.vercel.app'
+    'https://aqua-grow.vercel.app',
+    // Capacitor Android webview origin
+    'https://localhost',
+    'http://localhost',
+    // Capacitor iOS webview origin
+    'capacitor://localhost',
+    'ionic://localhost',
   ],
   credentials: true
 }));
