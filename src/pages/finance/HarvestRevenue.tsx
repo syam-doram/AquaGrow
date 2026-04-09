@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, CheckCircle2, Clock, ShieldCheck,
+  CheckCircle2, ShieldCheck,
   Scale, Fish, Calendar, IndianRupee, TrendingUp,
-  TrendingDown, Star, Award, Layers, Package,
-  ArrowUpRight, ArrowDownRight, Home, Users,
-  BarChart2, Target, Percent, X,
+  TrendingDown, Award, Layers, ArrowUpRight,
+  ArrowDownRight, Home, Users, Target, X,
 } from 'lucide-react';
+import { Header } from '../../components/Header';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ResponsiveContainer, AreaChart, Area,
@@ -272,39 +272,9 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
   };
 
   return (
-    <div className={cn('pb-40 min-h-[100dvh] font-sans relative', isDark ? 'bg-[#010C14]' : 'bg-[#EEF4F0]')}>
+    <div className={cn('pb-40 min-h-screen', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
 
-      {/* Ambient */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className={cn('absolute -top-24 -right-16 w-80 h-80 rounded-full blur-[150px]', isDark ? 'bg-emerald-600/10' : 'bg-emerald-400/12')} />
-        <div className={cn('absolute bottom-32 -left-16 w-72 h-72 rounded-full blur-[130px]', isDark ? 'bg-teal-600/8' : 'bg-teal-400/8')} />
-      </div>
-
-      {/* HEADER */}
-      <header className={cn(
-        'fixed top-0 left-0 right-0 max-w-[480px] mx-auto z-50 px-4',
-        'pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-3',
-        'flex items-center justify-between border-b backdrop-blur-xl transition-all',
-        isDark ? 'bg-[#010C14]/90 border-white/5' : 'bg-white/95 border-slate-100 shadow-sm',
-      )}>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
-          className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
-            isDark ? 'bg-white/5 border-white/10 text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm')}>
-          <ChevronLeft size={16} />
-        </motion.button>
-        <div className="text-center">
-          <h1 className={cn('text-[11px] font-black tracking-widest uppercase', isDark ? 'text-white' : 'text-slate-900')}>
-            Harvest Revenue
-          </h1>
-          <p className={cn('text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5', isDark ? 'text-emerald-400/70' : 'text-emerald-600')}>
-            Settled Yield Ledger
-          </p>
-        </div>
-        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
-          isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200')}>
-          <Fish size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
-        </div>
-      </header>
+      <Header title="Harvest Revenue" showBack />
 
       {/* Detail Sheet */}
       <AnimatePresence>
@@ -313,7 +283,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[480px] mx-auto space-y-4">
+      <div className="pt-20 px-4 max-w-[480px] mx-auto space-y-4">
 
         {/* ── HERO CARD ── */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>

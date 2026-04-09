@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Zap, Fish, Wheat, Pill, Plus,
-  TrendingDown, TrendingUp, Scale, Activity,
-  Wind, Droplets, Users, Calendar, BarChart2,
-  Target, IndianRupee, Package, AlertTriangle,
+  Fish, Wheat, Pill, Plus,
+  Wind, Droplets, Users, Calendar,
+  Target, IndianRupee, AlertTriangle,
 } from 'lucide-react';
+import { Header } from '../../components/Header';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -322,41 +322,17 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
   const getCatConfig = (key: string) => CATEGORIES.find(c => c.key === key) || CATEGORIES[5];
 
   return (
-    <div className={cn('pb-40 min-h-[100dvh] font-sans relative', isDark ? 'bg-[#010C14]' : 'bg-[#EEF4F0]')}>
+    <div className={cn('pb-40 min-h-screen', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
 
-      {/* Ambient */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className={cn('absolute -top-24 -right-16 w-80 h-80 rounded-full blur-[140px]', isDark ? 'bg-amber-600/8' : 'bg-amber-400/10')} />
-        <div className={cn('absolute bottom-24 -left-16 w-72 h-72 rounded-full blur-[120px]', isDark ? 'bg-emerald-600/8' : 'bg-emerald-400/8')} />
-      </div>
-
-      {/* HEADER */}
-      <header className={cn(
-        'fixed top-0 left-0 right-0 max-w-[480px] mx-auto z-50 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-3',
-        'flex items-center justify-between border-b backdrop-blur-xl transition-all',
-        isDark ? 'bg-[#010C14]/90 border-white/5' : 'bg-white/95 border-slate-100 shadow-sm',
-      )}>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
-          className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
-            isDark ? 'bg-white/5 border-white/10 text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm')}>
-          <ChevronLeft size={16} />
-        </motion.button>
-        <div className="text-center">
-          <h1 className={cn('text-[11px] font-black tracking-widest uppercase', isDark ? 'text-white' : 'text-slate-900')}>
-            Expense Report
-          </h1>
-          <p className={cn('text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5', isDark ? 'text-amber-400/70' : 'text-amber-600')}>
-            Feed &bull; Medicine &bull; Aerator &bull; Seed
-          </p>
-        </div>
+      <Header title="Expense Report" showBack rightElement={
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate('/daily-expense')}
-          className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
-            isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-600')}>
-          <Plus size={14} />
+          className={cn('w-10 h-10 -mr-2 rounded-xl flex items-center justify-center',
+            isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600')}>
+          <Plus size={16} />
         </motion.button>
-      </header>
+      } />
 
-      <div className="relative z-10 pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[480px] mx-auto space-y-4">
+      <div className="pt-20 px-4 max-w-[480px] mx-auto space-y-4">
 
         {/* ── Pond Filter Tabs ── */}
         {ponds.length > 0 && (
