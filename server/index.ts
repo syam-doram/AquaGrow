@@ -11,7 +11,7 @@ interface AuthenticatedRequest extends Request {
 }
 import mongoose from 'mongoose';
 import cors from 'cors';
-import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo } from './db.js';
+import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo, AeratorLog as AeratorLogMongo } from './db.js';
 import { apiLimiter, authenticate, requireRole, requireSelf } from './middleware/auth.js';
 import { GoogleGenAI } from "@google/genai";
 import authRoutes from './routes/auth.js';
@@ -206,9 +206,36 @@ app.put('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) =
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
     const updated = await PondMongo.findByIdAndUpdate(id, req.body, { new: true });
+
+    // ── If aerators were updated, also write to AeratorLog collection ────────
+    if (req.body.aerators) {
+      const a = req.body.aerators;
+      // Get the newest log entry (the one just added)
+      const latestLog = Array.isArray(a.log) ? a.log[a.log.length - 1] : null;
+      if (latestLog) {
+        const recommended = Math.ceil((pond.size || 0) * 4);
+        await new AeratorLogMongo({
+          userId:      req.user.id,
+          pondId:      id,
+          pondName:    (pond as any).name || '',
+          doc:         latestLog.doc,
+          date:        latestLog.date || new Date().toISOString(),
+          count:       latestLog.count,
+          hp:          latestLog.hp,
+          positions:   latestLog.positions || [],
+          addedNew:    latestLog.addedNew || false,
+          notes:       latestLog.notes || '',
+          sopMet:      (latestLog.count || 0) >= recommended,
+          recommended,
+          source:      'pond_detail',
+        }).save();
+      }
+    }
+
     res.json(updated);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
+
 
 // ═══════════════════════════════╗
 // ═══════════════════════════════╗
@@ -269,6 +296,28 @@ app.patch('/api/notifications/mark-read', authenticate, async (req: Authenticate
     await NotificationLogMongo.updateMany({ userId: req.user.id, isRead: false }, { isRead: true });
     res.json({ success: true });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════╗
+//  AERATOR LOGS                  ║
+// ═══════════════════════════════╝
+
+app.get('/api/user/:userId/aerator-logs', authenticate, requireSelf, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const filter: any = { userId: req.params.userId };
+    if (req.query.pondId) filter.pondId = req.query.pondId;
+    const logs = await AeratorLogMongo.find(filter).sort({ createdAt: -1 }).limit(200);
+    res.json(logs);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/aerator-logs/:id', authenticate, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await AeratorLogMongo.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 // ═══════════════════════════════╗
@@ -768,7 +817,7 @@ app.post('/api/push/aerator-check', authenticate, async (req: AuthenticatedReque
 app.post('/api/ponds/:id/aerator-confirm', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const { count, hp, positions, addedNew, doc } = req.body;
+    const { count, hp, positions, addedNew, doc, notes } = req.body;
 
     const now = new Date().toISOString();
     const aeratorUpdate = {
@@ -779,25 +828,44 @@ app.post('/api/ponds/:id/aerator-confirm', authenticate, async (req: Authenticat
         addedNew: Boolean(addedNew),
         lastUpdated: now,
         lastDoc: Number(doc),
-        log: [{ doc: Number(doc), date: now, count: Number(count) || 0, hp: Number(hp) || 1, positions: positions || [], addedNew: Boolean(addedNew) }],
+        log: [{ doc: Number(doc), date: now, count: Number(count) || 0, hp: Number(hp) || 1, positions: positions || [], addedNew: Boolean(addedNew), notes: notes || '' }],
       },
     };
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-
-    // With MongoDB — merge log
+    // Merge log with existing entries
     const pond = await PondMongo.findById(id);
     if (!pond) return res.status(404).json({ error: 'Pond not found' });
     const existingLog = (pond as any).aerators?.log || [];
     aeratorUpdate.aerators.log = [...existingLog, aeratorUpdate.aerators.log[0]];
 
     const updated = await PondMongo.findByIdAndUpdate(id, { aerators: aeratorUpdate.aerators }, { new: true });
+
+    // ── Also record in AeratorLog for history/analytics ──────────────────────
+    const recommended = Math.ceil(((pond as any).size || 0) * 4);
+    await new AeratorLogMongo({
+      userId:      req.user.id,
+      pondId:      id,
+      pondName:    (pond as any).name || '',
+      doc:         Number(doc),
+      date:        now,
+      count:       Number(count) || 0,
+      hp:          Number(hp) || 1,
+      positions:   positions || [],
+      addedNew:    Boolean(addedNew),
+      notes:       notes || '',
+      sopMet:      (Number(count) || 0) >= recommended,
+      recommended,
+      source:      'alert_confirm',
+    }).save();
+
     res.json(updated);
   } catch (e: any) {
     res.status(400).json({ error: e.message });
   }
 });
+
 
 // ─── AERATOR SNOOZE (remind tomorrow) ────────────────────────────────────────
 // POST /api/ponds/:id/aerator-snooze

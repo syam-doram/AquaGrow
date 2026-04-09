@@ -57,7 +57,44 @@ const PondSchema = new mongoose.Schema({
   harvestData: { type: Map, of: String },
   waterType: { type: String, default: 'Borewell' },
   initialSalinity: { type: Number, default: 0 },
+  aeratorSnoozedUntil: { type: String },
+  // Current aerator state + cumulative logs
+  aerators: {
+    count:       { type: Number, default: 0 },
+    hp:          { type: Number, default: 1 },
+    positions:   [{ type: String }],
+    addedNew:    { type: Boolean, default: false },
+    lastUpdated: { type: String },
+    lastDoc:     { type: Number, default: 0 },
+    log: [{
+      doc:       { type: Number },
+      date:      { type: String },
+      count:     { type: Number },
+      hp:        { type: Number },
+      positions: [{ type: String }],
+      addedNew:  { type: Boolean, default: false },
+      notes:     { type: String },
+    }],
+  },
 }, { timestamps: true });
+
+// Separate aerator log collection for cross-pond queries & history
+const AeratorLogSchema = new mongoose.Schema({
+  userId:    { type: String, required: true },
+  pondId:    { type: String, required: true },
+  pondName:  { type: String },
+  doc:       { type: Number, required: true },
+  date:      { type: String },
+  count:     { type: Number },
+  hp:        { type: Number },
+  positions: [{ type: String }],
+  addedNew:  { type: Boolean, default: false },
+  notes:     { type: String },
+  sopMet:    { type: Boolean, default: false },    // was count >= recommended?
+  recommended: { type: Number },                   // recommended at time of log
+  source:    { type: String, default: 'pond_detail' }, // 'pond_detail' | 'alert_confirm'
+}, { timestamps: true });
+
 
 const FeedLogSchema = new mongoose.Schema({
   pondId:      { type: String, required: true },
@@ -239,6 +276,7 @@ export const RefreshToken = mongoose.model('RefreshToken', RefreshTokenSchema);
 export const HarvestRequest = mongoose.model('HarvestRequest', HarvestRequestSchema);
 export const ROIEntry = mongoose.model('ROIEntry', ROIEntrySchema);
 export const NotificationLog = mongoose.model('NotificationLog', NotificationLogSchema);
+export const AeratorLog = mongoose.model('AeratorLog', AeratorLogSchema);
 
 
 export const connectDB = async () => {
