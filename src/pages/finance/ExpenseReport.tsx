@@ -1,285 +1,697 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-   ChevronLeft,
-   TrendingDown,
-   TrendingUp,
-   CreditCard,
-   Plus,
-   Zap,
-   Users,
-   Briefcase,
-   Fish,
-   Wheat,
-   Pill,
-   Droplets,
-   PackageCheck,
-   Building2,
-   Calendar,
-   Wallet
+  ChevronLeft, Zap, Fish, Wheat, Pill, Plus,
+  TrendingDown, TrendingUp, Scale, Activity,
+  Wind, Droplets, Users, Calendar, BarChart2,
+  Target, IndianRupee, Package, AlertTriangle,
 } from 'lucide-react';
 import {
-   BarChart,
-   Bar,
-   XAxis,
-   YAxis,
-   CartesianGrid,
-   Tooltip,
-   ResponsiveContainer,
-   Cell,
-   ReferenceLine
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
 import type { Translations } from '../../translations';
+import { calculateDOC } from '../../utils/pondUtils';
 
-// ─── HELPER COMPONENTS ────────────────────────────────────────────────────────
-const CategoryProgressCard = ({ icon: Icon, label, value, progress, color, bg }: any) => (
-   <div className={cn("rounded-[2.5rem] p-3 border", bg)}>
-      <div className="flex items-center justify-between mb-4">
-         <div className={cn("w-10 h-10 rounded-[1rem] flex items-center justify-center", color.bg, color.text)}>
-            <Icon size={20} />
-         </div>
-         <span className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full", color.bg, color.text)}>
-            {progress}%
-         </span>
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface CategoryDef {
+  key: string;
+  label: string;
+  unit?: string;
+  icon: React.ElementType;
+  color: string;          // text color
+  bg: string;             // bg chip color
+  fill: string;           // bar/donut fill
+  borderColor: string;
+  gradientFrom: string;
+  gradientTo: string;
+}
+
+// ─── Category Config ──────────────────────────────────────────────────────────
+const CATEGORIES: CategoryDef[] = [
+  {
+    key: 'feed',
+    label: 'Pellet Feed',
+    icon: Wheat,
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+    fill: '#f59e0b',
+    borderColor: 'border-amber-500/20',
+    gradientFrom: '#78350f',
+    gradientTo: '#f59e0b22',
+  },
+  {
+    key: 'seed',
+    label: 'Seed / PL',
+    icon: Fish,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    fill: '#10b981',
+    borderColor: 'border-emerald-500/20',
+    gradientFrom: '#064e3b',
+    gradientTo: '#10b98122',
+  },
+  {
+    key: 'medicine',
+    label: 'Medicine',
+    icon: Pill,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    fill: '#3b82f6',
+    borderColor: 'border-blue-500/20',
+    gradientFrom: '#1e3a8a',
+    gradientTo: '#3b82f622',
+  },
+  {
+    key: 'aerator',
+    label: 'Aerator Power',
+    icon: Wind,
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/10',
+    fill: '#a855f7',
+    borderColor: 'border-purple-500/20',
+    gradientFrom: '#4c1d95',
+    gradientTo: '#a855f722',
+  },
+  {
+    key: 'labor',
+    label: 'Labour',
+    icon: Users,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10',
+    fill: '#f97316',
+    borderColor: 'border-orange-500/20',
+    gradientFrom: '#7c2d12',
+    gradientTo: '#f9731622',
+  },
+  {
+    key: 'other',
+    label: 'Other / Diesel',
+    icon: Droplets,
+    color: 'text-slate-400',
+    bg: 'bg-slate-500/10',
+    fill: '#94a3b8',
+    borderColor: 'border-slate-500/20',
+    gradientFrom: '#1e293b',
+    gradientTo: '#94a3b822',
+  },
+];
+
+// ─── Mini ring component ──────────────────────────────────────────────────────
+const Ring = ({ pct, fill, size = 44 }: { pct: number; fill: string; size?: number }) => {
+  const r = 16;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" className="-rotate-90">
+      <circle cx={20} cy={20} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={3.5} />
+      <motion.circle
+        cx={20} cy={20} r={r} fill="none"
+        stroke={fill} strokeWidth={3.5} strokeLinecap="round"
+        strokeDasharray={circ}
+        initial={{ strokeDashoffset: circ }}
+        animate={{ strokeDashoffset: circ - dash }}
+        transition={{ duration: 1.1, ease: 'easeOut' }}
+      />
+    </svg>
+  );
+};
+
+// ─── Category Card ─────────────────────────────────────────────────────────────
+const CategoryCard = ({
+  cat, value, pct, isDark, isSelected, onClick,
+}: {
+  cat: CategoryDef; value: number; pct: number; isDark: boolean; isSelected: boolean; onClick: () => void;
+}) => (
+  <motion.button
+    whileTap={{ scale: 0.96 }}
+    onClick={onClick}
+    className={cn(
+      'relative rounded-[1.8rem] p-4 border text-left transition-all overflow-hidden w-full',
+      isSelected
+        ? isDark ? 'border-white/20 shadow-lg' : 'border-slate-300 shadow-md'
+        : isDark ? 'border-white/8 hover:border-white/15' : 'border-slate-100 hover:border-slate-200',
+      isDark ? 'bg-white/[0.03]' : 'bg-white shadow-sm',
+    )}
+    style={isSelected ? { borderColor: cat.fill + '55', boxShadow: `0 4px 24px ${cat.fill}18` } : {}}
+  >
+    {/* Glow bg */}
+    <div
+      className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full blur-[30px] opacity-30"
+      style={{ background: cat.fill }}
+    />
+    <div className="relative z-10">
+      <div className="flex items-start justify-between mb-3">
+        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', cat.bg)}
+          style={{ boxShadow: `0 0 0 1px ${cat.fill}33` }}>
+          <cat.icon size={16} style={{ color: cat.fill }} />
+        </div>
+        <Ring pct={pct} fill={cat.fill} size={40} />
       </div>
-      <div>
-         <p className="text-[10px] font-black uppercase tracking-widest text-opacity-50 mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
-         <h4 className="text-xl font-black tracking-tight text-white">₹{value.toLocaleString()}</h4>
-      </div>
-      <div className="mt-4 h-1.5 w-full bg-card/5 rounded-full overflow-hidden">
-         <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className={cn("h-full rounded-full", color.fill)}
-         />
-      </div>
-   </div>
+      <p className={cn('text-[8px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/40' : 'text-slate-400')}>
+        {cat.label}
+      </p>
+      <p className="text-base font-black tracking-tight" style={{ color: cat.fill }}>
+        ₹{value > 0 ? value.toLocaleString('en-IN') : '0'}
+      </p>
+      <p className={cn('text-[7px] font-black mt-0.5 uppercase tracking-wider', isDark ? 'text-white/20' : 'text-slate-400')}>
+        {pct}% of total
+      </p>
+    </div>
+  </motion.button>
 );
 
-const LineItem = ({ icon: Icon, title, desc, amount, tag, tagColor }: any) => (
-   <div className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all">
-      <div className="flex items-center gap-4">
-         <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-white/40 group-hover:bg-[#C78200]/10 group-hover:text-[#C78200] transition-all border border-white/5">
-            <Icon size={20} />
-         </div>
-         <div>
-            <h4 className="text-sm font-black tracking-tight text-white mb-0.5 group-hover:text-[#C78200] transition-colors">{title}</h4>
-            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
-               <Calendar size={10} className="text-white/20" /> {desc}
-            </p>
-         </div>
+// ─── Custom Pie Tooltip ────────────────────────────────────────────────────────
+const PieTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
+  return (
+    <div className="bg-[#0A1A12] border border-white/10 rounded-2xl px-3 py-2 shadow-xl">
+      <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mb-0.5">{d.name}</p>
+      <p className="text-sm font-black text-white">₹{d.value.toLocaleString('en-IN')}</p>
+    </div>
+  );
+};
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick?: () => void }) => {
+  const navigate = useNavigate();
+  const { expenses, feedLogs, medicineLogs, aeratorLogs, ponds, theme } = useData();
+  const isDark = theme === 'dark' || theme === 'midnight';
+
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const [selectedPondId, setSelectedPondId] = useState<string>('all');
+
+  const n = (v: any) => parseFloat(v) || 0;
+
+  // ── Filter by pond ──────────────────────────────────────────────────────────
+  const filteredExpenses = useMemo(() =>
+    selectedPondId === 'all' ? expenses : expenses.filter(e => e.pondId === selectedPondId),
+    [expenses, selectedPondId]);
+
+  const filteredFeedLogs = useMemo(() =>
+    selectedPondId === 'all' ? feedLogs : feedLogs.filter(l => (l as any).pondId === selectedPondId),
+    [feedLogs, selectedPondId]);
+
+  const filteredMedLogs = useMemo(() =>
+    selectedPondId === 'all' ? medicineLogs : medicineLogs.filter(l => (l as any).pondId === selectedPondId),
+    [medicineLogs, selectedPondId]);
+
+  const filteredAerLogs = useMemo(() =>
+    selectedPondId === 'all' ? aeratorLogs : aeratorLogs.filter(l => l.pondId === selectedPondId),
+    [aeratorLogs, selectedPondId]);
+
+  // ── Cost Aggregations ───────────────────────────────────────────────────────
+  // Feed: from expenses.feed + feedLogs cost field
+  const feedFromExp  = useMemo(() => filteredExpenses.filter(e => e.category === 'feed').reduce((a, e) => a + n(e.amount), 0), [filteredExpenses]);
+  const feedFromLogs = useMemo(() => filteredFeedLogs.reduce((a, l: any) => a + n(l.cost || l.quantity * 65), 0), [filteredFeedLogs]);
+  const feedCost = feedFromExp + feedFromLogs;
+
+  // Seed
+  const seedCost = useMemo(() => filteredExpenses.filter(e => e.category === 'seed').reduce((a, e) => a + n(e.amount), 0), [filteredExpenses]);
+
+  // Medicine: from expenses + medicineLogs
+  const medFromExp  = useMemo(() => filteredExpenses.filter(e => e.category === 'medicine').reduce((a, e) => a + n(e.amount), 0), [filteredExpenses]);
+  const medFromLogs = useMemo(() => filteredMedLogs.reduce((a, l: any) => a + n(l.cost), 0), [filteredMedLogs]);
+  const medicineCost = medFromExp + medFromLogs;
+
+  // Aerator: estimate electricity cost from HP × operating hours × kWh rate
+  // HP × 0.746kW × 20hrs/day × ₹8/kWh × DOC days (or from power expenses)
+  const powerFromExp = useMemo(() => filteredExpenses.filter(e => ['power', 'diesel'].includes(e.category)).reduce((a, e) => a + n(e.amount), 0), [filteredExpenses]);
+  const aeratorEstimate = useMemo(() => {
+    if (filteredAerLogs.length === 0) return 0;
+    const latest = filteredAerLogs[filteredAerLogs.length - 1];
+    const hp = n(latest?.hp) || 0;
+    const count = n(latest?.count) || 0;
+    const doc = n(latest?.doc) || 60;
+    // HP × 0.746kW/HP × 20hr/day × ₹8/unit × doc days
+    return Math.round(count * hp * 0.746 * 20 * 8 * doc);
+  }, [filteredAerLogs]);
+  const aeratorCost = powerFromExp > 0 ? powerFromExp : aeratorEstimate;
+
+  // Labour & Other
+  const laborCost = useMemo(() => filteredExpenses.filter(e => e.category === 'labor').reduce((a, e) => a + n(e.amount), 0), [filteredExpenses]);
+  const otherCost = useMemo(() => filteredExpenses.filter(e => e.category === 'other').reduce((a, e) => a + n(e.amount), 0), [filteredExpenses]);
+
+  // Total
+  const totalSpend = feedCost + seedCost + medicineCost + aeratorCost + laborCost + otherCost;
+  const pct = (val: number) => totalSpend > 0 ? Math.round((val / totalSpend) * 100) : 0;
+
+  // ── Category values map ─────────────────────────────────────────────────────
+  const catValues: Record<string, number> = {
+    feed: feedCost,
+    seed: seedCost,
+    medicine: medicineCost,
+    aerator: aeratorCost,
+    labor: laborCost,
+    other: otherCost,
+  };
+
+  // ── Pie chart data ──────────────────────────────────────────────────────────
+  const pieData = CATEGORIES
+    .map(c => ({ name: c.label, value: catValues[c.key], fill: c.fill }))
+    .filter(d => d.value > 0);
+
+  // ── DOC & daily run rate ────────────────────────────────────────────────────
+  const activePond = ponds.find(p => p.id === selectedPondId && p.status === 'active');
+  const currentDoc = activePond ? calculateDOC(activePond.stockingDate) : 90;
+  const dailyRunRate = totalSpend > 0 && currentDoc > 0 ? totalSpend / currentDoc : 0;
+
+  // ── Per-kg cost (from feedLogs totalFeed consumed; rough biomass est) ───────
+  const totalFeedKg = useMemo(() => filteredFeedLogs.reduce((a, l: any) => a + n(l.quantity), 0), [filteredFeedLogs]);
+  const biomassKg = activePond
+    ? Math.round((n(activePond.seedCount) * 0.8 * (0.06 * currentDoc + 2)) / 1000)
+    : 0;
+  const costPerKg = biomassKg > 0 ? Math.round(totalSpend / biomassKg) : 0;
+  const feedFCR = biomassKg > 0 && totalFeedKg > 0 ? (totalFeedKg / biomassKg).toFixed(2) : '-';
+
+  // ── Pond breakdown ──────────────────────────────────────────────────────────
+  const pondBreakdown = useMemo(() => {
+    return ponds.map(pond => {
+      const pe = expenses.filter(e => e.pondId === pond.id);
+      const pf = feedLogs.filter((l: any) => l.pondId === pond.id);
+      const pm = medicineLogs.filter((l: any) => l.pondId === pond.id);
+      const feedTotal = pe.filter(e => e.category === 'feed').reduce((a, e) => a + n(e.amount), 0)
+        + pf.reduce((a, l: any) => a + n(l.cost || l.quantity * 65), 0);
+      const medTotal = pe.filter(e => e.category === 'medicine').reduce((a, e) => a + n(e.amount), 0)
+        + pm.reduce((a, l: any) => a + n(l.cost), 0);
+      const seedTotal = pe.filter(e => e.category === 'seed').reduce((a, e) => a + n(e.amount), 0);
+      const powerTotal = pe.filter(e => ['power', 'diesel'].includes(e.category)).reduce((a, e) => a + n(e.amount), 0);
+      const total = feedTotal + medTotal + seedTotal + powerTotal;
+      return { pond, feedTotal, medTotal, seedTotal, powerTotal, total };
+    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+  }, [ponds, expenses, feedLogs, medicineLogs]);
+
+  // ── Recent expense timeline ─────────────────────────────────────────────────
+  const recentItems = useMemo(() => {
+    const exp = filteredExpenses.map(e => ({
+      label: e.categoryLabel || e.category,
+      amount: n(e.amount),
+      date: e.date || e.createdAt || new Date().toISOString(),
+      cat: e.category,
+      notes: e.notes,
+    }));
+    const fl = filteredFeedLogs.map((l: any) => ({
+      label: `Feed - ${l.feedNo || 'Pellet'}`,
+      amount: n(l.cost || l.quantity * 65),
+      date: l.date || l.createdAt || new Date().toISOString(),
+      cat: 'feed',
+      notes: `${l.quantity}kg`,
+    }));
+    const ml = filteredMedLogs.map((l: any) => ({
+      label: l.medicineName || 'Medicine',
+      amount: n(l.cost),
+      date: l.date || l.createdAt || new Date().toISOString(),
+      cat: 'medicine',
+      notes: l.dosage || '',
+    }));
+    return [...exp, ...fl, ...ml]
+      .filter(i => i.amount > 0)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 12);
+  }, [filteredExpenses, filteredFeedLogs, filteredMedLogs]);
+
+  // Filter items for selected category
+  const displayItems = selectedCat
+    ? recentItems.filter(i => i.cat === selectedCat)
+    : recentItems;
+
+  const getCatConfig = (key: string) => CATEGORIES.find(c => c.key === key) || CATEGORIES[5];
+
+  return (
+    <div className={cn('pb-40 min-h-[100dvh] font-sans relative', isDark ? 'bg-[#010C14]' : 'bg-[#EEF4F0]')}>
+
+      {/* Ambient */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className={cn('absolute -top-24 -right-16 w-80 h-80 rounded-full blur-[140px]', isDark ? 'bg-amber-600/8' : 'bg-amber-400/10')} />
+        <div className={cn('absolute bottom-24 -left-16 w-72 h-72 rounded-full blur-[120px]', isDark ? 'bg-emerald-600/8' : 'bg-emerald-400/8')} />
       </div>
-      <div className="text-right flex flex-col items-end">
-         <p className="text-sm font-black tracking-tighter text-white mb-1">₹{amount.toLocaleString()}</p>
-         <span className={cn("text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border", tagColor.bg, tagColor.text, tagColor.border)}>
-            {tag}
-         </span>
-      </div>
-   </div>
-);
 
-// ─── MAIN EXPENSE REPORT PAGE ────────────────────────────────────────────────
-export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick?: () => void }) => {
-   const navigate = useNavigate();
-   const { expenses } = useData();
+      {/* HEADER */}
+      <header className={cn(
+        'fixed top-0 left-0 right-0 max-w-[480px] mx-auto z-50 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-3',
+        'flex items-center justify-between border-b backdrop-blur-xl transition-all',
+        isDark ? 'bg-[#010C14]/90 border-white/5' : 'bg-white/95 border-slate-100 shadow-sm',
+      )}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
+          className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
+            isDark ? 'bg-white/5 border-white/10 text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm')}>
+          <ChevronLeft size={16} />
+        </motion.button>
+        <div className="text-center">
+          <h1 className={cn('text-[11px] font-black tracking-widest uppercase', isDark ? 'text-white' : 'text-slate-900')}>
+            Expense Report
+          </h1>
+          <p className={cn('text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5', isDark ? 'text-amber-400/70' : 'text-amber-600')}>
+            Feed &bull; Medicine &bull; Aerator &bull; Seed
+          </p>
+        </div>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate('/daily-expense')}
+          className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
+            isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-600')}>
+          <Plus size={14} />
+        </motion.button>
+      </header>
 
-   // Load from local storage if available, else use a realistic active cycle mock
-   const savedEntries = useMemo(() => {
-      return expenses;
-   }, [expenses]);
+      <div className="relative z-10 pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[480px] mx-auto space-y-4">
 
-   // For Farmer view, we show "Active Cycle" expenses. Let's aggregate from the newest entry 
-   // or use a very realistic mock for shrimp farming if none exists.
-   const latestEntry = savedEntries.length > 0 ? savedEntries[savedEntries.length - 1] : null;
-
-   const n = (v: any) => parseFloat(v) || 0;
-
-   // Aggregate from real expenses
-   const feedCost = useMemo(() => savedEntries.filter(e => e.category === 'feed').reduce((a, e) => a + n(e.amount), 0), [savedEntries]);
-   const seedCost = useMemo(() => savedEntries.filter(e => e.category === 'seed').reduce((a, e) => a + n(e.amount), 0), [savedEntries]);
-   const medicineCost = useMemo(() => savedEntries.filter(e => e.category === 'medicine').reduce((a, e) => a + n(e.amount), 0), [savedEntries]);
-   const utilitiesCost = useMemo(() => savedEntries.filter(e => ['power', 'diesel'].includes(e.category)).reduce((a, e) => a + n(e.amount), 0), [savedEntries]);
-   const laborCost = useMemo(() => savedEntries.filter(e => e.category === 'labor').reduce((a, e) => a + n(e.amount), 0), [savedEntries]);
-   const otherCost = useMemo(() => savedEntries.filter(e => e.category === 'other').reduce((a, e) => a + n(e.amount), 0), [savedEntries]);
-
-   const totalSpend = feedCost + seedCost + medicineCost + utilitiesCost + laborCost + otherCost;
-
-   // Breakdown %
-   const pct = (val: number) => totalSpend > 0 ? Math.round((val / totalSpend) * 100) : 0;
-
-   // Daily run rate (assume DOC 65)
-   const currentDoc = 65;
-   const dailyRunRate = totalSpend / currentDoc;
-
-   // Bar chart data showing daily expenses over last 14 days
-   const trendData = useMemo(() => {
-      return Array.from({ length: 14 }).map((_, i) => ({
-         day: `D${currentDoc - 13 + i}`,
-         cost: i === 13 ? 0 : Math.random() * 5000 + 4000 + (i === 5 ? 15000 : 0), // spike for diesel/feed
-         highlight: i === 5
-      }));
-   }, []);
-
-   return (
-      <div className="pb-[180px] bg-[#02130F] min-h-[100dvh] text-left font-sans text-white">
-         {/* HEADER */}
-         <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#02130F]/90 backdrop-blur-xl px-5 py-6 flex items-center justify-between border-b border-white/5">
-            <button onClick={() => navigate(-1)} className="p-3 text-white/50 hover:bg-card/5 rounded-2xl transition-all">
-               <ChevronLeft size={22} />
-            </button>
-            <div className="flex flex-col items-center">
-               <h1 className="text-sm font-black text-white tracking-tight">{t.activeCycleAudit}</h1>
-               <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">{t.doc} {currentDoc} · {t.liveTracking}</p>
-            </div>
-            <div className="w-12" />
-         </header>
-
-         <div className="pt-28 px-5 space-y-4">
-
-            {/* HERO TOTAL CARD */}
-            <div className="bg-gradient-to-br from-[#051F19] to-[#02130F] p-4 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden">
-               <div className="absolute right-[-10%] top-[-10%] opacity-5 pointer-events-none">
-                  <Wallet size={200} strokeWidth={1} />
-               </div>
-               <div className="relative z-10 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-6 text-[#C78200]">
-                     <div className="w-2 h-2 rounded-full bg-[#C78200] animate-pulse" />
-                     <p className="text-[9px] font-black uppercase tracking-[0.3em]">{t.totalCycleSpend}</p>
-                  </div>
-                  <h3 className="text-3xl font-black tracking-tighter text-white mb-6">₹{(totalSpend / 100000).toFixed(2)}<span className="text-2xl text-white/40">L</span></h3>
-
-                  <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-6 mt-2">
-                     <div>
-                        <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mb-1">{t.avgRunRate}</p>
-                        <p className="text-white font-black text-base tracking-tighter">₹{Math.round(dailyRunRate).toLocaleString()}<span className="text-[9px] text-white/40 ml-1">/day</span></p>
-                     </div>
-                     <div>
-                        <p className="text-white/30 text-[8px] font-black uppercase tracking-widest mb-1">{t.forecastTarget}</p>
-                        <p className="text-emerald-500 font-black text-base tracking-tighter">{t.onBudget}</p>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            {/* 14-DAY SPENDING TREND */}
-            <div className="bg-[#051F19] rounded-[2.5rem] p-3 border border-white/5 space-y-3">
-               <div className="flex items-center justify-between">
-                  <div>
-                     <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.fourteenDayTrajectory}</p>
-                     <h3 className="text-white font-black tracking-tight">{t.dailyExpenses}</h3>
-                  </div>
-                  <div className="bg-card/5 border border-white/5 px-3 py-1.5 rounded-xl text-[8px] font-black text-white/40 uppercase tracking-widest">
-                     {t.live}
-                  </div>
-               </div>
-
-               <div className="h-40 w-full mt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={trendData}>
-                        <Bar dataKey="cost" radius={[4, 4, 0, 0]} maxBarSize={30}>
-                           {trendData.map((entry, index) => (
-                              <Cell key={index} fill={entry.highlight ? "#C78200" : "rgba(255,255,255,0.05)"} />
-                           ))}
-                        </Bar>
-                        <Tooltip
-                           cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                           contentStyle={{ backgroundColor: '#02130F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
-                           formatter={(val: number) => [`₹${val.toLocaleString()}`, t.cost]}
-                           labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
-                        />
-                        <ReferenceLine y={dailyRunRate} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
-                     </BarChart>
-                  </ResponsiveContainer>
-               </div>
-               <p className="text-[8px] font-bold text-white/30 text-center uppercase tracking-widest">{t.dashedLineRunRate} (₹{Math.round(dailyRunRate).toLocaleString()})</p>
-            </div>
-
-            {/* CATEGORY PROGRESS GRID */}
-            <div>
-               <div className="flex items-center justify-between px-2 mb-4">
-                  <h3 className="text-white font-black tracking-tight">{t.categoryBreakdown}</h3>
-                  <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.pctOfTotalSpend}</span>
-               </div>
-               <div className="grid grid-cols-2 gap-3">
-                  <CategoryProgressCard
-                     icon={Wheat}
-                     label={t.pelletFeed}
-                     value={feedCost}
-                     progress={pct(feedCost)}
-                     color={{ bg: 'bg-[#C78200]/10', text: 'text-[#C78200]', fill: 'bg-[#C78200]' }}
-                     bg="bg-gradient-to-b from-[#C78200]/5 to-transparent border-[#C78200]/10"
-                  />
-                  <CategoryProgressCard
-                     icon={Fish}
-                     label={t.seedPlsCost}
-                     value={seedCost}
-                     progress={pct(seedCost)}
-                     color={{ bg: 'bg-emerald-500/10', text: 'text-emerald-500', fill: 'bg-emerald-500' }}
-                     bg="bg-[#051F19] border-white/5"
-                  />
-                  <CategoryProgressCard
-                     icon={Zap}
-                     label={t.gridPowerBill}
-                     value={utilitiesCost}
-                     progress={pct(utilitiesCost)}
-                     color={{ bg: 'bg-orange-500/10', text: 'text-orange-500', fill: 'bg-orange-500' }}
-                     bg="bg-[#051F19] border-white/5"
-                  />
-                  <CategoryProgressCard
-                     icon={Pill}
-                     label={t.medicineProbiotics}
-                     value={medicineCost}
-                     progress={pct(medicineCost)}
-                     color={{ bg: 'bg-blue-500/10', text: 'text-blue-500', fill: 'bg-blue-500' }}
-                     bg="bg-[#051F19] border-white/5"
-                  />
-               </div>
-            </div>
-
-            {/* RECENTS / TOP LIST */}
-            <div className="space-y-4 pt-4">
-               <div className="flex items-center justify-between px-2 mb-2">
-                  <h3 className="text-white font-black tracking-tight">{t.majorExpenses}</h3>
-                  <button className="text-[#C78200] text-[9px] font-black uppercase tracking-widest bg-[#C78200]/10 px-3 py-1.5 rounded-xl">{t.viewPdfLog}</button>
-               </div>
-
-               <div className="bg-[#051F19] rounded-[2.5rem] p-5 border border-white/5">
-                  {savedEntries.length > 0 ? savedEntries.slice(0, 10).map((e, i) => {
-                     const Icon = e.category === 'feed' ? Wheat : e.category === 'medicine' ? Pill : e.category === 'labor' ? Users : e.category === 'power' ? Zap : Droplets;
-                     return (
-                        <LineItem
-                           key={i}
-                           icon={Icon}
-                           title={e.categoryLabel || e.category}
-                           desc={e.notes || `DOC ${Math.floor(Math.random() * 100)}`}
-                           amount={e.amount}
-                           tag={e.category.toUpperCase()}
-                           tagColor={{
-                              bg: e.category === 'feed' ? 'bg-[#C78200]/10' : 'bg-blue-500/10',
-                              text: e.category === 'feed' ? 'text-[#C78200]' : 'text-blue-500',
-                              border: e.category === 'feed' ? 'border-[#C78200]/20' : 'border-blue-500/20'
-                           }}
-                        />
-                     );
-                  }) : (
-                     <p className="text-center text-white/20 text-[10px] font-black uppercase tracking-widest py-10">{t.noEntries}</p>
-                  )}
-               </div>
-            </div>
-         </div>
-
-         {/* FIXED LOG BUTTON */}
-         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-5 z-40 bg-gradient-to-t from-[#02130F] via-[#02130F] to-transparent pt-20">
+        {/* ── Pond Filter Tabs ── */}
+        {ponds.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             <button
-               onClick={() => navigate('/daily-expense')}
-               className="w-full bg-[#C78200] text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-[#C78200]/20 flex items-center justify-center gap-3 active:scale-95 transition-all outline-none">
-               <Plus size={20} /> {t.logDailyExpense}
+              onClick={() => setSelectedPondId('all')}
+              className={cn(
+                'px-3.5 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
+                selectedPondId === 'all'
+                  ? isDark ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-amber-500 text-white border-amber-500 shadow-md'
+                  : isDark ? 'bg-white/5 text-white/40 border-white/8' : 'bg-white text-slate-500 border-slate-200 shadow-sm'
+              )}>
+              All Ponds
             </button>
-         </div>
+            {ponds.map(p => (
+              <button key={p.id}
+                onClick={() => setSelectedPondId(p.id)}
+                className={cn(
+                  'px-3.5 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 flex items-center gap-1',
+                  selectedPondId === p.id
+                    ? isDark ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-amber-500 text-white border-amber-500 shadow-md'
+                    : isDark ? 'bg-white/5 text-white/40 border-white/8' : 'bg-white text-slate-500 border-slate-200 shadow-sm'
+                )}>
+                <Fish size={9} className="opacity-70" />
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Hero Total Card ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="rounded-[2.2rem] overflow-hidden shadow-2xl relative"
+            style={{ background: 'linear-gradient(135deg, #1a0a00 0%, #3d1a00 40%, #7c3500 80%, #c05a00 100%)' }}>
+            <div className="absolute inset-0 opacity-[0.04]"
+              style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+            <div className="absolute -bottom-12 -right-12 w-56 h-56 bg-amber-400/10 blur-[80px] rounded-full" />
+
+            <div className="relative z-10 p-5">
+              {/* Top */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-[7.5px] font-black text-amber-200/50 uppercase tracking-[0.25em] mb-1">
+                    Total Cycle Spend
+                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white tracking-tighter leading-none"
+                      style={{ textShadow: '0 2px 20px rgba(251,191,36,0.3)' }}>
+                      {totalSpend > 0
+                        ? totalSpend >= 100000
+                          ? `${(totalSpend / 100000).toFixed(2)}L`
+                          : `${(totalSpend / 1000).toFixed(1)}K`
+                        : '0'}
+                    </span>
+                    <span className="text-sm text-amber-300/70 font-black">₹</span>
+                  </div>
+                </div>
+                {/* Donut summary */}
+                <div className="relative w-20 h-20">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieData.length > 0 ? pieData : [{ name: 'Empty', value: 1, fill: 'rgba(255,255,255,0.05)' }]}
+                        cx="50%" cy="50%" innerRadius={26} outerRadius={36}
+                        dataKey="value" strokeWidth={0}>
+                        {(pieData.length > 0 ? pieData : [{ fill: 'rgba(255,255,255,0.05)' }]).map((entry, i) => (
+                          <Cell key={i} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <IndianRupee size={12} className="text-amber-300/50" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/10">
+                {[
+                  { label: 'Run Rate', value: dailyRunRate > 0 ? `₹${Math.round(dailyRunRate).toLocaleString('en-IN')}/day` : '--' },
+                  { label: 'Cost/kg', value: costPerKg > 0 ? `₹${costPerKg.toLocaleString('en-IN')}` : '--' },
+                  { label: 'FCR', value: feedFCR },
+                ].map((m, i) => (
+                  <div key={i} className="text-center">
+                    <p className="text-sm font-black text-white leading-none">{m.value}</p>
+                    <p className="text-[6px] font-black text-amber-200/40 uppercase tracking-widest mt-0.5">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* No data hint */}
+              {totalSpend === 0 && (
+                <div className="mt-3 flex items-center gap-2">
+                  <AlertTriangle size={11} className="text-amber-400" />
+                  <p className="text-[8px] font-bold text-amber-300/60">No expenses logged yet. Tap + to add.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Category Cards Grid ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2.5 px-1">
+            <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Cost Breakdown
+            </p>
+            {selectedCat && (
+              <button onClick={() => setSelectedCat(null)}
+                className={cn('text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-lg',
+                  isDark ? 'bg-white/8 text-white/50' : 'bg-slate-100 text-slate-500')}>
+                Clear Filter
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {CATEGORIES.map(cat => (
+              <CategoryCard
+                key={cat.key}
+                cat={cat}
+                value={catValues[cat.key] || 0}
+                pct={pct(catValues[cat.key] || 0)}
+                isDark={isDark}
+                isSelected={selectedCat === cat.key}
+                onClick={() => setSelectedCat(selectedCat === cat.key ? null : cat.key)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Visual Bar Comparison ── */}
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className={cn('rounded-[2rem] border p-5', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+          <p className={cn('text-[8px] font-black uppercase tracking-widest mb-4', isDark ? 'text-white/30' : 'text-slate-400')}>
+            Spend Distribution
+          </p>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={CATEGORIES.map(c => ({ name: c.label.split(' ')[0], value: catValues[c.key] || 0, fill: c.fill }))}
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <YAxis hide />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 8, fontWeight: 900, fill: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', textTransform: 'uppercase' }}
+                  axisLine={false} tickLine={false}
+                />
+                <CartesianGrid vertical={false} stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'} />
+                <Tooltip
+                  cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)' }}
+                  content={<PieTooltip />}
+                />
+                <Bar dataKey="value" radius={[6, 6, 2, 2]} maxBarSize={36}>
+                  {CATEGORIES.map((c, i) => <Cell key={i} fill={c.fill} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* ── Aerator Power Detail Card ── */}
+        {aeratorLogs.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className={cn('rounded-[2rem] border p-5', isDark ? 'bg-purple-500/5 border-purple-500/15' : 'bg-purple-50 border-purple-100')}>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', isDark ? 'bg-purple-500/15' : 'bg-purple-100')}>
+                <Wind size={15} className={isDark ? 'text-purple-400' : 'text-purple-600'} />
+              </div>
+              <div>
+                <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-purple-400/70' : 'text-purple-600')}>
+                  Aerator Power Estimate
+                </p>
+                <p className={cn('text-sm font-black', isDark ? 'text-white' : 'text-slate-900')}>
+                  ₹{aeratorCost.toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+            {(() => {
+              const latest = aeratorLogs[aeratorLogs.length - 1];
+              const hp = n(latest?.hp);
+              const count = n(latest?.count);
+              return (
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Count', value: count || '--' },
+                    { label: 'HP each', value: hp > 0 ? `${hp} HP` : '--' },
+                    { label: 'Total HP', value: count && hp ? `${(count * hp).toFixed(0)} HP` : '--' },
+                  ].map((m, i) => (
+                    <div key={i} className={cn('p-2.5 rounded-xl text-center border',
+                      isDark ? 'bg-purple-500/8 border-purple-500/15' : 'bg-purple-50 border-purple-100')}>
+                      <p className={cn('text-sm font-black', isDark ? 'text-purple-300' : 'text-purple-700')}>{m.value}</p>
+                      <p className={cn('text-[6.5px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <p className={cn('text-[7px] font-bold mt-2.5', isDark ? 'text-white/25' : 'text-slate-400')}>
+              Est: Count &times; HP &times; 0.746kW &times; 20hr/day &times; &#8377;8/unit &times; DOC
+            </p>
+          </motion.div>
+        )}
+
+        {/* ── Pond-wise Breakdown ── */}
+        {pondBreakdown.length > 0 && (
+          <div>
+            <p className={cn('text-[9px] font-black uppercase tracking-widest mb-2.5 px-1', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Pond-wise Cost
+            </p>
+            <div className="space-y-2.5">
+              {pondBreakdown.map(({ pond, feedTotal, medTotal, seedTotal, powerTotal, total }) => {
+                const maxCat = Math.max(feedTotal, medTotal, seedTotal, powerTotal);
+                const maxLabel = maxCat === feedTotal ? 'Feed' : maxCat === medTotal ? 'Medicine' : maxCat === seedTotal ? 'Seed' : 'Power';
+                return (
+                  <motion.div key={pond.id}
+                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    className={cn('rounded-[1.8rem] border p-4', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center', isDark ? 'bg-emerald-500/10' : 'bg-emerald-50')}>
+                          <Fish size={12} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+                        </div>
+                        <div>
+                          <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{pond.name}</p>
+                          <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                            D{calculateDOC(pond.stockingDate)} &bull; {maxLabel} heaviest
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-black text-amber-500">₹{total.toLocaleString('en-IN')}</p>
+                    </div>
+                    {/* Mini bar breakdown */}
+                    <div className="flex gap-1 h-2 rounded-full overflow-hidden">
+                      {[
+                        { val: feedTotal, fill: '#f59e0b' },
+                        { val: medTotal, fill: '#3b82f6' },
+                        { val: seedTotal, fill: '#10b981' },
+                        { val: powerTotal, fill: '#a855f7' },
+                      ].filter(b => b.val > 0).map((b, i) => (
+                        <motion.div key={i}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.round((b.val / total) * 100)}%` }}
+                          transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
+                          className="h-full rounded-full" style={{ background: b.fill }} />
+                      ))}
+                    </div>
+                    {/* Legend */}
+                    <div className="flex gap-3 mt-2 flex-wrap">
+                      {[
+                        { label: 'Feed', val: feedTotal, color: '#f59e0b' },
+                        { label: 'Med', val: medTotal, color: '#3b82f6' },
+                        { label: 'Seed', val: seedTotal, color: '#10b981' },
+                        { label: 'Power', val: powerTotal, color: '#a855f7' },
+                      ].filter(b => b.val > 0).map((b, i) => (
+                        <div key={i} className="flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: b.color }} />
+                          <span className={cn('text-[7px] font-black', isDark ? 'text-white/30' : 'text-slate-400')}>
+                            {b.label} ₹{b.val.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Recent Expense Timeline ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2.5 px-1">
+            <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+              {selectedCat ? `${CATEGORIES.find(c => c.key === selectedCat)?.label} Entries` : 'Recent Expenses'}
+            </p>
+            <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
+              isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400')}>
+              {displayItems.length} items
+            </span>
+          </div>
+          <div className={cn('rounded-[2rem] border overflow-hidden', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+            <AnimatePresence>
+              {displayItems.length > 0 ? displayItems.map((item, i) => {
+                const cc = getCatConfig(item.cat);
+                return (
+                  <motion.div key={i}
+                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className={cn('flex items-center gap-3 px-4 py-3.5 border-b last:border-0',
+                      isDark ? 'border-white/5' : 'border-slate-50')}>
+                    <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', cc.bg)}>
+                      <cc.icon size={13} style={{ color: cc.fill }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn('text-[10px] font-black tracking-tight truncate', isDark ? 'text-white/80' : 'text-slate-800')}>
+                        {item.label}
+                      </p>
+                      <p className={cn('text-[7px] font-bold mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
+                        {item.notes || ''} &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-black" style={{ color: cc.fill }}>
+                        ₹{item.amount.toLocaleString('en-IN')}
+                      </p>
+                      <span className={cn('text-[6.5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full', cc.bg)}
+                        style={{ color: cc.fill }}>
+                        {item.cat}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              }) : (
+                <div className="py-10 text-center">
+                  <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-300')}>
+                    No entries found
+                  </p>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
-   );
+
+      {/* FIXED BOTTOM LOG BUTTON */}
+      <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto p-4 z-40"
+        style={{ background: isDark ? 'linear-gradient(to top, #010C14 60%, transparent)' : 'linear-gradient(to top, #EEF4F0 60%, transparent)' }}>
+        <button
+          onClick={() => navigate('/daily-expense')}
+          className="w-full py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+          style={{ background: 'linear-gradient(135deg, #c05a00, #c78200)', color: 'white', boxShadow: '0 8px 32px #c7820030' }}>
+          <Plus size={16} />
+          Log Daily Expense
+        </button>
+      </div>
+    </div>
+  );
 };
