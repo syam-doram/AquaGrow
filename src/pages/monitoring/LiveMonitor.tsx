@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, TrendingUp, Activity, Sparkles, Waves, Lock,
@@ -10,6 +10,7 @@ import type { Translations } from '../../translations';
 import { User } from '../../types';
 import { analyzeLiveStream } from '../../services/geminiService';
 import { cn } from '../../utils/cn';
+import { Capacitor } from '@capacitor/core';
 
 // ─── METRIC PILLAR ────────────────────────────────────────────────────────────
 const MetricPillar = ({ label, value, sub, color }: {
@@ -81,8 +82,8 @@ const TIPS = [
 
 // ─── INSTRUCTION SCREEN ───────────────────────────────────────────────────────
 const InstructionScreen = ({
-  onStart, isDark,
-}: { onStart: () => void; isDark: boolean }) => (
+  onStart, isDark, onBack,
+}: { onStart: () => void; isDark: boolean; onBack: () => void }) => (
   <div className={cn('min-h-screen pb-36', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
     {/* Header */}
     <div className={cn(
@@ -90,7 +91,16 @@ const InstructionScreen = ({
       'pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 flex items-center justify-between border-b',
       isDark ? 'bg-[#070D12]/90 border-white/5' : 'bg-white/90 border-slate-100 shadow-sm',
     )}>
-      <div className="w-10 h-10" />
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={onBack}
+        className={cn(
+          'w-10 h-10 rounded-2xl flex items-center justify-center border',
+          isDark ? 'bg-white/5 border-white/10 text-white/70' : 'bg-white border-slate-200 text-slate-600 shadow-sm',
+        )}
+      >
+        <ChevronLeft size={18} />
+      </motion.button>
       <div className="text-center">
         <h1 className={cn('text-xs font-black tracking-tight uppercase', isDark ? 'text-white' : 'text-slate-900')}>
           Live AI Monitor
@@ -274,6 +284,19 @@ export const LiveMonitor = ({ user, t }: { user: User; t: Translations }) => {
 
     const startCamera = async () => {
       try {
+        // ── Request Android camera permission via Capacitor ──
+        if (Capacitor.isNativePlatform()) {
+          try {
+            const { Camera } = await import('@capacitor/camera');
+            const perm = await Camera.requestPermissions({ permissions: ['camera'] });
+            if (perm.camera !== 'granted') {
+              setCameraError('Camera permission denied. Please allow in device settings.');
+              return;
+            }
+          } catch {
+            // Capacitor Camera plugin not installed — fall through to web getUserMedia
+          }
+        }
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera not supported');
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -282,7 +305,7 @@ export const LiveMonitor = ({ user, t }: { user: User; t: Translations }) => {
         setStream(mediaStream);
         if (videoRef.current) videoRef.current.srcObject = mediaStream;
       } catch (err: any) {
-        setCameraError(err.message || 'Camera access denied');
+        setCameraError(err.message || 'Camera access denied. Please grant camera permission.');
       }
     };
 
@@ -329,7 +352,7 @@ export const LiveMonitor = ({ user, t }: { user: User; t: Translations }) => {
 
   // ── Instruction gate (shown to ALL users, free & pro, once per session) ──
   if (showInstructions) {
-    return <InstructionScreen isDark={isDark} onStart={handleStartMonitoring} />;
+    return <InstructionScreen isDark={isDark} onBack={() => navigate(-1)} onStart={handleStartMonitoring} />;
   }
 
   // ── FREE GATE — inline dialog overlay (no page redirect) ──

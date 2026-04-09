@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NoPondState } from '../../components/NoPondState';
 import {
@@ -136,7 +136,26 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const navigate = useNavigate();
   const { ponds, feedLogs, addFeedLog, theme } = useData();
   const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
-  const [syncedSlots, setSyncedSlots] = useState<string[]>([]);
+
+  // ── Persist completed slots per pond per day ──
+  const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const getSlotsKey = (pondId: string) => `aqua_feed_slots_${pondId}_${todayKey}`;
+
+  const [syncedSlots, setSyncedSlots] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(getSlotsKey(ponds[0]?.id || ''));
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // ── Re-load slots when pond changes ──
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(getSlotsKey(selectedPondId));
+      setSyncedSlots(saved ? JSON.parse(saved) : []);
+    } catch { setSyncedSlots([]); }
+  }, [selectedPondId]);
+
   const [activeTab, setActiveTab] = useState<'schedule' | 'fcr' | 'sow' | 'chat'>('schedule');
   const [expandedDetails, setExpandedDetails] = useState(false);
   const [now, setNow] = useState(new Date());
@@ -221,7 +240,11 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         notes:            `Daily Sequence: ${slotLabel} (${slotTime}) -” ${feedKg}kg ${profile.no} @ ‚¹${feedPricePerKg}/kg = ‚¹${slotCost}. DOC ${currentDoc}. Adj: ${combinedFactor.toFixed(2)}.`,
       } as any);
     }
-    setSyncedSlots(prev => [...prev, slotTime]);
+    setSyncedSlots(prev => {
+      const next = [...prev, slotTime];
+      try { localStorage.setItem(getSlotsKey(selectedPond.id), JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
 
 
@@ -265,7 +288,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none no-scrollbar">
             {ponds.map(p => (
               <button key={p.id}
-                onClick={() => { setSelectedPondId(p.id); setSyncedSlots([]); }}
+                onClick={() => { setSelectedPondId(p.id); }}
                 className={cn(
                   'px-3.5 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
                   selectedPondId === p.id
