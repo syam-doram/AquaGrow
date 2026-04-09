@@ -13,8 +13,16 @@ const MAX_RETRIES  = 3;
 const RETRY_DELAY  = (attempt: number) => 2000 * Math.pow(2, attempt); // 2s, 4s, 8s
 
 const getAuthHeader = (): Record<string, string> => {
-  const token = localStorage.getItem('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  try {
+    // Tokens are stored as JSON under 'aqua_tokens' by DataContext
+    const raw = localStorage.getItem('aqua_tokens');
+    if (!raw) return {};
+    const tokens = JSON.parse(raw);
+    const token = tokens?.access;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
 };
 
 // ─── Disease Detection ────────────────────────────────────────────────────────
