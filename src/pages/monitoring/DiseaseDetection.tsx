@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -21,8 +21,8 @@ import {
 import { computeDiseaseRisk, RISK_COLORS, STAGE_META, SEASON_META } from '../../utils/diseaseRiskEngine';
 import { calculateDOC } from '../../utils/pondUtils';
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const SYMPTOM_OPTIONS = [
+// ─── SYMPTOM OPTIONS — English ────────────────────────────────────────────────
+const SYMPTOM_OPTIONS_EN = [
   // White Gut
   { label: 'White / Pale Gut Line Visible',       key: 'white gut',           disease: 'white_gut'   },
   { label: 'White Fecal Strings in Water',         key: 'fecal strings',       disease: 'white_gut'   },
@@ -53,6 +53,30 @@ const SYMPTOM_OPTIONS = [
   { label: 'Molting Problems / Stuck in Molt',    key: 'molting trouble',     disease: 'shell_disease'},
   // Fouling
   { label: 'Fuzzy / Dirty Coating on Body',       key: 'fouling coating',     disease: 'fouling'     },
+];
+
+// ─── SYMPTOM OPTIONS — Telugu ─────────────────────────────────────────────────
+const SYMPTOM_OPTIONS_TE = [
+  { label: 'తెలుపు / వెలిసిన పొట్టు రేఖ కనిపిస్తుంది',  key: 'white gut',           disease: 'white_gut'   },
+  { label: 'నీళ్ళలో తెలుపు విసర్జన తంతులు',                   key: 'fecal strings',       disease: 'white_gut'   },
+  { label: 'ట్రేల్లో తిన్నని మేత మిగిలిపోతుంది',               key: 'uneaten feed',        disease: 'white_gut'   },
+  { label: 'చిప్ప / లోపల పొట్టుపై తెలుపు మచ్చలు',          key: 'white spot',          disease: 'wssv'        },
+  { label: 'ఎర్రని / గులాబీ శరీర వర్ణం',                    key: 'reddish body',        disease: 'wssv'        },
+  { label: 'అధిక మరణాలు (50+ ప్రతి రోజు)',             key: 'high mortality',      disease: 'wssv'        },
+  { label: 'ప్రస్తుత మాస మరణం (7-30 రోజులు)',         key: 'sudden death',        disease: 'ems_ahpnd'   },
+  { label: 'వెలిసిన హెపాటోపాంక్రియాస్ (కాలేయం)',     key: 'pale hepatopancreas', disease: 'ems_ahpnd'   },
+  { label: 'మెత్తని / చురుకలు పోయిన చిప్ప',                  key: 'soft shell',          disease: 'ems_ahpnd'   },
+  { label: 'చాలా నిధానంగా పెరుగుతుంది / పెరుగుదల తభ్పు',  key: 'slow growth',         disease: 'ehp'         },
+  { label: 'చెరువులో సమాన పరిమాణం లేదు',                   key: 'size variation',      disease: 'ehp'         },
+  { label: 'రాత్రిపుడు వెలుతుంది / దీప్తి',                key: 'glowing night',       disease: 'vibriosis'   },
+  { label: 'ఎర్రని / కురుచుపట్టిన కాళ్ళు లేదా తణుపు',  key: 'red appendages',      disease: 'vibriosis'   },
+  { label: 'నలది / గాఢంగా డార్క్ బ్రౌన్ చెవులు',             key: 'black gill',          disease: 'black_gill'  },
+  { label: 'రొయ్య గాలి కోసం పైకి వస్తుంది',                key: 'surfacing',           disease: 'black_gill'  },
+  { label: 'నిరంతరం తక్కువ మరణాలు',                          key: 'running mortality',   disease: 'rms'         },
+  { label: 'వంకరించిన / వికృత షిక్ష లేదా శరీరం',       key: 'deformed rostrum',    disease: 'ihhnv'       },
+  { label: 'చిప్పపై నల్లని / డార్క్ బ్రౌన్ మచ్చలు',    key: 'shell spots',         disease: 'shell_disease'},
+  { label: 'షెడ్డింగ్ సమస్యలు / షెడ్డింగ్లో ఇరుకుకుపోవడం',  key: 'molting trouble',     disease: 'shell_disease'},
+  { label: 'శరీరంపై ముగ్గు / మురుకు పొత ఉంది',              key: 'fouling coating',     disease: 'fouling'     },
 ];
 
 const DANGER_CONFIG = {
@@ -103,7 +127,8 @@ const DiseaseCard = ({ sop, isDark, onSelect }: { sop: DiseaseSOP; isDark: boole
 };
 
 // ─── FULL SOP VIEW ────────────────────────────────────────────────────────────
-const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; onClose: () => void }) => {
+const SOPView = ({ sop, isDark, onClose, lang }: { sop: DiseaseSOP; isDark: boolean; onClose: () => void; lang: string }) => {
+  const isTe = lang === 'Telugu';
   const danger = DANGER_CONFIG[sop.dangerLevel];
   const [openSection, setOpenSection] = useState<string | null>('actions');
   const severityGrad = SEVERITY_HERO[sop.dangerLevel === 'critical' ? 'Critical' : sop.dangerLevel === 'high' ? 'High' : sop.dangerLevel === 'moderate' ? 'Moderate' : 'Low'] ?? 'from-slate-700 to-slate-900';
@@ -144,7 +169,7 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
     >
       {/* Back */}
       <button onClick={onClose} className={cn('flex items-center gap-2 text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-700')}>
-        <ChevronLeft size={14} /> Back to library
+        <ChevronLeft size={14} /> {isTe ? 'గ్రంధాలయానికి తిరిగి' : 'Back to library'}
       </button>
 
       {/* Hero */}
@@ -158,11 +183,11 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
           </div>
           <h2 className="text-xl font-black tracking-tight mb-1">{sop.name}</h2>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="text-white/40 text-[7px] font-bold uppercase tracking-widest">Caused by:</span>
+            <span className="text-white/40 text-[7px] font-bold uppercase tracking-widest">{isTe ? 'కారణం:' : 'Caused by:'}</span>
             <span className="text-white/70 text-[8px] font-black">{sop.causedBy}</span>
           </div>
           <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">🔍 Key Visual Marker</p>
+            <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">🔍 {isTe ? 'ముఖ్య దృశ్య సంజ్ఞ' : 'Key Visual Marker'}</p>
             <p className="text-white/75 text-[9px] font-bold italic">{sop.visualMarkers[0]}</p>
           </div>
         </div>
@@ -170,7 +195,7 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
 
       {/* Symptoms + Early Warnings */}
       <div className={cn('rounded-[2rem] p-4 border', isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}>
-        <p className={cn('text-[8px] font-black uppercase tracking-widest mb-3', isDark ? 'text-white/30' : 'text-slate-400')}>Key Symptoms</p>
+        <p className={cn('text-[8px] font-black uppercase tracking-widest mb-3', isDark ? 'text-white/30' : 'text-slate-400')}>{isTe ? 'ముఖ్య లక్షణాలు' : 'Key Symptoms'}</p>
         <div className="space-y-2 mb-4">
           {sop.symptoms.map((s, i) => (
             <div key={i} className="flex items-start gap-2.5">
@@ -181,7 +206,7 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
         </div>
         {sop.earlyWarnings?.length > 0 && (
           <>
-            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2 mt-3 pt-3 border-t', isDark ? 'text-amber-400/60 border-white/5' : 'text-amber-700 border-slate-100')}>⚠ Early Warning Signs</p>
+            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2 mt-3 pt-3 border-t', isDark ? 'text-amber-400/60 border-white/5' : 'text-amber-700 border-slate-100')}>⚠ {isTe ? 'ముందస్తు హెచ్చరిక సంకేతాలు' : 'Early Warning Signs'}</p>
             <div className="space-y-1.5">
               {sop.earlyWarnings.map((w, i) => (
                 <div key={i} className="flex items-start gap-2">
@@ -195,7 +220,7 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
       </div>
 
       {/* Sections */}
-      <Section id="actions" title="Immediate Actions (Day 1)" icon={AlertTriangle} color="bg-red-500">
+      <Section id="actions" title={isTe ? "వెంటనే చర్యలు (1వ రోజు)" : "Immediate Actions (Day 1)"} icon={AlertTriangle} color="bg-red-500">
         <ul className="space-y-2 mt-4">
           {sop.immediateActions.map((a, i) => (
             <li key={i} className="flex gap-2.5 items-start">
@@ -206,16 +231,16 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
         </ul>
       </Section>
 
-      <Section id="protocol" title="Treatment Protocol" icon={FlaskConical} color="bg-emerald-600">
+      <Section id="protocol" title={isTe ? "చికిత్స ప్రోటోకాల్" : "Treatment Protocol"} icon={FlaskConical} color="bg-emerald-600">
         <div className="space-y-4 mt-4">
           <div>
-            <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-2', isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-700')}>Water Treatment</span>
+            <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-2', isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-700')}>{isTe ? "నీటి చికిత్స" : "Water Treatment"}</span>
             <ul className="space-y-1.5 ml-1">
               {sop.protocol.water.map((m, i) => <li key={i} className={cn('text-[10px] font-bold flex gap-2', isDark ? 'text-white/60' : 'text-slate-600')}><span className="text-emerald-500">•</span>{m}</li>)}
             </ul>
           </div>
           <div>
-            <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-2', isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700')}>Feed Medication</span>
+            <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-2', isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700')}>{isTe ? "మేతలో మందులు" : "Feed Medication"}</span>
             <ul className="space-y-1.5 ml-1">
               {sop.protocol.feed.map((m, i) => <li key={i} className={cn('text-[10px] font-bold flex gap-2', isDark ? 'text-white/60' : 'text-slate-600')}><span className="text-blue-500">•</span>{m}</li>)}
             </ul>
@@ -223,11 +248,11 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
         </div>
       </Section>
 
-      <Section id="feed" title="Feed Recovery Plan (Day-by-Day)" icon={Fish} color="bg-amber-500">
+      <Section id="feed" title={isTe ? "మేత విరామ ప్లాన్ (రోజువారీగా)" : "Feed Recovery Plan (Day-by-Day)"} icon={Fish} color="bg-amber-500">
         <div className="grid grid-cols-5 gap-2 mt-4">
           {sop.feedManagement.map((f, i) => (
             <div key={i} className={cn('rounded-xl p-2 text-center border', isDark ? 'bg-white/3 border-white/8' : 'bg-amber-50 border-amber-100')}>
-              <p className={cn('text-[6px] font-black uppercase mb-1', isDark ? 'text-white/30' : 'text-amber-700')}>Day {f.day}</p>
+              <p className={cn('text-[6px] font-black uppercase mb-1', isDark ? 'text-white/30' : 'text-amber-700')}>{isTe ? 'రోజు' : 'Day'} {f.day}</p>
               <p className={cn('text-[9px] font-black', isDark ? 'text-white/70' : 'text-amber-900')}>{f.quantity}</p>
               {f.note && <p className={cn('text-[5px] font-bold mt-0.5 leading-tight', isDark ? 'text-white/20' : 'text-amber-600/70')}>{f.note}</p>}
             </div>
@@ -235,7 +260,7 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
         </div>
       </Section>
 
-      <Section id="water" title="Target Water Quality" icon={Waves} color="bg-blue-600">
+      <Section id="water" title={isTe ? "లక్ష్య నీటి నాణ్యత" : "Target Water Quality"} icon={Waves} color="bg-blue-600">
         <div className="space-y-2 mt-4">
           {sop.waterQuality.map((wq, i) => (
             <div key={i} className={cn('flex items-center justify-between py-2 border-b last:border-0', isDark ? 'border-white/5' : 'border-slate-100')}>
@@ -249,14 +274,14 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
         </div>
       </Section>
 
-      <Section id="recovery" title="Recovery Signs & Mistakes" icon={CheckCircle2} color="bg-purple-600">
+      <Section id="recovery" title={isTe ? "తిరిగి చేరుకోవడం & తప్పిదమలు" : "Recovery Signs & Mistakes"} icon={CheckCircle2} color="bg-purple-600">
         <div className="mt-4 space-y-4">
           <div>
-            <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-emerald-400' : 'text-emerald-700')}>✔ Recovery Signs</p>
+            <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-emerald-400' : 'text-emerald-700')}>{isTe ? "✔ తిరిగి చేరుకొన్న సంకేతాలు" : "✔ Recovery Signs"}</p>
             {sop.recoverySigns.map((s, i) => <p key={i} className={cn('text-[10px] font-bold mb-1.5', isDark ? 'text-white/60' : 'text-slate-600')}>✓ {s}</p>)}
           </div>
           <div>
-            <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-red-400' : 'text-red-700')}>✕ Mistakes to Avoid</p>
+            <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-red-400' : 'text-red-700')}>{isTe ? "✕ చేయకూడని తప్పిదమలు" : "✕ Mistakes to Avoid"}</p>
             <div className="flex flex-wrap gap-1.5">
               {sop.mistakes.map((m, i) => (
                 <span key={i} className={cn('text-[7px] font-black uppercase px-2 py-1 rounded-xl border', isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-700')}>🚫 {m}</span>
@@ -266,7 +291,7 @@ const SOPView = ({ sop, isDark, onClose }: { sop: DiseaseSOP; isDark: boolean; o
         </div>
       </Section>
 
-      <Section id="prevention" title="Prevention Tips" icon={ShieldCheck} color="bg-emerald-700">
+      <Section id="prevention" title={isTe ? "నివారణ చిట్కాళు" : "Prevention Tips"} icon={ShieldCheck} color="bg-emerald-700">
         <ul className="space-y-2 mt-4">
           {sop.preventionTips.map((p, i) => (
             <li key={i} className="flex gap-2.5 items-start">
@@ -285,6 +310,8 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
   const { isPro, theme, ponds, waterRecords, updatePond } = useData();
   const navigate = useNavigate();
   const isDark   = theme === 'dark' || theme === 'midnight';
+  const isTe     = user.language === 'Telugu';
+  const SYMPTOM_OPTIONS = isTe ? SYMPTOM_OPTIONS_TE : SYMPTOM_OPTIONS_EN;
 
   // ── Scan Quota per Plan ──
   const getScanLimit = () => {
@@ -631,7 +658,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
         {/* SOP overlay still works for preview */}
         {step === 'sop' && browsingSOP && (
           <div className={cn('fixed inset-0 z-50 overflow-y-auto pb-20 pt-24 px-4', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
-            <SOPView sop={browsingSOP} isDark={isDark} onClose={() => { setStep('intro'); setBrowsingSOP(null); }} />
+            <SOPView sop={browsingSOP} isDark={isDark} lang={user.language} onClose={() => { setStep('intro'); setBrowsingSOP(null); }} />
           </div>
         )}
       </div>
@@ -814,9 +841,9 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                       isDark ? 'bg-white/3' : 'bg-emerald-50')}>
                       <div>
                         <p className={cn('text-[7px] font-black uppercase tracking-widest mb-0.5',
-                          isDark ? 'text-white/30' : 'text-slate-400')}>Live Stage-Based Prediction</p>
+                          isDark ? 'text-white/30' : 'text-slate-400')}>{isTe ? 'లైవ్ దశ-ఆధారిత అంచనా' : 'Live Stage-Based Prediction'}</p>
                         <h3 className={cn('font-black text-sm tracking-tight',
-                          isDark ? 'text-white' : 'text-slate-900')}>Disease Risk Intelligence</h3>
+                          isDark ? 'text-white' : 'text-slate-900')}>{isTe ? 'వ్యాధి ప్రమాద తెలివి' : 'Disease Risk Intelligence'}</h3>
                         <div className="flex items-center gap-2 mt-1.5">
                           <span className="text-xs">{stageMeta.emoji}</span>
                           <span className={cn('text-[7px] font-black', stageMeta.color)}>{stageMeta.label} · DOC {currentDoc}</span>
@@ -826,7 +853,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                       </div>
                       <div className={cn('px-3 py-2 rounded-2xl border text-center min-w-[72px]', oc.badge)}>
                         <p className="text-[8px] font-black uppercase tracking-widest">{riskReport.overallRisk}</p>
-                        <p className={cn('text-[7px] font-bold mt-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>Overall</p>
+                        <p className={cn('text-[7px] font-bold mt-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>{isTe ? 'మొత్తం' : 'Overall'}</p>
                       </div>
                     </div>
 
@@ -875,7 +902,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                     {topRisks[0] && topRisks[0].riskScore >= 50 && (
                       <div className={cn('mx-4 mb-4 px-4 py-3 rounded-2xl border',
                         isDark ? 'bg-red-500/8 border-red-500/15' : 'bg-red-50 border-red-200')}>
-                        <p className="text-red-500 text-[7px] font-black uppercase tracking-widest mb-1">⚠ Priority Action Now</p>
+                        <p className="text-red-500 text-[7px] font-black uppercase tracking-widest mb-1">{isTe ? '⚠ ఇప్పుడే ముఖ్య చర్య' : '⚠ Priority Action Now'}</p>
                         <p className={cn('text-[9px] font-medium leading-relaxed',
                           isDark ? 'text-white/60' : 'text-slate-700')}>{topRisks[0].action}</p>
                       </div>
@@ -885,7 +912,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                     <div className={cn('mx-4 mb-4 px-4 py-3 rounded-2xl border',
                       isDark ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-emerald-50 border-emerald-100')}>
                       <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2',
-                        isDark ? 'text-emerald-400/60' : 'text-emerald-700')}>💡 Stage Prevention Tips</p>
+                        isDark ? 'text-emerald-400/60' : 'text-emerald-700')}>{isTe ? '💡 దశ నివారణ చిట్కాలు' : '💡 Stage Prevention Tips'}</p>
                       <div className="space-y-1">
                         {riskReport.preventionTips.slice(0, 3).map((tip, i) => (
                           <p key={i} className={cn('text-[8px] font-medium leading-relaxed flex gap-1.5',
@@ -903,9 +930,9 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               <div className="bg-gradient-to-br from-[#0D523C] to-[#02130F] rounded-[2.5rem] p-6 text-white relative overflow-hidden">
                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-[60px]" />
                 <div className="relative z-10">
-                  <p className="text-emerald-400/60 text-[7px] font-black uppercase tracking-widest mb-1">AI Diagnostic Engine v2</p>
-                  <h2 className="text-xl font-black tracking-tight mb-1">Preparation <span className="text-[#C78200]">Checklist</span></h2>
-                  <p className="text-white/40 text-[8px] font-medium">Follow these steps for the most accurate AI diagnosis</p>
+                  <p className="text-emerald-400/60 text-[7px] font-black uppercase tracking-widest mb-1">{isTe ? 'AI రోగ నిర్ధారణ ఇంజిన్ v2' : 'AI Diagnostic Engine v2'}</p>
+                  <h2 className="text-xl font-black tracking-tight mb-1">{isTe ? 'సన్నద్ధత ' : 'Preparation '}<span className="text-[#C78200]">{isTe ? 'చెక్‌లిస్ట్' : 'Checklist'}</span></h2>
+                  <p className="text-white/40 text-[8px] font-medium">{isTe ? 'అత్యంత ఖచ్చితమైన AI రోగ నిర్ధారణ కోసం ఈ దశలను పాటించండి' : 'Follow these steps for the most accurate AI diagnosis'}</p>
                 </div>
               </div>
 
@@ -913,11 +940,11 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               {/* Checklist */}
               <div className="space-y-2.5">
                 {[
-                  { title: 'Clean Background', desc: 'Place shrimp on a white or blue solid tray — no mud/soil', icon: <Waves size={16} />, ok: true },
-                  { title: 'Natural Lighting', desc: 'Indirect sunlight or torch light — avoid direct flash glare', icon: <Sparkles size={16} />, ok: true },
-                  { title: 'Gut Line in Frame', desc: 'Ensure the full length of the shrimp\'s back is visible and centered', icon: <Eye size={16} />, ok: true },
-                  { title: 'Dry & Clear Surface', desc: 'Wipe excess water — wet surfaces cause glare and blur', icon: <CheckCircle2 size={16} />, ok: true },
-                  { title: 'Macro Distance', desc: 'Hold camera 15–20 cm from shrimp — fill the frame', icon: <Camera size={16} />, ok: true },
+                  { title: isTe ? 'శుభ్రమైన నేపథ్యం' : 'Clean Background', desc: isTe ? 'రొయ్యను తెలుపు లేదా నీలం ట్రేపై పెట్టండి — మట్టి వద్దు' : 'Place shrimp on a white or blue solid tray — no mud/soil', icon: <Waves size={16} />, ok: true },
+                  { title: isTe ? 'సహజ వెలుతురు' : 'Natural Lighting', desc: isTe ? 'పరోక్ష సూర్యకాంతి లేదా టార్చ్ — నేరుగా మిరుమిట్లు వద్దు' : 'Indirect sunlight or torch light — avoid direct flash glare', icon: <Sparkles size={16} />, ok: true },
+                  { title: isTe ? 'పొట్టు రేఖ కనిపించాలి' : 'Gut Line in Frame', desc: isTe ? 'రొయ్య వెనుక పూర్తి పొడవు కనిపించేలా ఉంచండి' : 'Ensure the full length of the shrimp\'s back is visible and centered', icon: <Eye size={16} />, ok: true },
+                  { title: isTe ? 'పొడి & స్పష్టమైన ఉపరితలం' : 'Dry & Clear Surface', desc: isTe ? 'అదనపు నీటిని తుడవండి — తడి ఉపరితలాలు మిరుమిట్లు కలిగిస్తాయి' : 'Wipe excess water — wet surfaces cause glare and blur', icon: <CheckCircle2 size={16} />, ok: true },
+                  { title: isTe ? 'మాక్రో దూరం' : 'Macro Distance', desc: isTe ? 'కెమెరాను 15–20 సెమీ దూరంలో పట్టండి — ఫ్రేమ్ నింపండి' : 'Hold camera 15–20 cm from shrimp — fill the frame', icon: <Camera size={16} />, ok: true },
                 ].map((item, idx) => (
                   <div key={idx} className={cn('rounded-[2rem] border p-4 flex items-start gap-4', isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}>
                     <div className="w-10 h-10 bg-[#C78200]/10 rounded-2xl flex items-center justify-center text-[#C78200] flex-shrink-0">{item.icon}</div>
@@ -959,7 +986,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                 <div className="w-[72px] h-[72px] bg-[#C78200]/10 rounded-full flex items-center justify-center mb-5 text-[#C78200]">
                   <Camera size={32} />
                 </div>
-                <h2 className={cn('text-xl font-black tracking-tight mb-2', isDark ? 'text-white' : 'text-slate-900')}>Scan Shrimp</h2>
+                <h2 className={cn('text-xl font-black tracking-tight mb-2', isDark ? 'text-white' : 'text-slate-900')}>{isTe ? 'రొయ్య స్కాన్' : 'Scan Shrimp'}</h2>
                 <p className={cn('text-[9px] font-bold uppercase tracking-widest leading-relaxed px-4 mb-8', isDark ? 'text-white/30' : 'text-slate-500')}>
                   Camera scan or upload a gallery photo for AI diagnosis
                 </p>
@@ -982,8 +1009,8 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               <div onClick={() => setStep('manual')} className="bg-gradient-to-br from-[#4A2C2A] to-[#2d1a18] p-5 rounded-[2.5rem] text-white cursor-pointer active:scale-[0.98] transition-all">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-black tracking-tight">Manual Symptom Checker</h3>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mt-1">No photo? Select symptoms manually</p>
+                    <h3 className="text-sm font-black tracking-tight">{isTe ? 'మాన్యువల్ లక్షణ పరీక్ష' : 'Manual Symptom Checker'}</h3>
+                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mt-1">{isTe ? 'ఫోటో లేదా? లక్షణాలు మాన్యువల్‌గా ఎంచుకోండి' : 'No photo? Select symptoms manually'}</p>
                   </div>
                   <div className="w-11 h-11 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
                     <AlertTriangle size={18} className="text-[#C78200]" />
@@ -996,7 +1023,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                 <div className="flex items-start gap-3">
                   <Info size={15} className="text-[#C78200] flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className={cn('text-[9px] font-black uppercase tracking-widest mb-1', isDark ? 'text-[#C78200]' : 'text-amber-800')}>Best Photo Tips</p>
+                    <p className={cn('text-[9px] font-black uppercase tracking-widest mb-1', isDark ? 'text-[#C78200]' : 'text-amber-800')}>{isTe ? 'ఉత్తమ ఫోటో చిట్కాలు' : 'Best Photo Tips'}</p>
                     <p className={cn('text-[8px] font-medium leading-relaxed', isDark ? 'text-white/35' : 'text-amber-900/70')}>
                       White tray · Bright indirect light · 15–20 cm distance · Dry surface · Full shrimp visible · No plastic bag distortion
                     </p>
@@ -1017,7 +1044,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                   selectedSymptoms.length > 0
                     ? isDark ? 'bg-[#C78200]/10 border-[#C78200]/20 text-[#C78200]' : 'bg-amber-100 border-amber-200 text-amber-700'
                     : isDark ? 'bg-white/5 border-white/10 text-white/25' : 'bg-slate-100 border-slate-200 text-slate-400'
-                )}>{selectedSymptoms.length} selected</span>
+                )}>{selectedSymptoms.length} {isTe ? 'ఎంచుకున్నారు' : 'selected'}</span>
               </div>
               <div className="grid grid-cols-1 gap-2">
                 {SYMPTOM_OPTIONS.map(symp => (
@@ -1075,7 +1102,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               </div>
 
               <h2 className={cn('text-xl font-black tracking-tighter mb-2', isDark ? 'text-white' : 'text-slate-900')}>{loadingMessage}</h2>
-              <p className={cn('text-[8px] font-black uppercase tracking-[0.35em] mb-8', isDark ? 'text-white/20' : 'text-slate-400')}>5-disease pattern match · Gemini AI</p>
+              <p className={cn('text-[8px] font-black uppercase tracking-[0.35em] mb-8', isDark ? 'text-white/20' : 'text-slate-400')}>{isTe ? '5-వ్యాధి నమూనా మ్యాచ్ · Gemini AI' : '5-disease pattern match · Gemini AI'}</p>
 
               {/* Progress dots */}
               <div className="flex gap-2">
@@ -1244,7 +1271,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
 
               {/* Matched SOP / Fallback actions */}
               {mappedSOP ? (
-                <SOPView sop={mappedSOP} isDark={isDark} onClose={() => setMappedSOP(null)} />
+                <SOPView sop={mappedSOP} isDark={isDark} lang={user.language} onClose={() => setMappedSOP(null)} />
               ) : analysis?.action?.startsWith('QUOTA_EXCEEDED|') ? (
                 /* ── Quota Exhausted Card ── */
                 <div className={cn('rounded-[2rem] p-5 border', isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200')}>
@@ -1308,9 +1335,9 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               <div className="bg-gradient-to-br from-[#0D523C] to-[#02130F] rounded-[2.5rem] p-5 text-white relative overflow-hidden">
                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-[60px]" />
                 <div className="relative z-10">
-                  <p className="text-emerald-400/60 text-[7px] font-black uppercase tracking-widest mb-1">Reference</p>
-                  <h2 className="text-lg font-black tracking-tight">Disease Library</h2>
-                  <p className="text-white/40 text-[8px] font-medium mt-1">{DISEASE_CATALOG.length} diseases · Full SOP for each</p>
+                  <p className="text-emerald-400/60 text-[7px] font-black uppercase tracking-widest mb-1">{isTe ? 'సూచన' : 'Reference'}</p>
+                  <h2 className="text-lg font-black tracking-tight">{isTe ? 'వ్యాధి గ్రంధాలయం' : 'Disease Library'}</h2>
+                  <p className="text-white/40 text-[8px] font-medium mt-1">{DISEASE_CATALOG.length} {isTe ? 'వ్యాధులు · ప్రతిదానికి పూర్తి SOP' : 'diseases · Full SOP for each'}</p>
                 </div>
               </div>
 
@@ -1325,7 +1352,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
           {/* ── SOP DETAIL ── */}
           {step === 'sop' && browsingSOP && (
             <motion.div key="sop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pb-12">
-              <SOPView sop={browsingSOP} isDark={isDark} onClose={() => { setBrowsingSOP(null); setStep('library'); }} />
+              <SOPView sop={browsingSOP} isDark={isDark} lang={user.language} onClose={() => { setBrowsingSOP(null); setStep('library'); }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1354,7 +1381,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               {/* Guide text */}
               <div className="absolute bottom-[20%] left-0 right-0 flex justify-center">
                 <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/10">
-                  <p className="text-[#C78200] text-[8px] font-black uppercase tracking-widest text-center">Position shrimp inside the frame</p>
+                  <p className="text-[#C78200] text-[8px] font-black uppercase tracking-widest text-center">{isTe ? 'ఫ్రేమ్ లోపల రొయ్యను ఉంచండి' : 'Position shrimp inside the frame'}</p>
                 </div>
               </div>
             </div>
@@ -1375,7 +1402,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
             <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] left-4 right-4 flex justify-between items-center">
               <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-2 rounded-xl border border-white/10">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-white text-[8px] font-black uppercase tracking-widest">AI Cam Ready</span>
+                <span className="text-white text-[8px] font-black uppercase tracking-widest">{isTe ? 'AI కెమ్ సిద్ధంగా ఉంది' : 'AI Cam Ready'}</span>
               </div>
               <div className="bg-[#C78200]/80 backdrop-blur-md px-3 py-2 rounded-xl text-[8px] font-black text-white uppercase tracking-widest">
                 Tap ● to scan
@@ -1387,3 +1414,9 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
     </div>
   );
 };
+
+
+
+
+
+
