@@ -141,23 +141,9 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const selectedPond = ponds.find(p => p.id === selectedPondId);
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
   
-  const toggleSlot = async (slotTime: string, kg: string) => {
-    if (syncedSlots.includes(slotTime) || !selectedPond) return;
-    const feedKg = Number(kg);
-    // Feed price per kg based on DOC stage (starter is pricier, finisher is cheaper per kg)
-    const feedPricePerKg = currentDoc <= 15 ? 90 : currentDoc <= 30 ? 75 : currentDoc <= 60 ? 68 : 62;
-    const slotCost = Math.round(feedKg * feedPricePerKg);
-    if (addFeedLog) {
-      await addFeedLog({
-        pondId: selectedPond.id,
-        date: new Date().toISOString(),
-        quantity: feedKg,
-        cost: slotCost,   // ← flows into ROI Feed Expense tracking
-        notes: `Applied ${slotTime} slot (${feedKg}kg) · ~₹${slotCost}. Used ${getFeedType(currentDoc).no}.`,
-      });
-    }
-    setSyncedSlots(prev => [...prev, slotTime]);
-  };
+
+  // ── toggleSlot is defined further below after computed values ──
+  // (biomassKg, totalFeedConsumed, combinedFactor need to be in scope)
 
   const sop = useMemo(() => getSopData(currentDoc), [currentDoc]);
   const feedProfile = useMemo(() => getFeedType(currentDoc), [currentDoc]);
@@ -197,6 +183,37 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const todayCompliance = adjustedDailyKg > 0 ? Math.min(100, Math.round((todayFedKg / adjustedDailyKg) * 100)) : 0;
   const slotsCompleted = syncedSlots.length;
   const isCriticalStage = currentDoc >= 31 && currentDoc <= 45;
+
+  // ── Daily Sequence slot log handler (needs biomassKg, totalFeedConsumed, combinedFactor) ─────
+  const toggleSlot = async (slotTime: string, kg: string, slotLabel: string) => {
+    if (syncedSlots.includes(slotTime) || !selectedPond) return;
+    const feedKg = Number(kg);
+    const feedPricePerKg = currentDoc <= 15 ? 90 : currentDoc <= 30 ? 75 : currentDoc <= 60 ? 68 : 62;
+    const slotCost = Math.round(feedKg * feedPricePerKg);
+    const profile = getFeedType(currentDoc);
+    const runningFCR = biomassKg > 0 ? (totalFeedConsumed + feedKg) / biomassKg : 0;
+
+    if (addFeedLog) {
+      await addFeedLog({
+        pondId:           selectedPond.id,
+        date:             new Date().toISOString(),
+        time:             slotTime,
+        slotLabel:        slotLabel,
+        brand:            profile.type,
+        feedType:         profile.type,
+        feedNo:           profile.no,
+        quantity:         feedKg,
+        cost:             slotCost,
+        doc:              currentDoc,
+        fcr:              parseFloat(runningFCR.toFixed(3)),
+        adjustmentFactor: parseFloat(combinedFactor.toFixed(3)),
+        notes:            `Daily Sequence: ${slotLabel} (${slotTime}) — ${feedKg}kg ${profile.no} @ ₹${feedPricePerKg}/kg = ₹${slotCost}. DOC ${currentDoc}. Adj: ${combinedFactor.toFixed(2)}.`,
+      } as any);
+    }
+    setSyncedSlots(prev => [...prev, slotTime]);
+  };
+
+
 
   return (
     <div className="pb-32 min-h-[100dvh] text-left px-0 font-sans relative overflow-hidden transition-colors duration-500" style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}>
@@ -556,7 +573,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                           <div className={cn("p-3 flex items-center justify-between", isSynced ? "bg-emerald-500/5" : "")}>
                              <div className="flex items-center gap-3">
                                 <button 
-                                  onClick={() => toggleSlot(slot.time, kgPerSlot)}
+                                  onClick={() => toggleSlot(slot.time, kgPerSlot, slot.label)}
                                   className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95", 
                                   isSynced ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' : isNow ? 'bg-[#059669] text-white shadow-md' : isPast ? 'bg-red-400 text-white' : isDark ? 'bg-black/30 text-white/50 border border-white/10' : 'bg-slate-50 border border-slate-200 text-slate-400 hover:border-emerald-400'
                                 )}>
