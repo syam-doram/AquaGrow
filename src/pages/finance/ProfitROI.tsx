@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   TrendingUp, TrendingDown, BarChart2, Calendar, PieChart,
-  FileText, ChevronRight, Plus, Layers, Fish, Receipt,
-  ArrowUpRight, Sparkles, Target, Calculator
+  FileText, ChevronRight, Layers, Fish, Receipt,
+  ArrowUpRight, Target, Calculator
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
@@ -90,18 +90,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
       badge: null,
       badgeColor: '',
     },
-    {
-      id: 'entry',
-      route: '/roi-entry',
-      icon: Plus,
-      emoji: '➕',
-      label: 'Add ROI Entry',
-      sub: 'Log a completed harvest cycle',
-      color: 'text-[#C78200]',
-      bg: isDark ? 'bg-[#C78200]/10 border-[#C78200]/20' : 'bg-amber-50 border-amber-200',
-      badge: 'New',
-      badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
-    },
+
   ];
 
   return (
@@ -251,33 +240,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
           </div>
         </div>
 
-        {/* ── Quick tip if no entries ── */}
-        {totalCycles === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            className={cn('rounded-[2rem] border p-5', isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#C78200]/10 border border-[#C78200]/20 flex items-center justify-center flex-shrink-0">
-                <Sparkles size={16} className="text-[#C78200]" />
-              </div>
-              <div>
-                <p className={cn('text-[11px] font-black tracking-tight mb-1', isDark ? 'text-white' : 'text-slate-900')}>
-                  Start Tracking Your ROI
-                </p>
-                <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-                  After each harvest, add an ROI entry to track your profitability, compare pond performance, and build your financial history.
-                </p>
-                <button
-                  onClick={() => navigate('/roi-entry')}
-                  className="mt-3 flex items-center gap-1.5 text-[#C78200] text-[8px] font-black uppercase tracking-widest"
-                >
-                  <Plus size={11} /> Add First Entry
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
+
       </div>
     </div>
   );

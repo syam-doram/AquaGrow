@@ -366,14 +366,9 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
               <Layers size={28} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
             </div>
             <p className={cn('text-sm font-black', isDark ? 'text-white' : 'text-slate-900')}>No Harvest Records Yet</p>
-            <p className={cn('text-[8px] font-bold mt-1 mb-4', isDark ? 'text-white/30' : 'text-slate-400')}>
-              Complete a harvest cycle and add ROI entry to see records here.
+            <p className={cn('text-[8px] font-bold mt-1', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Complete a harvest cycle to see your revenue records here.
             </p>
-            <button onClick={() => navigate('/roi-entry')}
-              className="px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-white"
-              style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
-              Add ROI Entry
-            </button>
           </motion.div>
         )}
 
