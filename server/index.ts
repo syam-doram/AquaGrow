@@ -24,22 +24,30 @@ const PORT = Number(process.env.PORT) || 3005;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+const ALLOWED_ORIGINS = [
+  'https://aquagrow.onrender.com',
+  'https://aqua-grow.vercel.app',
+];
+
 app.use(cors({
-  origin: [
-    // Web dev
-    'http://localhost:3000',
-    'http://localhost:5173',
-    // Render production
-    'https://aquagrow.onrender.com',
-    'https://aqua-grow.vercel.app',
-    // Capacitor Android webview origin
-    'https://localhost',
-    'http://localhost',
-    // Capacitor iOS webview origin
-    'capacitor://localhost',
-    'ionic://localhost',
-  ],
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow no-origin requests (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    // Always allow Capacitor / Ionic WebView (Android = https://localhost, iOS = capacitor://localhost)
+    if (
+      origin === 'https://localhost' ||
+      origin === 'http://localhost'  ||
+      origin.startsWith('capacitor://') ||
+      origin.startsWith('ionic://')     ||
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('https://localhost:')
+    ) return callback(null, true);
+    // Allow known production domains
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // Block everything else
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
 }));
 
 // Use modular routes
