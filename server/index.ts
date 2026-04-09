@@ -217,9 +217,11 @@ app.put('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) =
 app.get('/api/user/:userId/water-logs', authenticate, requireSelf, async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    const logs = await WaterLogMongo.find({ userId: req.params.userId });
+    const filter: any = { userId: req.params.userId };
+    if (req.query.pondId) filter.pondId = req.query.pondId;
+    const logs = await WaterLogMongo.find(filter).sort({ createdAt: -1 }).limit(500);
     res.json(logs);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/water-logs', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -227,8 +229,16 @@ app.post('/api/water-logs', authenticate, async (req: AuthenticatedRequest, res)
     const data = { ...req.body, userId: req.user.id };
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     res.json(await new WaterLogMongo(data).save());
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
+
+app.delete('/api/water-logs/:id', authenticate, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await WaterLogMongo.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});;
 
 // ═══════════════════════════════╗
 //  HARVEST REQUESTS (MARKET)     ║
@@ -394,9 +404,11 @@ app.get('/api/harvest-requests/:id/messages', authenticate, async (req: Authenti
 app.get('/api/user/:userId/sop-logs', authenticate, requireSelf, async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    const logs = await SOPLogMongo.find({ userId: req.params.userId });
+    const filter: any = { userId: req.params.userId };
+    if (req.query.pondId) filter.pondId = req.query.pondId;
+    const logs = await SOPLogMongo.find(filter).sort({ createdAt: -1 }).limit(500);
     res.json(logs);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/sop-logs', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -404,7 +416,15 @@ app.post('/api/sop-logs', authenticate, async (req: AuthenticatedRequest, res) =
     const data = { ...req.body, userId: req.user.id };
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     res.json(await new SOPLogMongo(data).save());
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/sop-logs/:id', authenticate, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await SOPLogMongo.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 // ═══════════════════════════════╗
@@ -434,9 +454,11 @@ app.post('/api/expenses', authenticate, async (req: AuthenticatedRequest, res) =
 app.get('/api/user/:userId/feed-logs', authenticate, requireSelf, async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    const logs = await FeedLogMongo.find({ userId: req.params.userId });
+    const filter: any = { userId: req.params.userId };
+    if (req.query.pondId) filter.pondId = req.query.pondId;
+    const logs = await FeedLogMongo.find(filter).sort({ createdAt: -1 }).limit(500);
     res.json(logs);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/feed-logs', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -444,7 +466,15 @@ app.post('/api/feed-logs', authenticate, async (req: AuthenticatedRequest, res) 
     const data = { ...req.body, userId: req.user.id };
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     res.json(await new FeedLogMongo(data).save());
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/feed-logs/:id', authenticate, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await FeedLogMongo.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 // ═══════════════════════════════╗
@@ -454,9 +484,11 @@ app.post('/api/feed-logs', authenticate, async (req: AuthenticatedRequest, res) 
 app.get('/api/user/:userId/medicine-logs', authenticate, requireSelf, async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    const logs = await MedicineLogMongo.find({ userId: req.params.userId });
+    const filter: any = { userId: req.params.userId };
+    if (req.query.pondId) filter.pondId = req.query.pondId;
+    const logs = await MedicineLogMongo.find(filter).sort({ createdAt: -1 }).limit(500);
     res.json(logs);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/medicine-logs', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -464,7 +496,15 @@ app.post('/api/medicine-logs', authenticate, async (req: AuthenticatedRequest, r
     const data = { ...req.body, userId: req.user.id };
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     res.json(await new MedicineLogMongo(data).save());
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/medicine-logs/:id', authenticate, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    await MedicineLogMongo.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 // ─── AI Routes (Gemini runs server-side — key never exposed to client) ─────────

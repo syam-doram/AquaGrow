@@ -53,21 +53,37 @@ const PondSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const FeedLogSchema = new mongoose.Schema({
-  pondId: { type: String, required: true },
-  userId: { type: String, required: true },
-  date: { type: String },
-  time: { type: String },
-  brand: { type: String },
-  quantity: { type: Number },
+  pondId:      { type: String, required: true },
+  userId:      { type: String, required: true },
+  date:        { type: String },
+  time:        { type: String },           // slot time e.g. '06:00 AM'
+  brand:       { type: String },           // feed brand name
+  feedType:    { type: String },           // 'Starter' | 'Grower' | 'Finisher'
+  feedNo:      { type: String },           // 'Pellet No. 2' etc.
+  quantity:    { type: Number },           // kg applied
+  cost:        { type: Number },           // estimated cost (₹)
+  doc:         { type: Number },           // day of culture
+  slotLabel:   { type: String },           // 'Morning 1', 'Afternoon' etc.
+  notes:       { type: String },           // any free-form note
+  fcr:         { type: Number },           // FCR value at time of logging
+  adjustmentFactor: { type: Number },      // lunar/weather adjustment applied
 }, { timestamps: true });
 
 const MedicineLogSchema = new mongoose.Schema({
-  pondId: { type: String, required: true },
-  userId: { type: String, required: true },
-  date: { type: String },
-  name: { type: String },
-  dosage: { type: String },
-  doc: { type: Number },
+  pondId:        { type: String, required: true },
+  userId:        { type: String, required: true },
+  date:          { type: String },
+  name:          { type: String },           // product / medicine name
+  category:      { type: String },           // 'probiotic' | 'antibiotic' | 'mineral' | 'pond_prep' | 'supplement'
+  dosage:        { type: String },           // dose string e.g. '2 kg/acre'
+  dosageKg:      { type: Number },           // numeric kg
+  applicationMethod: { type: String },       // 'broadcast' | 'dissolved'
+  purpose:       { type: String },           // reason for application
+  doc:           { type: Number },           // day of culture
+  notes:         { type: String },
+  soakedInWater: { type: Boolean },
+  appliedAt:     { type: String },           // time of application
+  sopTag:        { type: String },           // which SOP triggered this log
 }, { timestamps: true });
 
 const RefreshTokenSchema = new mongoose.Schema({
@@ -77,30 +93,46 @@ const RefreshTokenSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const WaterLogSchema = new mongoose.Schema({
-  pondId: { type: String, required: true },
-  userId: { type: String, required: true },
-  date: { type: String, required: true },
-  ph: { type: Number },
-  do: { type: Number },
-  temperature: { type: Number },
-  salinity: { type: Number },
-  ammonia: { type: Number },
-  alkalinity: { type: Number },
-  turbidity: { type: Number },
-  mortality: { type: Number },
-  isSynced: { type: Boolean, default: true }
+  pondId:       { type: String, required: true },
+  userId:       { type: String, required: true },
+  date:         { type: String, required: true },
+  time:         { type: String },              // time of reading
+  ph:           { type: Number },
+  do:           { type: Number },              // dissolved oxygen mg/L
+  temp:         { type: Number },              // °C
+  temperature:  { type: Number },              // alias for temp (backward compat)
+  salinity:     { type: Number },              // ppt
+  ammonia:      { type: Number },              // mg/L
+  alkalinity:   { type: Number },              // mg/L
+  turbidity:    { type: Number },              // NTU / Secchi
+  tds:          { type: Number },
+  nitrite:      { type: Number },
+  nitrate:      { type: Number },
+  mortality:    { type: Number },              // count of dead shrimp
+  waterColor:   { type: String },              // farmer's observation
+  notes:        { type: String },
+  doc:          { type: Number },
+  alerts:       [{ type: String }],            // auto-generated alert strings
+  isSynced:     { type: Boolean, default: true }
 }, { timestamps: true });
 
 const SOPLogSchema = new mongoose.Schema({
-  pondId: { type: String, required: true },
-  userId: { type: String, required: true },
-  date: { type: String, required: true },
-  avgWeight: { type: Number },
-  feedQty: { type: Number },
-  mortality: { type: Number },
-  checks: { type: Map, of: Boolean },
-  isSynced: { type: Boolean, default: true }
-}, { timestamps: true });
+  pondId:       { type: String, required: true },
+  userId:       { type: String, required: true },
+  date:         { type: String, required: true },
+  sopType:      { type: String },              // 'daily' | 'weekly' | 'disease' | 'feed' | 'water'
+  doc:          { type: Number },
+  avgWeight:    { type: Number },              // g
+  feedQty:      { type: Number },              // kg
+  mortality:    { type: Number },
+  checks:       { type: Map, of: Boolean },    // completed SOP checkboxes
+  actions:      [{ type: String }],            // list of actions taken
+  notes:        { type: String },
+  diseaseFlag:  { type: String },              // if triggered by disease detection
+  severity:     { type: String },              // 'safe' | 'warning' | 'critical'
+  completedBy:  { type: String },              // user name
+  isSynced:     { type: Boolean, default: true }
+}, { timestamps: true, strict: false });       // strict:false allows extra dynamic fields
 
 const ExpenseSchema = new mongoose.Schema({
   pondId: { type: String, required: true },
