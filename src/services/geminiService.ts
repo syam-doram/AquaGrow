@@ -9,12 +9,12 @@
 
 import { API_BASE_URL } from '../config';
 
-const MAX_RETRIES  = 3;
-const RETRY_DELAY  = (attempt: number) => 2000 * Math.pow(2, attempt); // 2s, 4s, 8s
+const MAX_RETRIES = 3;
+const RETRY_DELAY = (attempt: number) => 2000 * Math.pow(2, attempt); // 2s, 4s, 8s
 
 const getAuthHeader = (): Record<string, string> => {
   try {
-    // Tokens are stored as JSON under 'aqua_tokens' by DataContext
+    // Tokens stored as JSON under 'aqua_tokens' by DataContext
     const raw = localStorage.getItem('aqua_tokens');
     if (!raw) return {};
     const tokens = JSON.parse(raw);
@@ -22,6 +22,21 @@ const getAuthHeader = (): Record<string, string> => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   } catch {
     return {};
+  }
+};
+
+// ─── Shared quota/error throw helper ─────────────────────────────────────────
+const throwIfError = async (res: Response, genericMsg: string): Promise<void> => {
+  if (res.status === 429) {
+    const body = await res.json().catch(() => ({}));
+    const e: any = new Error(body.message || 'AI daily quota exhausted. Please wait and try again.');
+    e.code = body.code || 'QUOTA_EXCEEDED';
+    e.retryAfterSeconds = body.retryAfterSeconds || 60;
+    throw e;
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(body.error || genericMsg);
   }
 };
 
@@ -45,13 +60,11 @@ export async function analyzeShrimpHealth(base64Image: string, language: string 
         throw new Error('AI server is temporarily overloaded. Please wait and try again.');
       }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || 'AI analysis failed. Please try again.');
-      }
-
+      await throwIfError(res, 'AI analysis failed. Please try again.');
       return await res.json();
     } catch (error: any) {
+      // Never retry quota errors — the quota won't recover in seconds
+      if (error.code === 'QUOTA_EXCEEDED') throw error;
       if (error.name === 'AbortError') throw new Error('Analysis timed out. Please try again.');
       if (attempt >= MAX_RETRIES) throw error;
       const delay = RETRY_DELAY(attempt);
@@ -79,13 +92,10 @@ export async function analyzeWaterTest(base64Image: string): Promise<any> {
         throw new Error('AI server is temporarily overloaded. Please wait and try again.');
       }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || 'Water test analysis failed.');
-      }
-
+      await throwIfError(res, 'Water test analysis failed.');
       return await res.json();
     } catch (error: any) {
+      if (error.code === 'QUOTA_EXCEEDED') throw error;
       if (attempt >= MAX_RETRIES) throw error;
       await new Promise(r => setTimeout(r, RETRY_DELAY(attempt)));
     }

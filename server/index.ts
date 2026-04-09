@@ -621,6 +621,32 @@ app.delete('/api/medicine-logs/:id', authenticate, async (req, res) => {
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 const GEMINI_MODEL = 'gemini-2.0-flash';
 
+// ── Shared AI error normaliser ────────────────────────────────────────────────
+const normaliseAIError = (e: any): { status: number; body: object } => {
+  const msg: string = e?.message || JSON.stringify(e) || '';
+  // 429 / RESOURCE_EXHAUSTED — quota exceeded
+  if (e?.status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
+    // Try to extract retryDelay from error details
+    let retryAfter = 60;
+    try {
+      const parsed = JSON.parse(msg.substring(msg.indexOf('{')));
+      const retryInfo = parsed?.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
+      if (retryInfo?.retryDelay) retryAfter = parseInt(retryInfo.retryDelay);
+    } catch { /* ignore */ }
+    return { status: 429, body: {
+      error: 'AI quota exhausted',
+      message: `You have exceeded the Gemini API free-tier daily limit. Please wait ${retryAfter} seconds and try again, or upgrade your Google AI plan.`,
+      retryAfterSeconds: retryAfter,
+      code: 'QUOTA_EXCEEDED',
+    }};
+  }
+  // 503 / UNAVAILABLE
+  if (msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('overloaded')) {
+    return { status: 503, body: { error: 'AI server overloaded. Please retry in 30 seconds.' } };
+  }
+  return { status: 500, body: { error: msg || 'AI analysis failed.' } };
+};
+
 // ── Disease Detection ───────────────────────────────────────────────────────────
 app.post('/api/ai/analyze-health', authenticate, async (req: any, res: any) => {
   try {
@@ -662,9 +688,9 @@ Return ONLY this JSON (no markdown):
     const jsonStr = text.startsWith('```') ? text.replace(/^```json?/, '').replace(/```$/, '').trim() : text;
     res.json(JSON.parse(jsonStr));
   } catch (e: any) {
-    console.error('[AI-Health Error]', e.message);
-    const is503 = e.message?.includes('503') || e.message?.includes('UNAVAILABLE');
-    res.status(is503 ? 503 : 500).json({ error: is503 ? 'AI server overloaded. Please retry.' : e.message });
+    console.error('[AI-Health Error]', e?.status, e?.message?.substring(0, 120));
+    const { status, body } = normaliseAIError(e);
+    res.status(status).json(body);
   }
 });
 
@@ -698,8 +724,9 @@ Return ONLY valid JSON:
     const jsonStr = text.startsWith('```') ? text.replace(/^```json?/, '').replace(/```$/, '').trim() : text;
     res.json(JSON.parse(jsonStr));
   } catch (e: any) {
-    console.error('[AI-Water Error]', e.message);
-    res.status(500).json({ error: e.message });
+    console.error('[AI-Water Error]', e?.status, e?.message?.substring(0, 120));
+    const { status, body } = normaliseAIError(e);
+    res.status(status).json(body);
   }
 });
 

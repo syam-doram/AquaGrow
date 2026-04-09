@@ -450,21 +450,23 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
         } as any);
       }
     } catch (err: any) {
-      const is503 = err?.message?.includes('overloaded') ||
-                    err?.message?.includes('high demand') ||
-                    err?.message?.includes('503') ||
-                    err?.message?.includes('UNAVAILABLE') ||
-                    err?.message?.includes('temporarily');
+      const isQuota = err?.code === 'QUOTA_EXCEEDED' || err?.message?.includes('quota') || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('free-tier');
+      const is503   = !isQuota && (err?.message?.includes('overloaded') || err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE') || err?.message?.includes('temporarily'));
+      const retryAfter: number = err?.retryAfterSeconds || 60;
 
       setAnalysis({
-        disease: is503 ? 'AI Server Busy' : 'Analysis Error',
+        disease: isQuota ? 'Daily AI Limit Reached' : is503 ? 'AI Server Busy' : 'Analysis Error',
         confidence: 0,
         severity: 'N/A',
         affectedPart: 'N/A',
-        reasoning: is503
-          ? '⚡ Google Gemini AI is experiencing high demand right now. This is a temporary server issue — not a problem with your photo or the app. The service auto-retried 3 times before showing this message.'
+        reasoning: isQuota
+          ? `The Gemini AI free-tier daily quota has been exhausted. This resets automatically. Please wait ${retryAfter} seconds and try again.`
+          : is503
+          ? '⚡ Google Gemini AI is experiencing high demand right now. The service auto-retried 3 times before showing this message.'
           : 'The system was unable to process the visual markers clearly.',
-        action: is503
+        action: isQuota
+          ? `QUOTA_EXCEEDED|${retryAfter}`
+          : is503
           ? '🔄 Please wait 30–60 seconds and tap "Try Again". The AI server should be available shortly.'
           : (err.message || 'Please try again with a clearer, well-lit photo.'),
       });
@@ -1243,6 +1245,36 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               {/* Matched SOP / Fallback actions */}
               {mappedSOP ? (
                 <SOPView sop={mappedSOP} isDark={isDark} onClose={() => setMappedSOP(null)} />
+              ) : analysis?.action?.startsWith('QUOTA_EXCEEDED|') ? (
+                /* ── Quota Exhausted Card ── */
+                <div className={cn('rounded-[2rem] p-5 border', isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200')}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-amber-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl">⏳</span>
+                    </div>
+                    <div>
+                      <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Daily AI Limit Reached</p>
+                      <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-700')}>Gemini Free Tier</p>
+                    </div>
+                  </div>
+                  <p className={cn('text-[9.5px] font-medium leading-relaxed mb-3', isDark ? 'text-white/60' : 'text-slate-600')}>
+                    The Gemini AI free-tier daily quota has been exhausted. This resets automatically every 24 hours. You can wait and try again, or upgrade your Google AI billing plan for unlimited scans.
+                  </p>
+                  <div className={cn('rounded-2xl px-4 py-3 mb-4 flex items-center gap-3', isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-amber-200')}>
+                    <span className="text-2xl">⏱️</span>
+                    <div>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>Suggested wait time</p>
+                      <p className={cn('text-base font-black', isDark ? 'text-amber-400' : 'text-amber-700')}>
+                        ~{Math.ceil(parseInt(analysis.action.split('|')[1] || '60') / 60)} minute{Math.ceil(parseInt(analysis.action.split('|')[1] || '60') / 60) !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => { setStep('idle'); setAnalysis(null); }}
+                    className="w-full py-3.5 rounded-2xl font-black text-[9px] uppercase tracking-widest text-white flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
+                    🔄 Try Again
+                  </button>
+                </div>
               ) : (
                 <div className={cn('rounded-[2rem] p-5 border', isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}>
                   <div className="flex items-center gap-3 mb-3">
@@ -1258,6 +1290,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                   </button>
                 </div>
               )}
+
 
               {/* Disclaimer */}
               <p className={cn('text-center text-[7px] font-bold leading-relaxed px-8', isDark ? 'text-white/15' : 'text-slate-400')}>
