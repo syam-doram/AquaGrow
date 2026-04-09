@@ -289,9 +289,16 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
   // ── Scan Quota per Plan ──
   const getScanLimit = () => {
     const s = user.subscriptionStatus;
-    if (s === 'pro_gold' || s === 'pro_diamond') return Infinity; // Unlimited
-    if (s === 'pro_silver' || s === 'pro') return 10;
-    return 3; // Free plan
+    // Diamond = unlimited (Aqua 9)
+    if (s === 'pro_diamond') return Infinity;
+    // Gold = 60/month (Aqua 6)
+    if (s === 'pro_gold')    return 60;
+    // Silver = 25/month (Aqua 3)
+    if (s === 'pro_silver')  return 25;
+    // Base Pro = 10/month (Aqua 1)
+    if (s === 'pro')         return 10;
+    // Free = 3/month
+    return 3;
   };
   const scanLimit = getScanLimit();
   const isUnlimited = scanLimit === Infinity;

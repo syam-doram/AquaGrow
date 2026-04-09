@@ -67,22 +67,52 @@ app.get('/api/health', (_req, res) =>
 const dbOffline = (res: any) =>
   res.status(503).json({ error: 'Database unavailable. Please try again later.' });
 
+// Plan name → subscriptionStatus mapping
+const PLAN_STATUS_MAP: Record<string, string> = {
+  free:         'free',
+  pro:          'pro',
+  pro_silver:   'pro_silver',
+  pro_gold:     'pro_gold',
+  pro_diamond:  'pro_diamond',
+  // Aliases for UI plan names (e.g. 'aqua_9_diamond')
+  aqua_1:       'pro',
+  aqua_3:       'pro_silver',
+  aqua_6:       'pro_gold',
+  aqua_9:       'pro_diamond',
+  enterprise:   'pro_diamond',
+};
+
+const PLAN_FEATURES_MAP: Record<string, string[]> = {
+  free:        ['basic_dashboard', 'pond_management'],
+  pro:         ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics'],
+  pro_silver:  ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor'],
+  pro_gold:    ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation'],
+  pro_diamond: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
+  aqua_1:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics'],
+  aqua_3:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor'],
+  aqua_6:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation'],
+  aqua_9:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
+  enterprise:  ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
+};
+
 app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const { planName } = req.body;
+    if (!planName) return res.status(400).json({ error: 'planName is required' });
     const userId = req.user.id;
-    const features = planName === 'pro'
-      ? ['basic_dashboard', 'pond_management', 'advanced_analytics', 'agent_access']
-      : planName === 'enterprise'
-        ? ['basic_dashboard', 'pond_management', 'advanced_analytics', 'agent_access', 'expert_consultation', 'market_trends']
-        : ['basic_dashboard', 'pond_management'];
+
+    const subscriptionStatus = PLAN_STATUS_MAP[planName] ?? 'pro';
+    const features = PLAN_FEATURES_MAP[planName] ?? PLAN_FEATURES_MAP['pro'];
     const end = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-    // ── Online: MongoDB ──
-    const sub = await SubscriptionMongo.findOneAndUpdate({ userId }, { planName, features, status: 'active', endDate: end }, { upsert: true, new: true });
-    await UserMongo.findByIdAndUpdate(userId, { subscriptionStatus: planName === 'free' ? 'free' : 'pro' });
-    res.json(sub);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    const sub = await SubscriptionMongo.findOneAndUpdate(
+      { userId },
+      { planName, features, status: 'active', endDate: end },
+      { upsert: true, new: true }
+    );
+    await UserMongo.findByIdAndUpdate(userId, { subscriptionStatus });
+    res.json({ ...sub.toObject(), subscriptionStatus });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req, res) => {
