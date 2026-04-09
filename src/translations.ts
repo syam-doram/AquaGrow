@@ -1,4 +1,4 @@
-﻿import { Language } from './types';
+import { Language } from './types';
 
 export interface Translations {
   // Navigation & Headers
@@ -380,6 +380,7 @@ export interface Translations {
   pondDocProgress: string;
   days: string;
   weather: string;
+  feedPlanner: string;
   criticalAlerts: string;
   feedEfficiency: string;
   weatherAdj: string;
@@ -1223,6 +1224,7 @@ const English: Translations = {
   pondDocProgress: 'Pond DOC Progress',
   days: 'days',
   weather: 'Weather',
+  feedPlanner: 'Feed Planner',
   criticalAlerts: 'Critical Alerts',
   feedEfficiency: 'AI Feed Adjustment',
   weatherAdj: 'Weather-Based Correction',
@@ -1926,6 +1928,7 @@ const Telugu: Translations = {
   pondDocProgress: 'చెరువు DOC పురోగతి',
   days: 'రోజులు',
   weather: 'వాతావరణం',
+  feedPlanner: 'మేత ప్లానర్',
   criticalAlerts: 'ముఖ్యమైన హెచ్చరికలు',
   feedEfficiency: 'AI మేత సర్దుబాటు',
   weatherAdj: 'వాతావరణ ఆధారిత సర్దుబాటు',
@@ -2378,6 +2381,7 @@ export const translations: Record<Language, Translations> = {
   Tamil: English,
   Malayalam: English,
 };
+
 
 
 

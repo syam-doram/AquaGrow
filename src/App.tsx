@@ -47,6 +47,7 @@ import { ExpertConsultations } from './pages/tools/ExpertConsultations';
 import { LanguageSettings } from './pages/profile/LanguageSettings';
 import { MedicineSchedule } from './pages/management/MedicineSchedule';
 import { WeatherFeedAlert } from './pages/tools/WeatherFeedAlert';
+import { WeatherAlerts } from './pages/tools/WeatherAlerts';
 import { LearningCenter } from './pages/tools/LearningCenter';
 import { Notifications } from './pages/tools/Notifications';
 import { ProfitROI }    from './pages/finance/ProfitROI';
@@ -356,7 +357,8 @@ const AppContent = () => {
                 <Route path="/feed" element={<FeedManagement t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/medicine" element={<MedicineSchedule t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/sop-library" element={<SOPLibrary />} />
-                <Route path="/weather" element={<WeatherFeedAlert t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/weather" element={<WeatherAlerts t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/weather-feed" element={<WeatherFeedAlert t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/learn" element={<LearningCenter t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/notifications" element={<Notifications t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/water-logs/:pondId/:date" element={<WaterLogDetail t={t} />} />
