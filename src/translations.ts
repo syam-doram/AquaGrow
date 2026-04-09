@@ -1,4 +1,4 @@
-import { Language } from './types';
+﻿import { Language } from './types';
 
 export interface Translations {
   // Navigation & Headers
@@ -711,6 +711,47 @@ export interface Translations {
   addProduct: string;
   stock: string;
   viewDetails: string;
+  // Disease Detection UI
+  ddStepPreparation: string;
+  ddStepScanOptions: string;
+  ddStepSymptomChecker: string;
+  ddStepAnalyzing: string;
+  ddStepDiagnosticComplete: string;
+  ddStepDiseaseLibrary: string;
+  ddStepSopDetails: string;
+  ddNewScan: string;
+  ddFullSOP: string;
+  ddAiScanned: string;
+  ddDiagnosticVerdict: string;
+  ddDetectedCondition: string;
+  ddAiConfidence: string;
+  ddSeverity: string;
+  ddAffectedPart: string;
+  ddSource: string;
+  ddAiPhoto: string;
+  ddSymptoms: string;
+  ddRecommendedActions: string;
+  ddLogTreatment: string;
+  ddDailyAiLimit: string;
+  ddGeminiFreeTier: string;
+  ddQuotaMsg: string;
+  ddSuggestedWait: string;
+  ddTryAgain: string;
+  ddPhotoTip1: string;
+  ddPhotoTip2: string;
+  ddPhotoTip3: string;
+  ddPhotoTip4: string;
+  ddPhotoTip5: string;
+  ddRetakePhoto: string;
+  ddSymptomCheckerTitle: string;
+  ddSymptomCheckerDesc: string;
+  ddRunDiagnosis: string;
+  ddScansUsed: string;
+  ddScansRemaining: string;
+  ddMonthlyQuota: string;
+  ddQuotaExhausted: string;
+  ddQuotaResets: string;
+  ddProFeatureRequired: string;
 }
 
 const English: Translations = {
@@ -1134,8 +1175,49 @@ const English: Translations = {
   inventory: 'Inventory',
   orders: 'Orders',
 
-  // Market Prices & Locations
-  blackTiger: 'Black Tiger',
+  // Disease Detection UI
+  ddStepPreparation: 'Preparation',
+  ddStepScanOptions: 'Scan Options',
+  ddStepSymptomChecker: 'Symptom Checker',
+  ddStepAnalyzing: 'AI Analyzing…',
+  ddStepDiagnosticComplete: 'Diagnostic Complete',
+  ddStepDiseaseLibrary: 'Disease Library',
+  ddStepSopDetails: 'SOP Details',
+  ddNewScan: 'New Scan',
+  ddFullSOP: 'Full SOP',
+  ddAiScanned: 'AI Scanned',
+  ddDiagnosticVerdict: 'Diagnostic Verdict',
+  ddDetectedCondition: 'Detected Condition',
+  ddAiConfidence: 'AI Confidence',
+  ddSeverity: 'Severity',
+  ddAffectedPart: 'Affected Part',
+  ddSource: 'Source',
+  ddAiPhoto: 'AI Photo',
+  ddSymptoms: 'Symptoms',
+  ddRecommendedActions: 'Recommended Actions',
+  ddLogTreatment: '+ Log Treatment Action',
+  ddDailyAiLimit: 'Daily AI Limit Reached',
+  ddGeminiFreeTier: 'Gemini Free Tier',
+  ddQuotaMsg: 'The Gemini AI free-tier daily quota has been exhausted. This resets automatically every 24 hours.',
+  ddSuggestedWait: 'Suggested wait time',
+  ddTryAgain: '🔄 Try Again',
+  ddPhotoTip1: 'Use natural daylight or bright indoor light',
+  ddPhotoTip2: 'Hold shrimp flat — gills, shell or hepatopancreas visible',
+  ddPhotoTip3: 'Place on dark wet cloth for contrast',
+  ddPhotoTip4: 'Capture within 30 seconds of removing from pond',
+  ddPhotoTip5: 'Avoid water glare — take photo out of the pond',
+  ddRetakePhoto: 'Retake with Shrimp Body',
+  ddSymptomCheckerTitle: 'Symptom Checker',
+  ddSymptomCheckerDesc: 'Select visible symptoms for AI pattern matching',
+  ddRunDiagnosis: 'Run AI Diagnosis',
+  ddScansUsed: 'scans used',
+  ddScansRemaining: 'remaining',
+  ddMonthlyQuota: 'Monthly Quota',
+  ddQuotaExhausted: 'Exhausted',
+  ddQuotaResets: 'Your quota resets on the 1st of next month.',
+  ddProFeatureRequired: 'AI Disease Detection requires an active Pro plan.',
+
+  // Market Prices  blackTiger: 'Black Tiger',
   scampi: 'Scampi',
   bhimavaram: 'Bhimavaram',
   nellore: 'Nellore',
@@ -1739,8 +1821,47 @@ const Telugu: Translations = {
   inventory: 'స్టాక్/ఇన్వెంటరీ',
   orders: 'ఆర్డర్లు',
 
-  // Market Prices & Locations
-  blackTiger: 'బ్లాక్ టైగర్',
+  // Disease Detection UI — Telugu
+  ddStepPreparation: 'సన్నద్ధత',
+  ddStepScanOptions: 'స్కాన్ ఎంపికలు',
+  ddStepSymptomChecker: 'లక్షణ పరీక్ష',
+  ddStepAnalyzing: 'AI విశ్లేషిస్తోంది…',
+  ddStepDiagnosticComplete: 'రోగ నిర్ధారణ పూర్తైంది',
+  ddStepDiseaseLibrary: 'వ్యాధి గ్రంథాలయం',
+  ddStepSopDetails: 'SOP వివరాలు',
+  ddNewScan: 'కొత్త స్కాన్',
+  ddFullSOP: 'పూర్తి SOP',
+  ddAiScanned: 'AI స్కాన్ చేసింది',
+  ddDiagnosticVerdict: 'రోగ నిర్ధారణ తీర్పు',
+  ddDetectedCondition: 'గుర్తించిన స్థితి',
+  ddAiConfidence: 'AI విశ్వసనీయత',
+  ddSeverity: 'తీవ్రత',
+  ddAffectedPart: 'ప్రభావిత భాగం',
+  ddSource: 'మూలం',
+  ddAiPhoto: 'AI ఫోటో',
+  ddSymptoms: 'లక్షణాలు',
+  ddRecommendedActions: 'సిఫార్సు చేయబడిన చర్యలు',
+  ddLogTreatment: '+ చికిత్స నమోదు చేయండి',
+  ddDailyAiLimit: 'రోజువారీ AI పరిమితి చేరుకుంది',
+  ddGeminiFreeTier: 'Gemini ఉచిత వినియోగం',
+  ddQuotaMsg: 'Gemini AI ఉచిత-వినియోగ రోజువారీ కోటా అయిపోయింది. ఇది ప్రతి 24 గంటలకు స్వయంచాలకంగా రీసెట్ అవుతుంది.',
+  ddSuggestedWait: 'వేచి ఉండాల్సిన సమయం',
+  ddTryAgain: '🔄 మళ్ళీ ప్రయత్నించండి',
+  ddPhotoTip1: 'సహజ లేదా ప్రకాశవంతమైన కాంతిలో ఫోటో తీయండి',
+  ddPhotoTip2: 'రొయ్యను పరుపుగా పెట్టి — చెవులు, పొట్టు లేదా హెపాటోపాంక్రియాస్ కనిపించేలా ఉంచండి',
+  ddPhotoTip3: 'తేడా కోసం తడి నల్ల గుడ్డపై పెట్టండి',
+  ddPhotoTip4: 'చెరువు నుండి తీసిన 30 సెకన్లలోపు ఫోటో తీయండి',
+  ddPhotoTip5: 'నీటి మెరుపులు నివారించండి — చెరువు వెలుపల ఫోటో తీయండి',
+  ddRetakePhoto: 'రొయ్య శరీరంతో మళ్ళీ ఫోటో తీయండి',
+  ddSymptomCheckerTitle: 'లక్షణ పరీక్ష',
+  ddSymptomCheckerDesc: 'AI నమూనా సరిపోలిక కోసం కనిపించే లక్షణాలను ఎంచుకోండి',
+  ddRunDiagnosis: 'AI రోగ నిర్ధారణ నడపండి',
+  ddScansUsed: 'స్కాన్లు వాడారు',
+  ddScansRemaining: 'మిగిలాయి',
+  ddMonthlyQuota: 'నెలవారీ కోటా',
+  ddQuotaExhausted: 'అయిపోయింది',
+  ddQuotaResets: 'మీ కోటా వచ్చే నెల 1వ తేదీన రీసెట్ అవుతుంది.',
+  ddProFeatureRequired: 'AI వ్యాధి గుర్తింపుకు యాక్టివ్ ప్రో ప్లాన్ అవసరం.',
   scampi: 'స్కామ్పి',
   bhimavaram: 'భీమవరం',
   nellore: 'నెల్లూరు',
@@ -2143,3 +2264,4 @@ export const translations: Record<Language, Translations> = {
   Tamil: English,
   Malayalam: English,
 };
+

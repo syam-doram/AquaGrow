@@ -536,10 +536,10 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
     </header>
   );
 
-  const stepLabel = step === 'intro' ? 'Preparation' : step === 'upload' ? 'Scan Options'
-    : step === 'manual' ? 'Symptom Checker' : step === 'scanning' ? 'AI Analyzing…'
-    : step === 'result' ? 'Diagnostic Complete' : step === 'library' ? 'Disease Library'
-    : step === 'sop' ? (browsingSOP?.shortName ?? 'SOP Details') : '';
+  const stepLabel = step === 'intro' ? t.ddStepPreparation : step === 'upload' ? t.ddStepScanOptions
+    : step === 'manual' ? t.ddStepSymptomChecker : step === 'scanning' ? t.ddStepAnalyzing
+    : step === 'result' ? t.ddStepDiagnosticComplete : step === 'library' ? t.ddStepDiseaseLibrary
+    : step === 'sop' ? (browsingSOP?.shortName ?? t.ddStepSopDetails) : '';
 
   // ── FREE GATE — inline overlay dialog ──
   if (!isPro) {
@@ -1154,7 +1154,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
 
                       <button onClick={() => { setStep('upload'); setMappedSOP(null); setImage(null); setSelectedSymptoms([]); }}
                         className="w-full bg-[#C78200] text-white rounded-2xl py-4 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
-                        <Camera size={14} /> Retake with Shrimp Body
+                        <Camera size={14} /> {t.ddRetakePhoto}
                       </button>
                     </div>
                   </div>
@@ -1166,12 +1166,12 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
               <div className="flex items-center justify-between">
                 <button onClick={() => { setStep('upload'); setMappedSOP(null); setImage(null); setSelectedSymptoms([]); }}
                   className={cn('flex items-center gap-2 text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-700')}>
-                  <RefreshCw size={12} /> New Scan
+                  <RefreshCw size={12} /> {t.ddNewScan}
                 </button>
                 {mappedSOP && (
                   <button onClick={() => { setBrowsingSOP(mappedSOP); setStep('sop'); }}
                     className={cn('flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest', isDark ? 'text-[#C78200]' : 'text-amber-700')}>
-                    Full SOP <ChevronRight size={12} />
+                    {t.ddFullSOP} <ChevronRight size={12} />
                   </button>
                 )}
               </div>
@@ -1186,7 +1186,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                   {/* Overlay label */}
                   <div className="absolute top-3 right-3">
                     <span className="bg-black/60 backdrop-blur-sm text-white text-[7px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl border border-white/10">
-                      AI Scanned
+                      {t.ddAiScanned}
                     </span>
                   </div>
                 </div>
@@ -1199,17 +1199,17 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-[60px]" />
                 <div className="absolute top-4 right-4">
                   <span className="bg-white/15 backdrop-blur-md px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest border border-white/20 flex items-center gap-1.5">
-                    <ShieldCheck size={10} /> Diagnostic Verdict
+                    <ShieldCheck size={10} /> {t.ddDiagnosticVerdict}
                   </span>
                 </div>
                 <div className="relative z-10 pt-2">
-                  <p className="text-[7px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">Detected Condition</p>
+                  <p className="text-[7px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">{t.ddDetectedCondition}</p>
                   <h2 className="text-2xl font-black tracking-tight mb-3 leading-tight">{analysis.disease}</h2>
 
                   {/* Confidence bar */}
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-1">
-                      <p className="text-[7px] font-black uppercase tracking-widest opacity-50">AI Confidence</p>
+                      <p className="text-[7px] font-black uppercase tracking-widest opacity-50">{t.ddAiConfidence}</p>
                       <p className="text-sm font-black">{analysis.confidence}%</p>
                     </div>
                     <div className="w-full h-1.5 bg-white/15 rounded-full overflow-hidden">
@@ -1222,9 +1222,9 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                   {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2 text-center mb-4">
                     {[
-                      { label: 'Severity',       value: analysis.severity },
-                      { label: 'Affected Part',  value: analysis.affectedPart || '—' },
-                      { label: 'Source',         value: image ? 'AI Photo' : 'Symptoms' },
+                      { label: t.ddSeverity,      value: analysis.severity },
+                        { label: t.ddAffectedPart, value: analysis.affectedPart || '—' },
+                        { label: t.ddSource,        value: image ? t.ddAiPhoto : t.ddSymptoms },
                     ].map((s, i) => (
                       <div key={i} className="bg-white/10 rounded-xl py-2 border border-white/10">
                         <p className="opacity-40 text-[6px] font-black uppercase tracking-widest mb-0.5">{s.label}</p>
@@ -1253,17 +1253,17 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                       <span className="text-xl">⏳</span>
                     </div>
                     <div>
-                      <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Daily AI Limit Reached</p>
-                      <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-700')}>Gemini Free Tier</p>
+                      <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{t.ddDailyAiLimit}</p>
+                      <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-700')}>{t.ddGeminiFreeTier}</p>
                     </div>
                   </div>
                   <p className={cn('text-[9.5px] font-medium leading-relaxed mb-3', isDark ? 'text-white/60' : 'text-slate-600')}>
-                    The Gemini AI free-tier daily quota has been exhausted. This resets automatically every 24 hours. You can wait and try again, or upgrade your Google AI billing plan for unlimited scans.
+                    {t.ddQuotaMsg}
                   </p>
                   <div className={cn('rounded-2xl px-4 py-3 mb-4 flex items-center gap-3', isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-amber-200')}>
                     <span className="text-2xl">⏱️</span>
                     <div>
-                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>Suggested wait time</p>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>{t.ddSuggestedWait}</p>
                       <p className={cn('text-base font-black', isDark ? 'text-amber-400' : 'text-amber-700')}>
                         ~{Math.ceil(parseInt(analysis.action.split('|')[1] || '60') / 60)} minute{Math.ceil(parseInt(analysis.action.split('|')[1] || '60') / 60) !== 1 ? 's' : ''}
                       </p>
@@ -1272,7 +1272,7 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                   <button onClick={() => { setStep('idle'); setAnalysis(null); }}
                     className="w-full py-3.5 rounded-2xl font-black text-[9px] uppercase tracking-widest text-white flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
-                    🔄 Try Again
+                    {t.ddTryAgain}
                   </button>
                 </div>
               ) : (
@@ -1281,12 +1281,12 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                     <div className="w-9 h-9 bg-[#C78200] rounded-xl flex items-center justify-center">
                       <Activity size={16} className="text-white" />
                     </div>
-                    <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Recommended Actions</p>
+                    <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{t.ddRecommendedActions}</p>
                   </div>
                   <p className={cn('text-[10px] font-bold leading-relaxed mb-4', isDark ? 'text-white/50' : 'text-slate-600')}>{analysis.action}</p>
                   <button onClick={() => navigate('/logs/conditions')}
                     className="w-full py-3.5 bg-[#C78200] text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2">
-                    <Plus size={13} /> Log Treatment Action
+                    <Plus size={13} /> {t.ddLogTreatment}
                   </button>
                 </div>
               )}
