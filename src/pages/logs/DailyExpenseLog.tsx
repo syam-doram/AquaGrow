@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { NoPondState } from '../../components/NoPondState';
 import { 
   ChevronLeft, 
   Calendar, 
@@ -68,6 +69,25 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
       navigate('/expense-report');
     }, 2500);
   };
+
+  // No active ponds guard
+  if (activePonds.length === 0) return (
+    <div className="min-h-screen bg-[#F8F9FE] flex flex-col">
+      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-card/95 backdrop-blur-md px-4 py-5 flex items-center justify-between border-b border-card-border">
+        <button onClick={() => navigate(-1)} className="p-3 text-ink hover:bg-black/5 rounded-2xl transition-all">
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-sm font-black text-ink tracking-tighter uppercase tracking-[0.1em]">{t.logLiveExpense}</h1>
+        <div className="w-10" />
+      </header>
+      <div className="pt-28 flex-1 flex items-center justify-center">
+        <NoPondState
+          isDark={false}
+          subtitle="Add a pond to start tracking and logging your daily operational expenses."
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F8F9FE] text-left font-sans pb-32">

@@ -36,7 +36,7 @@ import type { Translations } from '../../translations';
 
 // ─── HELPER COMPONENTS ────────────────────────────────────────────────────────
 const CategoryProgressCard = ({ icon: Icon, label, value, progress, color, bg }: any) => (
-   <div className={cn("rounded-[2.5rem] p-6 border", bg)}>
+   <div className={cn("rounded-[2.5rem] p-3 border", bg)}>
       <div className="flex items-center justify-between mb-4">
          <div className={cn("w-10 h-10 rounded-[1rem] flex items-center justify-center", color.bg, color.text)}>
             <Icon size={20} />
@@ -138,10 +138,10 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick
             <div className="w-12" />
          </header>
 
-         <div className="pt-28 px-5 space-y-8">
+         <div className="pt-28 px-5 space-y-4">
 
             {/* HERO TOTAL CARD */}
-            <div className="bg-gradient-to-br from-[#051F19] to-[#02130F] p-8 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[#051F19] to-[#02130F] p-4 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden">
                <div className="absolute right-[-10%] top-[-10%] opacity-5 pointer-events-none">
                   <Wallet size={200} strokeWidth={1} />
                </div>
@@ -150,7 +150,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick
                      <div className="w-2 h-2 rounded-full bg-[#C78200] animate-pulse" />
                      <p className="text-[9px] font-black uppercase tracking-[0.3em]">{t.totalCycleSpend}</p>
                   </div>
-                  <h3 className="text-5xl font-black tracking-tighter text-white mb-6">₹{(totalSpend / 100000).toFixed(2)}<span className="text-2xl text-white/40">L</span></h3>
+                  <h3 className="text-3xl font-black tracking-tighter text-white mb-6">₹{(totalSpend / 100000).toFixed(2)}<span className="text-2xl text-white/40">L</span></h3>
 
                   <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-6 mt-2">
                      <div>
@@ -166,7 +166,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations, onMenuClick
             </div>
 
             {/* 14-DAY SPENDING TREND */}
-            <div className="bg-[#051F19] rounded-[2.5rem] p-6 border border-white/5 space-y-6">
+            <div className="bg-[#051F19] rounded-[2.5rem] p-3 border border-white/5 space-y-3">
                <div className="flex items-center justify-between">
                   <div>
                      <p className="text-[#C78200] text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.fourteenDayTrajectory}</p>

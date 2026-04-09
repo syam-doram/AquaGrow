@@ -30,6 +30,8 @@ import { MarketPrices } from './pages/market/MarketPrices';
 import { Profile } from './pages/profile/Profile';
 import { EditProfile } from './pages/profile/EditProfile';
 import { SecurityPrivacy } from './pages/profile/SecurityPrivacy';
+import { PrivacyPolicy } from './pages/profile/PrivacyPolicy';
+import { BankPayment } from './pages/profile/BankPayment';
 import { SubscriptionPlan } from './pages/profile/SubscriptionPlan';
 import { SystemSettings } from './pages/profile/SystemSettings';
 import { Login } from './pages/auth/Login';
@@ -39,6 +41,7 @@ import { OnboardingScreen } from './pages/auth/OnboardingScreen';
 import { FeedManagement } from './pages/management/FeedManagement';
 import { DiseaseDetection } from './pages/monitoring/DiseaseDetection';
 import { LiveMonitor } from './pages/monitoring/LiveMonitor';
+import { WaterTestScanner } from './pages/monitoring/WaterTestScanner';
 import { SubscriptionScreen } from './pages/profile/SubscriptionScreen';
 import { ExpertConsultations } from './pages/tools/ExpertConsultations';
 import { LanguageSettings } from './pages/profile/LanguageSettings';
@@ -46,7 +49,10 @@ import { MedicineSchedule } from './pages/management/MedicineSchedule';
 import { WeatherFeedAlert } from './pages/tools/WeatherFeedAlert';
 import { LearningCenter } from './pages/tools/LearningCenter';
 import { Notifications } from './pages/tools/Notifications';
-import { ProfitROI } from './pages/finance/ProfitROI';
+import { ProfitROI }    from './pages/finance/ProfitROI';
+import { ROIOverview }  from './pages/finance/ROIOverview';
+import { ROIPondWise }  from './pages/finance/ROIPondWise';
+import { ROIYearWise }  from './pages/finance/ROIYearWise';
 import { ExportMarketTrends } from './pages/market/ExportMarketTrends';
 import { AdminDashboard } from './pages/dashboard/AdminDashboard';
 import { PondMonitor } from './pages/ponds/PondMonitor';
@@ -210,6 +216,9 @@ const AppContent = () => {
     '/harvest-revenue',
     '/expense-report',
     '/roi-entry',
+    '/roi/overview',
+    '/roi/pond-wise',
+    '/roi/year-wise',
   ].some(path => location.pathname.startsWith(path));
 
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
@@ -323,19 +332,25 @@ const AppContent = () => {
                 <Route path="/ponds/:id/water-log/:date?" element={<DailyConditionsLog t={t} />} />
                 <Route path="/ponds/:id/feeding" element={<PondFeedingLog t={t} />} />
                 <Route path="/ponds/:id/harvest" element={<PondHarvest t={t} />} />
-                <Route path="/ponds/:id/tracking" element={<HarvestTracking />} />
+                <Route path="/ponds/:id/tracking" element={<HarvestTracking t={t} />} />
                 <Route path="/monitor" element={<WaterMonitoring t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/market" element={<MarketPrices t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/profile" element={<Profile t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/profile/edit" element={<EditProfile user={user as User} t={t} />} />
                 <Route path="/profile/security" element={<SecurityPrivacy t={t} />} />
+                <Route path="/profile/privacy-policy" element={<PrivacyPolicy t={t} />} />
+                <Route path="/profile/bank" element={<BankPayment t={t} />} />
                 <Route path="/profile/subscription" element={<SubscriptionPlan t={t} />} />
                 <Route path="/profile/language" element={<LanguageSettings t={t} onLanguageChange={handleLanguageChange} />} />
                 <Route path="/profile/settings" element={<SystemSettings t={t} />} />
                 <Route path="/roi" element={<ProfitROI t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/roi/overview"  element={<ROIOverview  t={t} />} />
+                <Route path="/roi/pond-wise" element={<ROIPondWise  t={t} />} />
+                <Route path="/roi/year-wise" element={<ROIYearWise  t={t} />} />
                 <Route path="/export-trends" element={<ExportMarketTrends user={user} t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/disease-detection" element={<DiseaseDetection user={user} t={t} />} />
                 <Route path="/live-monitor" element={<LiveMonitor user={user} t={t} />} />
+                <Route path="/water-test-scanner" element={<WaterTestScanner />} />
                 <Route path="/subscription" element={<SubscriptionScreen t={t} />} />
                 <Route path="/expert-consultations" element={<ExpertConsultations user={user} t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/feed" element={<FeedManagement t={t} onMenuClick={() => navigate('/profile')} />} />

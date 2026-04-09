@@ -28,7 +28,7 @@ export const ExportMarketTrends = ({ user, t, onMenuClick }: { user: User, t: Tr
           <Globe size={48} className="text-white" />
         </div>
         <h2 className="text-3xl font-black tracking-tighter text-ink mb-4">{t.proFeature}</h2>
-        <p className="text-ink/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.exportMarketTrends} is only available for AquaGrow Pro subscribers.</p>
+        <p className="text-ink/60 text-sm leading-relaxed mb-10 max-w-[240px] font-medium">{t.exportMarketTrends} {t.proSubscriptionRequired}</p>
         <button 
           onClick={() => navigate('/subscription')}
           className="bg-[#C78200] text-white px-10 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[#C78200]/20 active:scale-95 transition-all flex items-center gap-3"

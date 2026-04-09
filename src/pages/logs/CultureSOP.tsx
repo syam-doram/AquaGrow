@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
+import { NoPondState } from '../../components/NoPondState';
 import type { Translations } from '../../translations';
 import { calculateDOC } from '../../utils/pondUtils';
 import { getLunarStatus } from '../../utils/lunarUtils';
@@ -100,7 +101,13 @@ export const CultureSOP = ({ t }: { t: Translations }) => {
     });
   }, []);
 
-  if (!pond) return null;
+  if (!pond) return (
+    <NoPondState
+      isDark={false}
+      fullScreen
+      subtitle="Add a pond to unlock your auto-scheduled daily SOP engine."
+    />
+  );
 
   const currentDoc = calculateDOC(pond.stockingDate);
   const phaseInfo = getEnginePhase(currentDoc);

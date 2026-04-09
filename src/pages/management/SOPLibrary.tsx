@@ -5,18 +5,26 @@ import {
   ShieldCheck, 
   Droplets, 
   Zap, 
-  Stethoscope,
   Pill,
   Utensils,
-  Target,
-  AlertTriangle
+  AlertTriangle,
+  Bell,
+  X,
+  ChevronRight,
+  Activity,
+  Thermometer,
+  Fish,
+  Cloud,
+  Moon,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Header } from '../../components/Header';
 import { useData } from '../../context/DataContext';
+import { NoPondState } from '../../components/NoPondState';
 import { cn } from '../../utils/cn';
 import { calculateDOC } from '../../utils/pondUtils';
 import { getLunarStatus } from '../../utils/lunarUtils';
+import { analyzePondSituation, buildSituationInputs } from '../../utils/situationEngine';
 
 interface SOPTask {
   type: string;
@@ -158,15 +166,32 @@ const BRAND_LIST = [
 
 export const SOPLibrary = () => {
   const navigate = useNavigate();
-  const { theme, ponds } = useData();
+  const { theme, ponds, waterRecords, feedLogs, medicineLogs } = useData();
   const [selectedPondId, setSelectedPondId] = React.useState(ponds[0]?.id || '');
   const [selectedCategory, setSelectedCategory] = React.useState<'ALL' | 'MEDICINE' | 'FEED' | 'WATER' | 'MOLTING'>('ALL');
-  const [viewMode, setViewMode] = React.useState<'STAGES' | 'DAILY'>('STAGES');
+  const [viewMode, setViewMode] = React.useState<'STAGES' | 'DAILY' | 'ALERTS'>('ALERTS');
+  const [dismissedAlertIds, setDismissedAlertIds] = React.useState<string[]>([]);
+  const isDark = theme === 'dark' || theme === 'midnight';
   const t = { sopLibrary: 'Expert SOP Handbook', operationalRoadmap: 'Operational Roadmap' };
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
   const isPlanned = selectedPond?.status === 'planned';
+  const lunar = getLunarStatus(new Date());
+
+  // --- Build situation alerts for ALL ponds ---
+  const allSituationAlerts = React.useMemo(() => {
+    const inputs = buildSituationInputs(
+      ponds.filter(p => p.status === 'active' || p.status === 'planned'),
+      waterRecords, feedLogs, medicineLogs, calculateDOC
+    );
+    return inputs.flatMap(inp => analyzePondSituation(inp))
+      .filter(a => !dismissedAlertIds.includes(a.id))
+      .sort((a, b) => b.urgency - a.urgency);
+  }, [ponds, waterRecords, feedLogs, medicineLogs, dismissedAlertIds]);
+
+  const criticalCount = allSituationAlerts.filter(a => a.type === 'critical').length;
+  const warningCount = allSituationAlerts.filter(a => a.type === 'warning').length;
 
   const ALL_CATEGORIES = ['MEDICINE', 'FEED', 'WATER', 'MOLTING'] as const;
   const categoriesToShow = selectedCategory === 'ALL' ? ALL_CATEGORIES : [selectedCategory];
@@ -220,6 +245,23 @@ export const SOPLibrary = () => {
     }
   };
 
+  // No pond guard — show premium empty state
+  if (ponds.length === 0) return (
+    <div className="min-h-screen bg-transparent flex flex-col">
+      <Header
+        title={t.sopLibrary}
+        showBack={true}
+        onBack={() => navigate('/dashboard')}
+      />
+      <div className="pt-28 flex-1 flex items-center justify-center">
+        <NoPondState
+          isDark={isDark}
+          subtitle="Add a pond to access your live SOP alerts, stage roadmap, and 100-day schedule."
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="pb-32 bg-transparent min-h-screen text-left relative overflow-hidden">
       {/* Background Orbs */}
@@ -259,17 +301,25 @@ export const SOPLibrary = () => {
              </div>
            )}
 
-           <div className="bg-card/50 p-1.5 rounded-[2rem] border border-card-border flex gap-2">
-              {(['STAGES', 'DAILY'] as const).map(mode => (
+           <div className="bg-card/50 p-1.5 rounded-[2rem] border border-card-border flex gap-1">
+              {(['ALERTS', 'STAGES', 'DAILY'] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   className={cn(
-                    "flex-1 py-3 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all",
+                    "flex-1 py-3 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest transition-all relative",
                     viewMode === mode ? "bg-primary text-white shadow-xl" : "text-ink/30 hover:text-ink/60"
                   )}
                 >
-                  {mode === 'STAGES' ? 'Expert Stages' : '100-Day Planner'}
+                  {mode === 'ALERTS' ? 'Live Alerts' : mode === 'STAGES' ? 'SOP Stages' : '100-Day Plan'}
+                  {mode === 'ALERTS' && (criticalCount + warningCount) > 0 && (
+                    <span className={cn(
+                      "absolute -top-1 -right-1 w-4 h-4 rounded-full text-[7px] font-black flex items-center justify-center",
+                      criticalCount > 0 ? "bg-red-500 text-white" : "bg-amber-500 text-white"
+                    )}>
+                      {criticalCount || warningCount}
+                    </span>
+                  )}
                 </button>
               ))}
            </div>
@@ -292,7 +342,84 @@ export const SOPLibrary = () => {
            </div>
         </div>
 
-        {viewMode === 'STAGES' ? (
+        {viewMode === 'ALERTS' ? (
+          <div className="space-y-4">
+            {/* Summary Bar */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Critical', count: criticalCount, color: 'text-red-500', bg: isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200', emoji: '🚨' },
+                { label: 'Warnings', count: warningCount, color: 'text-amber-500', bg: isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200', emoji: '⚠️' },
+                { label: 'Lunar', count: allSituationAlerts.filter(a => a.type === 'lunar').length, color: 'text-indigo-500', bg: isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200', emoji: '🌙' },
+              ].map(item => (
+                <div key={item.label} className={cn('rounded-2xl p-3 border text-center', item.bg)}>
+                  <div className="text-lg leading-none mb-1">{item.emoji}</div>
+                  <div className={cn('text-xl font-black', item.color)}>{item.count}</div>
+                  <div className={cn('text-[7px] font-black uppercase tracking-widest', item.color)}>{item.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {allSituationAlerts.length === 0 ? (
+              <div className={cn('rounded-2xl p-8 border text-center', isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200')}>
+                <div className="text-4xl mb-3">✅</div>
+                <p className={cn('text-sm font-black', isDark ? 'text-emerald-400' : 'text-emerald-700')}>All ponds look healthy!</p>
+                <p className={cn('text-[9px] font-bold mt-1', isDark ? 'text-white/40' : 'text-emerald-600/60')}>No critical situations detected at this time.</p>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {allSituationAlerts.map((alert, i) => {
+                  const colors = {
+                    critical: { bg: isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200', text: 'text-red-500' },
+                    warning: { bg: isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200', text: 'text-amber-500' },
+                    info: { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500' },
+                    success: { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500' },
+                    lunar: { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500' },
+                  };
+                  const c = colors[alert.type] || colors.info;
+                  return (
+                    <motion.div
+                      key={alert.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className={cn('rounded-2xl p-4 border', c.bg)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl flex-shrink-0 mt-0.5">{alert.emoji}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className={cn('text-[11px] font-black leading-snug', c.text)}>{alert.title}</p>
+                            {alert.type === 'critical' && (
+                              <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-black uppercase">URGENT</span>
+                            )}
+                          </div>
+                          <p className={cn('text-[9px] leading-relaxed', isDark ? 'text-white/60' : 'text-slate-600')}>{alert.body}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            {alert.action && alert.actionPath && (
+                              <button
+                                onClick={() => navigate(alert.actionPath!)}
+                                className={cn('text-[8px] font-black uppercase tracking-widest flex items-center gap-1', c.text)}
+                              >
+                                {alert.action} <ChevronRight size={10} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDismissedAlertIds(p => [...p, alert.id])}
+                              className={cn('text-[8px] font-black uppercase tracking-widest ml-auto', isDark ? 'text-white/20' : 'text-slate-400')}
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            )}
+          </div>
+        ) : viewMode === 'STAGES' ? (
           categoriesToShow.map(cat => {
             const catTheme = getCategoryTheme(cat);
             const rules = getCategoryRules(cat);

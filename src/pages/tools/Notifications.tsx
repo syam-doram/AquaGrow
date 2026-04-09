@@ -1,288 +1,455 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Clock, 
-  Droplets, 
-  Stethoscope, 
-  ChevronRight, 
-  AlertCircle, 
-  Moon, 
-  CloudRain,
-  CheckCircle2,
-  Trash2,
-  Bell,
-  Navigation,
-  Activity,
-  ChevronLeft,
-  TrendingUp,
-  Target
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Bell, ChevronLeft, Trash2, CheckCircle2, AlertTriangle, X,
+  RefreshCw, Settings, Filter, ArrowRight, Zap, CloudRain,
+  Fish, Bug, TrendingUp, Droplets, Clock, ShieldAlert,
+  Lightbulb, Cpu, ChevronRight, Moon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
-import type { Translations } from '../../translations';
+import { useSmartAlerts } from '../../hooks/useSmartAlerts';
 import { cn } from '../../utils/cn';
-import { Reminder } from '../../types/reminder';
+import { NoPondState } from '../../components/NoPondState';
+import type { Translations } from '../../translations';
+import {
+  AlertCategory, PRIORITY_CONFIG, CATEGORY_CONFIG,
+  NotificationPrefs,
+} from '../../services/notificationEngine';
 
-import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
+// ─── CATEGORY FILTER TABS ─────────────────────────────────────────────────────
+const ALL_CATEGORIES: { id: AlertCategory | 'all'; label: string; icon: any }[] = [
+  { id: 'all',         label: 'All',      icon: Bell },
+  { id: 'pond_danger', label: 'Pond',     icon: ShieldAlert },
+  { id: 'feed',        label: 'Feed',     icon: Fish },
+  { id: 'weather',     label: 'Weather',  icon: CloudRain },
+  { id: 'harvest',     label: 'Harvest',  icon: Zap },
+  { id: 'disease',     label: 'Disease',  icon: Bug },
+  { id: 'lunar',       label: 'Lunar',    icon: Moon },
+  { id: 'market',      label: 'Market',   icon: TrendingUp },
+  { id: 'tip',         label: 'Tips',     icon: Lightbulb },
+];
 
-export const Notifications = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
-  const { user, notifications, markNotificationsRead } = useData();
-  const navigate = useNavigate();
-  const { reminders, toggleReminder } = useData();
-  const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'missed' | 'history'>('today');
+// ─── PREF TOGGLES ─────────────────────────────────────────────────────────────
+const PREF_ITEMS: { key: keyof NotificationPrefs; label: string; sub: string; icon: any }[] = [
+  { key: 'pond_danger', label: 'Pond Danger Alerts',   sub: 'DO, pH, ammonia, mortality spikes',    icon: ShieldAlert },
+  { key: 'feed',        label: 'Feed Reminders',       sub: 'FCR warnings, meal slots, over-limit',  icon: Fish },
+  { key: 'weather',     label: 'Weather Alerts',       sub: 'Rain, heat, cold-snap, pre-dawn DO',   icon: CloudRain },
+  { key: 'harvest',     label: 'Harvest Cautions',     sub: 'DOC windows, over-age, market timing', icon: Zap },
+  { key: 'disease',     label: 'Disease Warnings',     sub: 'WSSV/EMS/Vibrio risk windows',         icon: Bug },
+  { key: 'lunar',       label: 'Lunar Phase Cautions', sub: 'Molt, feed, harvest timing by moon',   icon: Moon },
+  { key: 'market',      label: 'Market Insights',      sub: 'Price spikes and demand signals',      icon: TrendingUp },
+  { key: 'tips',        label: 'Daily SOP Tips',       sub: 'Operational guidance throughout day',  icon: Lightbulb },
+];
 
-  // Mark all as read when history is visited
-  useEffect(() => {
-     if (activeTab === 'history') {
-        markNotificationsRead();
-     }
-  }, [activeTab]);
-
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-  const todayStr = now.toISOString().split('T')[0];
-  
-  const isMissed = (r: Reminder) => {
-    if (r.status === 'completed') return false;
-    if (r.date && r.date !== todayStr) return false; // Tomorrow cannot be missed yet
-    if (r.time === 'Now') return false;
-    const [h, m] = r.time.split(':').map(Number);
-    return currentHour > h || (currentHour === h && currentMinute > m + 30);
-  };
-
-  const todayReminders = reminders.filter(r => r.date === todayStr && !isMissed(r));
-  const missedReminders = reminders.filter(isMissed);
-  
-  const upcomingReminders = reminders.filter(r => {
-    if (r.status === 'completed') return false;
-    if (r.date && r.date !== todayStr) return true; // Tomorrow is upcoming
-    if (r.time === 'Now') return false;
-    const [h, m] = r.time.split(':').map(Number);
-    return h > currentHour || (h === currentHour && m > currentMinute);
-  });
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'feed': return Clock;
-      case 'medicine': return Stethoscope;
-      case 'water': return Droplets;
-      case 'moon': return Moon;
-      case 'weather': return CloudRain;
-      default: return AlertCircle;
-    }
-  };
-
-  const getColor = (type: string, status: string) => {
-    if (status === 'completed') return 'emerald';
-    switch (type) {
-      case 'feed': return 'amber';
-      case 'medicine': return 'rose';
-      case 'moon': return 'indigo';
-      case 'weather': return 'sky';
-      default: return 'rose';
-    }
-  };
+// ─── SINGLE ALERT CARD ────────────────────────────────────────────────────────
+const AlertCard = ({
+  alert, isDark, onRead, onDismiss, navigate,
+}: {
+  alert: any; isDark: boolean; key?: React.Key;
+  onRead: (id: string) => void;
+  onDismiss: (id: string) => void;
+  navigate: (r: string) => void;
+}) => {
+  const pri = PRIORITY_CONFIG[alert.priority as keyof typeof PRIORITY_CONFIG] ?? PRIORITY_CONFIG.info;
+  const cat = CATEGORY_CONFIG[alert.category as AlertCategory] ?? CATEGORY_CONFIG.system;
 
   return (
-    <div className="pb-40 bg-[#F0F2F5] min-h-screen text-left px-0 font-sans selection:bg-emerald-100 relative overflow-hidden">
-      {/* ── Background Accents ── */}
-      <div className="fixed top-0 right-0 w-[80%] h-1/2 bg-emerald-500/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[60%] h-1/2 bg-amber-500/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
+      onClick={() => { onRead(alert.id); if (alert.actionRoute) navigate(alert.actionRoute); }}
+      className={cn(
+        'rounded-[2rem] border p-4 cursor-pointer transition-all relative overflow-hidden',
+        alert.isRead
+          ? isDark ? 'bg-white/2 border-white/5 opacity-60' : 'bg-white/60 border-slate-100 opacity-70'
+          : isDark ? `bg-[#0D1520] border-white/8 hover:border-white/15 ${alert.priority === 'critical' ? 'border-red-500/25' : ''}` : 'bg-white border-slate-100 shadow-sm hover:shadow-md',
+      )}
+    >
+      {/* Priority left bar */}
+      {!alert.isRead && (
+        <div className={cn('absolute left-0 top-4 bottom-4 w-1 rounded-r-full', pri.color)} />
+      )}
 
-      {/* ── Elite Header ── */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-card/80 backdrop-blur-xl px-6 pt-[calc(env(safe-area-inset-top)+0.8rem)] pb-[0.8rem] flex items-center grid grid-cols-3 border-b border-black/[0.03]">
-        <div className="flex items-center justify-start">
-           <motion.button 
-             whileTap={{ scale: 0.9 }}
-             onClick={() => navigate(-1)} 
-             className="w-10 h-10 -ml-2 flex items-center justify-center text-ink bg-black/[0.03] hover:bg-black/[0.06] rounded-xl transition-all"
-           >
-              <ChevronLeft size={22} />
-           </motion.button>
+      <div className="flex items-start gap-3 pl-2">
+        {/* Icon */}
+        <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border text-lg',
+          isDark ? `${pri.dark} border-white/5` : `${pri.light}`
+        )}>
+          {alert.icon}
         </div>
-        <div className="flex items-center justify-center">
-           <h1 className="text-lg font-black text-ink tracking-tight leading-tight whitespace-nowrap">{t.notifications}</h1>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span className={cn('text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded',
+                  isDark ? `${pri.dark} border border-white/10` : pri.light.replace('border-', 'border ').split(' ').slice(0,2).join(' '),
+                  pri.text
+                )}>{pri.label}</span>
+                <span className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{cat.label}</span>
+                {alert.pondName && (
+                  <span className={cn('text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
+                    isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  )}>{alert.pondName}</span>
+                )}
+              </div>
+              <h3 className={cn('text-[11px] font-black tracking-tight leading-snug',
+                isDark ? 'text-white' : 'text-slate-900',
+                alert.isRead && 'opacity-60'
+              )}>{alert.title}</h3>
+            </div>
+            <button
+              onClick={e => { e.stopPropagation(); onDismiss(alert.id); }}
+              className={cn('w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all',
+                isDark ? 'text-white/15 hover:text-white/40 hover:bg-white/5' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'
+              )}>
+              <X size={12} />
+            </button>
+          </div>
+
+          <p className={cn('text-[9px] font-medium leading-relaxed mb-2',
+            isDark ? 'text-white/40' : 'text-slate-500',
+            alert.isRead && 'opacity-60'
+          )}>{alert.body}</p>
+
+          <div className="flex items-center justify-between">
+            <p className={cn('text-[7px] font-black uppercase tracking-widest',
+              isDark ? 'text-white/15' : 'text-slate-400'
+            )}>
+              {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            {alert.action && (
+              <div className={cn('flex items-center gap-1 text-[7px] font-black uppercase tracking-widest',
+                isDark ? 'text-[#C78200]/70' : 'text-emerald-700'
+              )}>
+                {alert.action} <ChevronRight size={10} />
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center justify-end gap-2">
-           {activeTab === 'history' && notifications.length > 0 && (
-             <motion.button 
-               whileTap={{ scale: 0.9 }}
-               onClick={() => { if(window.confirm('Clear all notification history?')) { localStorage.removeItem('aqua_notifications_v2'); window.location.reload(); } }}
-               className="w-9 h-9 flex items-center justify-center text-rose-500 bg-rose-50 rounded-xl transition-all border border-rose-100"
-             >
-                <Trash2 size={16} />
-             </motion.button>
-           )}
-           <div className="w-10 h-10 -mr-2 bg-gradient-to-br from-[#0D523C] to-[#012B1D] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-900/10">
-              <Bell size={18} />
-           </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
+export const Notifications = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
+  const { user, theme, ponds, waterRecords, feedLogs, marketPrices } = useData();
+  const navigate = useNavigate();
+  const isDark = theme === 'dark' || theme === 'midnight';
+
+  const {
+    alerts, prefs, updatePrefs,
+    unreadCount, criticalCount,
+    markRead, markAllRead, dismissAlert, clearAll, forceRun,
+  } = useSmartAlerts({
+    ponds: ponds ?? [],
+    waterRecords: waterRecords ?? [],
+    feedRecords: feedLogs ?? [],
+    marketPrices: marketPrices ?? [],
+    enabled: true,
+  });
+
+  const [activeCategory, setActiveCategory] = useState<AlertCategory | 'all'>('all');
+  const [showSettings, setShowSettings]     = useState(false);
+  const [isRunning, setIsRunning]           = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRunning(true);
+    forceRun();
+    setTimeout(() => setIsRunning(false), 1500);
+  };
+
+  const filtered = activeCategory === 'all'
+    ? alerts
+    : alerts.filter(a => a.category === activeCategory);
+
+  return (
+    <div className={cn('min-h-screen pb-32', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
+
+      {/* ── HEADER ── */}
+      <header className={cn(
+        'fixed top-0 left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-50 backdrop-blur-xl px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 border-b',
+        isDark ? 'bg-[#070D12]/90 border-white/5' : 'bg-white/90 border-slate-100 shadow-sm'
+      )}>
+        <div className="flex items-center justify-between">
+          <motion.button whileTap={{ scale: 0.9 }}
+            onClick={() => navigate('/dashboard')}
+            className={cn('w-10 h-10 rounded-2xl flex items-center justify-center border',
+              isDark ? 'bg-white/5 border-white/10 text-white/70' : 'bg-white border-slate-200 text-slate-600 shadow-sm'
+            )}>
+            <ChevronLeft size={18} />
+          </motion.button>
+
+          <div className="text-center">
+            <h1 className={cn('text-xs font-black uppercase tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+              Alerts & Actions
+            </h1>
+            <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+              Smart Farm Intelligence
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={handleRefresh}
+              className={cn('w-10 h-10 rounded-2xl flex items-center justify-center border',
+                isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+              )}>
+              <RefreshCw size={15} className={cn(isRunning && 'animate-spin')} />
+            </motion.button>
+
+            {/* Bell with badge */}
+            <div className="relative">
+              <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center border',
+                criticalCount > 0
+                  ? 'bg-red-500 border-red-600 text-white'
+                  : isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+              )}>
+                <Bell size={15} />
+              </div>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* ── Precision Tabs ── */}
-      <div className="pt-32 px-6">
-         <div className="p-1.5 bg-black/[0.03] rounded-[2rem] flex gap-1 border border-card-border">
-            {[
-              { id: 'today', label: t.today, count: todayReminders.length },
-              { id: 'missed', label: t.missedActivities || 'Missed', count: missedReminders.length },
-              { id: 'history', label: t.alertHistory || 'Cloud', count: notifications.length }
-            ].map((tab: any) => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex-1 py-3.5 rounded-[1.6rem] text-[9.5px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center gap-2",
-                  activeTab === tab.id 
-                    ? "bg-card text-[#0D523C] shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-card-border" 
-                    : "text-ink/40 hover:text-ink/60"
-                )}
-              >
-                {tab.label}
-                {tab.count > 0 && (
-                  <span className={cn(
-                    "px-2 py-0.5 rounded-full text-[8px] font-bold",
-                    activeTab === tab.id ? "bg-[#0D523C] text-white" : "bg-black/[0.06] text-ink/40"
-                  )}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-         </div>
-      </div>
+      <div className="pt-24 px-4 space-y-4">
 
-      {/* ── Content Feed ── */}
-      <div className="px-6 py-6 space-y-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="space-y-4"
-          >
-            {(activeTab === 'history' ? notifications : (activeTab === 'today' ? todayReminders : activeTab === 'upcoming' ? upcomingReminders : missedReminders)).length === 0 ? (
-              <div className="py-24 text-center space-y-5">
-                 <div className="w-20 h-20 bg-black/[0.02] rounded-[2.5rem] flex items-center justify-center mx-auto border border-card-border">
-                    <Navigation size={32} className="text-ink/10" />
-                 </div>
-                 <p className="text-ink/30 text-[10px] font-black uppercase tracking-[0.2em]">Zero pending items</p>
+        {ponds.length === 0 ? (
+          /* ── NO POND STATE ── */
+          <div className="flex items-center justify-center py-10">
+            <NoPondState
+              isDark={isDark}
+              subtitle="Add a pond to start receiving smart alerts on water quality, feed, disease risks, and harvest timing."
+            />
+          </div>
+        ) : (
+          <>
+            {/* ── HERO STATS ── */}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className={cn('rounded-[2.5rem] p-5 relative overflow-hidden',
+                criticalCount > 0
+                  ? 'bg-gradient-to-br from-red-700 to-red-900 text-white'
+                  : 'bg-gradient-to-br from-[#0D523C] to-[#02130F] text-white'
+              )}
+            >
+              <div className="absolute -right-8 -bottom-8 opacity-5">
+                <Bell size={120} strokeWidth={0.5} />
               </div>
-            ) : activeTab === 'history' ? (
-              notifications.map((h, i) => {
-                const colors = {
-                   'feed': { bg: 'bg-amber-50', text: 'text-amber-600', icon: Clock, border: 'border-amber-100/50' },
-                   'water': { bg: 'bg-sky-50', text: 'text-sky-600', icon: Droplets, border: 'border-sky-100/50' },
-                   'medicine': { bg: 'bg-rose-50', text: 'text-rose-600', icon: Stethoscope, border: 'border-rose-100/50' },
-                   'market': { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: TrendingUp, border: 'border-emerald-100/50' },
-                   'expert': { bg: 'bg-purple-50', text: 'text-purple-600', icon: Target, border: 'border-purple-100/50' },
-                   'default': { bg: 'bg-gray-50', text: 'text-gray-600', icon: Bell, border: 'border-gray-100/50' }
-                };
-                const cfg = colors[h.type as keyof typeof colors] || colors.default;
-                
-                return (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    key={`h-${h.id}`} 
-                    className="bg-card p-5 rounded-[2.2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.03] flex items-start gap-4 relative overflow-hidden group active:scale-[0.98] transition-all"
-                  >
-                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all group-hover:scale-105 border", cfg.bg, cfg.text, cfg.border)}>
-                       <cfg.icon size={22} strokeWidth={2.5} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                       <div className="flex justify-between items-start mb-1 gap-2">
-                          <h3 className="text-ink font-bold text-[15px] tracking-tight leading-tight flex-1 truncate">{h.title}</h3>
-                          {!h.isRead && <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-lg shrink-0 mt-1" />}
-                       </div>
-                       <p className="text-[11px] text-ink/50 leading-snug line-clamp-2">{h.body}</p>
-                       <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-black/[0.02]">
-                          <span className="text-[8.5px] font-bold text-[#C78200] uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
-                            {new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <span className={cn("text-[8.5px] font-black uppercase tracking-widest bg-black/[0.02] px-2 py-0.5 rounded-lg text-ink/30")}>
-                            {h.type || 'Alert'}
-                          </span>
-                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })
-            ) : (activeTab === 'today' ? todayReminders : activeTab === 'upcoming' ? upcomingReminders : missedReminders).map((r: Reminder, i) => (
-              <motion.div 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                key={r.id} 
-                onClick={() => toggleReminder(r.id)}
-                className={cn(
-                  "bg-card p-5 rounded-[2.2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.03] flex items-center justify-between group transition-all active:scale-[0.98] relative overflow-hidden",
-                  r.status === 'completed' && "opacity-60 grayscale-[0.5]"
-                )}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center transition-all border",
-                    r.status === 'completed' 
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                      : `bg-${getColor(r.type, r.status)}-50 text-${getColor(r.type, r.status)}-600 border-${getColor(r.type, r.status)}-100`
-                  )}>
-                    {r.status === 'completed' ? <CheckCircle2 size={24} strokeWidth={2.5} /> : React.createElement(getIcon(r.type), { size: 24, strokeWidth: 2.5 })}
-                  </div>
-                  <div>
-                    <h3 className="text-ink font-bold text-[15px] tracking-tight leading-tight">{r.title}</h3>
-                    <div className="flex items-center gap-2.5 mt-1.5 min-w-0">
-                       <span className="text-ink/40 text-[9px] font-black uppercase tracking-widest">{r.pondName}</span>
-                       <div className="w-1 h-1 bg-black/[0.08] rounded-full" />
-                       <span className="text-[9px] font-bold text-[#C78200] uppercase tracking-wider">{r.time}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="w-9 h-9 bg-black/[0.03] rounded-xl flex items-center justify-center group-hover:bg-[#0D523C] group-hover:text-white transition-colors">
-                   <ChevronRight size={16} />
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* ── Elite SOP Engine Card ── */}
-      {activeTab === 'today' && (
-        <section className="px-6 mt-4">
-           <div className="bg-gradient-to-br from-[#0D523C] to-[#012B1D] p-8 rounded-[2.8rem] text-white relative overflow-hidden shadow-2xl shadow-emerald-950/20 group">
               <div className="relative z-10">
-                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-card/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
-                       <Activity size={20} className="text-emerald-400" />
-                    </div>
-                    <h2 className="text-xl font-black tracking-tighter">Smart SOP Engine</h2>
-                 </div>
-                 <p className="text-white/50 text-[11px] font-medium leading-relaxed mb-8 pr-12">
-                   Operations dynamically synchronized with Lunar cycles, DOC progression, and real-time environmental sensors.
-                 </p>
-                 <div className="flex items-center gap-5">
-                    <div className="flex -space-x-3.5">
-                       {[1,2,3].map(i => (
-                         <div key={i} className="w-11 h-11 bg-card/5 rounded-full border-2 border-[#0D523C] flex items-center justify-center backdrop-blur-md shadow-lg overflow-hidden group-hover:scale-110 transition-transform">
-                            <span className="text-[10px] filter drop-shadow-md">💎</span>
-                         </div>
-                       ))}
+                {criticalCount > 0 ? (
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center border border-white/20">
+                      <AlertTriangle size={22} className="text-white" />
                     </div>
                     <div>
-                       <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400/80">Biological Status</span>
-                       <span className="text-[11px] font-bold text-white/80">OPTIMAL PERFORMANCE</span>
+                      <p className="text-white/60 text-[7px] font-black uppercase tracking-widest mb-0.5">Immediate Action Required</p>
+                      <h2 className="text-xl font-black tracking-tight">{criticalCount} Critical Alert{criticalCount > 1 ? 's' : ''}</h2>
                     </div>
-                 </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/15">
+                      <Cpu size={22} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-0.5">Smart Monitoring Active</p>
+                      <h2 className="text-lg font-black tracking-tight">
+                        {unreadCount > 0 ? `${unreadCount} New Alert${unreadCount > 1 ? 's' : ''}` : 'All Clear'}
+                      </h2>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stats row */}
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'Critical', value: alerts.filter(a => a.priority === 'critical').length, color: 'text-red-300' },
+                    { label: 'High',     value: alerts.filter(a => a.priority === 'high').length,     color: 'text-orange-300' },
+                    { label: 'Unread',   value: unreadCount,                                          color: 'text-amber-300' },
+                    { label: 'Total',    value: alerts.length,                                        color: 'text-white/60' },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white/10 rounded-xl p-2 text-center border border-white/10">
+                      <p className={cn('text-sm font-black', s.color)}>{s.value}</p>
+                      <p className="text-white/40 text-[6px] font-black uppercase tracking-widest">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <Activity size={240} strokeWidth={0.3} className="absolute -right-16 -bottom-16 text-white/[0.03] group-hover:scale-110 transition-transform duration-1000" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 blur-[60px] rounded-full" />
-           </div>
-        </section>
-      )}
+            </motion.div>
+
+
+            {/* ── ACTION ROW ── */}
+            <div className="flex items-center gap-2">
+          <button onClick={markAllRead}
+            className={cn('flex-1 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all',
+              isDark ? 'bg-white/5 border-white/10 text-white/40 hover:text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+            )}>
+            <CheckCircle2 size={12} /> Mark All Read
+          </button>
+          <button onClick={() => setShowSettings(s => !s)}
+            className={cn('flex-1 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all',
+              showSettings
+                ? isDark ? 'bg-[#C78200]/20 border-[#C78200]/30 text-[#C78200]' : 'bg-amber-100 border-amber-300 text-amber-700'
+                : isDark ? 'bg-white/5 border-white/10 text-white/40 hover:text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+            )}>
+            <Settings size={12} /> Alert Settings
+          </button>
+          {alerts.length > 0 && (
+            <button onClick={clearAll}
+              className={cn('w-11 h-11 rounded-2xl border flex items-center justify-center transition-all',
+                isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500 shadow-sm'
+              )}>
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* ── SETTINGS PANEL ── */}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className={cn('rounded-[2rem] border p-4 space-y-1',
+                isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm'
+              )}>
+                <p className={cn('text-[8px] font-black uppercase tracking-widest mb-3',
+                  isDark ? 'text-white/25' : 'text-slate-400'
+                )}>Choose which alerts you receive</p>
+
+                {PREF_ITEMS.map((item) => (
+                  <div key={item.key} className={cn('flex items-center justify-between py-3 border-b last:border-0',
+                    isDark ? 'border-white/5' : 'border-slate-100'
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center',
+                        isDark ? 'bg-white/5' : 'bg-slate-100'
+                      )}>
+                        <item.icon size={14} className={isDark ? 'text-white/40' : 'text-slate-500'} />
+                      </div>
+                      <div>
+                        <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white/80' : 'text-slate-800')}>{item.label}</p>
+                        <p className={cn('text-[7px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>{item.sub}</p>
+                      </div>
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => updatePrefs({ [item.key]: !prefs[item.key] })}
+                      className={cn('w-11 h-6 rounded-full relative transition-all duration-300',
+                        prefs[item.key] ? 'bg-[#C78200]' : isDark ? 'bg-white/10' : 'bg-slate-200'
+                      )}>
+                      <motion.div animate={{ x: prefs[item.key] ? 20 : 2 }}
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                    </motion.button>
+                  </div>
+                ))}
+
+                {/* Request browser permission */}
+                <button
+                  onClick={async () => {
+                    if ('Notification' in window) {
+                      const perm = await Notification.requestPermission();
+                      if (perm === 'granted') forceRun();
+                    }
+                  }}
+                  className={cn('w-full mt-3 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2',
+                    isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  )}>
+                  <Bell size={12} /> Enable Browser Push Notifications
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── CATEGORY TABS ── */}
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {ALL_CATEGORIES.map(cat => {
+            const catAlerts = cat.id === 'all' ? alerts : alerts.filter(a => a.category === cat.id);
+            const unread = catAlerts.filter(a => !a.isRead).length;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={cn(
+                  'flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-2xl border text-[8px] font-black uppercase tracking-widest transition-all',
+                  activeCategory === cat.id
+                    ? isDark ? 'bg-white text-[#0D1520] border-white' : 'bg-slate-900 text-white border-slate-900'
+                    : isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+                )}>
+                <cat.icon size={11} />
+                {cat.label}
+                {unread > 0 && (
+                  <span className={cn('w-4 h-4 rounded-full text-[7px] flex items-center justify-center font-black border',
+                    activeCategory === cat.id
+                      ? isDark ? 'bg-red-500 text-white border-red-600' : 'bg-red-500 text-white border-red-600'
+                      : isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-100 text-red-600 border-red-200'
+                  )}>{unread}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── ALERT LIST ── */}
+        <AnimatePresence mode="popLayout">
+          {filtered.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className={cn('py-20 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center text-center',
+                isDark ? 'bg-white/2 border-white/5' : 'bg-white border-slate-200'
+              )}
+            >
+              <CheckCircle2 size={40} className="text-emerald-400 mb-4" />
+              <h3 className={cn('font-black text-base tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+                {activeCategory === 'all' ? 'All Clear!' : `No ${ALL_CATEGORIES.find(c => c.id === activeCategory)?.label} Alerts`}
+              </h3>
+              <p className={cn('text-[9px] font-black uppercase tracking-widest mt-2', isDark ? 'text-white/20' : 'text-slate-400')}>
+                AI engine monitoring your farm every 15 min
+              </p>
+              <button onClick={handleRefresh}
+                className={cn('mt-6 flex items-center gap-2 px-5 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-widest',
+                  isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-slate-100 border-slate-200 text-slate-500'
+                )}>
+                <RefreshCw size={12} className={cn(isRunning && 'animate-spin')} /> Check Now
+              </button>
+            </motion.div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(alert => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  isDark={isDark}
+                  onRead={markRead}
+                  onDismiss={dismissAlert}
+                  navigate={navigate}
+                />
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ── FOOTER NOTE ── */}
+        {alerts.length > 0 && (
+          <p className={cn('text-center text-[7px] font-bold pb-8', isDark ? 'text-white/10' : 'text-slate-400')}>
+            ★ Smart alerts run every 15 min based on your pond data, water quality, DOC, weather, and market data.
+          </p>
+        )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

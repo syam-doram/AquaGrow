@@ -9,19 +9,222 @@ export interface SOPSuggestion {
   brand?: string;
   dose?: string;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  // New: situation-aware context
+  situationTag?: 'WATER_QUALITY' | 'FCR_ALERT' | 'STRESS' | 'DISEASE_RISK' | 'HARVEST_PREP' | 'CRITICAL_STAGE';
+  isAdaptive?: boolean; // true if rule was created due to pond situation
+}
+
+export interface PondSituation {
+  ph?: number;
+  doLevel?: number;          // Dissolved Oxygen (mg/L)
+  temperature?: number;      // °C
+  ammonia?: number;          // mg/L
+  fcr?: number;              // Feed Conversion Ratio
+  isRaining?: boolean;
+  mortalityDetected?: boolean;
+  fcrHigh?: boolean;         // FCR > 1.6
+  doLow?: boolean;           // DO < 4 mg/L
+  phOutOfRange?: boolean;    // pH < 7.5 or > 8.5
+  tempHigh?: boolean;        // temp > 32°C
+  ammoniaHigh?: boolean;     // ammonia > 0.25 mg/L
 }
 
 /**
  * High-Fidelity Farmer SOP Engine
- * Based on exact expert DOC-wise schedule and brand-specific guidance.
+ * Based on exact expert DOC-wise schedule, brand-specific guidance.
+ * NOW ADAPTIVE: Pond situation (water quality, FCR, weather) modifies SOPs.
  */
-export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggestion[] => {
+export const getSOPGuidance = (
+  doc: number,
+  date: Date = new Date(),
+  situation?: PondSituation
+): SOPSuggestion[] => {
   const suggestions: SOPSuggestion[] = [];
   const lunar = getLunarStatus(date);
   const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon...
-  const isEarlyStage = doc > 0 && doc <= 20;
 
-  // ─── 0. LUNAR & MOLTING SOPs (Contextual) ───────────────────────────────
+  // ─── DERIVE SITUATION FLAGS ───────────────────────────────────────────────
+  const ph = situation?.ph;
+  const doVal = situation?.doLevel;
+  const temp = situation?.temperature;
+  const ammonia = situation?.ammonia;
+  const fcr = situation?.fcr;
+
+  const isDoLow = doVal != null ? doVal < 4.0 : false;
+  const isDoVeryLow = doVal != null ? doVal < 3.0 : false;
+  const isPhHigh = ph != null ? ph > 8.5 : false;
+  const isPhLow = ph != null ? ph < 7.5 : false;
+  const isTempHigh = temp != null ? temp > 32 : false;
+  const isTempVeryHigh = temp != null ? temp > 34 : false;
+  const isAmmoniaHigh = ammonia != null ? ammonia > 0.25 : false;
+  const isAmmoniaVeryHigh = ammonia != null ? ammonia > 0.5 : false;
+  const isFCRHigh = fcr != null ? fcr > 1.6 : (situation?.fcrHigh ?? false);
+  const isRaining = situation?.isRaining ?? false;
+  const mortalityDetected = situation?.mortalityDetected ?? false;
+
+  // ─── SITUATION-AWARE EMERGENCY ALERTS (Always shown first) ───────────────
+  if (doc > 0) {
+    // CRITICAL: Very Low DO - Immediate Action
+    if (isDoVeryLow) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '🚨 CRITICAL: DO Dangerously Low',
+        description: `DO at ${doVal} mg/L — EMERGENCY: Run ALL aerators immediately. Stop feeding. Apply emergency oxygen granules if available.`,
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+    } else if (isDoLow) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '⚠️ Low DO Alert',
+        description: `DO at ${doVal} mg/L (target: ≥4). Increase aeration. Reduce feed by 30% for next 2 slots. Check pond for surface activity.`,
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+    }
+
+    // HIGH pH (alkalosis risk)
+    if (isPhHigh) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '⚠️ High pH Alert',
+        description: `pH at ${ph} (target: 7.5–8.5). Risk of alkalosis. Apply Zeolite or organic acids. Avoid ammonia-raising products. Check for algal bloom.`,
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+      suggestions.push({
+        type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+        title: 'pH Correction — Zeolite/Organic Acid',
+        description: 'Apply zeolite or buffered organic acid to lower and stabilize pH. Reduce heavy feeding until corrected.',
+        dose: '20-30 kg/acre',
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+    }
+
+    // LOW pH (acidosis risk)
+    if (isPhLow) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '⚠️ Low pH Alert',
+        description: `pH at ${ph} (target: 7.5–8.5). Risk of acidosis and gill damage. Apply Dolomite/Lime. Reduce probiotic application until stabilized.`,
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+      suggestions.push({
+        type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+        title: 'pH Stabilizer — Dolomite Lime',
+        description: 'Apply dolomite or agricultural lime to raise pH. Monitor every 4 hours after application.',
+        dose: '15-25 kg/acre',
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+    }
+
+    // HIGH Temperature
+    if (isTempVeryHigh) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '🌡️ CRITICAL Heat Stress',
+        description: `Temp at ${temp}°C — Extreme heat stress. Reduce feed by 30%. Stop mid-day feeding (12pm–2pm). Maximize night aeration. Check DO every 2 hrs.`,
+        priority: 'HIGH',
+        situationTag: 'STRESS',
+        isAdaptive: true
+      });
+    } else if (isTempHigh) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '🌡️ High Temperature Alert',
+        description: `Temp at ${temp}°C (optimal: 27–32°C). Reduce afternoon meal by 20%. Increase aeration especially at noon. Apply Vitamin C booster.`,
+        priority: 'MEDIUM',
+        situationTag: 'STRESS',
+        isAdaptive: true
+      });
+      suggestions.push({
+        type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+        title: 'Vitamin C Anti-Stress (Heat)',
+        description: 'Apply high-dose Vitamin C during heat stress to prevent immunosuppression and oxidative damage.',
+        dose: '5g/kg feed',
+        priority: 'HIGH',
+        situationTag: 'STRESS',
+        isAdaptive: true
+      });
+    }
+
+    // HIGH Ammonia
+    if (isAmmoniaVeryHigh) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '☠️ CRITICAL: Ammonia Toxicity',
+        description: `Ammonia at ${ammonia} mg/L (critical >0.5). EMERGENCY: Stop all feeding. Apply Zeolite immediately. Emergency water exchange if possible.`,
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+      suggestions.push({
+        type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+        title: 'Emergency Zeolite Application',
+        description: 'Critical ammonia detoxification. Broadcast zeolite across entire pond immediately. Do NOT apply probiotics for 24hrs.',
+        dose: '40-50 kg/acre',
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+    } else if (isAmmoniaHigh) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '⚠️ Ammonia Rising',
+        description: `Ammonia at ${ammonia} mg/L (safe: <0.25). Apply zeolite, increase aeration. Reduce feed quantum by 25% for next 24hrs.`,
+        priority: 'HIGH',
+        situationTag: 'WATER_QUALITY',
+        isAdaptive: true
+      });
+    }
+
+    // RAIN Event
+    if (isRaining) {
+      suggestions.push({
+        type: 'ALERT', category: 'WATER',
+        title: '🌧️ Rain Event — DO Risk',
+        description: 'Rain reduces DO and lowers pH. Reduce feed by 15% during rainfall. Increase aeration. Monitor pond activity.',
+        priority: 'HIGH',
+        situationTag: 'STRESS',
+        isAdaptive: true
+      });
+    }
+
+    // HIGH FCR — Overfeeding or Poor Survival
+    if (isFCRHigh) {
+      suggestions.push({
+        type: 'ALERT', category: 'FEED',
+        title: '📊 High FCR Detected',
+        description: `FCR ${fcr != null ? fcr.toFixed(2) : '>1.6'} (target: ≤1.4). Review tray checks — likely overfeeding or poor survival. Reduce daily feed by 15% and check mortality.`,
+        priority: 'HIGH',
+        situationTag: 'FCR_ALERT',
+        isAdaptive: true
+      });
+    }
+
+    // MORTALITY
+    if (mortalityDetected) {
+      suggestions.push({
+        type: 'ALERT', category: 'MEDICINE',
+        title: '💀 Mortality Detected',
+        description: 'Remove dead shrimp immediately. Increase aeration. Apply Disinfectant (after removing shrimp). Do NOT apply probiotics same day as disinfectant. Check water quality urgently.',
+        priority: 'HIGH',
+        situationTag: 'DISEASE_RISK',
+        isAdaptive: true
+      });
+    }
+  }
+
+  // ─── 0. LUNAR & MOLTING SOPs ─────────────────────────────────────────────
   if (lunar.phase === 'AMAVASYA') {
     suggestions.push({
       type: 'LUNAR', category: 'MOLTING',
@@ -75,7 +278,7 @@ export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggest
     }
   }
 
-  // ─── 1. WEEKLY MILESTONE MODEL (Adaptive) ──────────────────────────────
+  // ─── 1. WEEKLY MILESTONE MODEL ─────────────────────────────────────────────
   const preStockingWeeklyModel: Record<number, SOPSuggestion[]> = {
     1: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Monday → Chlorine Pulse', description: 'Importance Day: Periodic sterilization during water preparation.', priority: 'HIGH' }],
     2: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Tuesday → Soil Neutralizer', description: 'Importance Day: Maintaining soil pH stability.', priority: 'MEDIUM' }],
@@ -103,14 +306,13 @@ export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggest
   } else {
     if (activeWeeklyModel[dayOfWeek]) {
       suggestions.push(...activeWeeklyModel[dayOfWeek].filter(s => {
-        // User Request: No Gut Probiotic before DOC 20
         if (s.title.includes('Gut Probiotic') && doc <= 20) return false;
         return true;
       }));
     }
   }
 
-  // ─── 2. PRE-STOCKING (POND PREPARATION) ───────────────────────────────────
+  // ─── 2. PRE-STOCKING ────────────────────────────────────────────────────────
   if (doc < 0) {
     suggestions.push({
       type: 'RULE', category: 'WATER',
@@ -144,281 +346,284 @@ export const getSOPGuidance = (doc: number, date: Date = new Date()): SOPSuggest
       priority: 'HIGH'
     });
   } else {
-    // ─── 3. DAILY FEED BASELINE (Always Show if doc > 0) ───
+    // ─── HARVEST / WITHDRAWAL GUARD (DOC >= 90) ──────────────────────────────
+    if (doc >= 90) {
+      suggestions.push({
+        type: 'RULE', category: 'WATER',
+        title: '🚫 WITHDRAWAL PERIOD — STOP Heavy Medicines',
+        description: doc >= 100
+          ? 'FULL STOP: All heavy medicines must be withdrawn. Focus on water clarity and residue clearance for safe harvest. Test for antibiotic residues before sale.'
+          : `Withdrawal period active. ${100 - doc} days to harvest target. Maintain water clarity only — NO probiotics, NO gut medicines, NO heavy supplements.`,
+        priority: 'HIGH',
+        situationTag: 'HARVEST_PREP',
+      });
+      suggestions.push({
+        type: 'TIP', category: 'WATER',
+        title: '💡 Harvest Preparation Tips',
+        description: 'Maintain strong aeration. Check water colour. Reduce feed to 80% of normal. Begin logistics planning (transport, buyer contact, icing).',
+        priority: 'MEDIUM',
+      });
+      return suggestions; // ← Exit early: no routine SOP items during withdrawal
+    }
+
+    // ─── 3. DAILY FEED BASELINE ───────────────────────────────────────────────
+    // Adjust feed advice based on situation
+    let feedDescription = `Standard Feeding: Apply 4-5 meals today based on tray observations. Focus on FCR optimization.`;
+    if (isFCRHigh) {
+      feedDescription = `⚠️ HIGH FCR Mode: Reduce daily feed by 15%. Check tray residue after each meal. Target FCR ≤1.4 before increasing.`;
+    } else if (isDoLow || isRaining) {
+      feedDescription = `⚠️ DO/Rain Mode: Apply only 3 meals today (skip afternoon meal). Check DO before each slot.`;
+    } else if (isTempVeryHigh) {
+      feedDescription = `⚠️ Heat Mode: Skip 12pm-2pm feeding slot. Apply morning & evening only. Reduce total by 25%.`;
+    }
+
     suggestions.push({
       type: 'FEED', category: 'FEED',
       title: `Daily Feed Cycle - DOC ${doc}`,
-      description: `Standard Feeding: Apply 4-5 meals today based on tray observations. Focus on FCR optimization.`,
-      priority: 'MEDIUM'
+      description: feedDescription,
+      priority: isFCRHigh || isDoLow ? 'HIGH' : 'MEDIUM',
+      isAdaptive: isFCRHigh || isDoLow || isTempVeryHigh
     });
 
-    // ─── 4. DOC-WISE DEPTH SCHEDULE ────────────────────────
-  
-  // COMMON RULES
-  suggestions.push({
-    type: 'RULE',
-    category: 'WATER',
-    title: 'SOP Safety Rule',
-    description: 'Do NOT mix Probiotic + Disinfectant on the same day.',
-    priority: 'HIGH'
-  });
+    // ─── COMMON SAFETY RULE ──────────────────────────────────────────────────
+    suggestions.push({
+      type: 'RULE',
+      category: 'WATER',
+      title: 'SOP Safety Rule',
+      description: 'Do NOT mix Probiotic + Disinfectant on the same day.',
+      priority: 'HIGH'
+    });
 
-  // DOC 1-10 (NURSERY)
-  if (doc >= 1 && doc <= 10) {
-    if (doc % 2 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Gut Probiotic Foundation',
-        description: 'Importance Day: Establish nursery digestive health.',
-        brand: 'CP Gut Probiotic',
-        dose: '5-10 g/kg feed',
-        priority: 'HIGH'
-      });
-    }
-    if (doc % 7 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'WATER',
-        applicationType: 'WATER',
-        title: 'Water Probiotic (Foundation)',
-        description: 'Establishing sustainable microbial baseline.',
-        dose: '250 g/acre',
-        priority: 'MEDIUM'
-      });
-    }
-  }
-  
-  // DOC 11-20 (EARLY GROWTH)
-  else if (doc >= 11 && doc <= 20) {
-    if (doc % 3 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Gut Probiotic (Pulse)',
-        description: 'Importance Day: Periodic gut conditioning for early growth spurt.',
-        brand: 'Avanti Gut Health',
-        priority: 'HIGH'
-      });
-    }
-    if (doc % 7 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'WATER',
-        applicationType: 'WATER',
-        title: 'Water & Soil Probiotic',
-        description: 'Maintenance SOP: Prevent bottom sludge bacteria buildup.',
-        brand: 'Sanolife PRO-W',
-        priority: 'HIGH'
-      });
-    }
-    if (doc === 15) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Vitamin C Booster',
-        description: 'Immunity milestone for establishment phase.',
-        priority: 'HIGH'
-      });
-    }
-  }
-
-  // DOC 21-30 (RISK STARTING)
-  else if (doc >= 21 && doc <= 30) {
-    if (doc % 3 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Gut Probiotic (Risk Management)',
-        description: 'Importance Day: Strategic gut health during risk stage transition.',
-        priority: 'HIGH'
-      });
-    }
-    if (doc % 10 === 0) {
-       suggestions.push({
-         type: 'MEDICINE',
-         category: 'WATER',
-         applicationType: 'WATER',
-         title: 'Water Probiotic (Maintenance)',
-         description: 'Maintain high bio-security during risk stage transition.',
-         priority: 'HIGH'
-       });
-    }
-    if (doc === 25) {
-       suggestions.push({
-         type: 'MEDICINE',
-         category: 'MEDICINE',
-         applicationType: 'FEED',
-         title: 'Immunity Booster Pulse',
-         description: 'Prepare for critical DOC 30 transition.',
-         priority: 'HIGH'
-       });
-       suggestions.push({
-         type: 'ALERT',
-         category: 'MEDICINE',
-         title: 'Vibriosis Check Required',
-         description: 'Scan shrimp and check for tail redness.',
-         priority: 'HIGH'
-       });
-    }
-  }
-
-  // DOC 31-45 (CRITICAL STAGE)
-  else if (doc >= 31 && doc <= 45) {
-     suggestions.push({
-       type: 'ALERT',
-       category: 'MEDICINE',
-       title: 'CRITICAL STAGE: WSSV ALERT',
-       description: 'Expert Warning: High risk of White Spot Syndrome in this window.',
-       priority: 'HIGH'
-     });
-     if (doc % 2 === 0) {
-       suggestions.push({
-         type: 'MEDICINE',
-         category: 'MEDICINE',
-         applicationType: 'FEED',
-         title: 'Gut Probiotic (Shield)',
-         description: 'Importance Day: Maximum mucosal protection during critical transition.',
-         priority: 'HIGH'
-       });
-     }
-     if (doc % 10 === 0) {
+    // ─── DOC 1-10 ────────────────────────────────────────────────────────────
+    if (doc >= 1 && doc <= 10) {
+      if (doc % 2 === 0) {
         suggestions.push({
-          type: 'MEDICINE',
-          category: 'WATER',
-          applicationType: 'WATER',
-          title: 'Water Probiotic (Pathogen Control)',
-          description: 'Strategic microbial load management for critical window.',
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Gut Probiotic Foundation',
+          description: 'Importance Day: Establish nursery digestive health.',
+          brand: 'CP Gut Probiotic',
+          dose: '5-10 g/kg feed',
           priority: 'HIGH'
         });
-     }
-     if (doc >= 30 && doc <= 35) {
+      }
+      if (doc % 7 === 0) {
         suggestions.push({
-          type: 'MEDICINE',
-          category: 'MEDICINE',
-          applicationType: 'FEED',
-          title: 'Anti-Stress Tonic',
-          description: 'Critical stage stress reduction requirement.',
-          priority: 'HIGH'
-        });
-     }
-     if (doc === 40) {
-        suggestions.push({
-          type: 'MEDICINE',
-          category: 'MOLTING',
-          applicationType: 'WATER',
-          title: 'Vitamin + Mineral Booster',
-          description: 'Deep metabolic boost for critical period end.',
-          priority: 'HIGH'
-        });
-     }
-  }
-
-  // DOC 46-60 (HIGH GROWTH)
-  else if (doc >= 46 && doc <= 60) {
-    if (doc % 4 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Gut Probiotics (Absorption)',
-        description: 'Importance Day: Feed mix for maximum enzymatic absorption during size spike.',
-        priority: 'HIGH'
-      });
-    }
-     if (doc % 2 === 0) {
-        suggestions.push({
-          type: 'MEDICINE',
-          category: 'WATER',
-          applicationType: 'WATER',
-          title: 'Water Probiotic (Intensive)',
-          description: 'High waste removal for high growth stage.',
-          priority: 'HIGH'
-        });
-     }
-     if (doc === 50) {
-        suggestions.push({
-          type: 'MEDICINE',
-          category: 'MEDICINE',
-          applicationType: 'FEED',
-          title: 'Liver Tonic (Hepatopancreas)',
-          description: 'Maintenance of vital organ health during size spike.',
-          priority: 'HIGH'
-        });
-     }
-  }
-
-  // DOC 61-80 (LATE STAGE)
-  else if (doc >= 61 && doc <= 80) {
-    if (doc % 5 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Gut Probiotic (Stability Maintenance)',
-        description: 'Importance Day: Final stretch intestinal flora support.',
-        priority: 'MEDIUM'
-      });
-    }
-     if (doc % 3 === 0) {
-        suggestions.push({
-          type: 'MEDICINE',
-          category: 'WATER',
-          applicationType: 'WATER',
-          title: 'Water Probiotic (Regular)',
-          description: 'Moderate water conditioning.',
+          type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+          title: 'Water Probiotic (Foundation)',
+          description: 'Establishing sustainable microbial baseline.',
+          dose: '250 g/acre',
           priority: 'MEDIUM'
         });
-     }
-     if (doc === 70) {
+      }
+    }
+    
+    // ─── DOC 11-20 ───────────────────────────────────────────────────────────
+    else if (doc >= 11 && doc <= 20) {
+      if (doc % 3 === 0) {
         suggestions.push({
-          type: 'MEDICINE',
-          category: 'MEDICINE',
-          applicationType: 'FEED',
-          title: 'Late Immunity Booster',
-          description: 'Prevent late-stage crashes.',
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Gut Probiotic (Pulse)',
+          description: 'Importance Day: Periodic gut conditioning for early growth spurt.',
+          brand: 'Avanti Gut Health',
           priority: 'HIGH'
         });
-     }
-  }
-
-  // DOC 81-100 (FINAL / HARVEST PREP)
-  else if (doc >= 81) {
-    if (doc % 10 === 0) {
-      suggestions.push({
-        type: 'MEDICINE',
-        category: 'MEDICINE',
-        applicationType: 'FEED',
-        title: 'Light Probiotic maintenance',
-        description: 'Importance Day: Final digestive stability check before harvest.',
-        priority: 'LOW'
-      });
-    }
-     if (doc % 7 === 0) {
+      }
+      if (doc % 7 === 0) {
         suggestions.push({
-          type: 'MEDICINE',
-          category: 'WATER',
-          applicationType: 'WATER',
-          title: 'Water Probiotic (Flush)',
-          description: 'Weekly cleaning of harvest-stage water.',
+          type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+          title: 'Water & Soil Probiotic',
+          description: 'Maintenance SOP: Prevent bottom sludge bacteria buildup.',
+          brand: 'Sanolife PRO-W',
+          priority: 'HIGH'
+        });
+      }
+      if (doc === 15) {
+        suggestions.push({
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Vitamin C Booster',
+          description: 'Immunity milestone for establishment phase.',
+          priority: 'HIGH'
+        });
+      }
+    }
+
+    // ─── DOC 21-30 ───────────────────────────────────────────────────────────
+    else if (doc >= 21 && doc <= 30) {
+      if (doc % 3 === 0) {
+        suggestions.push({
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Gut Probiotic (Risk Management)',
+          description: 'Importance Day: Strategic gut health during risk stage transition.',
+          priority: 'HIGH'
+        });
+      }
+      if (doc % 10 === 0) {
+         suggestions.push({
+           type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+           title: 'Water Probiotic (Maintenance)',
+           description: 'Maintain high bio-security during risk stage transition.',
+           priority: 'HIGH'
+         });
+      }
+      if (doc === 25) {
+         suggestions.push({
+           type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+           title: 'Immunity Booster Pulse',
+           description: 'Prepare for critical DOC 30 transition.',
+           priority: 'HIGH'
+         });
+         suggestions.push({
+           type: 'ALERT', category: 'MEDICINE',
+           title: 'Vibriosis Check Required',
+           description: 'Scan shrimp and check for tail redness.',
+           priority: 'HIGH'
+         });
+      }
+    }
+
+    // ─── DOC 31-45 (CRITICAL STAGE) ─────────────────────────────────────────
+    else if (doc >= 31 && doc <= 45) {
+       // Enhanced WSSV alert with situation context
+       const wssvDescription = isDoLow || isPhOutOfRange(ph)
+         ? `CRITICAL: Water quality out of range increases WSSV susceptibility by 3x. Fix water quality immediately AND maintain max aeration.`
+         : `Expert Warning: High risk of White Spot Syndrome in this window. Run max aeration 24/7. Check shrimp for white spots or lethargy.`;
+       
+       suggestions.push({
+         type: 'ALERT', category: 'MEDICINE',
+         title: 'CRITICAL STAGE: WSSV ALERT',
+         description: wssvDescription,
+         priority: 'HIGH',
+         situationTag: 'CRITICAL_STAGE',
+         isAdaptive: !!(isDoLow || isPhOutOfRange(ph))
+       });
+       if (doc % 2 === 0) {
+         suggestions.push({
+           type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+           title: 'Gut Probiotic (Shield)',
+           description: 'Importance Day: Maximum mucosal protection during critical transition.',
+           priority: 'HIGH'
+         });
+       }
+       if (doc % 10 === 0) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+            title: 'Water Probiotic (Pathogen Control)',
+            description: 'Strategic microbial load management for critical window.',
+            priority: 'HIGH'
+          });
+       }
+       if (doc >= 30 && doc <= 35) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+            title: 'Anti-Stress Tonic',
+            description: 'Critical stage stress reduction requirement.',
+            priority: 'HIGH'
+          });
+       }
+       if (doc === 40) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'MOLTING', applicationType: 'WATER',
+            title: 'Vitamin + Mineral Booster',
+            description: 'Deep metabolic boost for critical period end.',
+            priority: 'HIGH'
+          });
+       }
+    }
+
+    // ─── DOC 46-60 (HIGH GROWTH) ─────────────────────────────────────────────
+    else if (doc >= 46 && doc <= 60) {
+      if (doc % 4 === 0) {
+        suggestions.push({
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Gut Probiotics (Absorption)',
+          description: 'Importance Day: Feed mix for maximum enzymatic absorption during size spike.',
+          priority: 'HIGH'
+        });
+      }
+       if (doc % 2 === 0) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+            title: 'Water Probiotic (Intensive)',
+            description: 'High waste removal for high growth stage.',
+            priority: 'HIGH'
+          });
+       }
+       if (doc === 50) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+            title: 'Liver Tonic (Hepatopancreas)',
+            description: 'Maintenance of vital organ health during size spike.',
+            priority: 'HIGH'
+          });
+       }
+    }
+
+    // ─── DOC 61-80 (LATE STAGE) ──────────────────────────────────────────────
+    else if (doc >= 61 && doc <= 80) {
+      if (doc % 5 === 0) {
+        suggestions.push({
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Gut Probiotic (Stability Maintenance)',
+          description: 'Importance Day: Final stretch intestinal flora support.',
+          priority: 'MEDIUM'
+        });
+      }
+       if (doc % 3 === 0) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+            title: 'Water Probiotic (Regular)',
+            description: 'Moderate water conditioning.',
+            priority: 'MEDIUM'
+          });
+       }
+       if (doc === 70) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+            title: 'Late Immunity Booster',
+            description: 'Prevent late-stage crashes.',
+            priority: 'HIGH'
+          });
+       }
+    }
+
+    // ─── DOC 81-100 (HARVEST PREP) ───────────────────────────────────────────
+    else if (doc >= 81) {
+      if (doc % 10 === 0) {
+        suggestions.push({
+          type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+          title: 'Light Probiotic maintenance',
+          description: 'Importance Day: Final digestive stability check before harvest.',
           priority: 'LOW'
         });
-     }
-     if (doc >= 90) {
-        suggestions.push({
-          type: 'RULE',
-          category: 'WATER',
-          title: 'HARVEST PREP SOP',
-          description: 'Stop heavy medicines. Focus on water clarity and residue withdrawal.',
-          priority: 'HIGH'
-        });
-     }
+      }
+       if (doc % 7 === 0) {
+          suggestions.push({
+            type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+            title: 'Water Probiotic (Flush)',
+            description: 'Weekly cleaning of harvest-stage water.',
+            priority: 'LOW'
+          });
+       }
+       if (doc >= 90) {
+          const harvestMsg = doc >= 100
+            ? '🔴 FULL STOP: All heavy medicines must be withdrawn. Focus on water clarity and residue clearance for safe harvest. Test for antibiotic residues.'
+            : `Stop heavy medicines now. Begin withdrawal period. ${100 - doc} days to harvest target — maintain water clarity.`;
+          suggestions.push({
+            type: 'RULE', category: 'WATER',
+            title: 'HARVEST PREP SOP',
+            description: harvestMsg,
+            priority: 'HIGH',
+            situationTag: 'HARVEST_PREP'
+          });
+       }
     }
   }
 
   return suggestions;
 };
+
+// Helper to check pH out of range
+function isPhOutOfRange(ph?: number): boolean {
+  if (ph == null) return false;
+  return ph < 7.5 || ph > 8.5;
+}

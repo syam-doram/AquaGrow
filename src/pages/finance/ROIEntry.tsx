@@ -138,7 +138,7 @@ const SpendBar = ({ label, amount, total, color }: { label: string; amount: numb
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export const ROIEntry = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { ponds, expenses } = useData();
+  const { ponds, expenses, feedLogs, medicineLogs } = useData();
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'harvested');
 
   const STEPS = [
@@ -151,27 +151,46 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({ ...EMPTY, pondId: activePonds[0]?.id || '' });
   const [saved, setSaved] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
 
-  // Auto-fill costs from daily logs when pond changes
+  // Auto-fill costs from feedLogs + medicineLogs + expenses when pond changes
   React.useEffect(() => {
      if (!form.pondId) return;
-     const pondExpenses = (expenses || []).filter(e => e.pondId === form.pondId);
-     const feed = pondExpenses.filter(e => e.category === 'feed').reduce((acc, e) => acc + (e.amount || 0), 0);
-     const med = pondExpenses.filter(e => e.category === 'medicine').reduce((acc, e) => acc + (e.amount || 0), 0);
-     const diesel = pondExpenses.filter(e => e.category === 'diesel').reduce((acc, e) => acc + (e.amount || 0), 0);
-     const power = pondExpenses.filter(e => e.category === 'power').reduce((acc, e) => acc + (e.amount || 0), 0);
-     const labor = pondExpenses.filter(e => e.category === 'labor').reduce((acc, e) => acc + (e.amount || 0), 0);
-     const other = pondExpenses.filter(e => e.category === 'other').reduce((acc, e) => acc + (e.amount || 0), 0);
+
+     // From expenses table
+     const pondExpenses = (expenses || []).filter((e: any) => e.pondId === form.pondId);
+     const feedFromExp = pondExpenses.filter((e: any) => e.category === 'feed').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+     const medFromExp = pondExpenses.filter((e: any) => e.category === 'medicine').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+     const diesel = pondExpenses.filter((e: any) => e.category === 'diesel').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+     const power = pondExpenses.filter((e: any) => e.category === 'power').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+     const labor = pondExpenses.filter((e: any) => e.category === 'labor').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+     const other = pondExpenses.filter((e: any) => e.category === 'other').reduce((acc: number, e: any) => acc + (e.amount || 0), 0);
+
+     // From feedLogs directly (cost field or quantity * avg price ₹65/kg)
+     const feedFromLogs = (feedLogs || [])
+       .filter((l: any) => l.pondId === form.pondId)
+       .reduce((acc: number, l: any) => acc + (l.cost || l.quantity * 65 || 0), 0);
+
+     // From medicineLogs directly
+     const medFromLogs = (medicineLogs || [])
+       .filter((l: any) => l.pondId === form.pondId)
+       .reduce((acc: number, l: any) => acc + (l.cost || 0), 0);
+
+     const totalFeed = feedFromExp + feedFromLogs;
+     const totalMed = medFromExp + medFromLogs;
+
+     const hasData = totalFeed > 0 || totalMed > 0 || (diesel + power) > 0 || labor > 0 || other > 0;
+     if (hasData) setAutoFilled(true);
 
      setForm(f => ({
         ...f,
-        feedCost: feed > 0 ? feed.toString() : f.feedCost,
-        medicineCost: med > 0 ? med.toString() : f.medicineCost,
+        feedCost: totalFeed > 0 ? totalFeed.toString() : f.feedCost,
+        medicineCost: totalMed > 0 ? totalMed.toString() : f.medicineCost,
         utilityCost: (diesel + power) > 0 ? (diesel + power).toString() : f.utilityCost,
         laborCost: labor > 0 ? labor.toString() : f.laborCost,
         otherCost: other > 0 ? other.toString() : f.otherCost
      }));
-  }, [form.pondId, expenses]);
+  }, [form.pondId, expenses, feedLogs, medicineLogs]);
 
   const set = (key: keyof FormData) => (v: string) => setForm(f => ({ ...f, [key]: v }));
   const n = (v: string) => parseFloat(v) || 0;
@@ -317,9 +336,19 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
             {/* ── STEP 2: Investments ── */}
             {step === 2 && (
               <div className="space-y-5">
-                <div className="bg-red-50 rounded-[1.5rem] p-4 border border-red-100">
-                  <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">{t.whatDidYouSpend}</p>
-                </div>
+                {autoFilled ? (
+                  <div className="bg-emerald-50 rounded-[1.5rem] p-4 border border-emerald-100 flex items-start gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Auto-Filled from Logs</p>
+                      <p className="text-[9px] text-emerald-600 mt-0.5">Feed & medicine costs pulled from your daily logs. Review and adjust if needed.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-red-50 rounded-[1.5rem] p-4 border border-red-100">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">{t.whatDidYouSpend}</p>
+                  </div>
+                )}
                 <Field label={t.seedPlsCost} value={form.seedCost} onChange={set('seedCost')} type="number" placeholder="0" icon={Fish} unit="₹" />
                 <Field label={t.feedCostLabel} value={form.feedCost} onChange={set('feedCost')} type="number" placeholder="0" icon={Wheat} unit="₹" />
                 <Field label={t.medicineProbiotics} value={form.medicineCost} onChange={set('medicineCost')} type="number" placeholder="0" icon={Pill} unit="₹" />

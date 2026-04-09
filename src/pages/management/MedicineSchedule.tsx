@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Waves, Plus } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Waves, Plus, Sun, CloudRain, Cloud, Snowflake, TrendingDown, Flame } from 'lucide-react';
+import { NoPondState } from '../../components/NoPondState';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -31,6 +32,7 @@ import { calculateDOC } from '../../utils/pondUtils';
 import { getSOPGuidance, SOPSuggestion } from '../../utils/sopRules';
 import { getLunarStatus, getLunarForecast } from '../../utils/lunarUtils';
 import { cn } from '../../utils/cn';
+import { computeDiseaseRisk, RISK_COLORS, STAGE_META, SEASON_META } from '../../utils/diseaseRiskEngine';
 
 const PRE_STOCKING_PHASE = {
   range: 'Prep Days 1-15',
@@ -137,6 +139,55 @@ const getIconForType = (type: string) => {
     case 'FEED': return Utensils;
     default: return Pill;
   }
+};
+
+// ─── Medicine Cost Estimator ─────────────────────────────────────────────────
+const MEDICINE_UNIT_COSTS: Record<string, number> = {
+  'Gut Probiotic Foundation':    120,
+  'Gut Probiotic':               120,
+  'Gut Probiotic (Pulse)':       120,
+  'Gut Probiotic (Risk Management)': 120,
+  'Gut Probiotic (Shield)':      130,
+  'Gut Probiotics (Absorption)': 130,
+  'Gut Probiotic (Stability Maintenance)': 100,
+  'Water Probiotic':             90,
+  'Water Probiotic (Foundation)': 90,
+  'Water Probiotic (Maintenance)': 90,
+  'Water Probiotic (Pathogen Control)': 110,
+  'Water Probiotic (Intensive)': 100,
+  'Water Probiotic (Regular)':   90,
+  'Water Probiotic (Flush)':     85,
+  'Mineral Mix':                 80,
+  'Mineral Mix (Hardening)':     90,
+  'Mineral Pulse':               80,
+  'Mineral Supplement':          75,
+  'Vitamin C Booster':           180,
+  'Vitamin C Anti-Stress (Heat)': 200,
+  'Vitamin + Mineral Booster':   220,
+  'Late Immunity Booster':       200,
+  'Immunity Booster Pulse':      190,
+  'Anti-Stress Tonic':           160,
+  'Liver Tonic (Hepatopancreas)': 250,
+  'Light Probiotic maintenance': 70,
+  'pH Correction — Zeolite/Organic Acid': 100,
+  'pH Stabilizer — Dolomite Lime': 60,
+  'Emergency Zeolite Application': 100,
+  'Zeolite':                     100,
+  'Soil Liming (Dolomite)':      60,
+  'Water Color Bloom (Organic)': 120,
+  'Monday → Mineral Mix':        80,
+  'Tuesday → Water Probiotic':   90,
+  'Wednesday → Gut Probiotic':   120,
+  'Thursday → Water Probiotic':  90,
+  'Friday → Mineral Mix':        80,
+  'Saturday → Immunity Booster': 190,
+  'Vitamin C':                   180,
+};
+
+const estimateMedicineCost = (name: string, pondAcreage: number = 1): number => {
+  const base = MEDICINE_UNIT_COSTS[name] ?? 100;
+  // Scale with pond size (most treatments are per-acre)
+  return Math.round(base * Math.max(1, pondAcreage));
 };
 
 const getPriorityColor = (priority: string) => {
@@ -267,27 +318,73 @@ const MOON_META = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Season / Weather helpers ────────────────────────────────────────────────
+const getCurrentSeason = () => {
+  const m = new Date().getMonth() + 1;
+  if (m >= 3 && m <= 6) return { label: 'Summer', emoji: '☀️', icon: Sun, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', risk: 'High Temp · Low DO · Vibriosis risk' };
+  if (m >= 7 && m <= 10) return { label: 'Monsoon', emoji: '🌧️', icon: CloudRain, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', risk: 'Salinity drops · WSSV peak season' };
+  return { label: 'Winter', emoji: '❄️', icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20', risk: 'Low temp · WSSV trigger zone' };
+};
+
+const getMedicineImportance = (title: string, doc: number, priority: string): 'URGENT' | 'IMPORTANT' | 'ROUTINE' => {
+  const isCritSOP = priority === 'HIGH' || priority === 'CRITICAL';
+  const isRiskDOC  = (doc >= 31 && doc <= 45) || doc >= 75;
+  if (isCritSOP && isRiskDOC) return 'URGENT';
+  if (isCritSOP || isRiskDOC)  return 'IMPORTANT';
+  return 'ROUTINE';
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, addMedicineLog, medicineLogs, waterRecords } = useData();
-  const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
+
+  // Only show active / planned ponds — no SOPs for harvested/sold ponds
+  const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'planned');
+  const [selectedPondId, setSelectedPondId] = useState(activePonds[0]?.id || ponds[0]?.id || '');
   const [completedMeds, setCompletedMeds] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'today' | 'lunar' | 'full'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'diseases' | 'cycle' | 'lunar'>('today');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
 
+  // Season context
+  const season = useMemo(() => getCurrentSeason(), []);
+
   // Data-Driven Risk Analysis
-  const pondWaterRecords = waterRecords
-    .filter(r => r.pondId === selectedPond?.id)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  
+  const pondWaterRecords = useMemo(() =>
+    waterRecords
+      .filter(r => r.pondId === selectedPond?.id)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+    [waterRecords, selectedPond?.id]
+  );
   const latestRead = pondWaterRecords[0];
-  const isDOCRisk = currentDoc > 30 && currentDoc < 45 || currentDoc > 75;
+  const isDOCRisk   = (currentDoc > 30 && currentDoc < 45) || currentDoc > 75;
   const isWaterRisk = latestRead && (latestRead.do < 4.0 || latestRead.ph > 8.5 || latestRead.temp > 31);
-  const riskLevel = (isDOCRisk && isWaterRisk) ? 'CRITICAL' : (isDOCRisk || isWaterRisk) ? 'HIGH' : 'STABLE';
+  const riskLevel   = (isDOCRisk && isWaterRisk) ? 'CRITICAL' : (isDOCRisk || isWaterRisk) ? 'HIGH' : 'STABLE';
+
+  // Compliance streak — consecutive days with ≥1 medicine logged
+  const complianceStreak = useMemo(() => {
+    let streak = 0;
+    const d = new Date();
+    for (let i = 0; i < 30; i++) {
+      const key = new Date(d.getTime() - i * 86400000).toISOString().split('T')[0];
+      const hasLog = medicineLogs.some(l => l.pondId === selectedPondId && l.date?.startsWith(key));
+      if (hasLog) streak++; else if (i > 0) break;
+    }
+    return streak;
+  }, [medicineLogs, selectedPondId]);
+
+  // Disease risk report — computed once
+  const diseaseRiskReport = useMemo(() => computeDiseaseRisk({
+    doc: currentDoc,
+    temperature: latestRead?.temp,
+    doLevel: latestRead?.do,
+    ammonia: latestRead?.ammonia,
+    ph: latestRead?.ph,
+  }), [currentDoc, latestRead]);
 
   // Lunar forecast for the planner (Extended to 40 days to ensure full culture-cycle coverage)
   const lunarForecast = React.useMemo(() => getLunarForecast(new Date(), 40), []);
@@ -352,6 +449,16 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     );
   };
 
+  // ── Pond acreage for cost estimation
+  const pondAcreage = Number((selectedPond as any)?.farmSize) || 1;
+
+  // ── Cost for each selected medicine
+  const selectedCosts = completedMeds.map(name => ({
+    name,
+    cost: estimateMedicineCost(name, pondAcreage),
+  }));
+  const totalEstimatedCost = selectedCosts.reduce((a, c) => a + c.cost, 0);
+
   const handleLog = async () => {
     if (completedMeds.length === 0 || !selectedPond) return;
     setIsLogging(true);
@@ -359,28 +466,53 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     try {
       const logPromises = completedMeds.map(medName => {
         const guidance = todayGuidance.find(g => g.title === medName);
+        const estimatedCost = estimateMedicineCost(medName, pondAcreage);
         return addMedicineLog({
           pondId: selectedPond.id,
           date: new Date().toISOString(),
           name: medName,
           dosage: guidance?.dose || 'As per SOP',
-          doc: currentDoc
+          doc: currentDoc,
+          cost: estimatedCost,   // ← feeds into ROI expense tracking
         });
       });
 
       await Promise.all(logPromises);
       setCompletedMeds([]);
     } catch (error) {
-      console.error("Error logging medication:", error);
-      alert("Failed to save logs. Please try again.");
+      console.error('Error logging medication:', error);
+      alert('Failed to save logs. Please try again.');
     } finally {
       setIsLogging(false);
     }
   };
 
+  // ── Medicine compliance tracker
+  const today = new Date().toISOString().split('T')[0];
+  const pondMedLogs = medicineLogs?.filter((l: any) => l.pondId === selectedPondId) || [];
+  const todayMedLogs = pondMedLogs.filter((l: any) => l.date?.startsWith(today));
+  const last7DaysMeds = pondMedLogs.filter((l: any) => {
+    const d = new Date(l.date); const w = new Date(); w.setDate(w.getDate() - 7);
+    return d >= w;
+  }).length;
+  const isCritical = currentDoc >= 31 && currentDoc <= 45;
+  const isWithdrawal = currentDoc >= 90;
+  const isApproachingWithdrawal = currentDoc >= 83 && currentDoc < 90;
+  const isPrestocking = selectedPond?.status === 'planned';
+
+  const getSituationTag = () => {
+    if (selectedPond?.status === 'harvested') return { label: 'HARVESTED — NO SOP', color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20', emoji: '✅' };
+    if (isWithdrawal) return { label: 'WITHDRAWAL PHASE', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', emoji: '🚫' };
+    if (isApproachingWithdrawal) return { label: 'PRE-HARVEST CARE', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', emoji: '⏰' };
+    if (isCritical) return { label: 'CRITICAL STAGE', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', emoji: '🦠' };
+    if (currentDoc >= 20 && currentDoc <= 30) return { label: 'VIBRIOSIS WINDOW', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', emoji: '🔬' };
+    return { label: 'STANDARD PROTOCOL', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', emoji: '✅' };
+  };
+  const situationTag = getSituationTag();
+
   return (
     <div className="pb-40 bg-transparent min-h-screen text-left relative overflow-hidden">
-      {/* ── Page Accents (Layered with Global) ── */}
+      {/* ── Page Accents ── */}
       <div className="absolute top-10 right-[-10%] w-[70%] h-[30%] bg-purple-100/10 rounded-full blur-[100px] -z-10" />
       <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
       {/* Sync Success Overlay */}
@@ -396,7 +528,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', damping: 12 }}
-              className="w-32 h-32 bg-card rounded-[2.5rem] flex items-center justify-center text-[#0D523C] shadow-2xl mb-8"
+              className="w-32 h-32 bg-card rounded-[2.5rem] flex items-center justify-center text-[#0D523C] shadow-2xl mb-4"
             >
               <ShieldCheck size={64} />
             </motion.div>
@@ -436,213 +568,369 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 key={p.id}
                 onClick={() => { setSelectedPondId(p.id); setCompletedMeds([]); }}
                 className={cn(
-                  'px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0',
+                  'px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 flex items-center gap-2',
                   selectedPondId === p.id
                     ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
-                    : 'bg-card text-ink/40 border-card-border'
+                    : p.status === 'harvested'
+                      ? 'bg-card text-ink/20 border-card-border line-through'
+                      : 'bg-card text-ink/40 border-card-border'
                 )}
               >
                 {p.name}
+                {p.status === 'harvested' && <span className="text-[7px] font-black bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full no-underline">Done</span>}
               </button>
             ))}
           </div>
         ) : (
           /* No Ponds Empty State */
-          <div className="mt-4 bg-card rounded-[1.8rem] p-6 text-center border border-dashed border-card-border shadow-md max-w-sm mx-auto">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-primary border border-primary/10">
-              <Plus size={24} strokeWidth={3} />
-            </div>
-            <h3 className="text-ink font-black text-xs tracking-tight mb-1">{t.addFirstPond}</h3>
-            <p className="text-muted-ink text-[8px] font-bold uppercase tracking-widest leading-relaxed mb-4 px-6 mx-auto">
-              Add a pond to start tracking your medicine SOP schedule.
-            </p>
-            <button
-              onClick={() => navigate('/ponds/new')}
-              className="w-full py-3.5 bg-gradient-to-br from-primary to-accent text-white rounded-xl font-black text-[8px] uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all"
-            >
-              {t.addPond}
-            </button>
+          <div className="mt-8">
+            <NoPondState
+              isDark={false}
+              subtitle="Add a pond to start tracking your daily medicine and SOP schedule."
+            />
           </div>
         )}
 
         {ponds.length > 0 && selectedPond && (
           <>
-            {/* ─── SHARED DASHBOARD ELEMENTS (Hiden on Lunar Tab) ─── */}
-            {activeTab !== 'lunar' && (
-              <div className="space-y-4">
-                {/* ─── LUNAR + WEATHER AWARENESS BANNER ─── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn('rounded-[2rem] overflow-hidden border', moonMeta.bg, moonMeta.border)}
-                >
-                  {/* Moon Phase Header */}
-                  <div className="px-6 pt-5 pb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="text-4xl leading-none">{moonMeta.emoji}</span>
-                      <div>
-                        <p className={cn('font-black text-base tracking-tight', moonMeta.textColor)}>
-                          {moonMeta.label}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={cn(
-                            'text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
-                            moonMeta.badge
-                          )}>
-                            {moonMeta.sublabel}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Days to Amavasya counter */}
-                    <div className="text-right">
-                      <p className="text-white/20 text-[8px] font-black uppercase tracking-widest">Next Amavasya</p>
-                      <p className="text-white font-black text-xl leading-tight">
-                        {lunar.daysToAmavasya <= 1 ? 'Tonight' : `${lunar.daysToAmavasya}d`}
-                      </p>
-                      <p className="text-white/20 text-[7px] font-black uppercase tracking-widest">
-                        Day {Math.round(lunar.daysSinceAmavasya)}/29
-                      </p>
+            {/* ─── MEDICINE INTELLIGENCE HERO ─── */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10"
+              style={{
+                background: isPrestocking
+                  ? 'linear-gradient(135deg, #0e1a3a 0%, #1a3a5c 100%)'
+                  : isCritical
+                  ? 'linear-gradient(135deg, #1a0510 0%, #7c1010 50%, #1a0510 100%)'
+                  : isWithdrawal
+                  ? 'linear-gradient(135deg, #1a0a00 0%, #92400e 100%)'
+                  : riskLevel === 'CRITICAL'
+                  ? 'linear-gradient(135deg, #0f0a1e 0%, #4c1d95 100%)'
+                  : 'linear-gradient(135deg, #022c22 0%, #0D523C 80%, #065f46 100%)'
+              }}
+            >
+              {/* ── Ambient glow ── */}
+              <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-[80px] pointer-events-none"
+                style={{ background: isCritical ? 'rgba(239,68,68,0.25)' : isWithdrawal ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.15)' }} />
+
+              <div className="p-5 relative z-10">
+                {/* ── Row 1: Pond name + DOC ── */}
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-white/30 text-[7px] font-black uppercase tracking-[0.35em] mb-1">
+                      Medicine Command Center
+                    </p>
+                    <h2 className="text-2xl font-black text-white tracking-tighter leading-none mb-2">
+                      {selectedPond.name}
+                    </h2>
+                    {/* Situation tag */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn('text-[7px] font-black px-2.5 py-1 rounded-full border', situationTag.bg, situationTag.color)}>
+                        {situationTag.emoji} {situationTag.label}
+                      </span>
+                      {/* Compliance streak badge */}
+                      {complianceStreak > 0 && (
+                        <span className="text-[7px] font-black px-2.5 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-300">
+                          🔥 {complianceStreak}-Day Streak
+                        </span>
+                      )}
                     </div>
                   </div>
+                  {/* DOC number */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-white/25 text-[6px] font-black uppercase tracking-widest">
+                      {isPrestocking ? 'Prep Days' : 'Culture Day'}
+                    </p>
+                    <p className={cn('text-5xl font-black tracking-tighter leading-none',
+                      isCritical ? 'text-red-300' : isWithdrawal ? 'text-amber-300' : 'text-white'
+                    )}>
+                      {isPrestocking ? Math.abs(currentDoc) : currentDoc}
+                    </p>
+                    <p className="text-[6px] font-black text-white/25 uppercase tracking-widest mt-1">DOC</p>
+                  </div>
+                </div>
 
-                  {/* Upcoming / Previous Sequence */}
-                  {(lunar.phase === 'NORMAL' || lunar.phase === 'POURNAMI') && (
-                    <div className="px-6 pb-2.5 flex gap-2 overflow-x-auto scrollbar-none">
-                       {(lunar.phase === 'POURNAMI' ? [
-                         { label: 'Prev Ashtami', days: lunar.daysSinceAshtami, emoji: '🌓', color: 'text-violet-300', suffix: ' ago' },
-                         { label: 'Prev Navami', days: lunar.daysSinceNavami, emoji: '🌙', color: 'text-sky-300', suffix: ' ago' },
-                         { label: 'Prev Amavasya', days: lunar.daysSinceAmavasya, emoji: '🌑', color: 'text-indigo-400', suffix: ' ago' },
-                       ] : [
-                         { label: 'Ashtami', days: lunar.daysToAshtami, emoji: '🌓', color: 'text-violet-300', suffix: 'd' },
-                         { label: 'Navami', days: lunar.daysToNavami, emoji: '🌙', color: 'text-sky-300', suffix: 'd' },
-                         { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: '🌑', color: 'text-indigo-400', suffix: 'd' },
-                       ]).sort((a,b) => a.days - b.days).map((ev, i) => (
-                         <div key={i} className="bg-card/5 border border-white/10 rounded-2xl p-3 flex flex-col items-center min-w-[80px]">
-                            <span className="text-xl mb-1">{ev.emoji}</span>
-                            <p className="text-[7px] font-black uppercase text-white/40 tracking-widest">{ev.label}</p>
-                            <p className={cn("text-[10px] font-black", ev.color)}>{Math.round(ev.days)}{ev.suffix}</p>
-                         </div>
-                       ))}
+                {/* ── Row 2: DOC Progress bar ── */}
+                {!isPrestocking && (
+                  <div className="mb-4">
+                    <div className="flex justify-between text-[5px] font-black text-white/20 uppercase tracking-widest mb-1">
+                      <span>DOC 1</span>
+                      <span className="text-white/40">Risk Zone →</span>
+                      <span>DOC 100</span>
                     </div>
-                  )}
-
-                  {/* Rules List */}
-                  <div className="px-6 pb-5 space-y-2 border-t border-white/5 pt-4">
-                    {moonMeta.rules.map((rule, i) => (
-                      <p key={i} className="text-white/70 text-[11px] font-bold leading-snug tracking-tight">
-                        {rule}
+                    {/* Multi-zone progress bar */}
+                    <div className="relative h-2.5 bg-white/10 rounded-full overflow-hidden">
+                      {/* Zone markers */}
+                      <div className="absolute top-0 left-[30%] w-px h-full bg-amber-400/30 z-10" />
+                      <div className="absolute top-0 left-[45%] w-px h-full bg-red-400/30 z-10" />
+                      <div className="absolute top-0 left-[90%] w-px h-full bg-orange-400/30 z-10" />
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, (currentDoc / 100) * 100)}%` }}
+                        transition={{ duration: 1.2, ease: 'easeOut' }}
+                        className={cn('h-full rounded-full',
+                          isCritical    ? 'bg-gradient-to-r from-red-400 to-red-600' :
+                          isWithdrawal  ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                          currentDoc < 31 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
+                          'bg-gradient-to-r from-emerald-400 to-amber-400'
+                        )}
+                      />
+                    </div>
+                    {/* Context labels */}
+                    {isCritical && (
+                      <p className="text-[7px] font-black text-red-300 mt-1.5 flex items-center gap-1 animate-pulse">
+                        <span>⚠️</span> Peak WSSV Risk Window (DOC 31–45) — Maximum vigilance required
                       </p>
+                    )}
+                    {isWithdrawal && (
+                      <p className="text-[7px] font-black text-amber-300 mt-1.5">
+                        🚫 Withdrawal phase — Stop all heavy medicines. Harvest window active.
+                      </p>
+                    )}
+                    {isApproachingWithdrawal && (
+                      <p className="text-[7px] font-black text-amber-300 mt-1.5">
+                        ⏰ Withdrawal in {90 - currentDoc} days — Start planning harvest logistics now
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Row 3: 4-pillar Situation Intelligence Strip ── */}
+                <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5 mb-4 -mx-1 px-1">
+                  {[
+                    {
+                      icon: moonMeta.emoji,
+                      label: 'Moon',
+                      value: lunar.phase === 'NORMAL' ? 'Normal' : lunar.phase,
+                      sub: lunar.phase !== 'NORMAL' ? '⚠ Manage feed' : `↓ Amavasya in ${lunar.daysToAmavasya}d`,
+                      urgent: lunar.phase !== 'NORMAL' && lunar.phase !== 'POURNAMI',
+                      bg: lunar.phase !== 'NORMAL' ? 'bg-indigo-500/15 border-indigo-400/20' : 'bg-white/5 border-white/8',
+                    },
+                    {
+                      icon: season.emoji,
+                      label: 'Season',
+                      value: season.label,
+                      sub: season.risk.split('·')[0].trim(),
+                      urgent: season.label === 'Monsoon',
+                      bg: season.label === 'Monsoon' ? 'bg-blue-500/15 border-blue-400/20' : season.label === 'Summer' ? 'bg-orange-500/15 border-orange-400/20' : 'bg-white/5 border-white/8',
+                    },
+                    {
+                      icon: diseaseRiskReport.overallRisk === 'CRITICAL' ? '🔴' : diseaseRiskReport.overallRisk === 'HIGH' ? '🟠' : diseaseRiskReport.overallRisk === 'MODERATE' ? '🟡' : '🟢',
+                      label: 'Disease Risk',
+                      value: diseaseRiskReport.overallRisk,
+                      sub: diseaseRiskReport.topRisks[0]?.shortName || 'Stable',
+                      urgent: diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH',
+                      bg: (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH') ? 'bg-red-500/15 border-red-400/20' : 'bg-white/5 border-white/8',
+                    },
+                    {
+                      icon: !latestRead ? '📊' : latestRead.do < 4 ? '🚨' : latestRead.ph > 8.5 ? '⚠️' : '✅',
+                      label: 'Water',
+                      value: !latestRead ? 'No data' : latestRead.do < 4 ? 'DO Critical' : latestRead.ph > 8.5 ? 'pH High' : 'Normal',
+                      sub: latestRead ? `DO: ${latestRead.do?.toFixed(1) ?? '—'} · pH: ${latestRead.ph?.toFixed(1) ?? '—'}` : 'Log water data',
+                      urgent: !!latestRead && (latestRead.do < 4 || latestRead.ph > 8.5),
+                      bg: (latestRead && (latestRead.do < 4 || latestRead.ph > 8.5)) ? 'bg-red-500/15 border-red-400/20' : 'bg-white/5 border-white/8',
+                    },
+                  ].map((pill, i) => (
+                    <div key={i} className={cn(
+                      'flex-shrink-0 rounded-2xl px-3 py-2.5 border min-w-[90px] transition-all',
+                      pill.bg
+                    )}>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="text-sm leading-none">{pill.icon}</span>
+                        <p className="text-white/30 text-[5px] font-black uppercase tracking-widest">{pill.label}</p>
+                        {pill.urgent && <span className="w-1 h-1 bg-red-400 rounded-full animate-pulse ml-auto" />}
+                      </div>
+                      <p className={cn('text-[9px] font-black leading-none mt-0.5',
+                        pill.urgent ? 'text-red-300' : 'text-white/80'
+                      )}>{pill.value}</p>
+                      <p className="text-white/25 text-[6px] font-medium mt-0.5 leading-tight">{pill.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Row 4: Stats + "Why Today Matters" ── */}
+                <div className="pt-3 border-t border-white/10">
+                  {/* Why today matters — contextual message */}
+                  {(() => {
+                    let msg = '';
+                    if (isCritical) msg = '🦠 WSSV risk peaks now. Every medicine applied today reduces crop loss probability by up to 40%.';
+                    else if (isWithdrawal) msg = '🌾 Harvest window open. Stop heavy medicines, check residue clearance and book logistics.';
+                    else if (diseaseRiskReport.overallRisk === 'HIGH' || diseaseRiskReport.overallRisk === 'CRITICAL')
+                      msg = `⚡ ${diseaseRiskReport.topRisks[0]?.name} risk is elevated at DOC ${currentDoc}. Today's SOP is your shield.`;
+                    else if (lunar.phase === 'AMAVASYA') msg = '🌑 Amavasya tonight — shrimp are molting. Reduce feed, maximize aeration, apply minerals.';
+                    else if (complianceStreak >= 7) msg = `🔥 ${complianceStreak}-day streak! Consistent medicine logging leads to 20%+ better FCR outcomes.`;
+                    else if (isPrestocking) msg = '🏗️ Preparation phase. Clean pond = healthy crop. Follow soil and water SOP strictly before stocking.';
+                    else msg = `✅ DOC ${currentDoc} — normal growth phase. Apply today's SOP protocol to maintain crop health.`;
+
+                    return (
+                      <div className="mb-3 px-1">
+                        <p className="text-white/50 text-[8px] font-medium leading-relaxed italic">{msg}</p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      {
+                        label: 'Streak',
+                        value: complianceStreak > 0 ? `${complianceStreak}d 🔥` : '—',
+                        color: complianceStreak >= 7 ? 'text-yellow-300' : complianceStreak > 0 ? 'text-emerald-400' : 'text-red-400',
+                      },
+                      {
+                        label: 'Today',
+                        value: todayMedLogs.length,
+                        color: todayMedLogs.length > 0 ? 'text-emerald-400' : 'text-white/40',
+                      },
+                      {
+                        label: '7-Day',
+                        value: last7DaysMeds,
+                        color: last7DaysMeds > 3 ? 'text-emerald-400' : last7DaysMeds > 0 ? 'text-amber-400' : 'text-red-400',
+                      },
+                      {
+                        label: 'Remaining',
+                        value: isWithdrawal ? '🚫' : Math.max(0, 100 - currentDoc),
+                        color: isWithdrawal ? 'text-red-400' : currentDoc > 90 ? 'text-amber-400' : 'text-white',
+                      },
+                    ].map((m, i) => (
+                      <div key={i} className="text-center bg-white/5 rounded-xl py-2">
+                        <p className={cn('text-base font-black leading-none', m.color)}>{m.value}</p>
+                        <p className="text-[5px] font-black text-white/25 uppercase tracking-widest mt-1">{m.label}</p>
+                      </div>
                     ))}
                   </div>
-
-                  {/* Weather Caution Row */}
-                  <div className="mx-5 mb-5 bg-card/5 rounded-2xl px-5 py-3.5 flex items-center gap-3 border border-white/5">
-                    <Thermometer size={16} className="text-white/40 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-white/80 text-[10px] font-black tracking-tight">Weather × Lunar Interaction</p>
-                      <p className="text-white/40 text-[9px] font-medium mt-0.5">
-                        {lunar.phase === 'AMAVASYA'
-                          ? 'Temp drops amplify DO risk tonight. Run aerators from 9 PM.'
-                          : (lunar.phase === 'ASHTAMI' || lunar.phase === 'NAVAMI')
-                          ? 'Quarter moon stress + heat stress can compound. Monitor O₂ closely.'
-                          : `Stable phase. Next major molting event starts in ${Math.min(lunar.daysToAmavasya, lunar.daysToAshtami, lunar.daysToNavami)} days.`}
-                      </p>
-                    </div>
-                    <div className="mt-[-8px]">
-                      <Droplets size={16} className="text-white/20 flex-shrink-0" />
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Next Milestone Banner */}
-                {nextMilestone && currentDoc > 0 && (
-                  <div className="bg-indigo-900 rounded-[2rem] px-6 py-4 flex items-center justify-between border border-indigo-700/30">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-card/10 rounded-2xl flex items-center justify-center">
-                        <Clock size={20} className="text-indigo-300" />
-                      </div>
-                      <div>
-                        <p className="text-indigo-300/60 text-[8px] font-black uppercase tracking-widest">Next Milestone</p>
-                        <p className="text-white font-black text-sm tracking-tight">{nextMilestone.label}</p>
-                      </div>
-                    </div>
-                    <div className="bg-card/10 rounded-xl px-3 py-2 text-center">
-                      <p className="text-white font-black text-lg leading-none">+{nextMilestone.doc - currentDoc}</p>
-                      <p className="text-indigo-300/60 text-[8px] font-black uppercase tracking-widest">days</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Phase Status Bar */}
-                {currentDoc > 0 && (
-                  <div className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-ink/50 text-[9px] font-black uppercase tracking-widest">Current Phase</p>
-                      <span className={cn(
-                        'text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full',
-                        currentPhaseIdx >= 0
-                          ? `${SOP_CYCLE_PHASES[currentPhaseIdx].textColor} ${SOP_CYCLE_PHASES[currentPhaseIdx].bgLight}`
-                          : 'text-ink/30 bg-[#F8F9FE]'
-                      )}>
-                        {currentPhaseIdx >= 0 ? SOP_CYCLE_PHASES[currentPhaseIdx].label : 'Not started'}
-                      </span>
-                    </div>
-                    {/* Progress Strip */}
-                    <div className="flex gap-1">
-                      {SOP_CYCLE_PHASES.map((phase, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            'flex-1 h-2 rounded-full transition-all',
-                            i < currentPhaseIdx ? 'bg-emerald-400' :
-                            i === currentPhaseIdx ? SOP_CYCLE_PHASES[i].color :
-                            'bg-[#F0F0F0]'
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex justify-between mt-2">
-                      <span className="text-[7px] font-black text-ink/20 uppercase tracking-widest">DOC 1</span>
-                      <span className="text-[7px] font-black text-ink/20 uppercase tracking-widest">DOC 100</span>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
-            )}
+            </motion.div>
 
-            {/* Tab Switch: Today vs Full Cycle vs Lunar */}
+
+
+
+            {/* ══════════════════════════════════════════════════════
+                TAB NAVIGATION — immediately below hero
+            ══════════════════════════════════════════════════════ */}
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {(['today', 'cycle', 'lunar'] as const).map(tab => (
+              {([
+                { id: 'today',    label: "Today's SOP",    emoji: '💊' },
+                { id: 'diseases', label: 'Disease Alerts', emoji: '🦠' },
+                { id: 'cycle',    label: 'Full Cycle',     emoji: '📅' },
+                { id: 'lunar',    label: 'Lunar',          emoji: '🌙' },
+              ] as const).map(tab => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    'flex-1 py-4 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
-                    activeTab === tab
+                    'flex-shrink-0 flex items-center gap-1.5 py-3 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
+                    (activeTab as string) === tab.id
                       ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
                       : 'bg-card text-ink/40 border-card-border'
                   )}
                 >
-                  {tab === 'today' ? "Today's SOP" : tab === 'cycle' ? 'Full Cycle' : 'Lunar Planner'}
+                  <span className="text-[10px]">{tab.emoji}</span>
+                  {tab.label}
+                  {/* Urgent indicator badges */}
+                  {tab.id === 'diseases' && (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH') && (
+                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                  )}
+                  {tab.id === 'today' && todayMedLogs.length === 0 && currentDoc > 0 && !isPrestocking && (
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                  )}
+                  {tab.id === 'lunar' && lunar.phase !== 'NORMAL' && (
+                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" />
+                  )}
                 </button>
               ))}
             </div>
 
+            {/* ══════════════════════════════════════════════════════
+                TAB CONTENT — AnimatePresence for smooth transitions
+            ══════════════════════════════════════════════════════ */}
             <AnimatePresence mode="wait">
-              {activeTab === 'today' && (
+
+              {/* ─────────────── TAB 1: TODAY'S SOP ─────────────── */}
+              {(activeTab as string) === 'today' && (
                 <motion.div
                   key="today"
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
+                  exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
+                  {/* Moon Phase Alert Strip — compact, only if active phase */}
+                  {isHighRiskMoon && (
+                    <div className={cn('rounded-2xl px-4 py-3 flex items-center gap-3 border', moonMeta.bg, moonMeta.border)}>
+                      <span className="text-2xl flex-shrink-0">{moonMeta.emoji}</span>
+                      <div className="flex-1">
+                        <p className={cn('text-[9px] font-black tracking-tight', moonMeta.textColor)}>
+                          {moonMeta.label} — {moonMeta.sublabel}
+                        </p>
+                        <p className="text-white/50 text-[8px] font-medium mt-0.5">
+                          {moonMeta.rules[0]}
+                        </p>
+                      </div>
+                      <span className={cn('text-[7px] font-black px-2 py-1 rounded-xl border whitespace-nowrap', moonMeta.badge)}>
+                        {lunar.daysToAmavasya <= 1 ? 'Tonight' : `${lunar.daysToAmavasya}d`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Season + next milestone compact strip */}
+                  {currentDoc > 0 && (
+                    <div className="flex gap-2">
+                      <div className={cn('flex-1 rounded-2xl px-4 py-3 border flex items-center gap-2', season.bg)}>
+                        <span className="text-lg">{season.emoji}</span>
+                        <div>
+                          <p className={cn('text-[8px] font-black', season.color)}>{season.label} Season</p>
+                          <p className="text-ink/40 text-[7px] font-medium">{season.risk.split('·')[0].trim()}</p>
+                        </div>
+                      </div>
+                      {nextMilestone && (
+                        <div className="flex-1 rounded-2xl px-4 py-3 bg-indigo-50 border border-indigo-200 flex items-center gap-2">
+                          <Clock size={18} className="text-indigo-400 flex-shrink-0" />
+                          <div>
+                            <p className="text-[8px] font-black text-indigo-700">{nextMilestone.label}</p>
+                            <p className="text-indigo-400 text-[7px] font-black">in +{nextMilestone.doc - currentDoc} days</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Next Culture Milestone — full card */}
+                  {nextMilestone && currentDoc > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-[2rem] px-5 py-4 flex items-center justify-between border bg-gradient-to-r from-indigo-50 to-violet-50 border-indigo-200 shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 bg-indigo-100 border border-indigo-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                          <Clock size={20} className="text-indigo-500" />
+                        </div>
+                        <div>
+                          <p className="text-indigo-400 text-[6px] font-black uppercase tracking-[0.3em]">Next Culture Milestone</p>
+                          <p className="text-indigo-900 font-black text-sm tracking-tight">{nextMilestone.label}</p>
+                          <p className="text-indigo-400/70 text-[7px] font-medium mt-0.5">
+                            {lunar.phase !== 'NORMAL'
+                              ? `⚠ Overlaps with ${lunar.phase} moon — apply extra care`
+                              : `🌕 Lunar phase stable for this milestone`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="bg-indigo-100 border border-indigo-200 rounded-2xl px-4 py-3 text-center flex-shrink-0">
+                        <p className="text-indigo-900 font-black text-2xl leading-none">+{nextMilestone.doc - currentDoc}</p>
+                        <p className="text-indigo-400 text-[5px] font-black uppercase tracking-widest">days</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+
                   {/* Not Stocked Empty State (Only for non-planned) */}
                   {(!selectedPond.stockingDate && selectedPond.status !== 'planned') ? (
                     <div className="bg-card rounded-[2.5rem] p-10 text-center border border-dashed border-card-border">
-                      <div className="w-16 h-16 bg-[#F8F9FE] rounded-3xl flex items-center justify-center mx-auto mb-4 text-[#C78200]">
+                      <div className="w-12 h-12 bg-[#F8F9FE] rounded-3xl flex items-center justify-center mx-auto mb-4 text-[#C78200]">
                         <Calendar size={32} />
                       </div>
                       <h3 className="text-ink font-black text-base tracking-tight mb-2">Culture Not Started</h3>
@@ -660,7 +948,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     <>
                       {/* Guidance or Stocking Day Content */}
                       {(currentDoc <= 0) && todayGuidance.length > 0 && (
-                        <div className="bg-emerald-50 border border-emerald-100/50 rounded-[2rem] p-6 text-center">
+                        <div className="bg-emerald-50 border border-emerald-100/50 rounded-[2rem] p-3 text-center">
                            <Zap className="text-emerald-500 mx-auto mb-3" size={28} />
                            <h4 className="text-[#0D523C] font-black text-base tracking-tight mb-1">
                              {selectedPond.status === 'planned' ? (
@@ -765,13 +1053,23 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                          'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex-shrink-0',
                                          item.applicationType === 'WATER' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                        )}>
-                                         {item.applicationType === 'WATER' ? 'Water Supplementary' : 'Feed Supplementary'}
+                                          {item.applicationType === 'WATER' ? 'Water' : 'Feed'}
                                        </span>
                                     )}
+                                     {item.type === 'MEDICINE' && !isAlreadyInHistory && (
+                                       <span className="text-[7px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 flex-shrink-0">
+                                         ~{'\u20b9'}{estimateMedicineCost(item.title, pondAcreage)}
+                                       </span>
+                                     )}
                                   </div>
-                                  <p className="text-ink/40 text-[10px] font-medium leading-snug truncate">
+                                   <p className="text-ink/40 text-[10px] font-medium leading-snug">
                                     {isAlreadyInHistory ? "Already applied and synced for today" : item.description}
                                   </p>
+                                   {item.dose && !isAlreadyInHistory && (
+                                     <p className="text-[#0D523C] text-[8px] font-black uppercase tracking-widest mt-0.5">
+                                       Dose: {item.dose}
+                                     </p>
+                                   )}
                                 </div>
                               </div>
                               {item.type === 'MEDICINE' && (
@@ -789,13 +1087,58 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         })}
                       </div>
 
+                      {/* ── HARVESTED POND GUARD ── */}
+                      {selectedPond.status === 'harvested' && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 text-center">
+                          <div className="text-4xl mb-3">🌾</div>
+                          <h3 className="text-amber-800 font-black text-sm tracking-tight mb-2">Pond Harvested</h3>
+                          <p className="text-amber-700/70 text-[11px] leading-relaxed">
+                            This pond has been harvested. No SOP medicines are required.<br/>
+                            Prepare for next culture cycle or archive this pond.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* ── COST ESTIMATION SUMMARY ── */}
+                      {completedMeds.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-gradient-to-br from-indigo-950 to-indigo-900 rounded-[2rem] p-5 border border-indigo-800/40 shadow-xl"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <p className="text-indigo-300/60 text-[7px] font-black uppercase tracking-widest">Estimated Medicine Cost</p>
+                              <p className="text-white text-xl font-black tracking-tight mt-0.5">₹{totalEstimatedCost.toLocaleString()}</p>
+                              <p className="text-indigo-300/40 text-[7px] font-bold mt-0.5">Will be recorded in ROI → Expenses</p>
+                            </div>
+                            <div className="w-12 h-12 bg-indigo-800/40 rounded-2xl flex items-center justify-center border border-indigo-700/30">
+                              <Pill size={20} className="text-indigo-300" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {selectedCosts.map((sc, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <p className="text-indigo-200/60 text-[9px] font-bold truncate flex-1 mr-3">{sc.name}</p>
+                                <p className="text-indigo-200 text-[9px] font-black flex-shrink-0">₹{sc.cost}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {pondAcreage > 1 && (
+                            <p className="text-indigo-400/40 text-[7px] font-black uppercase tracking-widest mt-3 border-t border-indigo-800/40 pt-2">
+                              Scaled for {pondAcreage} acres
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+
                       {/* Log Button */}
                       <button
                         onClick={handleLog}
-                        disabled={completedMeds.length === 0}
+                        disabled={completedMeds.length === 0 || selectedPond.status === 'harvested'}
                         className={cn(
                           'w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3',
-                          completedMeds.length > 0
+                          completedMeds.length > 0 && selectedPond.status !== 'harvested'
                             ? 'bg-[#0D523C] text-white shadow-2xl shadow-emerald-900/20 active:scale-95'
                             : 'bg-[#F0F0F0] text-ink/20 cursor-not-allowed'
                         )}
@@ -816,6 +1159,187 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 </motion.div>
               )}
 
+              {/* ─────────────── TAB 2: DISEASE ALERTS ─────────────── */}
+              {activeTab === 'diseases' && (
+                <motion.div
+                  key="diseases"
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 12 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4"
+                >
+                  {isPrestocking ? (
+                    <div className="bg-card rounded-[2rem] p-8 text-center border border-card-border">
+                      <div className="text-4xl mb-3">🏗️</div>
+                      <h3 className="text-ink font-black text-sm tracking-tight mb-2">Preparation Phase</h3>
+                      <p className="text-ink/40 text-[10px] leading-relaxed">
+                        Disease risk alerts activate after stocking. Focus on water quality and pond preparation now.
+                      </p>
+                    </div>
+                  ) : currentDoc === 0 ? (
+                    <div className="bg-card rounded-[2rem] p-8 text-center border border-card-border">
+                      <div className="text-4xl mb-3">✅</div>
+                      <h3 className="text-ink font-black text-sm tracking-tight mb-2">Stocking Day</h3>
+                      <p className="text-ink/40 text-[10px] leading-relaxed">Disease monitoring begins from DOC 1.</p>
+                    </div>
+                  ) : (() => {
+                    const riskReport = diseaseRiskReport;
+                    const alerts = riskReport.topRisks.filter(r => r.riskScore > 15).slice(0, 5);
+                    const overallColors = RISK_COLORS[riskReport.overallRisk];
+                    const stageMeta  = STAGE_META[riskReport.stage];
+                    const seasonMeta = SEASON_META[riskReport.season];
+                    const tips       = riskReport.preventionTips;
+
+                    return (
+                      <div className="space-y-3">
+                        {/* Section header */}
+                        <div className="flex items-center justify-between px-1">
+                          <div>
+                            <h3 className="text-ink font-black text-sm tracking-tight">🦠 Stage Disease Alerts</h3>
+                            <p className="text-ink/40 text-[8px] font-black uppercase tracking-widest mt-0.5">
+                              {stageMeta.emoji} {stageMeta.label} · DOC {currentDoc} · {seasonMeta.emoji} {seasonMeta.label}
+                            </p>
+                          </div>
+                          <span className={cn('text-[7px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border', overallColors.badge)}>
+                            Overall: {riskReport.overallRisk}
+                          </span>
+                        </div>
+
+                        {alerts.length === 0 ? (
+                          <div className="bg-emerald-50 border border-emerald-100 rounded-[2rem] p-8 text-center">
+                            <div className="text-4xl mb-3">🛡️</div>
+                            <h3 className="text-emerald-800 font-black text-sm tracking-tight mb-2">All Clear!</h3>
+                            <p className="text-emerald-700/60 text-[10px] leading-relaxed">No significant disease risk at DOC {currentDoc}. Maintain your SOP protocol.</p>
+                          </div>
+                        ) : alerts.map((risk, i) => {
+                          const rc       = RISK_COLORS[risk.riskLevel];
+                          const barW     = Math.max(5, risk.riskScore);
+                          const isCrit   = risk.riskScore >= 75;
+                          const isHigh   = risk.riskScore >= 55 && !isCrit;
+                          const isHotZone = isCrit || isHigh;
+                          const cardTip  = tips[i % tips.length];
+                          return (
+                            <motion.div
+                              key={risk.id}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.07 }}
+                              className={cn(
+                                'rounded-[2rem] border overflow-hidden shadow-sm',
+                                isCrit ? 'bg-red-50 border-red-100' :
+                                isHigh ? 'bg-orange-50 border-orange-100' :
+                                risk.riskLevel === 'MODERATE' ? 'bg-amber-50 border-amber-100' :
+                                'bg-card border-card-border'
+                              )}
+                            >
+                              {/* Top banner: Stage + Season + Level */}
+                              <div className={cn(
+                                'px-5 py-2.5 flex items-center gap-2 border-b flex-wrap',
+                                isCrit ? 'bg-red-100/60 border-red-100' :
+                                isHigh ? 'bg-orange-100/50 border-orange-100' :
+                                risk.riskLevel === 'MODERATE' ? 'bg-amber-100/40 border-amber-100' :
+                                'bg-slate-50 border-slate-100'
+                              )}>
+                                <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border bg-white/70', stageMeta.color)}>
+                                  {stageMeta.emoji} {stageMeta.label}
+                                </span>
+                                {risk.seasonMatch && (
+                                  <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/70 border',
+                                    isCrit ? 'text-red-600 border-red-200' : 'text-amber-600 border-amber-200'
+                                  )}>
+                                    {seasonMeta.emoji} {season.label} Peak
+                                  </span>
+                                )}
+                                <span className={cn('ml-auto text-[6px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border', rc.badge)}>
+                                  {risk.riskLevel}
+                                </span>
+                              </div>
+
+                              {/* Card body */}
+                              <div className="p-5">
+                                {/* Disease name + score */}
+                                <div className="flex items-start gap-3 mb-3">
+                                  <span className="text-3xl leading-none flex-shrink-0">{risk.emoji}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className={cn('font-black text-sm tracking-tight leading-tight mb-0.5',
+                                      isCrit ? 'text-red-800' : isHigh ? 'text-orange-800' : 'text-ink'
+                                    )}>{risk.name}</h4>
+                                    <p className={cn('text-[7px] font-black uppercase tracking-widest', rc.text)}>
+                                      {risk.window} · DOC {currentDoc}
+                                    </p>
+                                  </div>
+                                  <div className={cn('w-11 h-11 rounded-2xl flex flex-col items-center justify-center border flex-shrink-0', rc.badge)}>
+                                    <span className={cn('text-sm font-black leading-none', rc.text)}>{risk.riskScore}</span>
+                                    <span className={cn('text-[5px] font-black', rc.text)}>/100</span>
+                                  </div>
+                                </div>
+
+                                {/* Why risky now */}
+                                <div className={cn('rounded-2xl px-3.5 py-2.5 mb-3 border',
+                                  isHotZone ? 'bg-white/80' : 'bg-slate-50 border-slate-100'
+                                )}>
+                                  <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
+                                    isCrit ? 'text-red-500' : isHigh ? 'text-orange-500' : 'text-ink/30'
+                                  )}>⚡ Why Now (DOC {currentDoc})</p>
+                                  <p className={cn('text-[9px] font-semibold leading-relaxed',
+                                    isCrit ? 'text-red-800/80' : isHigh ? 'text-orange-800/80' : 'text-ink/60'
+                                  )}>{risk.trigger}</p>
+                                </div>
+
+                                {/* Risk bar */}
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[6px] font-black uppercase tracking-widest text-ink/25">Risk Intensity</p>
+                                    <p className={cn('text-[8px] font-black', rc.text)}>{risk.riskScore}%</p>
+                                  </div>
+                                  <div className={cn('h-2 rounded-full overflow-hidden',
+                                    isCrit ? 'bg-red-200' : isHigh ? 'bg-orange-200' :
+                                    risk.riskLevel === 'MODERATE' ? 'bg-amber-200' : 'bg-slate-200'
+                                  )}>
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${barW}%` }}
+                                      transition={{ duration: 1.0, delay: i * 0.1, ease: 'easeOut' }}
+                                      className={cn('h-full rounded-full', rc.bg)}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Action + Tip */}
+                                <div className="space-y-2">
+                                  <div className={cn('rounded-2xl px-3.5 py-3 border',
+                                    isCrit  ? 'bg-red-100/70 border-red-200'    :
+                                    isHigh  ? 'bg-orange-100/60 border-orange-200' :
+                                    risk.riskLevel === 'MODERATE' ? 'bg-amber-100/50 border-amber-200' :
+                                    'bg-blue-50 border-blue-100'
+                                  )}>
+                                    <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
+                                      isCrit ? 'text-red-600' : isHigh ? 'text-orange-600' :
+                                      risk.riskLevel === 'MODERATE' ? 'text-amber-600' : 'text-blue-500'
+                                    )}>{isHotZone ? '🚨 Immediate Action' : '💡 Prevention'}</p>
+                                    <p className={cn('text-[9px] font-medium leading-relaxed',
+                                      isCrit ? 'text-red-800/80' : isHigh ? 'text-orange-800/80' : 'text-ink/60'
+                                    )}>{risk.action.split('.')[0]}.</p>
+                                  </div>
+                                  {cardTip && (
+                                    <div className="rounded-2xl px-3.5 py-2.5 bg-emerald-50 border border-emerald-100">
+                                      <p className="text-emerald-600 text-[6px] font-black uppercase tracking-widest mb-1">💡 {stageMeta.label} Tip</p>
+                                      <p className="text-emerald-800/70 text-[9px] font-medium leading-relaxed">{cardTip}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              )}
+
+              {/* ─────────────── TAB 3: FULL CYCLE ─────────────── */}
               {activeTab === 'cycle' && (
                 /* Full SOP Cycle View */
                 <motion.div
@@ -944,7 +1468,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 </motion.div>
               )}
 
-              {/* Lunar Planner Calendar View */}
+              {/* ─────────────── TAB 4: LUNAR PLANNER ─────────────── */}
               {activeTab === 'lunar' && (
                 <motion.div
                   key="lunar"
@@ -952,8 +1476,147 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-6 pb-10"
+                  className="space-y-3 pb-10"
                 >
+                  {/* ══════════════════════════════════════════════
+                      LUNAR HERO — Premium Moon Phase Intelligence
+                  ══════════════════════════════════════════════ */}
+                  <div
+                    className="rounded-[2.5rem] overflow-hidden relative border border-white/10"
+                    style={{ background: 'linear-gradient(160deg, #050d1a 0%, #0d1f3a 40%, #0a1628 100%)' }}
+                  >
+                    {/* Starfield glow */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-4 right-8 w-1 h-1 bg-white/40 rounded-full" />
+                      <div className="absolute top-12 right-24 w-0.5 h-0.5 bg-white/30 rounded-full" />
+                      <div className="absolute top-6 left-20 w-0.5 h-0.5 bg-white/20 rounded-full" />
+                      <div className="absolute top-20 right-16 w-1 h-1 bg-indigo-400/30 rounded-full" />
+                      <div className="absolute bottom-8 left-12 w-0.5 h-0.5 bg-white/25 rounded-full" />
+                      <div className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-[60px]" />
+                      <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-violet-500/10 rounded-full blur-[50px]" />
+                    </div>
+
+                    <div className="relative z-10 p-6">
+                      {/* Top row: phase name + lunar day counter */}
+                      <div className="flex items-start justify-between mb-5">
+                        <div>
+                          <p className="text-white/25 text-[6px] font-black uppercase tracking-[0.4em] mb-1">Lunar Intelligence</p>
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-5xl leading-none">{moonMeta.emoji}</span>
+                            <div>
+                              <h3 className={cn('font-black text-xl tracking-tight leading-tight', moonMeta.textColor)}>
+                                {moonMeta.label}
+                              </h3>
+                              <span className={cn('text-[7px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border inline-block mt-1', moonMeta.badge)}>
+                                {moonMeta.sublabel}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Lunar cycle ring */}
+                        <div className="flex flex-col items-center">
+                          <div className="relative w-16 h-16">
+                            <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90">
+                              <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                              <circle
+                                cx="32" cy="32" r="28"
+                                fill="none"
+                                stroke={lunar.phase === 'AMAVASYA' ? '#818cf8' : lunar.phase === 'POURNAMI' ? '#34d399' : '#a78bfa'}
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                                strokeDasharray={`${(Math.round(lunar.daysSinceAmavasya) / 29) * 175.9} 175.9`}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <p className="text-white font-black text-lg leading-none">{Math.round(lunar.daysSinceAmavasya)}</p>
+                              <p className="text-white/30 text-[5px] font-black uppercase tracking-widest">/29</p>
+                            </div>
+                          </div>
+                          <p className="text-white/20 text-[5px] font-black uppercase tracking-widest mt-1">Lunar Day</p>
+                        </div>
+                      </div>
+
+                      {/* 3-event countdown cards */}
+                      <div className="grid grid-cols-3 gap-2 mb-5">
+                        {(lunar.phase === 'POURNAMI' ? [
+                          { label: 'Ashtami',  days: lunar.daysSinceAshtami,  emoji: '🌓', color: 'from-violet-900/80 to-violet-800/50', border: 'border-violet-500/30', text: 'text-violet-300', note: 'ago', risk: 'Molt Start' },
+                          { label: 'Navami',   days: lunar.daysSinceNavami,   emoji: '🌙', color: 'from-sky-900/80 to-sky-800/50',    border: 'border-sky-500/30',    text: 'text-sky-300',    note: 'ago', risk: 'Molt Peak' },
+                          { label: 'Amavasya', days: lunar.daysSinceAmavasya, emoji: '🌑', color: 'from-indigo-900/80 to-indigo-800/50',border: 'border-indigo-500/30',text: 'text-indigo-300', note: 'ago', risk: 'New Moon' },
+                        ] : [
+                          { label: 'Ashtami',  days: lunar.daysToAshtami,  emoji: '🌓', color: 'from-violet-900/80 to-violet-800/50', border: 'border-violet-500/30', text: 'text-violet-300', note: 'd', risk: 'Molt Begins' },
+                          { label: 'Navami',   days: lunar.daysToNavami,   emoji: '🌙', color: 'from-sky-900/80 to-sky-800/50',    border: 'border-sky-500/30',    text: 'text-sky-300',    note: 'd', risk: 'Molt Peak' },
+                          { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: '🌑', color: 'from-indigo-900/80 to-indigo-800/50',border: 'border-indigo-500/30',text: 'text-indigo-300', note: 'd', risk: '⚠ Low DO Risk' },
+                        ]).map((ev, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.08 }}
+                            className={cn(
+                              'rounded-2xl p-3 border bg-gradient-to-b flex flex-col items-center text-center',
+                              ev.color, ev.border
+                            )}
+                          >
+                            <span className="text-2xl mb-1.5">{ev.emoji}</span>
+                            <p className="text-white/40 text-[5px] font-black uppercase tracking-widest">{ev.label}</p>
+                            <p className={cn('text-lg font-black leading-none my-1', ev.text)}>
+                              {Math.round(ev.days)}<span className="text-[8px] ml-0.5">{ev.note}</span>
+                            </p>
+                            <p className="text-white/25 text-[5px] font-black uppercase tracking-widest">{ev.risk}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      {/* SOP Rules — color coded */}
+                      <div className="bg-white/[0.04] rounded-2xl px-4 py-3.5 border border-white/5 mb-3">
+                        <p className="text-white/25 text-[6px] font-black uppercase tracking-[0.3em] mb-2">
+                          Tonight's SOP — {moonMeta.sublabel}
+                        </p>
+                        <div className="space-y-1.5">
+                          {moonMeta.rules.map((rule, i) => {
+                            const isRed    = rule.startsWith('🔴');
+                            const isOrange = rule.startsWith('🟠');
+                            const isYellow = rule.startsWith('🟡');
+                            const isBlue   = rule.startsWith('🔵');
+                            const isMed    = rule.startsWith('💊');
+                            const isCheck  = rule.startsWith('✅');
+                            return (
+                              <div key={i} className={cn(
+                                'flex items-start gap-2 px-2.5 py-1.5 rounded-xl',
+                                isRed ? 'bg-red-500/10' : isBlue ? 'bg-blue-500/10' : isMed ? 'bg-purple-500/10' : isYellow ? 'bg-yellow-500/10' : isCheck ? 'bg-emerald-500/10' : 'bg-white/5'
+                              )}>
+                                <span className="text-sm leading-none flex-shrink-0">{rule.slice(0, 2)}</span>
+                                <p className={cn('text-[9px] font-semibold leading-snug',
+                                  isRed ? 'text-red-300' : isBlue ? 'text-blue-300' : isMed ? 'text-purple-300' : isYellow ? 'text-yellow-300' : isCheck ? 'text-emerald-300' : 'text-white/60'
+                                )}>{rule.slice(2).trim()}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Season × Lunar interaction */}
+                      <div className="flex items-center gap-3 bg-white/[0.04] rounded-2xl px-4 py-3 border border-white/5">
+                        <span className="text-xl flex-shrink-0">{season.emoji}</span>
+                        <div className="flex-1">
+                          <p className="text-white/60 text-[9px] font-black tracking-tight">
+                            {season.label} × {moonMeta.label.split('—')[0].trim()} Interaction
+                          </p>
+                          <p className="text-white/35 text-[8px] font-medium mt-0.5 leading-relaxed">
+                            {lunar.phase === 'AMAVASYA'
+                              ? `${season.label} temps amplify DO crash risk tonight. Run aerators from 9 PM — 5 AM.`
+                              : (lunar.phase === 'ASHTAMI' || lunar.phase === 'NAVAMI')
+                              ? `${season.label} heat stress compounds molt stress. Monitor O₂ every 2 hrs during night.`
+                              : `${season.label} season active. Next major molting event in ${Math.min(lunar.daysToAmavasya, lunar.daysToAshtami, lunar.daysToNavami)} days — prepare Minerals & Probiotics.`}
+                          </p>
+                        </div>
+                        <Thermometer size={16} className="text-white/20 flex-shrink-0" />
+                      </div>
+                    </div>
+                  </div>
+
+
+
                   {!selectedPond ? (
                     <div className="bg-card/80 backdrop-blur-md rounded-[3rem] p-10 text-center border border-card-border shadow-xl">
                       <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center text-emerald-500 mx-auto mb-6">
@@ -966,7 +1629,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     </div>
                   ) : (
                     <>
-                      <div className="bg-[#051F19] p-7 rounded-[3rem] text-white relative overflow-hidden mb-6">
+                      <div className="bg-[#051F19] p-4 rounded-[3rem] text-white relative overflow-hidden mb-6">
                         <div className="relative z-10">
                            <div className="flex items-center gap-2 mb-2">
                              <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em]">{selectedPond.name}</p>
@@ -1131,7 +1794,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         key={selectedDate.toISOString()}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-card rounded-[2.5rem] p-6 border border-card-border shadow-lg mt-2"
+                        className="bg-card rounded-[2.5rem] p-3 border border-card-border shadow-lg mt-2"
                       >
                          <div className="flex justify-between items-center mb-5">
                             <div>
@@ -1178,7 +1841,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                          </div>
                       </motion.div>
 
-                      <div className="bg-[#C78200]/5 p-6 rounded-[2.5rem] border border-[#C78200]/10 mt-6">
+                      <div className="bg-[#C78200]/5 p-3 rounded-[2.5rem] border border-[#C78200]/10 mt-6">
                          <div className="flex items-center gap-3 mb-3 text-[#C78200]">
                             <AlertTriangle size={18} />
                             <h4 className="text-[10px] font-black uppercase tracking-widest">personalized Planning Tip</h4>
@@ -1197,7 +1860,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
             {/* Disease Observation Card - Shows only on TODAY tab after DOC 20 or if stress detected */}
             {((currentDoc > 20) || (currentDoc > 0 && riskLevel !== 'STABLE')) && activeTab === 'today' && (
-              <section className="bg-red-50 rounded-[2.5rem] p-7 border border-red-100 relative overflow-hidden">
+              <section className="bg-red-50 rounded-[2.5rem] p-4 border border-red-100 relative overflow-hidden">
                 <div className="flex items-center gap-4 mb-5">
                   <div className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all",
@@ -1279,7 +1942,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
             {/* Weekly Model Card (Hidden on Lunar and Full Cycle tabs to avoid confusion) */}
             {activeTab === 'today' && (
-              <section className="bg-card rounded-[2.5rem] p-7 border border-card-border shadow-sm">
+              <section className="bg-card rounded-[2.5rem] p-4 border border-card-border shadow-sm">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 bg-[#C78200]/10 rounded-2xl flex items-center justify-center text-[#C78200]">
                     <Calendar size={20} />

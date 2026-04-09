@@ -12,6 +12,7 @@ export interface Translations {
   liveMonitor: string;
   market: string;
   profile: string;
+  exportMarketTrends: string;
   backToDashboard: string;
   backToDashboard_desc: string;
   settings: string;
@@ -82,6 +83,9 @@ export interface Translations {
   high: string;
   medium: string;
   low: string;
+  warning: string;
+  targetLabel: string;
+  viewTips: string;
   avgMealsDay: string;
   performanceInsight: string;
   biomass: string;
@@ -526,6 +530,187 @@ export interface Translations {
   projectRoi: string;
   forgotPassword: string;
   noWaterData: string;
+
+  // Pond Status Labels
+  statusActive: string;
+  statusPlanned: string;
+  statusSelling: string;
+  statusHarvested: string;
+  statusArchived: string;
+  statusNotStarted: string;
+  trustExcellent: string;
+  trustGood: string;
+  trustFair: string;
+  trustNeedsWork: string;
+
+  // Farm Overview
+  farmOverview: string;
+  myFarm: string;
+  trustScore: string;
+  activeAlerts: string;
+  harvestReady: string;
+  densityM2: string;
+  estBiomass: string;
+  estRevenue: string;
+  pondRegistration: string;
+  activeculture: string;
+  liveYieldPreview: string;
+  seedSource: string;
+  estimatesNote: string;
+  fillPondContinue: string;
+  gotIt: string;
+  logConditions: string;
+
+  // Harvest Tracking Stages
+  stageSelling: string;
+  stageQualityCheck: string;
+  stageWeightCheck: string;
+  stageRateConfirm: string;
+  stageHarvest: string;
+  stagePayment: string;
+  stageArchive: string;
+
+  // Water Monitoring
+  paramPh: string;
+  paramDo: string;
+  paramTemp: string;
+  paramSalinity: string;
+  paramAmmonia: string;
+  paramAlkalinity: string;
+  optimalRange: string;
+  logConditionsBtn: string;
+  waterHealth: string;
+  waterHistory: string;
+  harvestAnalysis: string;
+
+  // Aerator Management
+  aeratorManagement: string;
+  aeratorOn: string;
+  aeratorOff: string;
+  aeratorAuto: string;
+  addAerator: string;
+  aeratorName: string;
+  aeratorType: string;
+  aeratorPower: string;
+
+  // Pond Detail Sections
+  pondOverview: string;
+  pondTimeline: string;
+  pondCertificate: string;
+  pondAerators: string;
+  growthMilestonesTitle: string;
+  liveTrackingActive: string;
+  marketSaleJourney: string;
+  orderCancelled: string;
+  harvestPrepDoc: string;
+  highFcr: string;
+  sopTarget: string;
+  noWaterLogToday: string;
+  tapToLogNow: string;
+  waterQualitySection: string;
+  liveCultureOversightLabel: string;
+  revenueNotRecorded: string;
+  selfHarvestReason: string;
+  partialHarvestHistory: string;
+  revenueLabel: string;
+  auditCertificate: string;
+  auditScore: string;
+  cultureDays: string;
+  verifiedBy: string;
+  buyerTrustReady: string;
+  certAfterDoc10: string;
+  keepLoggingTrust: string;
+  stopHarvest: string;
+  deletionLocked: string;
+  deletionLockedMsg: string;
+
+  // Harvest Page
+  harvestPond: string;
+  harvestReadiness: string;
+  sopComplianceCheck: string;
+  finalCycle: string;
+  finalizingHarvest: string;
+  chooseHarvestMethod: string;
+  marketSale: string;
+  selfHarvest: string;
+  marketSaleDesc: string;
+  selfHarvestDesc: string;
+  partialHarvest: string;
+  fullHarvest: string;
+  avgWeightG: string;
+  biomassKg: string;
+  targetRate: string;
+  availableBuyers: string;
+  liveQuotes: string;
+  smartBroadcastActive: string;
+  broadcastRadius: string;
+  broadcastToMarket: string;
+  broadcasting: string;
+  selectHarvestReason: string;
+  customReason: string;
+  customReasonPlaceholder: string;
+  auditRecordCreated: string;
+  auditRecordDesc: string;
+  pleaseSelectReason: string;
+  confirmSelfHarvest: string;
+  recordingHarvest: string;
+  earlyHarvestRisk: string;
+
+  // Harvest Tracking
+  harvestCancelled: string;
+  reasonGiven: string;
+  noActiveHarvest: string;
+  startHarvestFromPond: string;
+  estRevenueLabel: string;
+  ratePerKg: string;
+  saleJourney: string;
+  stageComplete: string;
+  revenueBreakdown: string;
+  buyerChat: string;
+  retractBroadcast: string;
+  pendingLabel: string;
+
+  // Harvest Revenue Ledger
+  feedingLog: string;
+  settledAndVerified: string;
+  payment: string;
+  totalReceivedAmount: string;
+  buyerEntity: string;
+  saleDate: string;
+  countSize: string;
+  baseRate: string;
+  closeLedger: string;
+  harvestRevenue: string;
+  yieldLedger: string;
+  latestHarvestSettlement: string;
+  totalNetEarnings: string;
+  premiumMargin: string;
+  settledDate: string;
+  revenueComposition: string;
+  baseBiomassSales: string;
+  bonusSubsidies: string;
+  settlementAudit: string;
+  pdfStatement: string;
+  settled: string;
+
+  // Admin Dashboard
+  adminControl: string;
+  totalUsers: string;
+  activeSubs: string;
+  health: string;
+  marketPrice: string;
+  updatePrice: string;
+  recentActivity: string;
+
+  // Provider Module
+  providerDashboard: string;
+  totalSales: string;
+  activeOrders: string;
+  pending: string;
+  shipped: string;
+  addProduct: string;
+  stock: string;
+  viewDetails: string;
 }
 
 const English: Translations = {
@@ -539,6 +724,7 @@ const English: Translations = {
   liveMonitor: 'Live Monitor',
   market: 'Market',
   profile: 'Profile',
+  exportMarketTrends: 'Export Market Trends',
   backToDashboard: 'Back to Dashboard',
   backToDashboard_desc: 'Return to overview',
   settings: 'Settings',
@@ -592,6 +778,9 @@ const English: Translations = {
   high: 'High',
   medium: 'Medium',
   low: 'Low',
+  warning: 'Warning',
+  targetLabel: 'Target',
+  viewTips: 'Water Quality Tips',
   avgMealsDay: 'Avg Meals/Day',
   performanceInsight: 'Performance Insight',
   biomass: 'Biomass',
@@ -1045,6 +1234,187 @@ const English: Translations = {
   confirmStockingTitle: 'Time to Stock',
   confirmStockingAction: 'YES, CONFIRM STOCKING',
   editDate: 'Reschedule Stocking',
+
+  // Pond Status Labels
+  statusActive: 'Active',
+  statusPlanned: 'Planned',
+  statusSelling: 'Selling',
+  statusHarvested: 'Harvested',
+  statusArchived: 'Archived',
+  statusNotStarted: 'Not Started',
+  trustExcellent: 'Excellent',
+  trustGood: 'Good',
+  trustFair: 'Fair',
+  trustNeedsWork: 'Needs Work',
+
+  // Farm Overview
+  farmOverview: 'Farm Overview',
+  myFarm: 'My Farm',
+  trustScore: 'Trust',
+  activeAlerts: 'Active Alerts',
+  harvestReady: 'Harvest Ready',
+  densityM2: 'Density/m²',
+  estBiomass: 'Est. Biomass',
+  estRevenue: 'Est. Revenue',
+  pondRegistration: 'Pond Registration',
+  activeculture: 'Active Culture',
+  liveYieldPreview: 'Live Yield Preview',
+  seedSource: 'Seed Source',
+  estimatesNote: 'Estimates based on DOC 90 · 80% survival · 20g avg · ₹450/kg',
+  fillPondContinue: 'Fill pond name and size to continue',
+  gotIt: 'Got it',
+  logConditions: 'Log Conditions',
+
+  // Harvest Tracking Stages
+  stageSelling: 'Selling',
+  stageQualityCheck: 'Quality Check',
+  stageWeightCheck: 'Weight Check',
+  stageRateConfirm: 'Rate Confirm',
+  stageHarvest: 'Harvest',
+  stagePayment: 'Payment Released',
+  stageArchive: 'Archive',
+
+  // Water Monitoring
+  paramPh: 'pH',
+  paramDo: 'DO',
+  paramTemp: 'Temp',
+  paramSalinity: 'Salinity',
+  paramAmmonia: 'Ammonia',
+  paramAlkalinity: 'Alkalinity',
+  optimalRange: 'Optimal Range',
+  logConditionsBtn: 'Log Conditions',
+  waterHealth: 'Health',
+  waterHistory: 'History',
+  harvestAnalysis: 'Harvest',
+
+  // Aerator Management
+  aeratorManagement: 'Aerator Management',
+  aeratorOn: 'On',
+  aeratorOff: 'Off',
+  aeratorAuto: 'Auto',
+  addAerator: 'Add Aerator',
+  aeratorName: 'Aerator Name',
+  aeratorType: 'Type',
+  aeratorPower: 'Power (HP)',
+
+  // Pond Detail Sections
+  pondOverview: 'Overview',
+  pondTimeline: 'Timeline',
+  pondCertificate: 'Certificate',
+  pondAerators: 'Aerators',
+  growthMilestonesTitle: 'Growth Milestones',
+  liveTrackingActive: 'Live Tracking Active',
+  marketSaleJourney: 'Market Sale Journey',
+  orderCancelled: 'Order Cancelled',
+  harvestPrepDoc: 'Harvest Prep',
+  highFcr: 'High FCR',
+  sopTarget: 'SOP target ≤1.4. Reduce feed, check trays.',
+  noWaterLogToday: 'No Water Log Today',
+  tapToLogNow: 'Tap to log now - critical for SOP compliance',
+  waterQualitySection: 'Water Quality',
+  liveCultureOversightLabel: 'Live culture oversight',
+  revenueNotRecorded: 'Revenue not recorded',
+  selfHarvestReason: 'Self Harvest Reason',
+  partialHarvestHistory: 'Partial Harvest History',
+  revenueLabel: 'Revenue',
+  auditCertificate: 'AquaGrow Audit Certificate',
+  auditScore: 'Audit Score',
+  cultureDays: 'Culture Days',
+  verifiedBy: 'Verified by AquaGrow Intelligence',
+  buyerTrustReady: 'Buyer Trust Ready',
+  certAfterDoc10: 'Certificate Available After DOC 10',
+  keepLoggingTrust: 'Keep logging daily to build your trust score',
+  stopHarvest: 'Stop Harvest?',
+  deletionLocked: 'Deletion Locked',
+  deletionLockedMsg: 'Pond over DOC 7 cannot be deleted to preserve culture records.',
+
+  // Harvest Page
+  harvestPond: 'Harvest Pond',
+  harvestReadiness: 'Harvest Readiness',
+  sopComplianceCheck: 'SOP Compliance Check',
+  finalCycle: 'Final Cycle',
+  finalizingHarvest: 'Finalizing Harvest',
+  chooseHarvestMethod: 'Choose Harvest Method',
+  marketSale: 'Market Sale',
+  selfHarvest: 'Self Harvest',
+  marketSaleDesc: 'Broadcast your harvest to verified buyers within 150km. AquaGrow manages the sale journey, quality check, weighing and payment settlement.',
+  selfHarvestDesc: 'You are harvesting independently — sold locally, contracted buyer, or for personal use. The pond will be marked as harvested with your recorded reason.',
+  partialHarvest: 'Partial Harvest',
+  fullHarvest: 'Full Harvest',
+  avgWeightG: 'Avg Weight (g)',
+  biomassKg: 'Biomass (kg)',
+  targetRate: 'Target ₹/kg',
+  availableBuyers: 'Available Buyers',
+  liveQuotes: 'Live Quotes',
+  smartBroadcastActive: 'Smart Broadcast Active',
+  broadcastRadius: 'Order broadcasts to selected buyers + agents within 150km of your farm.',
+  broadcastToMarket: 'Broadcast to Market',
+  broadcasting: 'Broadcasting...',
+  selectHarvestReason: 'Select Harvest Reason',
+  customReason: 'Custom Reason (optional)',
+  customReasonPlaceholder: 'Describe your harvest situation...',
+  auditRecordCreated: 'Audit Record Created',
+  auditRecordDesc: 'Your harvest reason and biomass data will be saved in the pond audit trail for ROI reporting and trust certificate generation.',
+  pleaseSelectReason: 'Please select or enter a harvest reason before confirming.',
+  confirmSelfHarvest: 'Confirm Self Harvest',
+  recordingHarvest: 'Recording Harvest...',
+  earlyHarvestRisk: 'Harvesting before DOC 90 may reduce market grade and cut revenue by up to 30%.',
+
+  // Harvest Tracking
+  harvestCancelled: 'Harvest Cancelled',
+  reasonGiven: 'Reason Given',
+  noActiveHarvest: 'No Active Harvest',
+  startHarvestFromPond: 'Start a harvest order from your pond page',
+  estRevenueLabel: 'Est. Revenue',
+  ratePerKg: 'Rate /kg',
+  saleJourney: 'Sale Journey',
+  stageComplete: 'Stage complete',
+  revenueBreakdown: 'Revenue Breakdown',
+  buyerChat: 'Buyer Chat',
+  retractBroadcast: 'Retract Broadcast?',
+  pendingLabel: 'Pending',
+
+  // Harvest Revenue Ledger
+  feedingLog: 'Feeding Log',
+  settledAndVerified: 'Settled & Verified',
+  payment: 'Payment',
+  totalReceivedAmount: 'Total Received',
+  buyerEntity: 'Buyer / Company',
+  saleDate: 'Sale Date',
+  countSize: 'Count / Size',
+  baseRate: 'Base Rate (₹/kg)',
+  closeLedger: 'Close Ledger',
+  harvestRevenue: 'Harvest Revenue',
+  yieldLedger: 'Yield Ledger',
+  latestHarvestSettlement: 'Latest Settlement',
+  totalNetEarnings: 'Total Net Earnings',
+  premiumMargin: 'Premium Margin',
+  settledDate: 'Settled On',
+  revenueComposition: 'Revenue Composition',
+  baseBiomassSales: 'Base Biomass Sales',
+  bonusSubsidies: 'Bonus & Subsidies',
+  settlementAudit: 'Settlement Audit',
+  pdfStatement: 'Download Statement',
+  settled: 'Settled',
+
+  // Admin Dashboard
+  adminControl: 'Admin Control',
+  totalUsers: 'Total Users',
+  activeSubs: 'Active Subscriptions',
+  health: 'Health',
+  marketPrice: 'Market Price',
+  updatePrice: 'Update Price',
+  recentActivity: 'Recent Activity',
+
+  // Provider Module
+  providerDashboard: 'Provider Dashboard',
+  totalSales: 'Total Sales',
+  activeOrders: 'Active Orders',
+  pending: 'Pending',
+  shipped: 'Shipped',
+  addProduct: 'Add Product',
+  stock: 'Stock',
+  viewDetails: 'View Details',
 };
 
 const Telugu: Translations = {
@@ -1059,6 +1429,7 @@ const Telugu: Translations = {
   liveMonitor: 'ప్రత్యక్ష పర్యవేక్షణ',
   market: 'మార్కెట్',
   profile: 'ప్రొఫైల్',
+  exportMarketTrends: 'ఎగుమతి మార్కెట్ పోకడలు',
   backToDashboard: 'డాష్‌బోర్డ్‌కు వెనుకకు',
   backToDashboard_desc: 'డాష్‌బోర్డ్‌కు తిరిగి వెళ్ళండి',
   settings: 'సెట్టింగ్‌లు',
@@ -1110,6 +1481,9 @@ const Telugu: Translations = {
   high: 'అధికం',
   medium: 'మధ్యస్థం',
   low: 'తక్కువ',
+  warning: 'హెచ్చరిక',
+  targetLabel: 'లక్ష్యం',
+  viewTips: 'నీటి నాణ్యత చిట్కాలు',
   avgMealsDay: 'సగటు మేతలు/రోజు',
   performanceInsight: 'పనితీరు అంతర్దృష్టి',
   biomass: 'బయోమాస్',
@@ -1190,7 +1564,7 @@ const Telugu: Translations = {
   waterQuality: 'నీటి నాణ్యత',
   feedManagement: 'మేత నిర్వహణ',
   healthCheck: 'ఆరోగ్య తనిఖీ',
-  harvest: 'కోత',
+  harvest: 'పట్టివేత',
   addPond: 'చెరువును జోడించండి',
   addFirstPond: 'మొదటి చెరువును జోడించండి',
   addFirstPondDesc: 'ట్రాకింగ్ ప్రారంభించడానికి మీ మొదటి చెరువును జోడించండి.',
@@ -1232,9 +1606,9 @@ const Telugu: Translations = {
   opaqueMuscleSign: 'అపారదర్శక కండరము',
   softShellSign: 'మెత్తని పొట్టు',
   surfaceBubbleSign: 'ఉపరితల బుడగలు',
-  harvestHistory: 'కోత చరిత్ర',
+  harvestHistory: 'పట్టివేత చరిత్ర',
   noRoiProfiles: 'ఇంకా ROI ప్రొఫైల్‌లు లేవు',
-  logFirstHarvest: '+ మొదటి కోతను నమోదు చేయండి',
+  logFirstHarvest: '+ మొదటి పట్టివేతను నమోదు చేయండి',
   compilingReport: 'నివేదికను రూపొందిస్తోంది...',
   aggregatingDatasets: 'అన్ని P&L డేటాను సేకరిస్తోంది',
   recentCyclePerformance: 'ఇటీవలి సాగు పనితీరు',
@@ -1384,8 +1758,8 @@ const Telugu: Translations = {
   priceHistory: 'ధర చరిత్ర',
   profitMargin: 'లాభాల మార్జిన్',
   recommendationStatus: 'సిఫార్సు స్థితి',
-  harvestLabel: 'కోత',
-  harvestAdvice: 'కోత సలహా',
+  harvestLabel: 'పట్టివేత',
+  harvestAdvice: 'పట్టివేత సలహా',
 
   // Additional Common Keys
   archive: 'ఆర్కైవ్',
@@ -1394,7 +1768,7 @@ const Telugu: Translations = {
   investmentBreakdown: 'పెట్టుబడి వివరాలు',
   profitCalculator: 'లాభాల కాలిక్యులేటర్',
   upgradeToPro: 'ప్రోకు అప్‌గ్రేడ్ అవ్వండి',
-  logEntry: 'విశ్లేషణలను చూడటానికి మీ మొదటి కోతను నమోదు చేయండి.',
+  logEntry: 'విశ్లేషణలను చూడటానికి మీ మొదటి పట్టివేతను నమోదు చేయండి.',
   profitForecasting: 'లాభాల అంచనా',
   globalPriceAlerts: 'గ్లోబల్ ధర హెచ్చరికలు',
   realTimeHealthMonitoring: 'రియల్ టైమ్ హెల్త్ మానిటరింగ్',
@@ -1484,6 +1858,280 @@ const Telugu: Translations = {
   confirmStockingTitle: 'స్టాకింగ్ సమయం',
   confirmStockingAction: 'అవును, స్టాకింగ్ ధృవీకరించు',
   editDate: 'తేదీని మార్చు',
+
+  // Lunar Alerts
+  amavasyaWarning: 'అమావాస్య (నూతన చంద్రుడు) - అధిక ప్రమాద కాలం',
+  ashtamiWarning: 'అష్టమి / నవమి - మధ్యస్థ ప్రమాద రోజులు',
+  moonPhaseTitle: 'చంద్ర చక్ర హెచ్చరిక',
+  massMoltingRisk: 'నేడు రాత్రి సామూహిక మొల్టింగ్ మరియు DO తగ్గే ప్రమాదం ఎక్కువగా ఉంది.',
+  newMoonDay: 'అమావాస్య రోజు',
+  fullAerationNight: 'రాత్రి పూట పూర్తి వాయు సరఫరా (Full Night)',
+  reduceFeedBy30: 'నేడు రాత్రి మేతను 20-30% తగ్గించండి.',
+  immunityBoosterVitaminC: 'విటమిన్ C / రోగ నిరోధక బూస్టర్ జోడించండి.',
+  lunarPlanApplied: 'చంద్ర నిర్వహణ ప్రణాళిక అన్వయించబడింది',
+
+  // SOP & Medicine
+  expertMentor: 'నిపుణుడు మార్గదర్శి',
+  todayTask: 'నేటి SOP పని',
+  sopDescription: 'SOP వివరణ',
+  medicineBrand: 'మందు / బ్రాండ్',
+  recommendedDose: 'సిఫార్సు చేసిన మోతాదు',
+  viewChecklist: 'చెక్‌లిస్ట్ చూడండి',
+  complianceRule: 'నమ్మకమైన నియమం',
+  criticalStageAlert: 'కీలక దశ హెచ్చరిక',
+  stage5g: '5గ్రా పెరుగుదల',
+  stage15g: '15గ్రా పెరుగుదల',
+  stage25g: '25గ్రా పెరుగుదల',
+  stage35g: '35గ్రా పెరుగుదల',
+  daysTaken: 'తీసుకున్న రోజులు',
+  sinceStocking: 'స్టాకింగ్ నుండి',
+
+  // Daily Log Checklist
+  dailyLogTitle: 'రోజువారీ SOP లాగ్',
+  acclimatizationDone: 'అక్లైమేటైజేషన్ పూర్తయిందా?',
+  probioticApplied: 'ప్రోబయోటిక్ అన్వయించారా?',
+  aerationLevel: 'వాయు స్థాయి',
+  mineralsApplied: 'ఖనిజాలు అన్వయించారా?',
+  gutProbioticMixed: 'గట్ ప్రోబయోటిక్ కలిపారా?',
+  zeoliteApplied: 'జియోలైట్ అన్వయించారా?',
+  sludgeChecked: 'స్లడ్జ్ తనిఖీ చేశారా?',
+  vibriosisSigns: 'విబ్రియోసిస్ లక్షణాలు ఉన్నాయా?',
+  feedTrayCheck: 'మేత ట్రే తనిఖీ చేశారా?',
+  immunityBoostersAdded: 'రోగ నిరోధక బూస్టర్లు జోడించారా?',
+  aerator24h: 'ఎరేటర్లు 24 గంటలు నడుస్తున్నాయా?',
+  pondBottomCleaned: 'చెరువు అడుగు శుభ్రం చేశారా?',
+  waterExchangeDone: 'నీటి మార్పు పూర్తయిందా?',
+  targetSizeAchieved: 'లక్ష్య పరిమాణం సాధించారా?',
+
+  // Culture SOP
+  cultureSOP: 'సాగు SOP',
+  stockingDensity: 'స్టాకింగ్ సాంద్రత',
+  aeratorRequirement: 'ఎరేటర్ అవసరాలు',
+  cultureSchedule: 'సాగు షెడ్యూల్',
+  medicinesPlan: 'మందుల ప్రణాళిక',
+  warningSigns: 'హెచ్చరిక సంకేతాలు',
+  productionExpectation: 'దిగుబడి అంచనా',
+  logMedication: 'మందులు నమోదు చేయండి',
+  logDailyProtocol: 'నిత్య నిబంధన నమోదు',
+  dailySOP: 'రోజువారీ SOP ట్రాకర్',
+
+  // Harvest ROI
+  harvestDetails: 'పట్టివేత వివరాలు',
+  whatDidYouHarvest: 'మీరు ఏమి కోశారు?',
+  investments: 'పెట్టుబడులు',
+  whatDidYouSpend: 'మీరు ఎంత ఖర్చు చేశారు?',
+  revenueEarned: 'సంపాదించిన ఆదాయం',
+  whatDidYouReceive: 'మీకు ఎంత వచ్చింది?',
+  profileSummary: 'ప్రొఫైల్ సారాంశం',
+  yourROIAnalysis: 'మీ ROI విశ్లేషణ',
+  roiProfileSaved: 'ROI ప్రొఫైల్ సేవ్ అయింది',
+  redirectingDashboard: 'డాష్‌బోర్డ్‌కు మళ్ళిస్తోంది...',
+  postHarvestROI: 'పట్టివేత తరువాత ROI',
+  totalHarvestWeight: 'మొత్తం పట్టివేత బరువు',
+  countPerKgSize: 'కిలో/కౌంట్ పరిమాణం',
+  survival: 'బతికిన రొయ్యలు',
+  cultureDuration: 'సాగు వ్యవధి',
+  gradeSplit: 'గ్రేడ్ విభజన (%)',
+  feedCostLabel: 'మేత ఖర్చు',
+  infrastructurePower: 'మౌలిక సదుపాయాలు & విద్యుత్',
+  totalInvestment: 'మొత్తం పెట్టుబడి',
+  totalSaleAmount: 'మొత్తం అమ్మకం',
+  pricePerKgReceived: 'సాధించిన కిలో ధర',
+  buyerCompanyName: 'కొనుగోలుదారు / కంపెనీ పేరు',
+  subsidyGovtSupport: 'రాయితీ / ప్రభుత్వ మద్దతు',
+  additionalNotes: 'అదనపు నోట్స్',
+  netProfitLoss: 'నికర లాభం / నష్టం',
+  breakEven: 'బ్రేక్ ఈవన్',
+  lossCycle: 'నష్ట సాగు',
+  continue: 'కొనసాగించు',
+  liveCycleStats: 'ప్రత్యక్ష సాగు గణాంకాలు',
+  liveCycle: 'ప్రత్యక్ష సాగు',
+  projectRoi: 'అంచనా ROI',
+
+  // System
+  systemHealthOptimal: 'సిస్టమ్ ఆరోగ్యం: అద్భుతం',
+  systemTestMessage: 'AquaGrow పుష్ ఇంజిన్ ఇప్పుడు మీ ఫామ్‌కు సిద్ధంగా ఉంది.',
+
+  // Pond Status Labels
+  statusActive: 'క్రియాశీలం',
+  statusPlanned: 'ప్రణాళికాబద్ధం',
+  statusSelling: 'అమ్మకం జరుగుతోంది',
+  statusHarvested: 'పట్టివేత పూర్తి',
+  statusArchived: 'ఆర్కైవ్ చేయబడింది',
+  statusNotStarted: 'ప్రారంభించలేదు',
+  trustExcellent: 'అద్భుతం',
+  trustGood: 'మంచిది',
+  trustFair: 'సాధారణం',
+  trustNeedsWork: 'మెరుగు చేయాలి',
+
+  // Farm Overview
+  farmOverview: 'ఫామ్ అవలోకనం',
+  myFarm: 'నా ఫామ్',
+  trustScore: 'నమ్మకం స్కోర్',
+  activeAlerts: 'క్రియాశీల హెచ్చరికలు',
+  harvestReady: 'పట్టివేతకు సిద్ధం',
+  densityM2: 'సాంద్రత/మీ²',
+  estBiomass: 'అంచనా బయోమాస్',
+  estRevenue: 'అంచనా ఆదాయం',
+  pondRegistration: 'చెరువు నమోదు',
+  activeculture: 'క్రియాశీల సాగు',
+  liveYieldPreview: 'ప్రత్యక్ష దిగుబడి అంచనా',
+  seedSource: 'విత్తన మూలం',
+  estimatesNote: 'DOC 90 · 80% జీవితం · 20గ్రా సగటు · ₹450/కిలో ఆధారంగా అంచనా',
+  fillPondContinue: 'కొనసాగడానికి చెరువు పేరు మరియు పరిమాణం నమోదు చేయండి',
+  gotIt: 'సరే',
+  logConditions: 'పరిస్థితులు నమోదు చేయండి',
+
+  // Harvest Tracking Stages
+  stageSelling: 'అమ్మకం',
+  stageQualityCheck: 'నాణ్యత తనిఖీ',
+  stageWeightCheck: 'బరువు తనిఖీ',
+  stageRateConfirm: 'రేటు నిర్ధారణ',
+  stageHarvest: 'పట్టివేత',
+  stagePayment: 'చెల్లింపు విడుదల',
+  stageArchive: 'ఆర్కైవ్',
+
+  // Water Monitoring
+  paramPh: 'pH',
+  paramDo: 'DO',
+  paramTemp: 'ఉష్ణో.',
+  paramSalinity: 'ఉప్పదనం',
+  paramAmmonia: 'అమ్మోనియా',
+  paramAlkalinity: 'ఆల్కలినిటీ',
+  optimalRange: 'సరైన పరిధి',
+  logConditionsBtn: 'పరిస్థితులు నమోదు',
+  waterHealth: 'ఆరోగ్యం',
+  waterHistory: 'చరిత్ర',
+  harvestAnalysis: 'పట్టివేత',
+
+  // Aerator Management
+  aeratorManagement: 'ఎరేటర్ నిర్వహణ',
+  aeratorOn: 'ఆన్',
+  aeratorOff: 'ఆఫ్',
+  aeratorAuto: 'ఆటో',
+  addAerator: 'ఎరేటర్ జోడించండి',
+  aeratorName: 'ఎరేటర్ పేరు',
+  aeratorType: 'రకం',
+  aeratorPower: 'శక్తి (HP)',
+
+  // Pond Detail Sections
+  pondOverview: 'అవలోకనం',
+  pondTimeline: 'టైమ్‌లైన్',
+  pondCertificate: 'సర్టిఫికేట్',
+  pondAerators: 'ఎరేటర్లు',
+  growthMilestonesTitle: 'పెరుగుదల మైలురాళ్ళు',
+  liveTrackingActive: 'ప్రత్యక్ష ట్రాకింగ్ చురుకుగా ఉంది',
+  marketSaleJourney: 'మార్కెట్ అమ్మకపు ప్రయాణం',
+  orderCancelled: 'ఆర్డర్ రద్దయింది',
+  harvestPrepDoc: 'పట్టివేత తయారీ',
+  highFcr: 'అధిక FCR',
+  sopTarget: 'SOP లక్ష్యం ≤1.4. మేత తగ్గించండి, ట్రే తనిఖీ చేయండి.',
+  noWaterLogToday: 'నేడు నీటి లాగ్ లేదు',
+  tapToLogNow: 'ఇప్పుడే నమోదు చేయడానికి నొక్కండి - SOP సమ్మతికి అవసరం',
+  waterQualitySection: 'నీటి నాణ్యత',
+  liveCultureOversightLabel: 'ప్రత్యక్ష సాగు పర్యవేక్షణ',
+  revenueNotRecorded: 'ఆదాయం నమోదు కాలేదు',
+  selfHarvestReason: 'స్వంత పట్టివేత కారణం',
+  partialHarvestHistory: 'పాక్షిక పట్టివేత చరిత్ర',
+  revenueLabel: 'ఆదాయం',
+  auditCertificate: 'అక్వాగ్రో ఆడిట్ సర్టిఫికేట్',
+  auditScore: 'ఆడిట్ స్కోర్',
+  cultureDays: 'సాగు రోజులు',
+  verifiedBy: 'అక్వాగ్రో ఇంటెలిజెన్స్ ద్వారా ధృవీకరించబడింది',
+  buyerTrustReady: 'కొనుగోలుదారు నమ్మకానికి సిద్ధం',
+  certAfterDoc10: 'DOC 10 తర్వాత సర్టిఫికేట్ అందుబాటులో ఉంటుంది',
+  keepLoggingTrust: 'ట్రస్ట్ స్కోర్ నిర్మించడానికి రోజూ నమోదు చేయండి',
+  stopHarvest: 'పట్టివేత ఆపాలా?',
+  deletionLocked: 'తొలగింపు నిరోధించబడింది',
+  deletionLockedMsg: 'DOC 7 దాటిన చెరువు సాగు రికార్డులు భద్రపరచడానికి తొలగించలేము.',
+
+  // Harvest Page
+  harvestPond: 'చెరువు పట్టివేత',
+  harvestReadiness: 'పట్టివేత సంసిద్ధత',
+  sopComplianceCheck: 'SOP సమ్మతి తనిఖీ',
+  finalCycle: 'చివరి సాగు',
+  finalizingHarvest: 'పట్టివేత ఖరారు చేస్తోంది',
+  chooseHarvestMethod: 'పట్టివేత పద్ధతి ఎంచుకోండి',
+  marketSale: 'మార్కెట్ అమ్మకం',
+  selfHarvest: 'స్వంత కపట్టివేత',
+  marketSaleDesc: '150km పరిధిలోని ధృవీకరించిన కొనుగోలుదారులకు మీ పట్టివేతను ప్రసారం చేయండి. అమ్మకపు ప్రయాణం, నాణ్యత తనిఖీ, తూకం మరియు చెల్లింపు అక్వాగ్రో నిర్వహిస్తుంది.',
+  selfHarvestDesc: 'మీరు స్వతంత్రంగా కోస్తున్నారు — స్థానిక అమ్మకం, కాంట్రాక్ట్ కొనుగోలు, లేదా వ్యక్తిగత వినియోగం. ఆడిట్ కోసం నమోదు చేసిన కారణంతో చెరువు కోయబడినట్లు గుర్తించబడుతుంది.',
+  partialHarvest: 'పాక్షిక పట్టివేత',
+  fullHarvest: 'పూర్తి పట్టివేత',
+  avgWeightG: 'సగటు బరువు (గ్రా)',
+  biomassKg: 'బయోమాస్ (కిలో)',
+  targetRate: 'లక్ష్య ₹/కిలో',
+  availableBuyers: 'అందుబాటులో ఉన్న కొనుగోలుదారులు',
+  liveQuotes: 'ప్రత్యక్ష ధరలు',
+  smartBroadcastActive: 'స్మార్ట్ బ్రాడ్‌కాస్ట్ చురుకుగా ఉంది',
+  broadcastRadius: 'ఎంచుకున్న కొనుగోలుదారులకు + 150km పరిధిలో ఏజెంట్లకు పంపబడుతుంది.',
+  broadcastToMarket: 'మార్కెట్‌కు ప్రసారం చేయండి',
+  broadcasting: 'ప్రసారం అవుతోంది...',
+  selectHarvestReason: 'పట్టివేత కారణం ఎంచుకోండి',
+  customReason: 'అనుకూల కారణం (ఐచ్ఛికం)',
+  customReasonPlaceholder: 'మీ పట్టివేత పరిస్థితి వివరించండి...',
+  auditRecordCreated: 'ఆడిట్ రికార్డ్ సృష్టించబడింది',
+  auditRecordDesc: 'మీ పట్టివేత కారణం మరియు బయోమాస్ డేటా ROI నివేదిక మరియు ట్రస్ట్ సర్టిఫికేట్ కోసం చెరువు ఆడిట్ ట్రైల్‌లో సేవ్ చేయబడుతుంది.',
+  pleaseSelectReason: 'ధృవీకరించే ముందు పట్టివేత కారణం ఎంచుకోండి లేదా నమోదు చేయండి.',
+  confirmSelfHarvest: 'స్వంత పట్టివేత ధృవీకరించండి',
+  recordingHarvest: 'పట్టివేత నమోదు అవుతోంది...',
+  earlyHarvestRisk: 'DOC 90 ముందు కోయడం మార్కెట్ గ్రేడ్ తగ్గించవచ్చు మరియు ఆదాయాన్ని 30% పట్టివేత వేయవచ్చు.',
+
+  // Harvest Tracking
+  harvestCancelled: 'పట్టివేత రద్దయింది',
+  reasonGiven: 'ఇచ్చిన కారణం',
+  noActiveHarvest: 'క్రియాశీల పట్టివేత లేదు',
+  startHarvestFromPond: 'మీ చెరువు పేజీ నుండి పట్టివేత ఆర్డర్ ప్రారంభించండి',
+  estRevenueLabel: 'అంచనా ఆదాయం',
+  ratePerKg: 'రేటు /కిలో',
+  saleJourney: 'అమ్మకపు ప్రయాణం',
+  stageComplete: 'దశ పూర్తి',
+  revenueBreakdown: 'ఆదాయ విభజన',
+  buyerChat: 'కొనుగోలుదారు చాట్',
+  retractBroadcast: 'ప్రసారం వెనక్కి తీసుకోనా?',
+  pendingLabel: 'పెండింగ్',
+
+  // Harvest Revenue Ledger
+  feedingLog: 'ఫీడింగ్ లాగ్',
+  settledAndVerified: 'పరిష్కారం & ధృవీకరించబడింది',
+  payment: 'చెల్లింపు',
+  totalReceivedAmount: 'మొత్తం అందిన మొత్తం',
+  buyerEntity: 'కొనుగోలుదారు / సంస్థ',
+  saleDate: 'అమ్మకపు తేదీ',
+  countSize: 'కౌంట్ / సైజు',
+  baseRate: 'బేస్ రేటు (₹/కిలో)',
+  closeLedger: 'లెడ్జర్ మూసివేయండి',
+  harvestRevenue: 'పట్టివేత ఆదాయం',
+  yieldLedger: 'దిగుబడి లెడ్జర్',
+  latestHarvestSettlement: 'తాజా పరిష్కారం',
+  totalNetEarnings: 'మొత్తం నికర ఆదాయం',
+  premiumMargin: 'ప్రీమియం మార్జిన్',
+  settledDate: 'పరిష్కారం తేదీ',
+  revenueComposition: 'ఆదాయ కూర్పు',
+  baseBiomassSales: 'బేస్ బయోమాస్ అమ్మకాలు',
+  bonusSubsidies: 'బోనస్ & సబ్సిడీలు',
+  settlementAudit: 'పరిష్కార ఆడిట్',
+  pdfStatement: 'స్టేట్‌మెంట్ డౌన్‌లోడ్',
+  settled: 'పరిష్కారం',
+
+  // Admin Dashboard
+  adminControl: 'అడ్మిన్ కంట్రోల్',
+  totalUsers: 'మొత్తం వినియోగదారులు',
+  activeSubs: 'చురుకు సబ్‌స్క్రిప్షన్లు',
+  health: 'ఆరోగ్యం',
+  marketPrice: 'మార్కెట్ ధర',
+  updatePrice: 'ధర నవీకరించండి',
+  recentActivity: 'ట్ తత్కాలిక కార్యాచరణ',
+
+  // Provider Module
+  providerDashboard: 'ప్రొవైడర్ డాష్‌బోర్డ్',
+  totalSales: 'మొత్తం అమ్మకాలు',
+  activeOrders: 'చురుకు ఆర్డర్లు',
+  pending: 'పెండింగ్',
+  shipped: 'పంపబడింది',
+  addProduct: 'ఉత్పత్తి జోడించండి',
+  stock: 'స్టాక్',
+  viewDetails: 'వివరాలు చూడండి',
 };
 
 export const translations: Record<Language, Translations> = {

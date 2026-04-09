@@ -1,6 +1,4 @@
 import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
 
 
 // --- MONGODB SCHEMA ---
@@ -48,7 +46,7 @@ const PondSchema = new mongoose.Schema({
   seedCount: { type: Number },
   seedSource: { type: String },
   species: { type: String, enum: ['Vannamei', 'Tiger'], default: 'Vannamei' },
-  status: { type: String, enum: ['active', 'harvested', 'archive', 'planned'], default: 'active' },
+  status: { type: String, enum: ['active', 'harvested', 'archive', 'planned', 'harvest_pending'], default: 'active' },
   harvestData: { type: Map, of: String },
   waterType: { type: String, default: 'Borewell' },
   initialSalinity: { type: Number, default: 0 },
@@ -122,12 +120,14 @@ const HarvestRequestSchema = new mongoose.Schema({
   providerId: { type: String }, // The buyer/agent who accepts
   biomass: { type: Number, required: true },
   avgWeight: { type: Number, required: true },
-  price: { type: Number },
+  targetedBuyers: [String],
+  broadcastRadius: { type: Number, default: 150 },
   status: { 
     type: String, 
-    enum: ['pending', 'accepted', 'quality_checked', 'weighed', 'completed', 'cancelled'], 
+    enum: ['pending', 'accepted', 'quality_checked', 'weighed', 'rate_confirmed', 'harvested', 'paid', 'completed', 'cancelled'], 
     default: 'pending' 
   },
+  cancellationReason: { type: String },
   qualityReports: [{
     parameter: String,
     value: String,
@@ -136,6 +136,15 @@ const HarvestRequestSchema = new mongoose.Schema({
   }],
   finalWeight: { type: Number },
   finalTotal: { type: Number },
+  price: { type: Number }, // confirmed final price per kg
+  chatMessages: [{
+    senderId: { type: String, required: true },
+    senderName: { type: String },
+    senderRole: { type: String, enum: ['farmer', 'provider', 'admin'], default: 'farmer' },
+    message: { type: String, required: true },
+    proposedPrice: { type: Number }, // optional price proposal in message
+    timestamp: { type: Date, default: Date.now }
+  }],
 }, { timestamps: true });
 
 export const User = mongoose.model('User', UserSchema);
@@ -152,13 +161,13 @@ export const HarvestRequest = mongoose.model('HarvestRequest', HarvestRequestSch
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://syamkdoram_db_user:xVMRfYAFMYYZvLzT@ac-k6ux81i-shard-00-00.mongodb.net:27017,ac-k6ux81i-shard-00-01.mongodb.net:27017,ac-k6ux81i-shard-00-02.mongodb.net:27017/aquagrow?ssl=true&replicaSet=atlas-k6ux81i-shard-0&authSource=admin&retryWrites=true&w=majority';
-  
+
   try {
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 2000 });
-    console.log('MongoDB Connected Successfully (Production Mode)');
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 });
+    console.log('✅ MongoDB Connected — Production Mode');
   } catch (error) {
-    console.error('CRITICAL DATABASE ERROR: Online connection failed.');
-    console.error('Server will continue to listen but DB routes will fail until connection is fixed.');
-    throw error;
+    console.error('❌ CRITICAL: MongoDB connection failed. Exiting process so the host can restart.');
+    console.error(error);
+    process.exit(1); // Let Render/PM2 restart automatically
   }
 };

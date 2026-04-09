@@ -32,6 +32,9 @@ export interface User {
     isVerified: boolean;
   };
   biometricEnabled?: boolean;
+  termsAccepted?: boolean;           // Accepted standard T&C
+  notResponsibleAccepted?: boolean;  // Accepted aquaculture loss disclaimer
+  termsAcceptedAt?: string;          // ISO date of acceptance
 }
 
 export interface Pond {
@@ -51,6 +54,31 @@ export interface Pond {
   sensorId?: string; // Unique IoT Node ID assigned to this pond
   currentWeight?: number;
   history?: PondLog[];
+  aerators?: {
+    count: number;
+    hp: number;
+    positions: string[];
+    addedNew: boolean;
+    lastUpdated: string;
+    lastDoc: number;
+    log: AeratorLog[];
+  };
+  diseaseScans?: {
+    count: number;          // Scans used this month
+    monthKey: string;       // Format: 'YYYY-MM' — resets monthly
+    lastScanAt?: string;    // ISO date of last scan
+    history?: { date: string; disease: string; severity: string; pondId: string }[];
+  };
+}
+
+export interface AeratorLog {
+  doc: number;
+  date: string;
+  count: number;
+  hp: number;
+  positions: string[];
+  addedNew: boolean;
+  notes?: string;
 }
 
 export interface PondLog {

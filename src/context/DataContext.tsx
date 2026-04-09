@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../config';
 import { translations } from '../translations';
 import { mockMarketPrices, mockWaterRecords } from '../mockData';
 import { generateReminders } from '../utils/reminderEngine';
+import { sendHarvestStagePush } from '../services/harvestPushService';
 
 interface DataContextType {
   user: User | null;
@@ -44,6 +45,9 @@ interface DataContextType {
   markNotificationsRead: () => void;
   unreadCount: number;
   resetPassword: (phoneNumber: string, otp: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  updateHarvestRequest: (requestId: string, updates: any) => Promise<void>;
+  sendHarvestMessage: (requestId: string, message: string, proposedPrice?: number) => Promise<any>;
+  harvestRequests: any[];
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -512,9 +516,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const updatePond = async (id: string, updates: Partial<Pond>) => {
     // Optimistic UI update
     setPonds(prev => prev.map(p => {
-       const pId = p.id || (p as any)._id;
-       const targetId = id;
-       return pId === targetId ? { ...p, ...updates } : p;
+       const pondId = p.id?.toString() || (p as any)._id?.toString();
+       const targetId = id?.toString();
+       return pondId === targetId ? { ...p, ...updates } : p;
     }));
     
     setIsSyncing(true);
@@ -632,6 +636,48 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
        }
     } catch (error) {
        console.error("Add Harvest Request error:", error);
+    } finally {
+       setIsSyncing(false);
+    }
+  };
+
+  const updateHarvestRequest = async (requestId: string, updates: any) => {
+    setIsSyncing(true);
+    // Optimistic UI Update ensures instant refresh when canceling
+    setHarvestRequests(prev => {
+      console.log("[Optimistic] Updating harvest request:", requestId);
+      return prev.map(r => {
+        const itemId = r.id?.toString() || r._id?.toString();
+        const targetId = requestId?.toString();
+        const match = itemId === targetId;
+        if (match) console.log("[Optimistic] MATCH FOUND for", itemId);
+        return match ? { ...r, ...updates } : r;
+      });
+    });
+
+    try {
+       const response = await apiFetch(`${API_BASE_URL}/harvest-requests/${requestId}`, {
+          method: 'PUT',
+          body: JSON.stringify(updates)
+       });
+       if (response.ok) {
+          const updated = await response.json();
+          setHarvestRequests(prev => prev.map(r => 
+            (r.id === requestId || r._id === requestId) ? { ...r, ...updated, id: updated._id || updated.id } : r
+          ));
+
+          // ── Fire FCM push for every status transition ──
+          if (updates.status) {
+            const req = harvestRequests.find(r =>
+              r.id?.toString() === requestId || r._id?.toString() === requestId
+            );
+            const pondId = req?.pondId || updated?.pondId || '';
+            const pondName = ponds.find(p => p.id?.toString() === pondId?.toString())?.name || 'Your Pond';
+            sendHarvestStagePush(String(pondId), pondName, requestId, updates.status);
+          }
+       }
+    } catch (error) {
+       console.error("Update Harvest Request error:", error);
     } finally {
        setIsSyncing(false);
     }
@@ -807,6 +853,30 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       unreadCount,
       resetPassword,
       addHarvestRequest,
+      updateHarvestRequest,
+      sendHarvestMessage: async (requestId: string, message: string, proposedPrice?: number) => {
+        try {
+          const msg = { message, proposedPrice };
+          const res = await apiFetch(`${API_BASE_URL}/harvest-requests/${requestId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify(msg)
+          });
+          if (res.ok) {
+            const saved = await res.json();
+            // Optimistic update — append new message to local state
+            setHarvestRequests((prev: any[]) => prev.map((r: any) => {
+              const rid = r.id?.toString() || r._id?.toString();
+              if (rid === requestId?.toString()) {
+                return { ...r, chatMessages: [...(r.chatMessages || []), saved] };
+              }
+              return r;
+            }));
+            return saved;
+          }
+        } catch (err) {
+          console.error('[Chat] Failed to send message:', err);
+        }
+      },
       toggleReminder: (id: string) => {
         const next = completedReminderIds.includes(id) 
           ? completedReminderIds.filter(i => i !== id) 

@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, Globe, Layout, Ruler, ChevronRight, Settings, Sparkles, XCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import {
+  Bell, Layout, Ruler, Settings, Sparkles, ShieldCheck,
+  CheckCircle2, ShieldAlert, Fish, CloudRain, Zap, Bug,
+  TrendingUp, Lightbulb, Moon, Smartphone, Cpu, Send,
+  RefreshCw, ChevronDown, Sun, Layers, XCircle,
+} from 'lucide-react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { Header } from '../../components/Header';
@@ -9,318 +14,361 @@ import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
 import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
+import { NotificationPrefs, DEFAULT_PREFS } from '../../services/notificationEngine';
 
+// ─── TOGGLE ────────────────────────────────────────────────────────────────────
+const Toggle = ({ value, onToggle, isDark }: { value: boolean; onToggle: () => void; isDark: boolean }) => (
+  <motion.button
+    whileTap={{ scale: 0.88 }}
+    onClick={e => { e.stopPropagation(); onToggle(); }}
+    className={cn(
+      'w-11 h-6 rounded-full relative transition-colors duration-300 flex-shrink-0',
+      value ? 'bg-[#C78200]' : isDark ? 'bg-white/10' : 'bg-slate-200',
+    )}>
+    <motion.div
+      animate={{ x: value ? 19 : 2 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+      className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+    />
+  </motion.button>
+);
+
+// ─── COLLAPSIBLE SECTION ───────────────────────────────────────────────────────
+const Section = ({
+  icon: Icon, label, desc, headerGradient, headerText, defaultOpen = false, isDark, children,
+}: {
+  icon: any; label: string; desc: string;
+  headerGradient: string; headerText: string;
+  defaultOpen?: boolean; isDark: boolean;
+  children: React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={cn('rounded-[1.8rem] overflow-hidden border',
+      isDark ? 'border-white/5' : 'border-slate-100 shadow-sm')}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={cn('w-full flex items-center justify-between px-4 py-3.5', headerGradient)}>
+        <div className="flex items-center gap-3">
+          <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center bg-white/15 flex-shrink-0')}>
+            <Icon size={15} className="text-white" />
+          </div>
+          <div className="text-left">
+            <p className="text-white font-black text-[11px] tracking-tight">{label}</p>
+            <p className="text-white/50 text-[7px] font-bold">{desc}</p>
+          </div>
+        </div>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}>
+          <ChevronDown size={16} className="text-white/60" />
+        </motion.div>
+      </button>
+
+      {/* Body */}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="overflow-hidden">
+            <div className={cn(isDark ? 'bg-[#0D1520]' : 'bg-white')}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ─── ROW ───────────────────────────────────────────────────────────────────────
+const Row = ({
+  icon: Icon, iconBg, label, sub, isDark, last = false, children,
+}: {
+  icon?: any; iconBg?: string; label: string; sub?: string;
+  isDark: boolean; last?: boolean; children?: React.ReactNode; key?: React.Key;
+}) => (
+  <div className={cn(
+    'flex items-center justify-between px-4 py-3',
+    !last && (isDark ? 'border-b border-white/5' : 'border-b border-slate-50'),
+  )}>
+    <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
+      {Icon && (
+        <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 border', iconBg)}>
+          <Icon size={13} />
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white/80' : 'text-slate-800')}>{label}</p>
+        {sub && <p className={cn('text-[7px] font-bold mt-0.5 truncate', isDark ? 'text-white/20' : 'text-slate-400')}>{sub}</p>}
+      </div>
+    </div>
+    <div className="flex-shrink-0">{children}</div>
+  </div>
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
 export const SystemSettings = ({ t }: { t: Translations }) => {
   const { user, setUser, addNotification, theme, setAppTheme } = useData();
-  const [notifications, setNotifications] = useState({
-    water: user?.notifications?.water ?? true,
-    feed: user?.notifications?.feed ?? true,
-    market: user?.notifications?.market ?? false,
-    expert: user?.notifications?.expert ?? true,
-    security: user?.notifications?.security ?? true,
-  });
+  const isDark = theme === 'dark' || theme === 'midnight';
 
-  const [units, setUnits] = useState<'Acres' | 'Hectares'>('Acres');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const { requestNotificationPermission, fcmToken, triggerLocalAlert } = useFirebaseAlerts(user?.language || 'English');
+  // Smart alert prefs
+  const PREFS_KEY = 'aquagrow_alert_prefs_v1';
+  const [smartPrefs, setSmartPrefs] = useState<NotificationPrefs>(() => {
+    try {
+      const saved = localStorage.getItem(PREFS_KEY);
+      return saved ? { ...DEFAULT_PREFS, ...JSON.parse(saved) } : DEFAULT_PREFS;
+    } catch { return DEFAULT_PREFS; }
+  });
+  const updateSmartPref = (key: keyof NotificationPrefs, val: boolean) => {
+    const updated = { ...smartPrefs, [key]: val };
+    setSmartPrefs(updated);
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(updated)); } catch {}
+  };
+
+  const [units, setUnits]           = useState<'Acres' | 'Hectares'>('Acres');
   const [isSyncingPush, setIsSyncingPush] = useState(false);
+  const [testSuccess, setTestSuccess]     = useState(false);
+  const [isSyncing, setIsSyncing]         = useState(false);
+
+  const { requestNotificationPermission, fcmToken, triggerLocalAlert } = useFirebaseAlerts(user?.language || 'English');
 
   const handleSyncPush = async () => {
-     setIsSyncingPush(true);
-     const token = await requestNotificationPermission();
-     if (token && (user?.id || (user as any)?._id)) {
-        try {
-          await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/notifications`, {
-             method: 'PUT',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ 
-                fcmToken: token,
-                notifications: user.notifications || { water: true, feed: true, market: false, expert: true, security: true }
-             })
-          });
-          const uInfo = { ...user, fcmToken: token };
-          localStorage.setItem('aqua_user', JSON.stringify(uInfo));
-        } catch (err) {
-          console.error('Push Engine Sync failed:', err);
-        }
-     }
-     setIsSyncingPush(false);
+    setIsSyncingPush(true);
+    const token = await requestNotificationPermission();
+    if (token && (user?.id || (user as any)?._id)) {
+      try {
+        await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/notifications`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fcmToken: token, notifications: user.notifications || {} }),
+        });
+        const uInfo = { ...user, fcmToken: token };
+        localStorage.setItem('aqua_user', JSON.stringify(uInfo));
+      } catch {}
+    }
+    setIsSyncingPush(false);
   };
 
   const handleTestAlert = async () => {
-    triggerLocalAlert(t.systemHealthOptimal || "System Health: Optimal", t.systemTestMessage || "Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.");
-    
-    // Increment persistent history for UI feedback
-    addNotification(t.systemHealthOptimal || "System Health: Optimal", t.systemTestMessage || "Testing high-fidelity stylized alerts. AquaGrow Push Engine is now active and ready for your farm.", "info");
-    
-    // 2. Trigger System Level Native Alert
+    triggerLocalAlert('🌿 AquaGrow System Test', 'Push engine active — your pond alerts will arrive here.');
+    addNotification('System Test', 'Push engine active.', 'info');
     if (Capacitor.isNativePlatform()) {
       try {
         await LocalNotifications.requestPermissions();
         await LocalNotifications.schedule({
-          notifications: [
-            {
-              title: "AquaGrow System Test",
-              body: "Official system-level notifications are now active on your Android device.",
-              id: Math.floor(Math.random() * 100000),
-              schedule: { at: new Date(Date.now() + 1000) },
-              sound: 'default'
-            }
-          ]
+          notifications: [{
+            title: '🌿 AquaGrow System Test',
+            body: 'Push engine verified on your device.',
+            id: Math.floor(Math.random() * 100000),
+            schedule: { at: new Date(Date.now() + 500) },
+            sound: 'default',
+          }],
         });
-      } catch (err) {
-        console.error('Failed native test:', err);
-      }
-    } else if (typeof window !== 'undefined' && 'Notification' in window) {
-      new Notification("AquaGrow System Test", {
-        body: "Local system verification successful. Your browser is ready for real-time farm updates!",
-        icon: "/logo192.png"
-      });
+      } catch {}
+    } else if ('Notification' in window) {
+      new Notification('🌿 AquaGrow System Test', { body: 'Push engine verification successful.', icon: '/logo192.png' });
     }
+    setTestSuccess(true);
+    setTimeout(() => setTestSuccess(false), 2500);
   };
 
-  const handleLanguageChange = async (newLang: 'English' | 'Telugu') => {
-    if (user?.id || (user as any)?._id) {
-       const uInfo = { ...user, language: newLang };
-       setUser(uInfo);
-       localStorage.setItem('aqua_user', JSON.stringify(uInfo));
-       
-       setIsSyncing(true);
-       try {
-         await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/profile`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ language: newLang })
-         });
-       } catch (err) {
-         console.error('Failed to sync language preference:', err);
-       } finally {
-         setTimeout(() => setIsSyncing(false), 600);
-       }
-    }
-  };
+  const alertCategories: { key: keyof NotificationPrefs; label: string; sub: string; icon: any; color: string }[] = [
+    { key: 'pond_danger', label: 'Pond Danger',  sub: 'DO, pH, ammonia, mortality',    icon: ShieldAlert, color: isDark ? 'bg-red-500/10 text-red-400 border-red-500/20'     : 'bg-red-50 text-red-500 border-red-100' },
+    { key: 'feed',        label: 'Feed Alerts',   sub: 'FCR warnings, meal slots',      icon: Fish,        color: isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20': 'bg-amber-50 text-amber-500 border-amber-100' },
+    { key: 'weather',     label: 'Weather',       sub: 'Rain, heat, pre-dawn DO',       icon: CloudRain,   color: isDark ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'     : 'bg-sky-50 text-sky-500 border-sky-100' },
+    { key: 'harvest',     label: 'Harvest',       sub: 'DOC windows, over-age',         icon: Zap,         color: isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20': 'bg-emerald-50 text-emerald-500 border-emerald-100' },
+    { key: 'disease',     label: 'Disease Risk',  sub: 'WSSV / EMS / Vibrio',          icon: Bug,         color: isDark ? 'bg-purple-500/10 text-purple-400 border-purple-500/20': 'bg-purple-50 text-purple-500 border-purple-100' },
+    { key: 'lunar',       label: 'Lunar Cycles',  sub: 'Molt, feed & harvest timing',  icon: Moon,        color: isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20': 'bg-indigo-50 text-indigo-500 border-indigo-100' },
+    { key: 'market',      label: 'Market Prices', sub: 'Price spikes, demand signals', icon: TrendingUp,  color: isDark ? 'bg-teal-500/10 text-teal-400 border-teal-500/20'   : 'bg-teal-50 text-teal-500 border-teal-100' },
+    { key: 'tips',        label: 'Daily SOP Tips',sub: 'Operational guidance',         icon: Lightbulb,   color: isDark ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20': 'bg-yellow-50 text-yellow-600 border-yellow-100' },
+  ];
 
-  const handleToggle = async (key: keyof typeof notifications) => {
-    const newVal = !notifications[key];
-    const newPrefs = { ...notifications, [key]: newVal };
-    setNotifications(newPrefs);
-    
-    if (user?.id || (user as any)?._id) {
-       const uInfo = { ...user, notifications: newPrefs };
-       localStorage.setItem('aqua_user', JSON.stringify(uInfo));
-       
-       setIsSyncing(true);
-       try {
-         await fetch(`${API_BASE_URL}/user/${user.id || (user as any)._id}/notifications`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notifications: newPrefs, fcmToken: user.fcmToken })
-         });
-       } catch (err) {
-         console.error('Failed to sync notification preferences:', err);
-       } finally {
-         setTimeout(() => setIsSyncing(false), 600);
-       }
-    }
-  };
-
-  const settingSections = [
-    { 
-      id: 'notifications', 
-      icon: Bell, 
-      label: t.notifications, 
-      desc: t.smartFarmAlerts, 
-      color: 'text-[#C78200]',
-      items: [
-        { label: t.waterQualityAlerts, sub: 'Daily oxygen & pH status', value: notifications.water, onToggle: () => handleToggle('water') },
-        { label: t.feedingReminders, sub: 'Timely feed slot alerts', value: notifications.feed, onToggle: () => handleToggle('feed') },
-        { label: 'Market Insights', sub: 'Price trends & market alerts', value: notifications.market, onToggle: () => handleToggle('market') },
-        { label: 'Expert Chat Alerts', sub: 'Instant consultation replies', value: notifications.expert, onToggle: () => handleToggle('expert') },
-        { label: 'Security Alerts', sub: 'New login & security updates', value: notifications.security, onToggle: () => handleToggle('security') },
-        { 
-          label: 'Mobile Push Engine', 
-          sub: 'Link device for background alerts',
-          isButton: true, 
-          btnLabel: fcmToken ? 'Active & Linked' : (isSyncingPush ? 'Pairing...' : 'Sync Device'),
-          btnColor: fcmToken ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-emerald-500 text-white',
-          disabled: !!fcmToken || isSyncingPush,
-          onClick: handleSyncPush 
-        },
-        { label: 'Test System Alert', sub: 'Verify push functionality', isButton: true, btnLabel: 'Send Test', onClick: handleTestAlert },
-      ]
-    },
-    {
-      id: 'preferences',
-      icon: Ruler,
-      label: t.units,
-      desc: t.measurementUnit,
-      color: 'text-amber-500',
-      items: [
-        { label: t.measurementUnit, value: units, isSelect: true, options: [t.acres, t.hectares], onSelect: (v: any) => setUnits(v) },
-        { label: t.language, value: user?.language || 'English', isSelect: true, options: [t.english, t.telugu], onSelect: (v: any) => {
-          const langMap: Record<string, 'English' | 'Telugu'> = {
-            [t.english]: 'English',
-            [t.telugu]: 'Telugu'
-          };
-          handleLanguageChange(langMap[v]);
-        }}
-      ]
-    },
-    {
-      id: 'ai_config',
-      icon: Sparkles,
-      label: t.aiDiagnostics,
-      desc: 'Gemini AI Configuration',
-      color: 'text-emerald-500',
-      items: [
-        { 
-          label: t.aiServiceStatus, 
-          isButton: true,
-          btnLabel: t.secureCloudManaged,
-          btnColor: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
-          disabled: true,
-          onClick: () => {}
-        }
-      ]
-    },
-    {
-      id: 'appearance',
-      icon: Layout,
-      label: t.appTheme,
-      desc: theme.charAt(0).toUpperCase() + theme.slice(1),
-      color: 'text-purple-500',
-      items: [
-        { 
-          label: 'Select Theme', 
-          value: theme, 
-          isSelect: true, 
-          options: ['Sunrise', 'Oceanic', 'Midnight', 'Harvest'], 
-          onSelect: (v: string) => setAppTheme(v.toLowerCase() as any) 
-        }
-      ]
-    }
+  const aboutRows = [
+    { label: 'App Version',       value: 'v2.0.0' },
+    { label: 'Farm ID',           value: `AQG-${(user as any)?._id?.slice(-6)?.toUpperCase() ?? 'XXXXXX'}` },
+    { label: 'Disease Database',  value: '10 Diseases' },
+    { label: 'Alert Categories',  value: '8 Types' },
   ];
 
   return (
-    <div className="pb-32 bg-[#F8F9FE] min-h-screen">
+    <div className={cn('min-h-screen pb-32', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
       <Header title={t.systemSettings} showBack />
-      
+
+      {/* Syncing bar */}
       <AnimatePresence>
         {isSyncing && (
-           <motion.div 
-             initial={{ scaleX: 0, opacity: 0 }}
-             animate={{ scaleX: 1, opacity: 1 }}
-             exit={{ opacity: 0 }}
-             transition={{ duration: 0.5, ease: 'easeOut' }}
-             className="fixed top-[72px] left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-[#C78200] to-emerald-500 z-50 origin-left"
-             style={{ backgroundSize: '200% 100%', animation: 'shimmer 1s infinite linear' }}
-           />
+          <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} exit={{ opacity: 0 }}
+            className="fixed top-[72px] left-0 right-0 h-0.5 bg-gradient-to-r from-[#C78200] to-amber-400 z-50 origin-left" />
         )}
       </AnimatePresence>
-      
-      <div className="pt-32 px-5 py-6 space-y-10">
-        <div className="bg-[#4A2C2A] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
-          <div className="relative z-10">
-            <h2 className="text-3xl font-black tracking-tighter mb-3">{t.settings}</h2>
-            <p className="text-white/40 text-xs font-semibold leading-relaxed max-w-[180px]">Customize your AquaGrow experience to match your farm operations.</p>
+
+      {/* Test toast */}
+      <AnimatePresence>
+        {testSuccess && (
+          <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 text-white text-[11px] font-black shadow-xl whitespace-nowrap">
+            <CheckCircle2 size={14} /> Test alert sent!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="pt-20 px-4 py-4 space-y-3">
+
+        {/* ── Hero ── */}
+        <div className="bg-gradient-to-br from-[#0D1520] to-[#051015] rounded-[2rem] px-5 py-4 border border-white/5 shadow-lg relative overflow-hidden">
+          <div className="absolute -right-5 -bottom-5 opacity-5 pointer-events-none">
+            <Settings size={100} strokeWidth={0.5} />
           </div>
-          <Settings size={120} strokeWidth={0.5} className="absolute -right-8 -bottom-8 text-[#C78200]/10 rotate-12" />
+          <p className="text-white/30 text-[7px] font-black uppercase tracking-widest mb-0.5">AquaGrow Intelligence</p>
+          <h2 className="text-white text-lg font-black tracking-tight">System Settings</h2>
+          <p className="text-white/25 text-[8px] font-medium mt-0.5">Configure alerts, theme, units & push notifications</p>
+          <div className="flex items-center gap-1.5 mt-3">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            <p className="text-emerald-400/60 text-[7px] font-black uppercase tracking-widest">Engine Active</p>
+          </div>
         </div>
 
-        {settingSections.map((section, idx) => (
-          <section key={idx} className="space-y-6">
-            <div className="flex items-center gap-4 ml-2">
-              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-paper shadow-sm", section.color)}>
-                <section.icon size={20} strokeWidth={1.5} />
-              </div>
-              <h3 className="text-[#4A2C2A] text-lg font-black tracking-tighter">{section.label}</h3>
+        {/* ── 1. SMART ALERTS — Amber ── */}
+        <Section
+          icon={Bell}
+          label="Smart Push Alerts"
+          desc="Tap to configure alert categories"
+          headerGradient="bg-gradient-to-r from-[#B87200] to-[#D4A017]"
+          headerText="text-white"
+          isDark={isDark}
+          defaultOpen={false}>
+          {alertCategories.map((cat, i) => (
+            <Row key={cat.key} icon={cat.icon} iconBg={cat.color}
+              label={cat.label} sub={cat.sub} isDark={isDark}
+              last={i === alertCategories.length - 1}>
+              <Toggle value={smartPrefs[cat.key]} onToggle={() => updateSmartPref(cat.key, !smartPrefs[cat.key])} isDark={isDark} />
+            </Row>
+          ))}
+        </Section>
+
+        {/* ── 2. PUSH ENGINE — Blue ── */}
+        <Section
+          icon={Smartphone}
+          label="Push Notification Engine"
+          desc="Device pairing & test alerts"
+          headerGradient="bg-gradient-to-r from-[#1A56A0] to-[#2D7DD2]"
+          headerText="text-white"
+          isDark={isDark}
+          defaultOpen={false}>
+          <Row icon={Smartphone}
+            iconBg={fcmToken ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100') : (isDark ? 'bg-white/5 text-white/30 border-white/10' : 'bg-slate-50 text-slate-400 border-slate-200')}
+            label="Mobile Push Engine"
+            sub={fcmToken ? 'Device linked — alerts are active' : 'Not linked · Tap to pair'}
+            isDark={isDark}>
+            <motion.button whileTap={{ scale: 0.95 }} onClick={handleSyncPush}
+              disabled={!!fcmToken || isSyncingPush}
+              className={cn(
+                'px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border',
+                fcmToken
+                  ? isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                  : 'bg-[#2D7DD2] text-white border-transparent shadow-md',
+                (!!fcmToken || isSyncingPush) && 'opacity-50 cursor-not-allowed',
+              )}>
+              {isSyncingPush ? <RefreshCw size={11} className="animate-spin" /> : fcmToken ? '✓ Linked' : 'Pair'}
+            </motion.button>
+          </Row>
+          <Row icon={Send}
+            iconBg={isDark ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-500 border-blue-100'}
+            label="Test Alert" sub="Send a test push notification" isDark={isDark} last>
+            <motion.button whileTap={{ scale: 0.95 }} onClick={handleTestAlert}
+              className={cn('px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border',
+                isDark ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-600 border-blue-200')}>
+              Send Test
+            </motion.button>
+          </Row>
+        </Section>
+
+        {/* ── 3. APPEARANCE — Purple ── */}
+        <Section
+          icon={Layout}
+          label="Appearance"
+          desc="Theme & measurement units"
+          headerGradient="bg-gradient-to-r from-[#6B21A8] to-[#9333EA]"
+          headerText="text-white"
+          isDark={isDark}
+          defaultOpen={true}>
+          {/* Theme */}
+          <Row icon={isDark ? Moon : Sun}
+            iconBg={isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-amber-50 text-amber-500 border-amber-100'}
+            label="App Theme"
+            sub={isDark ? 'Currently: Midnight mode' : 'Currently: Daylight mode'}
+            isDark={isDark}>
+            <div className={cn('flex gap-1 p-1 rounded-xl border',
+              isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200')}>
+              {[{ id: 'light', label: '☀️ Day' }, { id: 'dark', label: '🌙 Night' }].map(th => (
+                <button key={th.id} onClick={() => setAppTheme(th.id as any)}
+                  className={cn('px-2.5 py-1 rounded-lg text-[9px] font-black tracking-widest transition-all',
+                    (th.id === 'light' && !isDark) || (th.id === 'dark' && isDark)
+                      ? isDark ? 'bg-white/10 text-white' : 'bg-white text-slate-800 shadow-sm'
+                      : isDark ? 'text-white/25' : 'text-slate-400')}>
+                  {th.label}
+                </button>
+              ))}
             </div>
-            
-            <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-black/5 divide-y divide-[#4A2C2A]/5 overflow-hidden">
-              {section.items ? (
-                <div className="divide-y divide-[#4A2C2A]/5">
-                  {section.items.map((item, i) => (
-                    <div key={i} className="p-6 flex items-center justify-between group transition-all">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-black text-sm tracking-tight text-[#4A2C2A]">{item.label}</span>
-                        {item.sub && <span className="text-[9px] font-bold text-[#4A2C2A]/30 uppercase tracking-widest">{item.sub}</span>}
-                      </div>
-                      
-                      {item.isSelect ? (
-                        <div className="flex bg-[#4A2C2A]/5 p-1 rounded-xl gap-2 h-10 items-center overflow-x-auto max-w-[200px] scrollbar-hide">
-                          {item.options?.map((opt) => (
-                            <button 
-                              key={opt}
-                              onClick={() => item.onSelect(opt)}
-                              className={cn(
-                                "px-4 h-full rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                                (item.value === opt || (item.value === 'English' && opt === t.english) || (item.value === 'Telugu' && opt === t.telugu) || (item.value === 'Bengali' && opt === t.bengali) || (item.value === 'Odia' && opt === t.odia) || (item.value === 'Gujarati' && opt === t.gujarati) || (item.value === 'Tamil' && opt === t.tamil) || (item.value === 'Malayalam' && opt === t.malayalam) || (item.value === 'Acres' && opt === t.acres) || (item.value === 'Hectares' && opt === t.hectares)) ? "bg-white text-[#C78200] shadow-sm" : "text-[#4A2C2A]/40"
-                              )}
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                      ) : item.isInput ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="password"
-                            defaultValue={item.value}
-                            placeholder="sk-..."
-                            className="bg-[#4A2C2A]/5 border border-black/5 rounded-xl px-4 py-2 text-[10px] font-black text-[#4A2C2A] w-32 outline-none focus:border-[#C78200]"
-                            onBlur={(e) => item.onSave(e.target.value)}
-                          />
-                          <button 
-                            onClick={() => { localStorage.removeItem('aqua_gemini_key'); window.location.reload(); }}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        </div>
-                      ) : item.isButton ? (
-                        <motion.button 
-                          whileTap={!item.disabled ? { scale: 0.95 } : {}}
-                          whileHover={!item.disabled ? { scale: 1.02 } : {}}
-                          onClick={item.onClick}
-                          disabled={item.disabled}
-                          className={cn(
-                             "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                             item.btnColor || "bg-emerald-500 text-white hover:bg-emerald-600",
-                             item.disabled && "opacity-50 grayscale cursor-not-allowed"
-                          )}
-                        >
-                          {item.btnLabel}
-                        </motion.button>
-                      ) : (
-                        <motion.button 
-                          whileTap={{ scale: 0.9 }}
-                          onClick={item.onToggle}
-                          className={cn(
-                            "w-12 h-6 rounded-full relative transition-all duration-500",
-                            item.value ? "bg-[#C78200]" : "bg-[#4A2C2A]/10"
-                          )}
-                        >
-                          <div className={cn(
-                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-500",
-                            item.value ? "right-1" : "left-1"
-                          )} />
-                        </motion.button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 flex items-center justify-between group opacity-50 grayscale">
-                  <span className="font-black text-sm tracking-tight text-[#4A2C2A]">{section.desc}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#4A2C2A]/40">Locked</span>
-                    <ChevronRight size={14} className="text-[#4A2C2A]/20" />
-                   </div>
-                </div>
-              )}
+          </Row>
+          {/* Units */}
+          <Row icon={Ruler}
+            iconBg={isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-600 border-amber-100'}
+            label="Farm Unit" sub="Area measurement unit" isDark={isDark} last>
+            <div className={cn('flex gap-1 p-1 rounded-xl border',
+              isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200')}>
+              {['Acres', 'Ha'].map(u => (
+                <button key={u} onClick={() => setUnits((u === 'Ha' ? 'Hectares' : 'Acres') as any)}
+                  className={cn('px-2.5 py-1 rounded-lg text-[9px] font-black tracking-widest transition-all',
+                    ((u === 'Acres' && units === 'Acres') || (u === 'Ha' && units === 'Hectares'))
+                      ? isDark ? 'bg-[#C78200] text-white' : 'bg-white text-[#C78200] shadow-sm'
+                      : isDark ? 'text-white/25' : 'text-slate-400')}>
+                  {u}
+                </button>
+              ))}
             </div>
-          </section>
-        ))}
+          </Row>
+        </Section>
+
+        {/* ── 4. AI ENGINE — Emerald ── */}
+        <Section
+          icon={Sparkles}
+          label="AI Diagnostics"
+          desc="Gemini-powered farm intelligence"
+          headerGradient="bg-gradient-to-r from-[#065F46] to-[#059669]"
+          headerText="text-white"
+          isDark={isDark}
+          defaultOpen={false}>
+          <Row icon={Cpu}
+            iconBg={isDark ? 'bg-[#C78200]/10 text-[#C78200] border-[#C78200]/20' : 'bg-amber-50 text-[#C78200] border-amber-100'}
+            label="Gemini AI Engine" sub="Disease detection & diagnostic SOPs" isDark={isDark} last>
+            <div className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border',
+              isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-200')}>
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
+            </div>
+          </Row>
+        </Section>
+
+        {/* ── 5. ABOUT — Slate ── */}
+        <Section
+          icon={Layers}
+          label="About AquaGrow"
+          desc="App version & farm ID"
+          headerGradient={isDark ? 'bg-gradient-to-r from-slate-700 to-slate-600' : 'bg-gradient-to-r from-slate-600 to-slate-500'}
+          headerText="text-white"
+          isDark={isDark}
+          defaultOpen={false}>
+          {aboutRows.map((row, i) => (
+            <Row key={row.label} label={row.label} isDark={isDark} last={i === aboutRows.length - 1}>
+              <span className={cn('text-[10px] font-black', isDark ? 'text-white/25' : 'text-slate-400')}>{row.value}</span>
+            </Row>
+          ))}
+        </Section>
+
       </div>
     </div>
   );

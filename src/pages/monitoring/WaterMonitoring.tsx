@@ -1,556 +1,414 @@
-import React, { useState } from 'react';
-import { 
-  History, 
-  CheckCircle2, 
-  AlertTriangle, 
-  AlertCircle, 
-  TrendingUp,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Bluetooth,
-  Wifi,
-  RefreshCcw,
-  X,
-  ShieldCheck,
-  Activity,
-  FlaskConical,
-  Waves,
-  Zap,
-  Wind,
-  Thermometer,
-  Droplets,
-  Plus
+import React, { useState, useRef, useEffect } from 'react';
+import { NoPondState } from '../../components/NoPondState';
+import {
+  History, AlertTriangle, TrendingUp, Calendar,
+  Bluetooth, Wifi, RefreshCcw, X, ShieldCheck,
+  Activity, FlaskConical, Waves, Zap, Wind,
+  Thermometer, Droplets, Plus, Camera,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Bar,
-  Line,
-  ComposedChart
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Line, ComposedChart,
 } from 'recharts';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { Header } from '../../components/Header';
-import { format, subDays, isSameDay, addDays, startOfToday } from 'date-fns';
+import { format, subDays, isSameDay, addDays, startOfToday, startOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { iotService, SensorData } from '../../services/iotService';
 import { motion } from 'motion/react';
 import { calculateDOC } from '../../utils/pondUtils';
 
-export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
+// ─── HEALTH SCORING ─────────────────────────────────────────────────────────
+const calcHealth = (record: any) => {
+  if (!record) return { score: 0, status: 'NO DATA', color: 'text-slate-400', ring: '#94a3b8', badge: 'bg-slate-100 text-slate-500 border-slate-200' };
+  let pts = 100;
+  if (record.ph < 7.0 || record.ph > 9.0) pts -= 25; else if (record.ph < 7.5 || record.ph > 8.5) pts -= 10;
+  if (record.do < 4.0) pts -= 35; else if (record.do < 5.0) pts -= 15;
+  if (record.salinity < 5 || record.salinity > 30) pts -= 15; else if (record.salinity < 10 || record.salinity > 20) pts -= 5;
+  if (record.ammonia && record.ammonia > 0.1) pts -= 30; else if (record.ammonia && record.ammonia > 0.05) pts -= 15;
+  const score = Math.max(0, pts);
+  if (score >= 90) return { score, status: 'EXCELLENT', color: 'text-emerald-600', ring: '#10b981', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  if (score >= 70) return { score, status: 'STABLE',    color: 'text-blue-600',    ring: '#3b82f6', badge: 'bg-blue-50 text-blue-700 border-blue-200'         };
+  if (score >= 50) return { score, status: 'WARNING',   color: 'text-amber-600',   ring: '#f59e0b', badge: 'bg-amber-50 text-amber-700 border-amber-200'       };
+  return              { score, status: 'CRITICAL',  color: 'text-red-600',     ring: '#ef4444', badge: 'bg-red-50 text-red-700 border-red-200'             };
+};
+
+const pondPalette = (score: number) =>
+  score >= 90 ? { bar: 'bg-emerald-500', score: 'text-emerald-600', badge: 'bg-emerald-50 border-emerald-100 text-emerald-700', activeBg: '#f0fdf8', activeBorder: '#6ee7b7', glow: 'rgba(16,185,129,0.10)' }
+: score >= 70 ? { bar: 'bg-blue-500',    score: 'text-blue-600',    badge: 'bg-blue-50 border-blue-100 text-blue-700',           activeBg: '#eff6ff', activeBorder: '#93c5fd', glow: 'rgba(59,130,246,0.10)'  }
+: score >= 50 ? { bar: 'bg-amber-500',   score: 'text-amber-600',   badge: 'bg-amber-50 border-amber-100 text-amber-700',         activeBg: '#fffbeb', activeBorder: '#fcd34d', glow: 'rgba(245,158,11,0.10)' }
+: score > 0   ? { bar: 'bg-red-500',     score: 'text-red-600',     badge: 'bg-red-50 border-red-100 text-red-700',               activeBg: '#fef2f2', activeBorder: '#fca5a5', glow: 'rgba(239,68,68,0.10)'  }
+:               { bar: 'bg-slate-400',   score: 'text-slate-400',   badge: 'bg-slate-50 border-slate-100 text-slate-500',         activeBg: '#f8fafc', activeBorder: '#e2e8f0', glow: 'rgba(0,0,0,0.04)'      };
+
+export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, waterRecords, isPro, addWaterRecord } = useData();
-  const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isLiveMode, setIsLiveMode] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionType, setConnectionType] = useState<'BLE' | 'WiFi' | null>(null);
-  const [liveData, setLiveData] = useState<SensorData | null>(null);
+  const [selectedPondId, setSelectedPondId] = useState<string>(ponds[0]?.id || '');
+  const [selectedDate,   setSelectedDate]   = useState<Date>(startOfToday());
+  const [isLiveMode,     setIsLiveMode]     = useState(false);
+  const [isConnecting,   setIsConnecting]   = useState(false);
+  const [connType,       setConnType]       = useState<'BLE' | 'WiFi' | null>(null);
+  const [liveData,       setLiveData]       = useState<SensorData | null>(null);
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
+  const dateStr      = format(selectedDate, 'yyyy-MM-dd');
 
-  // DATE STR FOR FILTERING
-  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const dateRailRef = useRef<HTMLDivElement>(null);
+  const pondRailRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { if (ponds.length > 0 && !selectedPondId) setSelectedPondId(ponds[0].id); }, [ponds]);
+  useEffect(() => { setSelectedDate(startOfToday()); }, [selectedPondId]);
+  useEffect(() => {
+    const t = setTimeout(() => { if (dateRailRef.current) dateRailRef.current.scrollLeft = dateRailRef.current.scrollWidth; }, 150);
+    return () => clearTimeout(t);
+  }, [selectedPondId, selectedDate]);
 
   const latestRecord = waterRecords
     .filter(r => r.pondId === selectedPondId && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate)))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
-  const calculateOverallHealth = (record: any) => {
-    if (!record) return { score: 0, status: 'NO DATA', color: 'text-slate-300', bg: 'bg-card/50' };
-    
-    let points = 100;
-    
-    // pH: 7.5 - 8.5 is ideal
-    if (record.ph < 7.0 || record.ph > 9.0) points -= 25;
-    else if (record.ph < 7.5 || record.ph > 8.5) points -= 10;
-    
-    // DO: > 5.0 is ideal
-    if (record.do < 4.0) points -= 35;
-    else if (record.do < 5.0) points -= 15;
-    
-    // Salinity: 10 - 20 ppt
-    if (record.salinity < 5 || record.salinity > 30) points -= 15;
-    else if (record.salinity < 10 || record.salinity > 20) points -= 5;
-    
-    // Ammonia: < 0.05
-    if (record.ammonia && record.ammonia > 0.1) points -= 30;
-    else if (record.ammonia && record.ammonia > 0.05) points -= 15;
-    
-    const score = Math.max(0, points);
-    if (score >= 90) return { score, status: 'EXCELLENT', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
-    if (score >= 70) return { score, status: 'STABLE', color: 'text-blue-500', bg: 'bg-blue-500/10' };
-    if (score >= 50) return { score, status: 'WARNING', color: 'text-amber-500', bg: 'bg-amber-500/10' };
-    return { score, status: 'CRITICAL', color: 'text-red-500', bg: 'bg-red-500/10' };
-  };
-
-  const health = calculateOverallHealth(isLiveMode ? liveData : latestRecord);
-
+  const health    = calcHealth(isLiveMode ? liveData : latestRecord);
   const chartData = Array.from({ length: 7 }).map((_, i) => {
-    const d = subDays(selectedDate, 6 - i);
-    const dStr = format(d, 'yyyy-MM-dd');
-    const record = waterRecords.find(r => r.pondId === selectedPondId && (r.date === dStr || isSameDay(new Date(r.date), d)));
-    
-    return {
-      name: format(d, 'EEE').toUpperCase(),
-      value: record?.do || (latestRecord?.do || 5.0) + (Math.random() - 0.5), 
-      ph: record?.ph || (latestRecord?.ph || 7.8) + (Math.random() * 0.2 - 0.1),
-    };
+    const d   = subDays(selectedDate, 6 - i);
+    const rec = waterRecords.find(r => r.pondId === selectedPondId && (r.date === format(d, 'yyyy-MM-dd') || isSameDay(new Date(r.date), d)));
+    return { name: format(d, 'EEE'), do: rec?.do ?? null, ph: rec?.ph ?? null };
   });
 
   const handleSyncIoT = async (type: 'BLE' | 'WiFi') => {
-    if (!isPro) {
-      navigate('/subscription');
-      return;
-    }
-
-    setIsConnecting(true);
-    setConnectionType(type);
-
+    if (!isPro) { navigate('/subscription'); return; }
+    setIsConnecting(true); setConnType(type);
     try {
-       const data = type === 'BLE' 
-          ? await iotService.connectViaBluetooth()
-          : await iotService.syncViaFirebase(selectedPondId);
-
-       if (data && selectedPondId) {
-          setLiveData(data);
-          setIsLiveMode(true);
-          
-          await addWaterRecord({
-            pondId: selectedPondId,
-            date: format(new Date(), 'yyyy-MM-dd'),
-            ph: data.ph,
-            do: data.do,
-            ammonia: 0.02, 
-            salinity: data.salinity,
-            temperature: data.temp,
-            isSynced: true
-          });
-       } else {
-          throw new Error("Device data not retrieved.");
-       }
-    } catch (err) {
-       console.error("Sync Failure:", err);
-       alert(`Could not find ${type} Sensor Node. Please check probe power or range.`);
-    } finally {
-       setIsConnecting(false);
-       setConnectionType(null);
-    }
+      const data = type === 'BLE' ? await iotService.connectViaBluetooth() : await iotService.syncViaFirebase(selectedPondId);
+      if (data && selectedPondId) {
+        setLiveData(data); setIsLiveMode(true);
+        await addWaterRecord({ pondId: selectedPondId, date: format(new Date(), 'yyyy-MM-dd'), ph: data.ph, do: data.do, ammonia: 0.02, salinity: data.salinity, temperature: data.temp, isSynced: true });
+      } else throw new Error('No data');
+    } catch { alert(`Could not connect ${type} sensor.`); }
+    finally { setIsConnecting(false); setConnType(null); }
   };
 
-  return (
-    <div className="pb-40 bg-paper min-h-screen text-left font-sans relative overflow-x-hidden">
-      {/* ── BACKGROUND ACCENTS ── */}
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-paper">
-         <div className="absolute top-0 right-0 w-full h-[45%] bg-gradient-to-b from-primary/10 to-paper" />
-         <div className="absolute top-[10%] right-[-10%] w-[70%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-      </div>
+  const METRICS = [
+    { label: t.phLevel,     val: isLiveMode ? liveData?.ph        : latestRecord?.ph,          unit: '',     target: '7.5–8.5', icon: FlaskConical,  warn: (v: number) => v < 7.5 || v > 8.5 },
+    { label: t.dissolvedO2, val: isLiveMode ? liveData?.do        : latestRecord?.do,          unit: 'mg/L', target: '>5.0',    icon: Wind,          warn: (v: number) => v < 5.0            },
+    { label: t.salinity,    val: isLiveMode ? liveData?.salinity  : latestRecord?.salinity,    unit: 'ppt',  target: '10–20',   icon: Waves,         warn: (v: number) => v < 10 || v > 20   },
+    { label: t.ammonia,     val: isLiveMode ? null                : latestRecord?.ammonia,      unit: 'ppm',  target: '<0.05',   icon: Zap,           warn: (v: number) => v > 0.05           },
+    { label: t.alkalinity,  val: latestRecord?.alkalinity,                                      unit: 'mg/L', target: '100–150', icon: Activity,      warn: (v: number) => v < 80             },
+    { label: t.turbidity,   val: latestRecord?.turbidity,                                       unit: 'NTU',  target: '20–40',   icon: Droplets,      warn: (v: number) => v > 60             },
+    { label: t.temperature, val: isLiveMode ? liveData?.temp      : latestRecord?.temperature, unit: '°C',   target: '26–30',   icon: Thermometer,   warn: (v: number) => v < 26 || v > 30   },
+    { label: t.mortality,   val: latestRecord?.mortality,                                       unit: '/day', target: '<10',     icon: AlertTriangle, warn: (v: number) => v > 10             },
+  ];
+  const auditCount = METRICS.filter(m => m.val !== undefined && m.val !== null).length;
 
+  // ── EMPTY STATE ────────────────────────────────────────────────────────────
+  if (ponds.length === 0) return (
+    <div className="min-h-screen bg-paper flex flex-col">
       <Header title={t.monitor} showBack onMenuClick={onMenuClick} />
-      
-      {/* ── STAGGERED CONTENT ── */}
-      {ponds.length === 0 ? (
-         <motion.div 
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="pt-32 px-10 flex flex-col items-center text-center gap-10"
-         >
-            <div className="relative">
-               <div className="w-24 h-24 rounded-[2.5rem] bg-card border border-slate-100 flex items-center justify-center shadow-xl relative z-10">
-                  <Waves size={40} className="text-[#C78200]" />
-               </div>
-               <div className="absolute inset-0 bg-[#C78200]/10 rounded-full blur-[40px] animate-pulse" />
+      <div className="pt-28 flex-1 flex items-center justify-center">
+        <NoPondState
+          isDark={false}
+          subtitle="Add a pond to start monitoring water quality parameters daily."
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-paper pb-28 font-sans overflow-x-hidden">
+      <Header title={t.monitor} showBack onMenuClick={onMenuClick} />
+
+      <div className="pt-[72px] space-y-3 px-4">
+
+        {/* ── 1. POND SELECTOR + DATE FILTER ─────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+
+          {/* Active filter pill row */}
+          <div className="flex items-center justify-between mb-2.5 px-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[8px] font-black text-ink/40 uppercase tracking-widest">
+                {selectedPond?.name || 'Select Pond'}
+              </span>
             </div>
-            
-            <div className="space-y-4">
-               <h2 className="text-2xl font-black text-ink tracking-tighter uppercase tracking-[0.2em]">Zero Active Ponds</h2>
-               <p className="text-ink/40 text-sm font-bold leading-relaxed px-4">
-                  Tactical monitoring requires at least one active sector. Initialize your first pond to begin autonomous health scans.
-               </p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[8px] font-black text-ink/40 uppercase tracking-widest">
+                {isSameDay(selectedDate, startOfToday()) ? 'Today' : format(selectedDate, 'MMM d')}
+              </span>
+              {!isSameDay(selectedDate, startOfToday()) && (
+                <button onClick={() => setSelectedDate(startOfToday())}
+                  className="bg-emerald-600 text-white text-[6px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                  Today
+                </button>
+              )}
+              {isSameDay(selectedDate, startOfToday()) && (
+                <span className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[6px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                  ✓ Today
+                </span>
+              )}
             </div>
-            
-            <button 
-              onClick={() => navigate('/ponds')}
-              className="mt-6 w-full py-5 bg-[#C78200] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-amber-900/30 active:scale-95 transition-all flex items-center justify-center gap-3"
-            >
-               <Plus size={20} />
-               Launch First Pond
+          </div>
+
+          {/* Pond chips rail */}
+          <div ref={pondRailRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
+            {ponds.map(p => {
+              const pr       = waterRecords.filter(r => r.pondId === p.id && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+              const ph       = calcHealth(pr);
+              const pal      = pondPalette(ph.score);
+              const isActive = selectedPondId === p.id;
+              const doc      = calculateDOC(p.stockingDate, dateStr);
+              return (
+                <motion.button key={p.id} onClick={() => setSelectedPondId(p.id)} whileTap={{ scale: 0.97 }}
+                  data-active={isActive ? 'true' : 'false'}
+                  style={isActive ? { background: pal.activeBg, borderColor: pal.activeBorder } : {}}
+                  className={cn(
+                    'flex-shrink-0 min-w-[110px] pl-3 pr-3 pt-3 pb-2.5 rounded-2xl border-2 text-left relative overflow-hidden transition-all',
+                    isActive ? 'shadow-md' : 'bg-card border-card-border'
+                  )}>
+                  {/* Top colour bar */}
+                  <div className={cn('absolute top-0 left-3 right-3 h-[2.5px] rounded-full', pal.bar)} />
+                  {isActive && (
+                    <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at top left, ${pal.glow}, transparent 75%)` }} />
+                  )}
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className={cn('w-1.5 h-1.5 rounded-full', pal.bar, ph.score > 0 ? 'animate-pulse' : '')} />
+                      <span className="text-[6px] font-black text-ink/25 uppercase tracking-widest">D{doc}</span>
+                    </div>
+                    <p className="text-ink font-black text-[10px] tracking-tight truncate mb-1">{p.name}</p>
+                    <span className={cn('text-[5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border inline-block', pal.badge)}>
+                      {ph.status}
+                    </span>
+                    <div className="mt-1.5 pt-1.5 border-t border-card-border/40">
+                      <span className={cn('text-sm font-black tracking-tight leading-none', pal.score)}>{ph.score}%</span>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* ── 2. CULTURE TIMELINE (compact) ─────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10 }}
+          className="bg-card border border-card-border rounded-2xl px-3 py-2.5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Calendar size={11} className="text-emerald-500" />
+              <p className="text-[7px] font-black text-ink/40 uppercase tracking-widest">Culture Timeline</p>
+            </div>
+            <p className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">
+              {selectedPond ? `Start: ${format(startOfDay(new Date(selectedPond.stockingDate)), 'MMM d')}` : '—'}
+            </p>
+          </div>
+          <div ref={dateRailRef} className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+            {(() => {
+              if (!selectedPond) return null;
+              const start     = startOfDay(new Date(selectedPond.stockingDate));
+              const today     = startOfToday();
+              const totalDays = Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1);
+              return Array.from({ length: totalDays }).map((_, i) => {
+                const d        = addDays(start, i);
+                const isActive = isSameDay(d, selectedDate);
+                return (
+                  <button key={i} onClick={() => setSelectedDate(d)}
+                    className={cn(
+                      'flex-shrink-0 w-9 py-2 rounded-xl flex flex-col items-center gap-0.5 transition-all border',
+                      isActive ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm' : 'bg-paper border-card-border text-ink/40'
+                    )}>
+                    <span className={cn('text-[5px] font-black uppercase', isActive ? 'text-white/60' : 'text-ink/30')}>{format(d, 'EEE')}</span>
+                    <span className="text-[10px] font-black leading-none">{format(d, 'd')}</span>
+                    <span className={cn('text-[4px] font-black', isActive ? 'text-white/40' : 'text-ink/20')}>D{i + 1}</span>
+                  </button>
+                );
+              });
+            })()}
+          </div>
+        </motion.div>
+
+        {/* ── 3. HEALTH SCORE + IoT (side by side) ─────────────── */}
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className={cn(
+            'rounded-2xl px-4 py-3 border relative overflow-hidden transition-all',
+            isLiveMode ? 'bg-[#011a12] border-emerald-500/20' : 'bg-card border-card-border shadow-sm'
+          )}>
+          {isLiveMode && <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/6 blur-[50px] rounded-full" />}
+          <div className="relative z-10 flex items-center gap-4">
+
+            {/* Compact ring */}
+            <div className="relative w-16 h-16 flex-shrink-0 flex items-center justify-center">
+              <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="27" strokeWidth="5" stroke="currentColor" fill="none" className="text-slate-100 opacity-50" />
+                <circle cx="32" cy="32" r="27" strokeWidth="5" fill="none"
+                  stroke={health.ring} strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 27}`}
+                  strokeDashoffset={`${2 * Math.PI * 27 * (1 - health.score / 100)}`}
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              <div className="text-center z-10">
+                <p className={cn('text-xs font-black tracking-tight leading-none', isLiveMode ? 'text-white' : 'text-ink')}>{health.score}%</p>
+              </div>
+            </div>
+
+            {/* Status info */}
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-[6px] font-black uppercase tracking-widest mb-0.5', isLiveMode ? 'text-emerald-400' : 'text-ink/30')}>
+                {isLiveMode ? `● NODE LIVE — ${selectedPond?.name}` : 'Pond Health'}
+              </p>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border', health.badge)}>
+                  {health.status}
+                </span>
+                <span className={cn('text-[7px] font-medium', isLiveMode ? 'text-white/40' : 'text-ink/40')}>
+                  {auditCount}/8 logged
+                </span>
+              </div>
+              <p className={cn('text-[7px] font-medium leading-snug', isLiveMode ? 'text-white/40' : 'text-ink/40')}>
+                {health.score >= 90 ? 'All parameters stable.' : health.score >= 70 ? 'Monitor DO & pH.' : 'Check critical parameters now.'}
+              </p>
+            </div>
+
+            {/* IoT / disconnect */}
+            {isLiveMode ? (
+              <button onClick={() => setIsLiveMode(false)}
+                className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center flex-shrink-0">
+                <X size={14} />
+              </button>
+            ) : (
+              <div className="flex flex-col gap-1.5 flex-shrink-0">
+                <button onClick={() => handleSyncIoT('BLE')} className="w-9 h-9 rounded-xl bg-paper border border-card-border flex flex-col items-center justify-center active:scale-90 transition-all">
+                  {isConnecting && connType === 'BLE' ? <RefreshCcw size={14} className="animate-spin text-amber-500" /> : <Bluetooth size={14} className="text-amber-600" />}
+                </button>
+                <button onClick={() => handleSyncIoT('WiFi')} className="w-9 h-9 rounded-xl bg-paper border border-card-border flex flex-col items-center justify-center active:scale-90 transition-all">
+                  {isConnecting && connType === 'WiFi' ? <RefreshCcw size={14} className="animate-spin text-emerald-500" /> : <Wifi size={14} className="text-emerald-500" />}
+                </button>
+              </div>
+            )}
+          </div>
+          {isConnecting && (
+            <div className="mt-2 h-0.5 bg-slate-100 rounded-full overflow-hidden relative z-10">
+              <motion.div animate={{ x: ['-100%', '400%'] }} transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
+                className="h-full w-1/3 bg-emerald-500 rounded-full" />
+            </div>
+          )}
+        </motion.div>
+
+        {/* ── 4. AI SCANNER CTA (slim single row) ──────────────── */}
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+          <motion.button whileTap={{ scale: 0.98 }} onClick={() => navigate('/water-test-scanner')}
+            className="w-full rounded-2xl overflow-hidden border border-emerald-900/40 text-left"
+            style={{ background: 'linear-gradient(135deg,#022b1e 0%,#011a12 100%)' }}>
+            <div className="px-4 py-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <Camera size={17} className="text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-emerald-400 text-[5px] font-black uppercase tracking-[0.3em]">✨ AI Lab Scanner</p>
+                <p className="text-white font-black text-[11px] tracking-tight">Water Quality Test Scanner</p>
+                <p className="text-white/35 text-[7px] font-medium">Photo → AI reads pH · DO · Ammonia · Colour</p>
+              </div>
+              <span className="text-emerald-400 text-sm font-black flex-shrink-0">→</span>
+            </div>
+          </motion.button>
+        </motion.div>
+
+        {/* ── 5. PARAMETER GRID ─────────────────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div>
+              <h2 className={cn('font-black text-sm tracking-tight', isLiveMode ? 'text-ink' : 'text-ink')}>
+                {isLiveMode ? 'Live Readings' : 'Water Parameters'}
+              </h2>
+              <p className="text-[7px] font-black text-ink/30 uppercase tracking-widest mt-0.5">
+                {format(selectedDate, 'MMM d, yyyy')} · {auditCount}/8 logged
+              </p>
+            </div>
+            <button className="w-8 h-8 rounded-xl bg-card border border-card-border flex items-center justify-center text-ink/30">
+              <History size={14} />
             </button>
-         </motion.div>
-      ) : (
-         <motion.div 
-           initial="hidden"
-           animate="show"
-           variants={{
-             hidden: { opacity: 0 },
-             show: {
-               opacity: 1,
-               transition: {
-                 staggerChildren: 0.1
-               }
-             }
-           }}
-           className="pt-24 space-y-6 relative z-10"
-         >
-           
-           {/* 📋 1. POND SWEEP RAIL (TACTICAL CHIPS) */}
-           <motion.section 
-             variants={{
-                hidden: { opacity: 0, x: 20 },
-                show: { opacity: 1, x: 0 }
-             }}
-             className="px-5"
-           >
-              <div className="flex justify-between items-center mb-4 px-1">
-                 <h2 className="text-[10px] font-black text-ink/40 uppercase tracking-[0.3em]">Sector Audit</h2>
-                 <div className="flex items-center gap-1.5 bg-primary/20 px-3 py-1 rounded-full border border-primary/20">
-                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-                    <span className="text-[7px] font-black text-primary uppercase tracking-widest">{ponds.length} Active Ponds</span>
-                 </div>
-              </div>
-              
-              <div className="flex gap-3 overflow-x-auto pb-6 scrollbar-hide -mx-5 px-5 pt-1">
-                 {ponds.map(p => {
-                    const pRecord = waterRecords
-                       .filter(r => r.pondId === p.id && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate)))
-                       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-                    const pHealth = calculateOverallHealth(pRecord);
-                    const isActive = selectedPondId === p.id;
-                    const pondDoc = calculateDOC(p.stockingDate, dateStr);
+          </div>
 
-                    return (
-                       <motion.button 
-                         key={p.id}
-                         onClick={() => setSelectedPondId(p.id)}
-                         whileTap={{ scale: 0.95 }}
-                         className={cn(
-                           "flex-shrink-0 min-w-[125px] p-4 rounded-[1.8rem] border transition-all relative overflow-hidden group",
-                           isActive 
-                             ? "bg-card border-white shadow-[0_20px_40px_rgba(0,0,0,0.1)] scale-105 z-10" 
-                             : "bg-card/5 border-white/10 backdrop-blur-md shadow-sm"
-                         )}
-                       >
-                          {/* Subtle Glow for Active */}
-                          {isActive && <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50" />}
-                          
-                          <div className="relative z-10 flex flex-col items-start text-left">
-                             <div className="flex justify-between w-full items-start mb-2.5">
-                                <div className={cn(
-                                  "w-1.5 h-1.5 rounded-full ring-4 ring-transparent",
-                                  pHealth.score >= 90 ? "bg-emerald-500 ring-emerald-500/10" : 
-                                  pHealth.score >= 70 ? "bg-blue-500 ring-blue-500/10" : 
-                                  pHealth.score >= 50 ? "bg-amber-500 ring-amber-500/10" : "bg-red-500 ring-red-500/10",
-                                  pHealth.score > 0 && "animate-pulse"
-                                )} />
-                                <span className={cn(
-                                   "text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                                   isActive ? "bg-emerald-50 border-emerald-100 text-[#C78200]" : "bg-card/10 border-white/10 text-white/40"
-                                )}>
-                                   D{pondDoc}
-                                </span>
-                             </div>
-
-                             <h4 className={cn("text-xs font-black tracking-tight mb-0.5", isActive ? "text-slate-800" : "text-white")}>{p.name}</h4>
-                             <p className={cn("text-[8px] font-black uppercase tracking-widest mb-1", isActive ? "text-slate-400" : "text-white/30")}>{pHealth.status}</p>
-                             
-                             <div className="mt-2.5 pt-2.5 border-t w-full border-card-border flex items-baseline gap-1">
-                                <p className={cn("text-xl font-black tracking-tighter leading-none", isActive ? pHealth.color : "text-white")}>
-                                   {pHealth.score}%
-                                </p>
-                                <span className={cn("text-[7px] font-black uppercase tracking-widest", isActive ? "text-slate-300" : "text-white/20")}>Health</span>
-                             </div>
-                          </div>
-                       </motion.button>
-                    );
-                 })}
-              </div>
-           </motion.section>
-
-           {/* 📅 2. PERSISTENT TIMELINE (HORIZONTAL DATE RAIL) */}
-           <motion.section 
-             variants={{
-                hidden: { opacity: 0, y: 10 },
-                show: { opacity: 1, y: 0 }
-             }}
-             className="px-5"
-           >
-              <div className="bg-card border-x border-b border-card-border rounded-[2.2rem] p-5 shadow-sm relative overflow-hidden">
-                 <div className="flex items-center justify-between mb-4 px-1">
-                    <div className="flex items-center gap-2">
-                       <Calendar size={14} className="text-[#C78200]" />
-                       <h3 className="text-[10px] font-black text-slate-800 tracking-tight uppercase opacity-60">Culture Chronology</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {METRICS.map((m, i) => {
+              const hasVal = m.val !== undefined && m.val !== null;
+              const isWarn = hasVal && m.warn(m.val as number);
+              const status = !hasVal ? 'none' : isWarn ? 'warn' : 'ok';
+              return (
+                <motion.div key={m.label} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                  className={cn(
+                    'relative rounded-2xl px-3 pt-3 pb-2.5 border overflow-hidden',
+                    status === 'warn' ? 'bg-amber-50 border-amber-100'
+                    : status === 'ok' ? 'bg-card border-card-border shadow-sm'
+                    : 'bg-slate-50 border-slate-100'
+                  )}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center',
+                      status === 'warn' ? 'bg-amber-100 text-amber-600' :
+                      status === 'ok'   ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-300')}>
+                      <m.icon size={14} />
                     </div>
-                    <p className="text-[9px] font-black text-[#C78200] uppercase tracking-[0.2em]">Start: {selectedPond ? format(new Date(selectedPond.stockingDate), 'MMM d') : '--'}</p>
-                 </div>
+                    <span className={cn('text-[5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
+                      status === 'warn' ? 'bg-amber-100 border-amber-200 text-amber-600' :
+                      status === 'ok'   ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                      'bg-slate-100 border-slate-200 text-slate-400')}>
+                      {isLiveMode ? 'LIVE' : status === 'ok' ? 'OK' : status === 'warn' ? 'WARN' : 'N/A'}
+                    </span>
+                  </div>
+                  <p className="text-[6px] font-black text-ink/35 uppercase tracking-widest leading-none mb-1">{m.label}</p>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className={cn('text-lg font-black tracking-tight leading-none',
+                      status === 'warn' ? 'text-amber-600' : status === 'ok' ? 'text-ink' : 'text-ink/20')}>
+                      {hasVal ? (typeof m.val === 'number' ? m.val.toFixed(1) : m.val) : '—'}
+                    </span>
+                    {m.unit && <span className="text-[7px] font-black text-ink/25 uppercase">{m.unit}</span>}
+                  </div>
+                  <p className="text-[5px] font-black text-ink/20 uppercase tracking-widest mt-0.5">
+                    {m.target}
+                  </p>
+                  <div className="absolute -right-2 -bottom-2 opacity-[0.035]"><m.icon size={44} /></div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
 
-                 <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 mask-fade-edges">
-                    {(() => {
-                       if (!selectedPond) return null;
-                       const start = new Date(selectedPond.stockingDate);
-                       const today = startOfToday();
-                       // Show from start date to today
-                       const totalDays = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
-                       
-                       return Array.from({ length: totalDays }).map((_, i) => {
-                          const currentD = addDays(start, i);
-                          const isActive = isSameDay(currentD, selectedDate);
-                          const docCount = i + 1;
-
-                          return (
-                             <button 
-                               key={i}
-                               onClick={() => setSelectedDate(currentD)}
-                               className={cn(
-                                  "flex-shrink-0 w-12 py-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] border",
-                                  isActive 
-                                    ? "bg-[#C78200] border-[#C78200] text-white shadow-lg shadow-amber-500/20" 
-                                    : "bg-card/50 border-slate-100 text-slate-400 hover:bg-slate-100"
-                               )}
-                             >
-                                <span className={cn("text-[6px] font-black uppercase tracking-widest leading-none", isActive ? "text-white/60" : "text-slate-300")}>
-                                   {format(currentD, 'EEE')}
-                                </span>
-                                <span className="text-xs font-black leading-none">{format(currentD, 'd')}</span>
-                                <div className={cn("mt-1 px-1.5 py-0.5 rounded-full text-[5px] font-black uppercase tracking-tighter", isActive ? "bg-card/20 text-white" : "bg-card border border-slate-200 text-slate-400")}>
-                                   D{docCount}
-                                </div>
-                             </button>
-                          );
-                       });
-                    })()}
-                 </div>
+        {/* ── 6. 7-DAY CHART (only if data) ─────────────────────── */}
+        {chartData.some(d => d.do !== null) && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+            className="bg-card border border-card-border rounded-2xl px-4 pt-3 pb-2 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-[7px] font-black text-ink/30 uppercase tracking-widest">7-Day Trend</p>
+                <h3 className="text-ink font-black text-xs tracking-tight">DO & pH History</h3>
               </div>
-           </motion.section>
+              <TrendingUp size={15} className="text-emerald-500" />
+            </div>
+            <ResponsiveContainer width="100%" height={90}>
+              <ComposedChart data={chartData} margin={{ top: 2, right: 2, left: -28, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" />
+                <XAxis dataKey="name" tick={{ fontSize: 7, fill: '#94a3b8', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 6, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 9 }} />
+                <Line type="monotone" dataKey="do" stroke="#10b981" strokeWidth={2} dot={false} name="DO (mg/L)" connectNulls={false} />
+                <Line type="monotone" dataKey="ph" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="pH" strokeDasharray="4 2" connectNulls={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+            <div className="flex gap-3 mt-1">
+              <div className="flex items-center gap-1"><div className="w-3 h-0.5 bg-emerald-500 rounded" /><span className="text-[6px] font-black text-ink/35 uppercase">DO</span></div>
+              <div className="flex items-center gap-1"><div className="w-3 h-0.5 bg-blue-500 rounded" /><span className="text-[6px] font-black text-ink/35 uppercase">pH</span></div>
+            </div>
+          </motion.div>
+        )}
 
-           {/* 🚀 3. TACTICAL IoT NODE LINK */}
-           <motion.section 
-             variants={{
-                hidden: { opacity: 0, y: 15 },
-                show: { opacity: 1, y: 0 }
-             }}
-             className="px-5"
-           >
-              <div className={cn(
-                "rounded-[2.2rem] p-6 flex flex-col gap-5 border shadow-xl transition-all duration-700 relative overflow-hidden group",
-                isLiveMode 
-                  ? "bg-[#02130F] border-emerald-500/30 shadow-emerald-900/10" 
-                  : "bg-card border-white shadow-slate-200/40"
-              )}>
-                 {/* Background Accent for Active Node */}
-                 {isLiveMode && <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full" />}
-                 
-                 <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-4">
-                       <div className={cn(
-                         "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg",
-                         isLiveMode ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-card/50 text-slate-300"
-                       )}>
-                          {isConnecting ? <RefreshCcw size={22} className="animate-spin" /> : (isLiveMode ? <Activity size={22} className="animate-pulse" /> : <TrendingUp size={22} />)}
-                       </div>
-                       <div>
-                          <p className={cn(
-                            "text-[8px] font-black uppercase tracking-[0.2em] mb-0.5",
-                            isLiveMode ? "text-emerald-500" : "text-slate-300"
-                          )}>
-                             {isLiveMode ? `• NODE AG-${selectedPond?.id?.slice(-3).toUpperCase()} ACTIVE` : 'Sensor Node Link'}
-                          </p>
-                          <h3 className={cn(
-                            "text-lg font-black tracking-tighter",
-                            isLiveMode ? "text-white" : "text-slate-800"
-                          )}>
-                             {isConnecting ? `Linking via ${connectionType}...` : (isLiveMode ? `Live Analytics: ${selectedPond?.name}` : 'Hub on Standby')}
-                          </h3>
-                       </div>
-                    </div>
-                    {isLiveMode && (
-                       <button 
-                         onClick={() => setIsLiveMode(false)}
-                         className="w-10 h-10 bg-red-500/10 text-red-500 rounded-full border border-red-500/10 active:scale-90 transition-all flex items-center justify-center"
-                       >
-                          <X size={16} />
-                       </button>
-                    )}
-                 </div>
+        {/* ── 7. LOG BUTTON ─────────────────────────────────────── */}
+        <motion.button whileTap={{ scale: 0.97 }}
+          onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
+          className="w-full bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+          <Plus size={14} /> Log Today's Water Parameters
+        </motion.button>
 
-                 {!isLiveMode && !isConnecting && (
-                    <div className="flex gap-3 relative z-10">
-                       <button 
-                         onClick={() => handleSyncIoT('BLE')}
-                         className="flex-1 bg-card border border-slate-100 p-4 rounded-2xl flex flex-col items-center gap-2 group hover:border-[#C78200]/20 transition-all active:scale-95 shadow-sm"
-                       >
-                          <Bluetooth size={20} className="text-[#C78200]" />
-                          <span className="text-[7.5px] font-black uppercase tracking-widest text-slate-400 group-hover:text-[#C78200]">Direct Bluetooth</span>
-                       </button>
-                       <button 
-                        onClick={() => handleSyncIoT('WiFi')}
-                        className="flex-1 bg-card border border-slate-100 p-4 rounded-2xl flex flex-col items-center gap-2 group hover:border-emerald-500/20 transition-all active:scale-95 shadow-sm"
-                       >
-                          <Wifi size={20} className="text-emerald-500" />
-                          <span className="text-[7.5px] font-black uppercase tracking-widest text-slate-400 group-hover:text-emerald-500">Cloud Sync</span>
-                       </button>
-                    </div>
-                 )}
-
-                 {isConnecting && (
-                    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden relative z-10">
-                       <motion.div 
-                         animate={{ x: [-100, 400] }} 
-                         transition={{ repeat: Infinity, duration: 1.5 }} 
-                         className="h-full w-1/3 bg-emerald-500" 
-                       />
-                    </div>
-                 )}
-              </div>
-           </motion.section>
-
-           {/* 🌟 3. COMPACT HEALTH GAUGE & AUDIT */}
-           <motion.section 
-             variants={{
-                hidden: { opacity: 0, scale: 0.95 },
-                show: { opacity: 1, scale: 1 }
-             }}
-             className="px-5"
-           >
-              <div className={cn(
-                 "rounded-[2.2rem] p-6 transition-all duration-700 relative overflow-hidden backdrop-blur-3xl shadow-xl shadow-emerald-950/10 border-x border-t",
-                 isLiveMode ? "bg-[#02130F] border-emerald-500/30" : "bg-card border-white"
-              )}>
-                 <div className="relative z-10 flex items-center justify-between">
-                    <div className="relative w-32 h-32 flex items-center justify-center">
-                       {/* Futuristic SVG Ring - COMPACT */}
-                       <svg className="absolute w-full h-full -rotate-90">
-                          <circle cx="64" cy="64" r="58" strokeWidth="8" stroke="rgba(0,0,0,0.03)" fill="none" />
-                          <circle 
-                            cx="64" cy="64" r="58" strokeWidth="8" 
-                            stroke="currentColor" 
-                            strokeDasharray={365} 
-                            strokeDashoffset={365 - (365 * health.score) / 100}
-                            className={cn("transition-all duration-1000 ease-out fill-none", isLiveMode ? "text-emerald-500" : health.color)}
-                            strokeLinecap="round"
-                          />
-                          <circle cx="64" cy="64" r="58" strokeWidth="1" stroke="white" strokeDasharray="2 8" fill="none" className="opacity-10 animate-spin" style={{ animationDuration: '8s' }} />
-                       </svg>
-                       <div className="text-center z-10">
-                          <div className="flex items-center gap-1 justify-center mb-0.5">
-                             <p className={cn("text-[7px] font-black uppercase tracking-[0.3em] leading-none", isLiveMode ? "text-emerald-500" : "text-slate-400")}>Security</p>
-                          </div>
-                          <h2 className={cn("text-3xl font-black tracking-tighter leading-none mt-1", isLiveMode ? "text-white" : "text-slate-800")}>{health.score}%</h2>
-                          <div className="bg-[#C78200]/10 px-1.5 py-0.5 rounded-full border border-[#C78200]/10 inline-block mt-2">
-                             <span className="text-[5px] font-black text-[#C78200] uppercase tracking-widest whitespace-nowrap">
-                                {(() => {
-                                   const count = [latestRecord?.ph, latestRecord?.do, latestRecord?.salinity, latestRecord?.ammonia, latestRecord?.alkalinity, latestRecord?.turbidity, latestRecord?.temperature, latestRecord?.mortality].filter(v => v !== undefined).length;
-                                   return `${count}/8 AUDITED`;
-                                })()}
-                             </span>
-                          </div>
-                       </div>
-                    </div>
-
-                    <div className="flex-1 pl-6 flex flex-col items-start gap-4">
-                       <div className={cn("px-6 py-2.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm", 
-                          isLiveMode ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : `${health.bg} ${health.color.replace('text-', 'border-')} ${health.color}`
-                       )}>
-                          <ShieldCheck size={14} className="animate-pulse" />
-                          <span className="text-[8px] font-black uppercase tracking-[0.3em]">{health.status}</span>
-                       </div>
-
-                       <div className={cn(
-                          "w-full rounded-2xl p-4 border transition-all",
-                          isLiveMode ? "bg-card/5 border-white/5" : "bg-card/50 border-slate-100 shadow-inner"
-                       )}>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                             <Activity size={8} className="text-[#C78200]" />
-                             <p className={cn("text-[7px] font-bold uppercase tracking-widest leading-none", isLiveMode ? "text-white/40" : "text-slate-400")}>Tactical Scan</p>
-                          </div>
-                          <p className={cn("text-[9px] font-bold leading-snug line-clamp-2", isLiveMode ? "text-white/60" : "text-slate-600")}>
-                             {health.score >= 90 ? "Stable. Maintain SOP." : "Alert: Fluctuation. Check DO levels."}
-                          </p>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </motion.section>
-
-           {/* ⚡ 4. VITAL METRICS GRID (ELITE TILES) */}
-           <motion.section 
-             variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-             }}
-             className="px-5 pb-10"
-           >
-              <div className="flex justify-between items-center mb-5 px-1 pt-4">
-                 <div className="flex flex-col">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tighter leading-none">{isLiveMode ? 'Live Analytics' : 'Farmer Audit Data'}</h2>
-                    <p className="text-[7px] font-black text-[#C78200] uppercase tracking-[0.2em] mt-1.5">{isLiveMode ? 'REAL-TIME SENSOR FEED' : 'MANUALLY VERIFIED LOGS'}</p>
-                 </div>
-                 <div className="flex gap-2">
-                    <button className="w-9 h-9 rounded-xl bg-card border border-slate-100 flex items-center justify-center text-slate-400 hover:text-[#C78200] transition-colors shadow-sm">
-                       <History size={16} />
-                    </button>
-                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                 {[
-                   { label: t.phLevel, val: latestRecord?.ph, unit: '', target: '7.5-8.5', icon: FlaskConical, warn: (v: any) => v < 7.5 || v > 8.5 },
-                   { label: t.dissolvedO2, val: latestRecord?.do, unit: 'mg/L', target: '>5.0', icon: Wind, warn: (v: any) => v < 5.0 },
-                   { label: t.salinity, val: latestRecord?.salinity, unit: 'ppt', target: '10-20', icon: Waves, warn: (v: any) => v < 10 || v > 20 },
-                   { label: t.ammonia, val: latestRecord?.ammonia, unit: 'ppm', target: '<.05', icon: Zap, warn: (v: any) => v > 0.05 },
-                   { label: t.alkalinity, val: latestRecord?.alkalinity, unit: 'mg/L', target: '100-150', icon: Activity, warn: (v: any) => v < 80 },
-                   { label: t.turbidity, val: latestRecord?.turbidity, unit: 'NTU', target: '20-40', icon: Droplets, warn: (v: any) => v > 60 },
-                   { label: t.temperature, val: latestRecord?.temperature, unit: '°C', target: '26-30', icon: Thermometer, warn: (v: any) => v < 26 || v > 30 },
-                   { label: t.mortality, val: latestRecord?.mortality, unit: 'shrimp', target: '<10/d', icon: AlertTriangle, warn: (v: any) => v > 10 }
-                 ].map((m, i) => {
-                    const status = m.val === undefined ? 'none' : m.warn(m.val) ? 'warning' : 'good';
-                    return (
-                       <motion.div 
-                         key={m.label}
-                         initial={{ opacity: 0, y: 10 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         transition={{ delay: i * 0.05 }}
-                         className="bg-card border-x border-b border-card-border rounded-[2.2rem] p-5 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all"
-                       >
-                          <div className="flex justify-between items-start mb-3.5 relative z-10">
-                             <div className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm border border-slate-50",
-                                status === 'warning' ? "bg-amber-50 text-amber-500" : status === 'good' ? "bg-emerald-50 text-emerald-500" : "bg-card/50 text-slate-300"
-                             )}>
-                                <m.icon size={18} />
-                             </div>
-                             
-                             <div className={cn(
-                                "px-1.5 py-0.5 rounded-full text-[5px] font-black uppercase tracking-widest border",
-                                isLiveMode ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-amber-500/10 border-amber-500/20 text-[#C78200]"
-                             )}>
-                                {isLiveMode ? 'SENS.' : 'LOG'}
-                             </div>
-                          </div>
-                          
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{m.label}</p>
-                          <div className="flex items-baseline gap-1 relative z-10">
-                             <h3 className="text-2xl font-black text-slate-800 tracking-tighter">
-                                {m.val !== undefined ? (typeof m.val === 'number' ? m.val.toFixed(1) : m.val) : '--'}
-                             </h3>
-                             <span className="text-[7px] font-black text-slate-300 uppercase">{m.unit}</span>
-                          </div>
-                          <p className="text-[7px] font-bold text-slate-300 mt-0.5 uppercase tracking-widest">{m.target}</p>
-                          
-                          <div className="absolute -right-2 -bottom-2 opacity-5 text-slate-800 group-hover:scale-110 transition-transform">
-                             <m.icon size={64} />
-                          </div>
-                       </motion.div>
-                    );
-                 })}
-              </div>
-           </motion.section>
-         </motion.div>
-       )}
+      </div>
     </div>
   );
 };

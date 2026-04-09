@@ -1,0 +1,52 @@
+﻿functions/src/index.ts(1,53): error TS2307: Cannot find module 'firebase-functions/v2/https' or its corresponding type declarations.
+functions/src/index.ts(2,25): error TS2307: Cannot find module 'firebase-functions/logger' or its corresponding type declarations.
+functions/src/index.ts(3,38): error TS2307: Cannot find module '@google-cloud/vertexai' or its corresponding type declarations.
+src/components/MetricCard.tsx(31,47): error TS2339: Property 'warning' does not exist on type 'Translations'.
+src/components/MetricCard.tsx(37,88): error TS2339: Property 'targetLabel' does not exist on type 'Translations'.
+src/components/TipsModal.tsx(26,76): error TS2339: Property 'viewTips' does not exist on type 'Translations'.
+src/mockData.ts(3,14): error TS2741: Property 'pondCount' is missing in type '{ id: string; name: string; phoneNumber: string; password: string; location: string; farmSize: number; language: "English"; role: "farmer"; subscriptionStatus: "free"; }' but required in type 'User'.
+src/mockData.ts(16,3): error TS2739: Type '{ id: string; userId: string; name: string; size: number; stockingDate: string; seedCount: number; seedSource: string; species: "Vannamei"; status: "active"; }' is missing the following properties from type 'Pond': plAge, waterType, initialSalinity, isStocked
+src/mockData.ts(27,3): error TS2739: Type '{ id: string; userId: string; name: string; size: number; stockingDate: string; seedCount: number; seedSource: string; species: "Tiger"; status: "active"; }' is missing the following properties from type 'Pond': plAge, waterType, initialSalinity, isStocked
+src/mockData.ts(38,3): error TS2739: Type '{ id: string; userId: string; name: string; size: number; stockingDate: string; seedCount: number; seedSource: string; species: "Vannamei"; status: "harvested"; }' is missing the following properties from type 'Pond': plAge, waterType, initialSalinity, isStocked
+src/mockData.ts(49,3): error TS2739: Type '{ id: string; userId: string; name: string; size: number; stockingDate: string; seedCount: number; seedSource: string; species: "Tiger"; status: "archive"; }' is missing the following properties from type 'Pond': plAge, waterType, initialSalinity, isStocked
+src/pages/dashboard/AdminDashboard.tsx(10,24): error TS2339: Property 'adminControl' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(13,31): error TS2339: Property 'totalUsers' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(14,31): error TS2339: Property 'activeSubs' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(16,31): error TS2339: Property 'health' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(21,75): error TS2339: Property 'marketPrice' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(21,91): error TS2339: Property 'updatePrice' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(38,195): error TS2339: Property 'updatePrice' does not exist on type 'Translations'.
+src/pages/dashboard/AdminDashboard.tsx(43,80): error TS2339: Property 'recentActivity' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(50,107): error TS2339: Property 'settledAndVerified' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(51,93): error TS2339: Property 'payment' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(56,109): error TS2339: Property 'totalReceivedAmount' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(62,99): error TS2339: Property 'buyerEntity' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(66,99): error TS2339: Property 'saleDate' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(74,99): error TS2339: Property 'countSize' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(78,99): error TS2339: Property 'baseRate' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(87,14): error TS2339: Property 'closeLedger' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(128,76): error TS2339: Property 'harvestRevenue' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(129,102): error TS2339: Property 'yieldLedger' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(152,104): error TS2339: Property 'latestHarvestSettlement' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(156,47): error TS2339: Property 'totalNetEarnings' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(162,109): error TS2339: Property 'premiumMargin' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(176,157): error TS2339: Property 'baseRate' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(180,152): error TS2339: Property 'settledDate' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(194,99): error TS2339: Property 'revenueComposition' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(203,105): error TS2339: Property 'baseBiomassSales' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(213,177): error TS2339: Property 'bonusSubsidies' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(226,79): error TS2339: Property 'settlementAudit' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(228,20): error TS2339: Property 'pdfStatement' does not exist on type 'Translations'.
+src/pages/finance/HarvestRevenue.tsx(257,59): error TS2339: Property 'settled' does not exist on type 'Translations'.
+src/pages/ponds/PondFeedingLog.tsx(20,42): error TS2551: Property 'feedingLog' does not exist on type 'Translations'. Did you mean 'feedLogs'?
+src/pages/provider/ProviderDashboard.tsx(14,24): error TS2339: Property 'providerDashboard' does not exist on type 'Translations'.
+src/pages/provider/ProviderDashboard.tsx(19,97): error TS2551: Property 'totalSales' does not exist on type 'Translations'. Did you mean 'totalAcres'?
+src/pages/provider/ProviderDashboard.tsx(26,97): error TS2339: Property 'activeOrders' does not exist on type 'Translations'.
+src/pages/provider/ProviderDashboard.tsx(35,76): error TS2339: Property 'recentActivity' does not exist on type 'Translations'.
+src/pages/provider/ProviderDashboard.tsx(50,51): error TS2339: Property 'pending' does not exist on type 'Translations'.
+src/pages/provider/ProviderDashboard.tsx(50,63): error TS2339: Property 'shipped' does not exist on type 'Translations'.
+src/pages/provider/ProviderInventory.tsx(19,33): error TS2339: Property 'addProduct' does not exist on type 'Translations'.
+src/pages/provider/ProviderInventory.tsx(43,98): error TS2339: Property 'stock' does not exist on type 'Translations'.
+src/pages/provider/ProviderOrders.tsx(39,51): error TS2339: Property 'pending' does not exist on type 'Translations'.
+src/pages/provider/ProviderOrders.tsx(39,63): error TS2339: Property 'shipped' does not exist on type 'Translations'.
+src/pages/provider/ProviderOrders.tsx(46,22): error TS2339: Property 'viewDetails' does not exist on type 'Translations'.

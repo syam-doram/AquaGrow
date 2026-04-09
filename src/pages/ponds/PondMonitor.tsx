@@ -4,29 +4,28 @@ import {
   ChevronLeft, Activity, Droplets, Thermometer, Waves,
   AlertTriangle, CheckCircle2, Plus, Clock, TrendingUp,
   TrendingDown, Minus, Calendar, ArrowRight, ShieldCheck,
-  Zap, FlaskConical, PackageCheck, X,
+  Zap, FlaskConical, PackageCheck, X, Fish, BarChart2, Target,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
 import { calculateDOC } from '../../utils/pondUtils';
 import { cn } from '../../utils/cn';
-import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 
 // ─── PARAMETER RANGES ────────────────────────────────────────────────────────
 interface ParamConfig {
   key: string; label: string; unit: string; icon: React.ElementType;
   min: number; max: number; dangerLow?: number; dangerHigh?: number;
-  format?: (v: number) => string;
+  emoji: string; description: string;
 }
 
 const PARAM_CONFIG: ParamConfig[] = [
-  { key: 'ph',          label: 'pH',        unit: '',     icon: FlaskConical, min: 7.5, max: 8.5, dangerLow: 7.0, dangerHigh: 9.0 },
-  { key: 'do',          label: 'DO',        unit: 'mg/L', icon: Waves,        min: 5.0, max: 10.0, dangerLow: 3.0 },
-  { key: 'temperature', label: 'Temp',      unit: '°C',   icon: Thermometer,  min: 26,  max: 30, dangerLow: 22, dangerHigh: 34 },
-  { key: 'salinity',    label: 'Salinity',  unit: 'ppt',  icon: Droplets,     min: 10,  max: 20, dangerLow: 5, dangerHigh: 30 },
-  { key: 'ammonia',     label: 'Ammonia',   unit: 'mg/L', icon: Zap,          min: 0,   max: 0.05, dangerHigh: 0.1 },
-  { key: 'alkalinity',  label: 'Alkalinity',unit: 'mg/L', icon: Activity,     min: 100, max: 150, dangerLow: 80 },
+  { key: 'ph',          label: 'pH',        unit: '',     icon: FlaskConical, min: 7.5, max: 8.5, dangerLow: 7.0, dangerHigh: 9.0,  emoji: '🧪', description: 'Optimal: 7.5–8.5' },
+  { key: 'do',          label: 'DO',        unit: 'mg/L', icon: Waves,        min: 5.0, max: 10.0, dangerLow: 3.0,                    emoji: '💧', description: 'Min safe: 5.0 mg/L' },
+  { key: 'temperature', label: 'Temp',      unit: '°C',   icon: Thermometer,  min: 26,  max: 30,   dangerLow: 22, dangerHigh: 34,    emoji: '🌡️', description: 'Optimal: 26–30°C' },
+  { key: 'salinity',    label: 'Salinity',  unit: 'ppt',  icon: Droplets,     min: 10,  max: 20,   dangerLow: 5,  dangerHigh: 30,    emoji: '🌊', description: 'Optimal: 10–20 ppt' },
+  { key: 'ammonia',     label: 'Ammonia',   unit: 'mg/L', icon: Zap,          min: 0,   max: 0.05, dangerHigh: 0.1,                   emoji: '⚗️', description: 'Keep below 0.05' },
+  { key: 'alkalinity',  label: 'Alkalinity',unit: 'mg/L', icon: Activity,     min: 100, max: 150,  dangerLow: 80,                     emoji: '🔬', description: 'Optimal: 100–150' },
 ];
 
 const getStatus = (cfg: ParamConfig, val: number): 'optimal' | 'warning' | 'danger' => {
@@ -36,90 +35,46 @@ const getStatus = (cfg: ParamConfig, val: number): 'optimal' | 'warning' | 'dang
   return 'optimal';
 };
 
-const statusColor = {
-  optimal: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', icon: 'bg-emerald-500 text-white', badge: 'bg-emerald-100 text-emerald-600' },
-  warning: { bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-600',   icon: 'bg-amber-500 text-white',   badge: 'bg-amber-100 text-amber-600' },
-  danger:  { bg: 'bg-red-50',     border: 'border-red-200',     text: 'text-red-600',     icon: 'bg-red-500 text-white',     badge: 'bg-red-100 text-red-600' },
+const getParamLabel = (key: string, t: any): string => {
+  const map: Record<string, string> = {
+    ph: t.paramPh, do: t.paramDo, temperature: t.paramTemp,
+    salinity: t.paramSalinity, ammonia: t.paramAmmonia, alkalinity: t.paramAlkalinity,
+  };
+  return map[key] ?? key;
 };
 
-// ─── HARVEST EXTENSION SOP ───────────────────────────────────────────────────
+// ─── EXTENSION PLANS ─────────────────────────────────────────────────────────
 interface ExtensionPeriod {
-  weeks: number;
-  label: string;
-  maxDoc: number;
-  sopSteps: string[];
-  risks: string[];
+  weeks: number; label: string; maxDoc: number;
+  sopSteps: string[]; risks: string[];
   medicines: { name: string; schedule: string; brand: string }[];
   feedAdj: string;
 }
 
 const EXTENSION_PLANS: ExtensionPeriod[] = [
-  {
-    weeks: 1,
-    label: '1-Week Extension',
-    maxDoc: 107,
-    sopSteps: [
-      'Maintain daily water parameter logging',
-      'Continue gut + water probiotic on Monday/Tuesday schedule',
-      'Run all aerators 24/7 for this week',
-      'Reduce feed by 10% (shrimp near harvest weight, gut activity slows)',
-      'Check tray consumption twice daily',
-    ],
-    risks: ['Slight FCR increase', 'Minor DO stress possible above DOC 100'],
-    medicines: [
-      { name: 'Vitamin C + Immunity Booster', schedule: 'Every 2 days, with feed', brand: 'CP Vita-C Pro' },
-      { name: 'Gut Probiotic', schedule: 'Daily with morning feed', brand: 'Avanti Gut Health' },
-    ],
-    feedAdj: '-10% from standard rate. Increase water exchange to 10%/day.',
-  },
-  {
-    weeks: 2,
-    label: '2-Week Extension',
-    maxDoc: 114,
-    sopSteps: [
-      'Increase water exchange to 15–20% daily',
-      'Run intensive probiotic treatment every 3 days',
-      'Monitor for disease signs twice daily',
-      'Reduce stocking density if possible (partition pond)',
-      'Apply mineral booster once per week',
-    ],
-    risks: ['High FCR deterioration', 'Increased Vibriosis risk', 'DO crash risk at high biomass'],
-    medicines: [
-      { name: 'Mineral Mix (High Dose)', schedule: 'Every Monday & Friday', brand: 'Sanolife PRO-W' },
-      { name: 'Immunity Booster + Liver Tonic', schedule: 'Every 3 days in feed', brand: 'CP Hepato-Pro' },
-      { name: 'Water Probiotic', schedule: 'Every 2 days in water', brand: 'Bioclean Aqua Plus' },
-    ],
-    feedAdj: '-15% from standard rate. Add zeolite 5 kg/acre twice weekly.',
-  },
-  {
-    weeks: 3,
-    label: '3-Week Extension',
-    maxDoc: 121,
-    sopSteps: [
-      '⚠️ HIGH RISK EXTENSION — not recommended unless market price is very high',
-      'Daily water exchange 20–25%',
-      'Full emergency SOP: DO monitoring every 4 hours',
-      'Emergency aeration standby equipment ready',
-      'Pre-harvest sample and market coordination should be active',
-    ],
-    risks: [
-      'Very high mortality risk above DOC 110',
-      'Mass disease outbreak probability increases significantly',
-      'DO crashes likely during rainy nights',
-    ],
-    medicines: [
-      { name: 'Emergency Immunity Protocol', schedule: 'Daily', brand: 'CP Immuno-Shield' },
-      { name: 'Anti-Vibrio Probiotic', schedule: 'Every 2 days', brand: 'Bioclean Pro-V' },
-    ],
-    feedAdj: '-25% from standard rate. Emergency harvest capability must be kept ready.',
-  },
+  { weeks: 1, label: '1-Week Extension', maxDoc: 107,
+    sopSteps: ['Maintain daily water parameter logging','Continue gut + water probiotic on Monday/Tuesday schedule','Run all aerators 24/7','Reduce feed by 10%','Check tray consumption twice daily'],
+    risks: ['Slight FCR increase','Minor DO stress possible above DOC 100'],
+    medicines: [{ name: 'Vitamin C + Immunity Booster', schedule: 'Every 2 days, with feed', brand: 'CP Vita-C Pro' },{ name: 'Gut Probiotic', schedule: 'Daily with morning feed', brand: 'Avanti Gut Health' }],
+    feedAdj: '-10% from standard rate. Increase water exchange to 10%/day.' },
+  { weeks: 2, label: '2-Week Extension', maxDoc: 114,
+    sopSteps: ['Increase water exchange to 15–20% daily','Run intensive probiotic treatment every 3 days','Monitor for disease signs twice daily','Reduce stocking density if possible','Apply mineral booster once per week'],
+    risks: ['High FCR deterioration','Increased Vibriosis risk','DO crash risk at high biomass'],
+    medicines: [{ name: 'Mineral Mix (High Dose)', schedule: 'Every Monday & Friday', brand: 'Sanolife PRO-W' },{ name: 'Immunity Booster + Liver Tonic', schedule: 'Every 3 days in feed', brand: 'CP Hepato-Pro' },{ name: 'Water Probiotic', schedule: 'Every 2 days in water', brand: 'Bioclean Aqua Plus' }],
+    feedAdj: '-15% from standard rate. Add zeolite 5 kg/acre twice weekly.' },
+  { weeks: 3, label: '3-Week Extension', maxDoc: 121,
+    sopSteps: ['⚠️ HIGH RISK — only if market price is very high','Daily water exchange 20–25%','Full emergency SOP: DO monitoring every 4 hours','Emergency aeration standby equipment ready','Pre-harvest sample and market coordination should be active'],
+    risks: ['Very high mortality risk above DOC 110','Mass disease outbreak probability increases significantly','DO crashes likely during rainy nights'],
+    medicines: [{ name: 'Emergency Immunity Protocol', schedule: 'Daily', brand: 'CP Immuno-Shield' },{ name: 'Anti-Vibrio Probiotic', schedule: 'Every 2 days', brand: 'Bioclean Pro-V' }],
+    feedAdj: '-25% from standard rate. Emergency harvest capability must be kept ready.' },
 ];
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export const PondMonitor = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { ponds, waterRecords } = useData();
+  const { ponds, waterRecords, theme } = useData();
+  const isDark = theme === 'dark' || theme === 'midnight';
   const pond = ponds.find(p => p.id === id) || ponds[0];
 
   const [activeTab, setActiveTab] = useState<'health' | 'history' | 'harvest'>('health');
@@ -127,26 +82,23 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
 
   if (!pond) {
     return (
-      <div className="p-10 text-center text-ink font-black uppercase tracking-widest bg-card min-h-screen flex items-center justify-center">
-        Pond not found
+      <div className={cn("p-10 text-center font-black uppercase tracking-widest min-h-screen flex items-center justify-center", isDark ? "bg-[#070D12] text-white/30" : "bg-[#F8F9FE] text-ink/30")}>
+        {t.pondNotFound}
       </div>
     );
   }
 
   const doc = calculateDOC(pond.stockingDate);
 
-  // Sort all records for this pond, newest first
   const pondRecords = useMemo(() =>
-    waterRecords
-      .filter(r => r.pondId === pond.id)
+    waterRecords.filter(r => r.pondId === pond.id)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [waterRecords, pond.id]
   );
 
   const latestRecord = pondRecords[0];
-  const prevRecord = pondRecords[1];
+  const prevRecord   = pondRecords[1];
 
-  // Health score from latest record
   const healthScore = latestRecord ? (() => {
     let total = 0, count = 0;
     for (const cfg of PARAM_CONFIG) {
@@ -159,7 +111,6 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
     return count > 0 ? Math.round(total / count) : 75;
   })() : null;
 
-  // Trend arrow: compare today vs yesterday
   const getTrend = (key: string): 'up' | 'down' | 'same' | null => {
     if (!latestRecord || !prevRecord) return null;
     const curr = (latestRecord as any)[key];
@@ -170,30 +121,37 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
     return diff > 0 ? 'up' : 'down';
   };
 
-  // Corrective actions
+  const getTrendDelta = (key: string): string | null => {
+    if (!latestRecord || !prevRecord) return null;
+    const curr = (latestRecord as any)[key];
+    const prev = (prevRecord as any)[key];
+    if (curr === undefined || prev === undefined) return null;
+    const diff = parseFloat((curr - prev).toFixed(2));
+    return diff >= 0 ? `+${diff}` : `${diff}`;
+  };
+
   const todayActions = latestRecord ? (() => {
-    const actions: { text: string; severity: 'high' | 'medium' | 'ok' }[] = [];
+    const actions: { text: string; severity: 'high' | 'medium' | 'ok'; remedy: string }[] = [];
     const r = latestRecord;
-    if (r.ph < 7.5) actions.push({ text: 'pH low: Apply agricultural lime 5–10 kg/acre', severity: 'high' });
-    if (r.ph > 8.5) actions.push({ text: 'pH high: Water exchange 10–15%', severity: 'high' });
-    if (r.do < 5.0) actions.push({ text: 'DO critical: Run ALL aerators immediately. Stop feeding.', severity: 'high' });
-    if (r.temperature > 32) actions.push({ text: 'High temp: Increase aeration, reduce noon feed 20%', severity: 'medium' });
-    if (r.ammonia > 0.05) actions.push({ text: 'Ammonia high: Apply Bioclean Aqua 250g/acre + zeolite', severity: 'high' });
-    if (r.alkalinity < 100) actions.push({ text: 'Low alkalinity: Apply 5–8kg/acre agricultural lime', severity: 'medium' });
-    if (actions.length === 0) actions.push({ text: 'All parameters optimal — continue standard SOP', severity: 'ok' });
+    if (r.ph < 7.5) actions.push({ text: 'pH Low', severity: 'high', remedy: 'Apply agricultural lime 5–10 kg/acre immediately' });
+    if (r.ph > 8.5) actions.push({ text: 'pH High', severity: 'high', remedy: 'Do water exchange 10–15%. Check CO₂ buildup.' });
+    if (r.do < 5.0) actions.push({ text: 'DO Critical', severity: 'high', remedy: 'Run ALL aerators. Stop feeding immediately.' });
+    if (r.temperature > 32) actions.push({ text: 'Temp High', severity: 'medium', remedy: 'Increase aeration, reduce noon feed by 20%.' });
+    if (r.ammonia > 0.05) actions.push({ text: 'Ammonia High', severity: 'high', remedy: 'Apply Bioclean Aqua 250g/acre + zeolite 10kg/acre.' });
+    if (r.alkalinity < 100) actions.push({ text: 'Alkalinity Low', severity: 'medium', remedy: 'Apply 5–8 kg/acre agricultural lime.' });
+    if (actions.length === 0) actions.push({ text: 'All Parameters Optimal', severity: 'ok', remedy: 'Continue standard SOP. Great job!' });
     return actions;
   })() : [];
 
-  // Harvest readiness
-  const targetDoc = 90; // standard harvest DOC
-  const harvestReady = doc >= targetDoc;
-  const daysToHarvest = Math.max(0, targetDoc - doc);
+  const harvestReady   = doc >= 90;
+  const daysToHarvest  = Math.max(0, 90 - doc);
   const currentWeightG = Math.min(35, doc * 0.38);
-
-  // Count per kg calculation (1000g ÷ avg shrimp weight)
   const estimatedCountPerKg = currentWeightG > 0 ? Math.round(1000 / currentWeightG) : 999;
+  const survivalRate   = (pond as any).survivalRate ?? 0.80;
+  const stockingCount  = pond.seedCount ?? 100000;
+  const estimatedLiveCount = Math.round(stockingCount * survivalRate);
+  const estWeightKg    = (estimatedLiveCount * currentWeightG) / 1000;
 
-  // Market rate data for ticker
   const marketRates = [
     { count: 20, price: 620, demand: 'ULTRA HIGH', trend: 'up' },
     { count: 30, price: 540, demand: 'HIGH', trend: 'up' },
@@ -203,20 +161,18 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
     { count: 70, price: 385, demand: 'MEDIUM', trend: 'down' },
     { count: 80, price: 365, demand: 'MEDIUM', trend: 'down' },
     { count: 100, price: 310, demand: 'LOW', trend: 'down' },
-    { count: 120, price: 280, demand: 'LOW', trend: 'down' },
   ];
+  const matchedRate = marketRates.find(r => estimatedCountPerKg <= r.count + 5 && estimatedCountPerKg >= r.count - 5);
+  const isAtPremiumCount = !!(matchedRate && matchedRate.count <= 50);
 
-  // Find the best matching market bracket for current count
-  const premiumCountBrackets = [20, 30, 40, 50];
-  const matchedBracket = premiumCountBrackets.find(c => estimatedCountPerKg <= c + 5 && estimatedCountPerKg >= c - 5);
-  const currentMarketRate = marketRates.find(r => r.count === (matchedBracket ?? 50));
-  const isAtPremiumCount = !!matchedBracket && matchedBracket <= 50;
-  const nearestPremiumBracket = premiumCountBrackets.reduce((p, c) => Math.abs(c - estimatedCountPerKg) < Math.abs(p - estimatedCountPerKg) ? c : p);
-  const bestSellCountLabel = matchedBracket ? `${matchedBracket}/Kg` : `~${nearestPremiumBracket}/Kg`;
+  const heroGradient = !latestRecord ? 'from-[#0D523C] to-[#065F46]' :
+    healthScore! >= 80 ? 'from-[#0D523C] to-[#065F46]' :
+    healthScore! >= 60 ? 'from-amber-700 to-amber-900' : 'from-red-700 to-red-900';
 
   return (
-    <div className="pb-40 bg-[#F8F9FE] min-h-screen text-left">
-      {/* Extension SOP Modal */}
+    <div className={cn("min-h-screen pb-40", isDark ? "bg-[#070D12]" : "bg-[#F0F4F8]")}>
+
+      {/* Extension SOP Bottom Sheet */}
       <AnimatePresence>
         {showExtension && (
           <motion.div
@@ -227,53 +183,47 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-w-md mx-auto bg-card rounded-t-[3rem] p-6 pb-12 max-h-[85vh] overflow-y-auto"
+              className={cn("w-full max-w-md mx-auto rounded-t-[2.5rem] p-6 pb-12 max-h-[85vh] overflow-y-auto border-t border-x", isDark ? "bg-[#111827] border-white/10" : "bg-white border-slate-200")}
               onClick={e => e.stopPropagation()}
             >
-              {/* Header */}
+              <div className="w-10 h-1 rounded-full bg-ink/10 mx-auto mb-5" />
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h2 className="text-ink font-black text-xl tracking-tight">{showExtension.label}</h2>
-                  <p className="text-[9px] text-[#C78200] font-black uppercase tracking-widest mt-0.5">
-                    Culture continues to DOC {showExtension.maxDoc}
-                  </p>
+                  <h2 className={cn("font-black text-xl tracking-tight", isDark ? "text-white" : "text-slate-900")}>{showExtension.label}</h2>
+                  <p className="text-[9px] text-[#C78200] font-black uppercase tracking-widest mt-0.5">Culture to DOC {showExtension.maxDoc}</p>
                 </div>
-                <button onClick={() => setShowExtension(null)} className="w-10 h-10 bg-[#F8F9FE] rounded-2xl flex items-center justify-center">
-                  <X size={18} className="text-ink/40" />
+                <button onClick={() => setShowExtension(null)} className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", isDark ? "bg-white/5" : "bg-slate-100")}>
+                  <X size={18} className={isDark ? "text-white/40" : "text-slate-500"} />
                 </button>
               </div>
 
-              {/* SOP Steps */}
               <div className="space-y-4">
-                <p className="text-[9px] font-black text-[#0D523C] uppercase tracking-widest">SOP Steps</p>
+                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">SOP Steps</p>
                 {showExtension.sopSteps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-emerald-50 rounded-2xl px-4 py-3 border border-emerald-100">
+                  <div key={i} className={cn("flex items-start gap-3 rounded-2xl px-4 py-3 border", isDark ? "bg-emerald-500/5 border-emerald-500/15" : "bg-emerald-50 border-emerald-100")}>
                     <span className="text-emerald-500 font-black text-xs flex-shrink-0 mt-0.5">{i + 1}.</span>
-                    <p className="text-ink text-[11px] font-bold leading-snug">{step}</p>
+                    <p className={cn("text-[11px] font-bold leading-snug", isDark ? "text-white/70" : "text-ink")}>{step}</p>
                   </div>
                 ))}
 
-                {/* Medicines */}
                 <p className="text-[9px] font-black text-[#C78200] uppercase tracking-widest mt-4">Extension Medicines</p>
                 {showExtension.medicines.map((med, i) => (
-                  <div key={i} className="bg-card rounded-2xl p-4 border border-card-border shadow-sm">
-                    <p className="text-ink font-black text-xs tracking-tight">{med.name}</p>
+                  <div key={i} className={cn("rounded-2xl p-4 border", isDark ? "bg-white/3 border-white/5" : "bg-card border-card-border shadow-sm")}>
+                    <p className={cn("font-black text-xs tracking-tight", isDark ? "text-white" : "text-ink")}>{med.name}</p>
                     <p className="text-[9px] text-[#C78200] font-black mt-0.5">{med.brand}</p>
-                    <p className="text-[9px] text-ink/40 font-medium mt-1">{med.schedule}</p>
+                    <p className={cn("text-[9px] font-medium mt-1", isDark ? "text-white/30" : "text-ink/40")}>{med.schedule}</p>
                   </div>
                 ))}
 
-                {/* Feed Adjustment */}
-                <div className="bg-amber-50 rounded-2xl px-4 py-3 border border-amber-100">
-                  <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Feed Adjustment</p>
-                  <p className="text-[11px] text-amber-800 font-bold">{showExtension.feedAdj}</p>
+                <div className={cn("rounded-2xl px-4 py-3 border", isDark ? "bg-amber-500/5 border-amber-500/15" : "bg-amber-50 border-amber-100")}>
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Feed Adjustment</p>
+                  <p className={cn("text-[11px] font-bold", isDark ? "text-amber-300/70" : "text-amber-800")}>{showExtension.feedAdj}</p>
                 </div>
 
-                {/* Risks */}
-                <div className="bg-red-50 rounded-2xl px-4 py-3 border border-red-100">
+                <div className={cn("rounded-2xl px-4 py-3 border", isDark ? "bg-red-500/5 border-red-500/15" : "bg-red-50 border-red-100")}>
                   <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-2">Extension Risks</p>
                   {showExtension.risks.map((risk, i) => (
-                    <p key={i} className="text-[10px] text-red-700 font-bold leading-snug mb-1">⚠️ {risk}</p>
+                    <p key={i} className={cn("text-[10px] font-bold leading-snug mb-1", isDark ? "text-red-400/70" : "text-red-700")}>⚠️ {risk}</p>
                   ))}
                 </div>
               </div>
@@ -282,86 +232,111 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <Header
-        title={t.pondMonitor}
-        showBack
-        onBack={() => navigate(-1)}
-        rightElement={
-          <button
-            onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-            className="w-11 h-11 bg-[#0D523C] rounded-2xl flex items-center justify-center text-white shadow-lg"
-          >
-            <Plus size={20} />
-          </button>
-        }
-      />
+      {/* ── STICKY HEADER ── */}
+      <header className={cn(
+        "fixed top-0 left-1/2 -translate-x-1/2 w-full sm:max-w-[420px] z-50 backdrop-blur-xl px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 flex items-center justify-between border-b transition-all",
+        isDark ? "bg-[#070D12]/90 border-white/5" : "bg-white/90 border-slate-100 shadow-sm"
+      )}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
+          className={cn("w-10 h-10 rounded-2xl flex items-center justify-center border", isDark ? "bg-white/5 border-white/10 text-white/70" : "bg-white border-slate-200 text-slate-600 shadow-sm")}
+        >
+          <ChevronLeft size={18} />
+        </motion.button>
+        <div className="text-center">
+          <h1 className={cn("text-xs font-black tracking-tight uppercase", isDark ? "text-white" : "text-slate-900")}>{t.pondMonitor}</h1>
+          <p className={cn("text-[8px] font-black uppercase tracking-widest mt-0.5", isDark ? "text-white/30" : "text-slate-400")}>{pond.name}</p>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
+          className="w-10 h-10 bg-[#0D523C] rounded-2xl flex items-center justify-center text-white shadow-lg"
+        >
+          <Plus size={18} />
+        </motion.button>
+      </header>
 
-      <div className="pt-28 px-5 space-y-5">
+      <div className="pt-24 px-4 space-y-4">
 
         {/* ── HEALTH SCORE HERO ── */}
-        <div className={cn(
-          'rounded-[2.2rem] p-5 relative overflow-hidden',
-          !latestRecord ? 'bg-[#0D523C]' :
-          healthScore! >= 80 ? 'bg-[#0D523C]' :
-          healthScore! >= 60 ? 'bg-amber-700' : 'bg-red-700'
-        )}>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn("bg-gradient-to-br rounded-[2.5rem] p-6 relative overflow-hidden shadow-2xl", heroGradient)}
+        >
+          <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/5 rounded-full blur-[60px]" />
+          <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-black/10 rounded-full" />
           <div className="relative z-10">
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-white/40 text-[8px] font-black uppercase tracking-widest leading-none">Overall Health</p>
+                <p className="text-white/40 text-[8px] font-black uppercase tracking-[0.25em]">Overall Health Score</p>
                 {latestRecord ? (
                   <>
-                    <p className="text-white font-black text-4xl tracking-tighter leading-none mt-2">
-                      {healthScore}<span className="text-xl opacity-50">/100</span>
+                    <p className="text-white font-black text-5xl tracking-tighter leading-none mt-2">
+                      {healthScore}<span className="text-2xl opacity-40">/100</span>
                     </p>
-                    <p className="text-white/60 text-[8px] font-black uppercase tracking-widest mt-1.5">
-                      {latestRecord.date === new Date().toISOString().split('T')[0] ? 'Today' : `Last: ${latestRecord.date}`}
+                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mt-2">
+                      {latestRecord.date === new Date().toISOString().split('T')[0] ? '✅ Logged today' : `Last: ${latestRecord.date}`}
                     </p>
                   </>
                 ) : (
-                  <p className="text-white font-black text-xl tracking-tight mt-2">No data yet</p>
+                  <p className="text-white font-black text-2xl tracking-tight mt-3">No data yet</p>
                 )}
               </div>
               <div className="text-right">
-                <div className="w-12 h-12 bg-card/15 rounded-xl flex items-center justify-center mb-1.5 ml-auto">
-                  <Activity size={24} className="text-white" />
+                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-2 border border-white/10">
+                  <Activity size={26} className="text-white" />
                 </div>
                 <p className="text-white/40 text-[7px] font-black uppercase tracking-widest">
-                  {latestRecord ? (healthScore! >= 80 ? '✅ Healthy' : healthScore! >= 60 ? '⚠️ Monitor' : '🔴 Act Now') : 'Log Conditions'}
+                  {latestRecord
+                    ? healthScore! >= 80 ? '✅ Healthy' : healthScore! >= 60 ? '⚠️ Monitor' : '🔴 Act Now'
+                    : 'Log Now'}
                 </p>
               </div>
             </div>
 
+            {/* DOC + weight strip */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'DOC', value: `${Math.max(0, doc)}d` },
+                { label: 'Avg Weight', value: `~${currentWeightG.toFixed(1)}g` },
+                { label: 'Count/kg', value: estimatedCountPerKg > 200 ? '—' : `~${estimatedCountPerKg}` },
+              ].map((s, i) => (
+                <div key={i} className="bg-white/10 rounded-2xl py-2.5 text-center border border-white/10">
+                  <p className="text-white font-black text-sm tracking-tighter">{s.value}</p>
+                  <p className="text-white/30 text-[6px] font-black uppercase tracking-widest mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
             {/* Score bar */}
             {latestRecord && (
-              <div className="w-full h-1.5 rounded-full bg-card/10 overflow-hidden mt-1">
+              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }} animate={{ width: `${healthScore}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  transition={{ duration: 0.9, ease: 'easeOut' }}
                   className={cn('h-full rounded-full', healthScore! >= 80 ? 'bg-emerald-400' : healthScore! >= 60 ? 'bg-amber-400' : 'bg-red-400')}
                 />
               </div>
             )}
           </div>
-          <div className="absolute -right-12 -top-12 w-40 h-40 bg-card/5 rounded-full" />
-          <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/10 rounded-full" />
-        </div>
+        </motion.div>
 
-        {/* ── LOG DAILY CONDITIONS CTA (if no recent log) ── */}
+        {/* ── LOG TODAY CTA ── */}
         {(!latestRecord || latestRecord.date !== new Date().toISOString().split('T')[0]) && (
           <motion.button
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
             onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-            className="w-full bg-amber-50 border border-amber-200 rounded-[2rem] px-5 py-4 flex items-center justify-between group hover:border-amber-400 transition-all"
+            className={cn("w-full rounded-[2rem] px-5 py-4 flex items-center justify-between group transition-all border active:scale-[0.98]",
+              isDark ? "bg-amber-500/10 border-amber-500/25 hover:border-amber-400/50" : "bg-amber-50 border-amber-200 hover:border-amber-400"
+            )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-500 rounded-2xl flex items-center justify-center text-white">
+              <div className="w-11 h-11 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
                 <Clock size={20} />
               </div>
               <div className="text-left">
-                <p className="font-black text-sm text-ink tracking-tight">Log Today's Conditions</p>
-                <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest">Not logged yet today</p>
+                <p className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>Log Today's Conditions</p>
+                <p className="text-[9px] text-amber-500 font-black uppercase tracking-widest">Not logged yet · Tap here</p>
               </div>
             </div>
             <ArrowRight size={18} className="text-amber-500 group-hover:translate-x-1 transition-transform" />
@@ -369,19 +344,19 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
         )}
 
         {/* ── TAB SWITCH ── */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className={cn("flex gap-1.5 p-1.5 rounded-[1.6rem] border", isDark ? "bg-white/5 border-white/5" : "bg-white border-slate-100 shadow-sm")}>
           {(['health', 'history', 'harvest'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                'py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border',
+                'flex-1 py-2.5 rounded-[1.2rem] text-[9px] font-black uppercase tracking-widest transition-all',
                 activeTab === tab
-                  ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
-                  : 'bg-card text-ink/40 border-card-border'
+                  ? 'bg-[#0D523C] text-white shadow-lg shadow-emerald-900/30'
+                  : isDark ? 'text-white/30 hover:text-white/50' : 'text-slate-400 hover:text-slate-600'
               )}
             >
-              {tab === 'health' ? '📊 Health' : tab === 'history' ? '📅 History' : '🌾 Harvest'}
+              {tab === 'health' ? `📊 ${t.waterHealth}` : tab === 'history' ? `📅 ${t.waterHistory}` : `🌾 ${t.harvestAnalysis}`}
             </button>
           ))}
         </div>
@@ -393,85 +368,126 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
             <motion.div key="health" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
 
               {!latestRecord ? (
-                <div className="bg-card rounded-[2rem] p-10 border border-dashed border-[#4A2C2A]/10 text-center">
-                  <Droplets size={36} className="text-ink/20 mx-auto mb-3" />
-                  <p className="font-black text-sm text-ink/40 tracking-tight">No condition data yet</p>
-                  <p className="text-[9px] text-ink/25 font-medium mt-1">Tap the + button to log today's water parameters</p>
+                <div className={cn("rounded-[2rem] p-10 border border-dashed text-center", isDark ? "bg-white/3 border-white/10" : "bg-white border-slate-200")}>
+                  <Droplets size={36} className={cn("mx-auto mb-3", isDark ? "text-white/20" : "text-ink/20")} />
+                  <p className={cn("font-black text-sm tracking-tight", isDark ? "text-white/40" : "text-ink/40")}>No condition data yet</p>
+                  <p className={cn("text-[9px] font-medium mt-1", isDark ? "text-white/20" : "text-ink/25")}>Tap the + button to log today's water parameters</p>
                   <button
                     onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
                     className="mt-5 bg-[#0D523C] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest"
-                  >Log Conditions</button>
+                  >{t.logConditionsBtn}</button>
                 </div>
               ) : (
                 <>
-                  {/* Parameter Grid */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                      <h2 className="text-ink font-black text-sm tracking-tight uppercase opacity-60">Live Metrics</h2>
-                      <span className="text-[7px] font-black text-ink/30 bg-card px-2.5 py-1 rounded-lg border border-card-border uppercase tracking-widest">
-                        {latestRecord.date}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {PARAM_CONFIG.map(cfg => {
-                         const val = (latestRecord as any)[cfg.key];
-                         if (val === undefined) return null;
-                         const st = getStatus(cfg, val);
-                         const sc = statusColor[st];
-                         const trend = getTrend(cfg.key);
-                         return (
-                           <motion.div
-                             key={cfg.key}
-                             initial={{ opacity: 0, scale: 0.95 }}
-                             animate={{ opacity: 1, scale: 1 }}
-                             className={cn('rounded-2xl p-3 border', sc.bg, sc.border)}
-                           >
-                             <div className="flex items-center gap-2 mb-1.5">
-                               <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center', sc.icon)}>
-                                 <cfg.icon size={12} />
-                               </div>
-                               <p className="text-[7px] font-black text-ink/40 uppercase tracking-widest leading-none">{cfg.label}</p>
-                             </div>
-                             <div className="flex items-baseline gap-1">
-                               <p className={cn('font-black text-xl tracking-tighter', sc.text)}>{val}</p>
-                               <p className="text-[7px] font-black text-ink/30">{cfg.unit}</p>
-                               {trend && (
-                                 <span className="ml-auto">
-                                   {trend === 'up' ? <TrendingUp size={10} className="text-blue-400" /> :
-                                    trend === 'down' ? <TrendingDown size={10} className="text-red-400" /> :
-                                    <Minus size={10} className="text-ink/20" />}
-                                 </span>
-                               )}
-                             </div>
-                             <div className="mt-1 flex items-center gap-1">
-                               <span className={cn('text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded-full', sc.badge)}>
-                                 {st}
-                               </span>
-                               <span className="text-[6px] text-ink/20 font-black">{cfg.min}–{cfg.max}{cfg.unit}</span>
-                             </div>
-                           </motion.div>
-                         );
-                      })}
-                    </div>
+                  {/* Header row */}
+                  <div className="flex items-center justify-between px-1">
+                    <h2 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>Live Parameters</h2>
+                    <span className={cn("text-[7px] font-black px-2.5 py-1 rounded-lg border uppercase tracking-widest", isDark ? "bg-white/5 border-white/10 text-white/30" : "bg-white border-slate-200 text-slate-400 shadow-sm")}>
+                      {latestRecord.date}
+                    </span>
                   </div>
 
-                  {/* Action Plan */}
-                  <div className="bg-[#0D523C] rounded-[1.8rem] p-4 space-y-2 shadow-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ShieldCheck size={14} className="text-emerald-300" />
-                      <p className="text-emerald-300/80 text-[8px] font-black uppercase tracking-widest">SOP Corrective Protocol</p>
-                    </div>
-                    {todayActions.map((action, i) => (
-                      <div key={i} className={cn(
-                        'rounded-xl px-3.5 py-2.5 border',
-                        action.severity === 'high' ? 'bg-red-900/40 border-red-500/10' :
-                        action.severity === 'medium' ? 'bg-amber-900/30 border-amber-500/10' :
-                        'bg-card/5 border-white/5'
-                      )}>
-                        <p className="text-white font-bold text-[9px] leading-relaxed">{action.text}</p>
+                  {/* Parameter cards — large 2-col grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {PARAM_CONFIG.map(cfg => {
+                      const val = (latestRecord as any)[cfg.key];
+                      if (val === undefined) return null;
+                      const st   = getStatus(cfg, val);
+                      const trend = getTrend(cfg.key);
+                      const delta = getTrendDelta(cfg.key);
+                      // SOP range bar fill %
+                      const rangeSpan = (cfg.dangerHigh ?? cfg.max * 1.5) - (cfg.dangerLow ?? 0);
+                      const fillPct = Math.min(100, Math.max(0, ((val - (cfg.dangerLow ?? 0)) / rangeSpan) * 100));
+                      const barColor = st === 'optimal' ? 'bg-emerald-400' : st === 'warning' ? 'bg-amber-400' : 'bg-red-500';
+                      const cardBg   = st === 'optimal'
+                        ? isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
+                        : st === 'warning'
+                        ? isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-200'
+                        : isDark ? 'bg-red-500/5 border-red-500/20' : 'bg-red-50 border-red-200';
+                      const valColor = st === 'optimal'
+                        ? isDark ? 'text-emerald-400' : 'text-emerald-600'
+                        : st === 'warning'
+                        ? isDark ? 'text-amber-400' : 'text-amber-700'
+                        : isDark ? 'text-red-400' : 'text-red-600';
+                      return (
+                        <motion.div
+                          key={cfg.key}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className={cn('rounded-[1.8rem] p-4 border', cardBg)}
+                        >
+                          {/* Top row */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{cfg.emoji}</span>
+                              <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/40" : "text-slate-500")}>{getParamLabel(cfg.key, t)}</p>
+                            </div>
+                            <span className={cn("text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full",
+                              st === 'optimal' ? isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-100 text-emerald-600'
+                              : st === 'warning' ? isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-600'
+                              : isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-100 text-red-600'
+                            )}>{st === 'optimal' ? t.optimal : st === 'warning' ? t.medium : t.urgent}</span>
+                          </div>
+
+                          {/* Value */}
+                          <div className="flex items-baseline gap-1.5 mb-3">
+                            <p className={cn('font-black text-3xl tracking-tighter', valColor)}>{val}</p>
+                            <p className={cn("text-[8px] font-black", isDark ? "text-white/20" : "text-slate-400")}>{cfg.unit}</p>
+                            {trend && delta && (
+                              <span className="ml-auto flex items-center gap-0.5">
+                                {trend === 'up' ? <TrendingUp size={10} className="text-blue-400" /> :
+                                 trend === 'down' ? <TrendingDown size={10} className="text-red-400" /> :
+                                 <Minus size={10} className={isDark ? "text-white/20" : "text-slate-300"} />}
+                                <span className="text-[7px] font-black text-blue-400">{delta}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* SOP range bar */}
+                          <div className={cn("h-1.5 rounded-full overflow-hidden mb-1", isDark ? "bg-white/10" : "bg-black/10")}>
+                            <motion.div
+                              initial={{ width: 0 }} animate={{ width: `${fillPct}%` }}
+                              transition={{ duration: 0.7, ease: 'easeOut' }}
+                              className={cn("h-full rounded-full", barColor)}
+                            />
+                          </div>
+                          <p className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>
+                            {t.optimalRange}: {cfg.min}–{cfg.max}{cfg.unit}
+                          </p>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {/* SOP Corrective Protocol */}
+                  <div className={cn("rounded-[2rem] overflow-hidden border shadow-sm", isDark ? "bg-[#0D1A13] border-white/5" : "bg-white border-slate-100")}>
+                    <div className="bg-gradient-to-r from-[#0D523C] to-[#065F46] px-5 py-4 flex items-center gap-3">
+                      <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center">
+                        <ShieldCheck size={18} className="text-emerald-300" />
                       </div>
-                    ))}
+                      <div>
+                        <h3 className="text-white font-black text-sm tracking-tight">SOP Corrective Protocol</h3>
+                        <p className="text-emerald-200/50 text-[7px] font-black uppercase tracking-widest">Based on today's readings</p>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-2.5">
+                      {todayActions.map((action, i) => (
+                        <div key={i} className={cn(
+                          'rounded-2xl px-4 py-3 border flex items-start gap-3',
+                          action.severity === 'high'   ? isDark ? 'bg-red-500/10 border-red-500/20'   : 'bg-red-50 border-red-200' :
+                          action.severity === 'medium' ? isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200' :
+                          isDark ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-emerald-50 border-emerald-100'
+                        )}>
+                          <span className="text-base flex-shrink-0 mt-0.5">
+                            {action.severity === 'high' ? '🔴' : action.severity === 'medium' ? '🟡' : '✅'}
+                          </span>
+                          <div>
+                            <p className={cn("text-[10px] font-black", isDark ? "text-white" : "text-slate-900")}>{action.text}</p>
+                            <p className={cn("text-[9px] font-bold mt-0.5 leading-relaxed", isDark ? "text-white/40" : "text-slate-500")}>{action.remedy}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -482,21 +498,21 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
           {activeTab === 'history' && (
             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <h2 className="text-ink font-black text-base tracking-tight">Condition History</h2>
+                <h2 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>{t.waterHistory}</h2>
                 <button
                   onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
                   className="bg-[#0D523C] text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
                 >
-                  <Plus size={12} /> Log Today
+                  <Plus size={12} /> {t.logConditions}
                 </button>
               </div>
 
               {pondRecords.length === 0 ? (
-                <div className="bg-card rounded-[2rem] p-10 border border-dashed border-[#4A2C2A]/10 text-center">
-                  <Calendar size={36} className="text-ink/20 mx-auto mb-3" />
-                  <p className="text-ink/40 font-black text-sm tracking-tight">No history yet</p>
+                <div className={cn("rounded-[2rem] p-10 border border-dashed text-center", isDark ? "bg-white/3 border-white/10" : "bg-white border-slate-200")}>
+                  <Calendar size={36} className={cn("mx-auto mb-3", isDark ? "text-white/20" : "text-ink/20")} />
+                  <p className={cn("font-black text-sm tracking-tight", isDark ? "text-white/40" : "text-ink/40")}>No history yet</p>
                 </div>
-              ) : pondRecords.slice(0, 10).map((rec, i) => {
+              ) : pondRecords.slice(0, 14).map((rec, i) => {
                 let score = 0, count = 0;
                 for (const cfg of PARAM_CONFIG) {
                   const v = (rec as any)[cfg.key];
@@ -506,43 +522,66 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                   count++;
                 }
                 const dayScore = count > 0 ? Math.round(score / count) : 75;
-                const isToday = rec.date === new Date().toISOString().split('T')[0];
-
+                const isToday  = rec.date === new Date().toISOString().split('T')[0];
+                const recDoc   = Math.floor((new Date(rec.date).getTime() - new Date(pond.stockingDate).getTime()) / (1000 * 60 * 60 * 24));
                 return (
                   <motion.div
                     key={rec.id}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="bg-card rounded-[2rem] p-5 border border-card-border shadow-sm"
+                    className={cn("rounded-[2rem] overflow-hidden border", isDark ? "bg-[#0D1520] border-white/5" : "bg-white border-slate-100 shadow-sm")}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="font-black text-sm text-ink tracking-tight">
-                          {isToday ? 'Today' : new Date(rec.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </p>
-                        <p className="text-[8px] text-ink/30 font-black uppercase tracking-widest">DOC {calculateDOC(pond.stockingDate)}</p>
+                    {/* Date row */}
+                    <div className={cn("px-5 py-3 flex items-center justify-between border-b", isDark ? "border-white/5" : "border-slate-100")}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-10 h-10 rounded-[1.2rem] flex flex-col items-center justify-center border",
+                          isToday ? "bg-emerald-500 border-emerald-500 text-white" : isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                        )}>
+                          <p className={cn("text-[6px] font-black uppercase leading-none", isToday ? "text-white/70" : isDark ? "text-white/30" : "text-slate-400")}>
+                            {new Date(rec.date).toLocaleString('default', { month: 'short' })}
+                          </p>
+                          <p className={cn("text-sm font-black leading-none", isToday ? "text-white" : isDark ? "text-white" : "text-slate-800")}>
+                            {new Date(rec.date).getDate()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>
+                            {isToday ? 'Today' : new Date(rec.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </p>
+                          <p className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
+                            DOC {Math.max(0, recDoc)}
+                          </p>
+                        </div>
                       </div>
-                      <div className={cn(
-                        'px-3 py-1.5 rounded-xl text-[9px] font-black',
-                        dayScore >= 80 ? 'bg-emerald-100 text-emerald-600' :
-                        dayScore >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                      <div className={cn("px-3 py-1.5 rounded-xl text-[9px] font-black border",
+                        dayScore >= 80 ? isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-100 border-emerald-200 text-emerald-600' :
+                        dayScore >= 60 ? isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-100 border-amber-200 text-amber-600' :
+                        isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-100 border-red-200 text-red-600'
                       )}>
-                        Score: {dayScore}
+                        {dayScore >= 80 ? '✅' : dayScore >= 60 ? '⚠️' : '🔴'} {dayScore}
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {PARAM_CONFIG.slice(0, 6).map(cfg => {
+
+                    {/* Parameter chips */}
+                    <div className="px-5 py-3 grid grid-cols-3 gap-2">
+                      {PARAM_CONFIG.map(cfg => {
                         const v = (rec as any)[cfg.key];
                         if (v === undefined) return null;
                         const st = getStatus(cfg, v);
                         return (
                           <div key={cfg.key} className={cn(
-                            'rounded-xl px-2 py-1.5 text-center',
-                            st === 'optimal' ? 'bg-emerald-50' : st === 'warning' ? 'bg-amber-50' : 'bg-red-50'
+                            'rounded-xl px-2 py-2 text-center',
+                            st === 'optimal' ? isDark ? 'bg-emerald-500/5' : 'bg-emerald-50' :
+                            st === 'warning'  ? isDark ? 'bg-amber-500/5'  : 'bg-amber-50' :
+                            isDark ? 'bg-red-500/5' : 'bg-red-50'
                           )}>
-                            <p className="text-[7px] font-black text-ink/30 uppercase tracking-widest">{cfg.label}</p>
-                            <p className={cn('font-black text-xs', statusColor[st].text)}>{v}</p>
+                            <p className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-white/25" : "text-slate-400")}>{getParamLabel(cfg.key, t)}</p>
+                            <p className={cn('font-black text-sm leading-tight',
+                              st === 'optimal' ? isDark ? 'text-emerald-400' : 'text-emerald-600' :
+                              st === 'warning'  ? isDark ? 'text-amber-400' : 'text-amber-600' :
+                              isDark ? 'text-red-400' : 'text-red-600'
+                            )}>{v}</p>
                           </div>
                         );
                       })}
@@ -557,62 +596,135 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
           {activeTab === 'harvest' && (
             <motion.div key="harvest" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
 
-              {/* ── COUNT-BASED HARVEST ALERT ── */}
-              <CountHarvestAlert
-                estimatedCountPerKg={estimatedCountPerKg}
-                currentWeightG={currentWeightG}
-                isAtPremiumCount={isAtPremiumCount}
-                matchedBracket={matchedBracket}
-                currentMarketRate={currentMarketRate}
-                doc={doc}
-                pond={pond}
-              />
+              {/* Count tracker card */}
+              <div className={cn("rounded-[2rem] overflow-hidden border shadow-sm", isDark ? "bg-[#0D1520] border-white/5" : "bg-white border-slate-100")}>
+                {/* Header */}
+                <div className={cn("px-5 pt-4 pb-3 border-b", isDark ? "border-white/5 bg-[#02130F]" : "border-slate-100 bg-emerald-700")}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center">
+                        <Fish size={17} className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-black text-sm tracking-tight">Harvest Intelligence</h3>
+                        <p className="text-white/50 text-[7px] font-black uppercase tracking-widest">DOC {doc} · Count tracker</p>
+                      </div>
+                    </div>
+                    <div className={cn("px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border",
+                      isAtPremiumCount ? "bg-emerald-400/20 border-emerald-400/30 text-emerald-300" : "bg-[#C78200]/20 border-[#C78200]/30 text-amber-300"
+                    )}>
+                      {isAtPremiumCount ? '🎯 Harvest Now' : '👁 Monitoring'}
+                    </div>
+                  </div>
+                </div>
 
-              {/* ── LIVE MARKET RATE TICKER ── */}
-              <LiveMarketTicker marketRates={marketRates} estimatedCountPerKg={estimatedCountPerKg} />
+                <div className="p-5">
+                  {/* Big count number */}
+                  <div className="flex items-end gap-4 mb-5 pb-5 border-b border-card-border">
+                    <div>
+                      <p className={cn("text-[7px] font-black uppercase tracking-widest mb-1", isDark ? "text-white/30" : "text-slate-400")}>Est. Count/kg</p>
+                      <p className={cn("text-5xl font-black tracking-tighter leading-none", isDark ? "text-white" : "text-slate-800")}>
+                        {estimatedCountPerKg > 200 ? '???'  : `~${estimatedCountPerKg}`}
+                        <span className={cn("text-lg ml-1", isDark ? "text-white/20" : "text-slate-300")}>/kg</span>
+                      </p>
+                    </div>
+                    <div className="ml-auto text-right">
+                      <p className={cn("text-[7px] font-black uppercase tracking-widest mb-1", isDark ? "text-white/30" : "text-slate-400")}>Est. Biomass</p>
+                      <p className={cn("text-2xl font-black tracking-tighter", isDark ? "text-white" : "text-slate-800")}>
+                        {(estWeightKg / 1000).toFixed(1)}T
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Harvest Status Card */}
-              <div className={cn(
-                'rounded-[2rem] p-5 relative overflow-hidden text-white',
-                harvestReady ? 'bg-[#0D523C]' : 'bg-indigo-900 shadow-lg'
-              )}>
-                <div className="relative z-10">
-                  <p className="text-white/40 text-[8px] font-black uppercase tracking-widest leading-none">
-                    {harvestReady ? 'Harvest Ready' : 'Harvest Forecast'}
-                  </p>
-                  {harvestReady ? (
-                    <>
-                      <p className="text-white font-black text-3xl tracking-tighter mt-1.5 mb-1.5">Ready Now!</p>
-                      <p className="text-emerald-300 text-[9px] font-black uppercase tracking-widest">DOC {doc} • ~{estimatedCountPerKg}/kg</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-white font-black text-3xl tracking-tighter mt-1.5 mb-1.5">{daysToHarvest} days left</p>
-                      <p className="text-indigo-300 text-[9px] font-black uppercase tracking-widest">Target: DOC 90 • {currentWeightG.toFixed(1)}g avg</p>
-                    </>
+                  {/* Market rate match */}
+                  {matchedRate && (
+                    <div className={cn("rounded-2xl p-4 border mb-4 flex items-center justify-between",
+                      isAtPremiumCount ? isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
+                      : isDark ? 'bg-amber-500/5 border-amber-500/15' : 'bg-amber-50 border-amber-100'
+                    )}>
+                      <div>
+                        <p className={cn("text-[8px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-white/30" : "text-slate-400")}>
+                          Current Market Rate
+                        </p>
+                        <p className={cn("text-2xl font-black tracking-tighter", isAtPremiumCount ? isDark ? "text-emerald-400" : "text-emerald-700" : isDark ? "text-amber-400" : "text-amber-700")}>
+                          ₹{matchedRate.price}<span className="text-sm font-bold">/kg</span>
+                        </p>
+                        <p className={cn("text-[8px] font-bold mt-0.5", isDark ? "text-white/25" : "text-slate-400")}>{matchedRate.demand} demand</p>
+                      </div>
+                      <div className={cn("text-right")}>
+                        <p className={cn("text-[7px] font-black uppercase tracking-widest mb-1", isDark ? "text-white/30" : "text-slate-400")}>Est. Revenue</p>
+                        <p className={cn("text-xl font-black tracking-tighter", isDark ? "text-white" : "text-slate-800")}>
+                          ₹{((estWeightKg / 1000) * matchedRate.price * 1000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        </p>
+                        <p className={cn("text-[7px] font-bold", isDark ? "text-white/20" : "text-slate-400")}>total estimate</p>
+                      </div>
+                    </div>
                   )}
 
-                  {/* Progress bar */}
-                  <div className="w-full h-1.5 rounded-full bg-card/10 mt-3 overflow-hidden">
-                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${Math.min(100, (doc / 90) * 100)}%` }} />
+                  {/* Progress bar to harvest */}
+                  <p className={cn("text-[7px] font-black uppercase tracking-widest mb-2", isDark ? "text-white/30" : "text-slate-400")}>
+                    {harvestReady ? 'Harvest Window Open' : `${daysToHarvest} days to standard harvest`}
+                  </p>
+                  <div className={cn("w-full h-2 rounded-full overflow-hidden mb-1", isDark ? "bg-white/10" : "bg-slate-200")}>
+                    <motion.div
+                      initial={{ width: 0 }} animate={{ width: `${Math.min(100, (doc / 90) * 100)}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      className={harvestReady ? 'h-full bg-emerald-500 rounded-full' : 'h-full bg-[#C78200] rounded-full'}
+                    />
                   </div>
-                  <div className="flex justify-between mt-1 opacity-20">
-                    <span className="text-[6px] font-black uppercase tracking-widest text-white">Stock</span>
-                    <span className="text-[6px] font-black uppercase tracking-widest text-white">Target</span>
+                  <div className="flex justify-between">
+                    <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>Stocked</span>
+                    <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>DOC 90</span>
+                  </div>
+
+                  {/* Stocking stats */}
+                  <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-card-border">
+                    {[
+                      { label: t.estSurvivingCount,  value: `${(estimatedLiveCount / 1000).toFixed(0)}K` },
+                      { label: t.survivalRate_short,   value: `${(survivalRate * 100).toFixed(0)}%` },
+                      { label: t.biomassEst,           value: `${currentWeightG.toFixed(1)}g` },
+                    ].map((s, i) => (
+                      <div key={i} className="text-center">
+                        <p className={cn("font-black text-sm tracking-tighter", isDark ? "text-white" : "text-slate-800")}>{s.value}</p>
+                        <p className={cn("text-[6px] font-black uppercase tracking-widest mt-0.5", isDark ? "text-white/20" : "text-slate-400")}>{s.label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* If harvest is due / overdue — show extension plans */}
+              {/* Market rate ticker */}
+              <LiveMarketTicker marketRates={marketRates} estimatedCountPerKg={estimatedCountPerKg} isDark={isDark} />
+
+              {/* Harvest status */}
+              <div className={cn('rounded-[2rem] p-5 relative overflow-hidden text-white shadow-xl', harvestReady ? 'bg-gradient-to-br from-[#0D523C] to-[#065F46]' : 'bg-gradient-to-br from-indigo-900 to-indigo-950')}>
+                <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-xl" />
+                <div className="relative z-10">
+                  <p className="text-white/40 text-[8px] font-black uppercase tracking-widest">{harvestReady ? 'Harvest Ready' : 'Harvest Forecast'}</p>
+                  {harvestReady ? (
+                    <>
+                      <p className="text-white font-black text-4xl tracking-tighter mt-2 mb-2">Ready Now!</p>
+                      <p className="text-emerald-300 text-[9px] font-black uppercase tracking-widest">DOC {doc} · ~{estimatedCountPerKg}/kg</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-white font-black text-4xl tracking-tighter mt-2 mb-2">{daysToHarvest} days left</p>
+                      <p className="text-indigo-300 text-[9px] font-black uppercase tracking-widest">Target: DOC 90 · {currentWeightG.toFixed(1)}g avg</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Extension plans */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3 px-1">
                   <PackageCheck size={18} className="text-[#C78200]" />
                   <div>
-                    <h2 className="text-ink font-black text-base tracking-tight">
-                      {harvestReady ? 'Can\'t Harvest Yet? Extension Plans' : 'Pre-Harvest Extension Options'}
+                    <h2 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>
+                      {harvestReady ? "Can't Harvest Yet? Extension Plans" : "Pre-Harvest Extension Options"}
                     </h2>
-                    <p className="text-[9px] text-ink/40 font-black uppercase tracking-widest">
-                      If you need to delay harvest — tap to view full SOP
+                    <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
+                      Tap to view full SOP
                     </p>
                   </div>
                 </div>
@@ -624,67 +736,59 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06 }}
                     onClick={() => setShowExtension(plan)}
-                    className={cn(
-                      'w-full bg-card rounded-[2rem] p-5 border shadow-sm text-left transition-all active:scale-[0.98]',
-                      i === 2 ? 'border-red-100 hover:border-red-200' :
-                      i === 1 ? 'border-amber-100 hover:border-amber-200' : 'border-emerald-100 hover:border-emerald-200'
+                    className={cn('w-full rounded-[2rem] p-5 border shadow-sm text-left transition-all active:scale-[0.98]',
+                      isDark ? i === 2 ? 'bg-red-500/5 border-red-500/15' : i === 1 ? 'bg-amber-500/5 border-amber-500/15' : 'bg-emerald-500/5 border-emerald-500/15'
+                      : i === 2 ? 'bg-white border-red-100 hover:border-red-200' : i === 1 ? 'bg-white border-amber-100 hover:border-amber-200' : 'bg-white border-emerald-100 hover:border-emerald-200'
                     )}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={cn(
-                          'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0',
-                          i === 2 ? 'bg-red-100 text-red-500' :
-                          i === 1 ? 'bg-amber-100 text-amber-500' : 'bg-emerald-100 text-emerald-600'
+                        <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0',
+                          i === 2 ? isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-500' :
+                          i === 1 ? isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-500' :
+                          isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'
                         )}>
                           <Calendar size={20} />
                         </div>
                         <div>
-                          <p className="font-black text-sm text-ink tracking-tight">{plan.label}</p>
-                          <p className="text-[9px] text-ink/40 font-black uppercase tracking-widest">
-                            Up to DOC {plan.maxDoc} • {plan.sopSteps.length} SOP steps
+                          <p className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>{plan.label}</p>
+                          <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
+                            Up to DOC {plan.maxDoc} · {plan.sopSteps.length} SOP steps
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={cn(
-                          'text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full border',
-                          i === 2 ? 'bg-red-50 text-red-500 border-red-100' :
-                          i === 1 ? 'bg-amber-50 text-amber-500 border-amber-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'
+                        <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full border',
+                          i === 2 ? isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 text-red-500 border-red-100' :
+                          i === 1 ? isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 text-amber-500 border-amber-100' :
+                          isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-500 border-emerald-100'
                         )}>
                           {i === 2 ? 'HIGH RISK' : i === 1 ? 'MEDIUM' : 'SAFE'}
                         </span>
-                        <ArrowRight size={16} className="text-ink/20" />
+                        <ArrowRight size={14} className={isDark ? "text-white/20" : "text-slate-300"} />
                       </div>
                     </div>
-
-                    {/* Risk preview */}
-                    <div className="mt-3 text-[9px] text-ink/40 font-medium">
-                      {plan.risks[0]}
-                    </div>
+                    <p className={cn("mt-3 text-[9px] font-medium", isDark ? "text-white/25" : "text-slate-400")}>{plan.risks[0]}</p>
                   </motion.button>
                 ))}
 
-                {/* Emergency Harvest Option */}
-                <div className="bg-red-50 rounded-[2rem] p-5 border border-red-200">
+                {/* Emergency */}
+                <div className={cn("rounded-[2rem] p-5 border", isDark ? "bg-red-500/5 border-red-500/20" : "bg-red-50 border-red-200")}>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-red-500 rounded-2xl flex items-center justify-center text-white">
                       <AlertTriangle size={18} />
                     </div>
                     <div>
-                      <p className="font-black text-sm text-ink tracking-tight">Emergency Harvest Protocol</p>
+                      <p className={cn("font-black text-sm tracking-tight", isDark ? "text-red-300" : "text-slate-900")}>Emergency Harvest Protocol</p>
                       <p className="text-[9px] text-red-500 font-black uppercase tracking-widest">Immediate action</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-ink/60 font-medium leading-relaxed">
-                    If disease, DO crash, or mass mortality begins: harvest immediately even if weight target not met. Partial harvest retains remaining shrimp. Contact your nearest buyer — emergency pricing is recoverable.
+                  <p className={cn("text-[10px] font-medium leading-relaxed mb-3", isDark ? "text-white/50" : "text-ink/60")}>
+                    If disease, DO crash, or mass mortality begins: harvest immediately. Partial harvest retains remaining shrimp. Contact your nearest buyer — emergency pricing is recoverable.
                   </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {['Contact Buyer Now', 'Report Disease'].map((label, i) => (
-                      <button key={i} className={cn(
-                        'py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest',
-                        i === 0 ? 'bg-[#0D523C] text-white' : 'bg-red-500 text-white'
-                      )}>
+                      <button key={i} className={cn('py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest', i === 0 ? 'bg-[#0D523C] text-white' : 'bg-red-500 text-white')}>
                         {label}
                       </button>
                     ))}
@@ -700,180 +804,27 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
   );
 };
 
-// ─── COUNT-BASED HARVEST ALERT ───────────────────────────────────────────────
-const CountHarvestAlert = ({
-  estimatedCountPerKg,
-  currentWeightG,
-  isAtPremiumCount,
-  matchedBracket,
-  currentMarketRate,
-  doc,
-  pond,
-}: {
-  estimatedCountPerKg: number;
-  currentWeightG: number;
-  isAtPremiumCount: boolean;
-  matchedBracket?: number;
-  currentMarketRate?: { count: number; price: number; demand: string; trend: string };
-  doc: number;
-  pond: any;
-}) => {
-  // Survival rate estimate from pond data (default 80%)
-  const survivalRate = pond.survivalRate ?? 0.80;
-  const stockingCount = pond.seedCount ?? 100000;
-  const estimatedLiveCount = Math.round(stockingCount * survivalRate);
-  const estWeightKg = (estimatedLiveCount * currentWeightG) / 1000;
-
-  // DOC-based harvest track stages
-  const countStages = [
-    { doc: 50, count: 100, label: 'Fry Stage', color: 'text-indigo-500' },
-    { doc: 65, count: 70,  label: 'Growing',   color: 'text-blue-500' },
-    { doc: 75, count: 55,  label: 'Mid-Grow',  color: 'text-amber-500' },
-    { doc: 85, count: 45,  label: 'Near Ready', color: 'text-orange-500' },
-    { doc: 90, count: 40,  label: '🟡 Premium Window', color: 'text-[#C78200]' },
-    { doc: 100, count: 32, label: '🟢 Optimal Harvest', color: 'text-emerald-500' },
-    { doc: 110, count: 28, label: '🟢 Max Yield',       color: 'text-emerald-600' },
-  ];
-
-  const currentStage = countStages.reduce((prev, curr) =>
-    Math.abs(curr.doc - doc) < Math.abs(prev.doc - doc) ? curr : prev
-  );
-
-  const alertLevel = isAtPremiumCount
-    ? matchedBracket && matchedBracket <= 30 ? 'premium'
-    : matchedBracket && matchedBracket <= 50 ? 'ready'
-    : 'watch'
-    : 'watch';
-
-  const alertStyles = {
-    premium: 'bg-gradient-to-br from-[#0D523C] to-[#1a7a5a] border-emerald-500/30',
-    ready:   'bg-gradient-to-br from-[#1a3a0d] to-[#2d5218] border-emerald-400/20',
-    watch:   'bg-gradient-to-br from-[#2a1d0d] to-[#3d2b12] border-[#C78200]/20',
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`rounded-[2rem] p-5 border text-white relative overflow-hidden ${alertStyles[alertLevel]}`}
-    >
-      {/* Glow orb */}
-      <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[50px] opacity-25"
-        style={{ background: alertLevel === 'premium' ? '#10b981' : alertLevel === 'ready' ? '#22c55e' : '#C78200' }}
-      />
-
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3.5">
-          <div>
-            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">Farmer Count Tracker</p>
-            <h3 className="text-xl font-black tracking-tighter mt-1">
-              {estimatedCountPerKg > 200 ? '???/kg' : `~${estimatedCountPerKg}/kg`}
-            </h3>
-          </div>
-          <div className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border ${
-            alertLevel === 'premium' ? 'bg-emerald-400/20 border-emerald-400/30 text-emerald-300' :
-            alertLevel === 'ready'   ? 'bg-green-400/20 border-green-400/30 text-green-300' :
-                                       'bg-[#C78200]/20 border-[#C78200]/30 text-[#C78200]'
-          }`}>
-            {alertLevel === 'premium' ? '🎯 Harvest Now' : alertLevel === 'ready' ? '✅ Ready' : '👁 Monitoring'}
-          </div>
-        </div>
-
-        {/* Alert message */}
-        {isAtPremiumCount && currentMarketRate ? (
-          <div className={`rounded-xl px-3 py-2.5 mb-3.5 ${
-            alertLevel === 'premium' ? 'bg-emerald-400/15 border border-emerald-400/20' :
-            'bg-green-400/10 border border-green-400/15'
-          }`}>
-            <p className="text-[10px] font-black text-white leading-snug">
-              🔔 Shrimp at <span className="text-emerald-300 font-black">{matchedBracket}/kg count</span> —{' '}
-              <span className="text-emerald-300 uppercase">{currentMarketRate.demand} demand</span>.
-              Market rate: <span className="text-emerald-300">₹{currentMarketRate.price}/kg</span>.
-              <span className="opacity-60 block mt-1">This is your optimal harvest window.</span>
-            </p>
-          </div>
-        ) : (
-          <div className="bg-card/5 rounded-xl px-3 py-2.5 mb-3.5 border border-white/10">
-            <p className="text-[9px] font-bold text-white/50 leading-snug">
-              Currently at <span className="text-white font-black">{currentStage.label}</span>. 
-              Premium window approaches at DOC 90+.
-            </p>
-          </div>
-        )}
-
-        {/* DOC Count Track */}
-        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-2.5">Count Track — DOC Progress</p>
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-          {countStages.map((stage, i) => {
-            const isPast = doc >= stage.doc;
-            const isCurrent = Math.abs(stage.doc - doc) < 8;
-            return (
-              <div key={i} className={`flex flex-col items-center gap-1 flex-shrink-0 ${
-                isCurrent ? 'opacity-100' : isPast ? 'opacity-60' : 'opacity-25'
-              }`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                  isCurrent
-                    ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]'
-                    : isPast
-                    ? 'bg-card/20 border-white/30'
-                    : 'bg-card/5 border-white/10'
-                }`}>
-                  {isPast && !isCurrent && <CheckCircle2 size={10} className="text-white" />}
-                  {isCurrent && <div className="w-2 h-2 bg-card rounded-full animate-pulse" />}
-                </div>
-                <p className="text-[6px] font-black text-white/40 uppercase whitespace-nowrap leading-none mt-1">D{stage.doc}</p>
-                <p className={`text-[7px] font-black whitespace-nowrap mt-0.5 ${
-                  isCurrent ? 'text-emerald-300' : 'text-white/30'
-                }`}>{stage.count}/k</p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Estimated Biomass */}
-        <div className="mt-3.5 pt-3.5 border-t border-white/10 grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Biomass</p>
-            <p className="font-black text-sm tracking-tighter">{(estWeightKg / 1000).toFixed(1)}T</p>
-          </div>
-          <div>
-            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Live Count</p>
-            <p className="font-black text-sm tracking-tighter">{(estimatedLiveCount / 1000).toFixed(0)}K</p>
-          </div>
-          <div>
-            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Survival</p>
-            <p className="font-black text-sm tracking-tighter">{(survivalRate * 100).toFixed(0)}%</p>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 // ─── LIVE MARKET RATE TICKER ─────────────────────────────────────────────────
 const LiveMarketTicker = ({
-  marketRates,
-  estimatedCountPerKg,
+  marketRates, estimatedCountPerKg, isDark,
 }: {
   marketRates: { count: number; price: number; demand: string; trend: string }[];
   estimatedCountPerKg: number;
+  isDark: boolean;
 }) => {
-  const tickerRef = useRef<HTMLDivElement>(null);
-  const [tickerOffset, setTickerOffset] = useState(0);
-  const animFrameRef = useRef<number>(0);
-  const speedRef = useRef(0.6);
+  const tickerRef     = useRef<HTMLDivElement>(null);
+  const animFrameRef  = useRef<number>(0);
+  const speedRef      = useRef(0.6);
 
   useEffect(() => {
     const ticker = tickerRef.current;
     if (!ticker) return;
     let pos = 0;
     const scrollWidth = ticker.scrollWidth / 2;
-
     const animate = () => {
       pos += speedRef.current;
       if (pos >= scrollWidth) pos = 0;
-      setTickerOffset(pos);
+      ticker.style.transform = `translateX(-${pos}px)`;
       animFrameRef.current = requestAnimationFrame(animate);
     };
     animFrameRef.current = requestAnimationFrame(animate);
@@ -883,43 +834,29 @@ const LiveMarketTicker = ({
   const items = [...marketRates, ...marketRates];
 
   return (
-    <div className="bg-[#02130F] rounded-[1.8rem] overflow-hidden border border-white/5 shadow-2xl">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-card/5">
+    <div className={cn("rounded-[1.8rem] overflow-hidden border shadow-xl", isDark ? "bg-[#02130F] border-white/5" : "bg-slate-900 border-white/5")}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/20">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">Live Market Rates</p>
+          <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Live Market Rates</p>
         </div>
         <p className="text-[7px] font-black text-white/20 uppercase tracking-widest">₹/Kg · Local</p>
       </div>
-
       <div className="overflow-hidden py-3">
-        <div
-          ref={tickerRef}
-          className="flex gap-2.5 px-4"
-          style={{ transform: `translateX(-${tickerOffset}px)`, willChange: 'transform' }}
-        >
+        <div ref={tickerRef} className="flex gap-2.5 px-4" style={{ willChange: 'transform' }}>
           {items.map((rate, i) => {
-            const isCurrentCount = estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
+            const isCurrent = estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
             return (
-              <div
-                key={i}
-                className={`flex-shrink-0 rounded-xl px-3 py-2 border transition-all ${
-                  isCurrentCount
-                    ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_10px_rgba(52,211,153,0.15)]'
-                    : rate.trend === 'up'
-                    ? 'bg-card/5 border-white/10'
-                    : rate.trend === 'down'
-                    ? 'bg-red-900/10 border-red-500/10'
-                    : 'bg-card/10 border-white/5'
-                }`}
-              >
+              <div key={i} className={cn(`flex-shrink-0 rounded-xl px-3 py-2 border transition-all`,
+                isCurrent ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_10px_rgba(52,211,153,0.15)]' :
+                rate.trend === 'up' ? 'bg-white/5 border-white/10' :
+                rate.trend === 'down' ? 'bg-red-900/10 border-red-500/10' : 'bg-white/10 border-white/5'
+              )}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <p className={`text-[7px] font-black uppercase tracking-widest ${isCurrentCount ? 'text-emerald-300' : 'text-white/30'}`}>{rate.count}/kg</p>
-                  {isCurrentCount && (
-                    <span className="text-[5px] bg-emerald-400/20 text-emerald-300 px-1 py-0.5 rounded-full font-black uppercase tracking-widest border border-emerald-400/20">You</span>
-                  )}
+                  <p className={`text-[7px] font-black uppercase tracking-widest ${isCurrent ? 'text-emerald-300' : 'text-white/30'}`}>{rate.count}/kg</p>
+                  {isCurrent && <span className="text-[5px] bg-emerald-400/20 text-emerald-300 px-1 py-0.5 rounded-full font-black border border-emerald-400/20">You</span>}
                 </div>
-                <p className={`font-black text-base tracking-tighter leading-none ${isCurrentCount ? 'text-emerald-300' : rate.trend === 'up' ? 'text-white' : rate.trend === 'down' ? 'text-red-400' : 'text-white/70'}`}>
+                <p className={`font-black text-base tracking-tighter leading-none ${isCurrent ? 'text-emerald-300' : rate.trend === 'up' ? 'text-white' : rate.trend === 'down' ? 'text-red-400' : 'text-white/70'}`}>
                   ₹{rate.price}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
@@ -932,13 +869,14 @@ const LiveMarketTicker = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-0 border-t border-white/5">
-        {marketRates.slice(0, 6).map((rate, i) => {
-          const isCurrent = estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
+      {/* Footer grid */}
+      <div className="grid grid-cols-4 gap-0 border-t border-white/5">
+        {marketRates.slice(0, 4).map((rate, i) => {
+          const isCur = estimatedCountPerKg <= rate.count + 5 && estimatedCountPerKg >= rate.count - 5;
           return (
-            <div key={i} className={`px-2 py-2.5 text-center border-r border-b border-white/5 last:border-r-0 ${isCurrent ? 'bg-emerald-500/10' : ''}`}>
-              <p className={`text-[7px] font-black uppercase tracking-widest ${isCurrent ? 'text-emerald-400' : 'text-white/20'}`}>{rate.count}/kg</p>
-              <p className={`font-black text-xs tracking-tighter mt-0.5 ${isCurrent ? 'text-emerald-300' : 'text-white/60'}`}>₹{rate.price}</p>
+            <div key={i} className={`px-2 py-2.5 text-center border-r last:border-r-0 border-white/5 ${isCur ? 'bg-emerald-500/10' : ''}`}>
+              <p className={`text-[7px] font-black uppercase tracking-widest ${isCur ? 'text-emerald-400' : 'text-white/20'}`}>{rate.count}/kg</p>
+              <p className={`font-black text-xs tracking-tighter mt-0.5 ${isCur ? 'text-emerald-300' : 'text-white/60'}`}>₹{rate.price}</p>
             </div>
           );
         })}
