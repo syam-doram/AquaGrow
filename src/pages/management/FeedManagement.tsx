@@ -30,7 +30,7 @@ import { calculateDOC } from '../../utils/pondUtils';
 import { getLunarStatus, MoonPhase } from '../../utils/lunarUtils';
 import { cn } from '../../utils/cn';
 
-// â”€â”€â”€ WEATHER SIMULATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ”€”€”€ WEATHER SIMULATION ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
 const getSimulatedWeather = () => {
   const hour = new Date().getHours();
   const month = new Date().getMonth() + 1;
@@ -43,7 +43,7 @@ const getSimulatedWeather = () => {
   return { temp, humidity, windSpeed, isRaining, doLevel };
 };
 
-// â”€â”€â”€ EXACT FARMER SOP LOGIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ”€”€”€ EXACT FARMER SOP LOGIC ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
 const getSopData = (doc: number) => {
   const survivalPct = Math.max(0.80, 1 - (doc * 0.002));
   let avgWeightG = 0;
@@ -109,7 +109,7 @@ const buildFeedSlots = (count: number, t: Translations) => {
 interface Adjustment { factor: number; label: string; reason: string; color: string; bg: string; icon: React.ElementType; }
 const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPhase: MoonPhase, t: Translations): Adjustment[] => {
   const adj: Adjustment[] = [];
-  if (weather.temp >= 34) adj.push({ factor: 0.80, label: `${t.heatStress} -20%`, reason: `Temp ${weather.temp}Â°C limits digestion`, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: Thermometer });
+  if (weather.temp >= 34) adj.push({ factor: 0.80, label: `${t.heatStress} -20%`, reason: `Temp ${weather.temp}°C limits digestion`, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: Thermometer });
   if (weather.isRaining) adj.push({ factor: 0.85, label: `${t.rainEvent} -15%`, reason: 'Rain lowers dissolved oxygen', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Droplets });
   
   if (lunarPhase === 'AMAVASYA') adj.push({ factor: 0.75, label: `ðŸŒ‘ Amavasya -25%`, reason: 'High mass molting energy demand', color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20', icon: Zap });
@@ -142,7 +142,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
   
 
-  // â”€â”€ toggleSlot is defined further below after computed values â”€â”€
+  // ”€”€ toggleSlot is defined further below after computed values ”€”€
   // (biomassKg, totalFeedConsumed, combinedFactor need to be in scope)
 
   const sop = useMemo(() => getSopData(currentDoc), [currentDoc]);
@@ -170,7 +170,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const countdownH = Math.floor(diffMs / (1000 * 60 * 60));
   const countdownM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-  // â”€â”€ FCR gauge & compliance for current pond
+  // ”€”€ FCR gauge & compliance for current pond
   const pondFeedLogs = feedLogs.filter(l => l.pondId === selectedPondId);
   const totalFeedConsumed = pondFeedLogs.reduce((a, l) => a + l.quantity, 0);
   const fcrValue = biomassKg > 0 ? totalFeedConsumed / biomassKg : 0;
@@ -184,7 +184,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const slotsCompleted = syncedSlots.length;
   const isCriticalStage = currentDoc >= 31 && currentDoc <= 45;
 
-  // â”€â”€ Daily Sequence slot log handler (needs biomassKg, totalFeedConsumed, combinedFactor) â”€â”€â”€â”€â”€
+  // ”€”€ Daily Sequence slot log handler (needs biomassKg, totalFeedConsumed, combinedFactor) ”€”€”€”€”€
   const toggleSlot = async (slotTime: string, kg: string, slotLabel: string) => {
     if (syncedSlots.includes(slotTime) || !selectedPond) return;
     const feedKg = Number(kg);
@@ -207,7 +207,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         doc:              currentDoc,
         fcr:              parseFloat(runningFCR.toFixed(3)),
         adjustmentFactor: parseFloat(combinedFactor.toFixed(3)),
-        notes:            `Daily Sequence: ${slotLabel} (${slotTime}) â€” ${feedKg}kg ${profile.no} @ â‚¹${feedPricePerKg}/kg = â‚¹${slotCost}. DOC ${currentDoc}. Adj: ${combinedFactor.toFixed(2)}.`,
+        notes:            `Daily Sequence: ${slotLabel} (${slotTime}) -” ${feedKg}kg ${profile.no} @ ‚¹${feedPricePerKg}/kg = ‚¹${slotCost}. DOC ${currentDoc}. Adj: ${combinedFactor.toFixed(2)}.`,
       } as any);
     }
     setSyncedSlots(prev => [...prev, slotTime]);
@@ -217,15 +217,16 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
   return (
     <div className="pb-32 min-h-[100dvh] font-sans relative overflow-hidden transition-colors duration-500"
-      style={{ background: isDark ? '#030E1B' : '#F4F7FA' }}>
+      style={{ background: isDark ? '#010C14' : '#EEF4F0' }}>
 
       {/* Ambient Blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className={cn("absolute -top-20 -right-20 w-80 h-80 rounded-full blur-[140px]", isDark ? "bg-emerald-600/12" : "bg-emerald-400/10")} />
-        <div className={cn("absolute bottom-20 -left-20 w-72 h-72 rounded-full blur-[140px]", isDark ? "bg-blue-500/10" : "bg-blue-400/8")} />
+        <div className={cn("absolute -top-20 -right-20 w-96 h-96 rounded-full blur-[160px]", isDark ? "bg-emerald-600/15" : "bg-emerald-400/12")} />
+        <div className={cn("absolute bottom-20 -left-20 w-80 h-80 rounded-full blur-[140px]", isDark ? "bg-teal-500/10" : "bg-blue-400/8")} />
+        <div className={cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-[120px]", isDark ? "bg-emerald-900/20" : "bg-emerald-100/60")} />
       </div>
 
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* ”€”€ Header ”€”€ */}
       <header className={cn(
         "fixed top-0 left-0 right-0 max-w-[420px] mx-auto z-50 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-3",
         "flex items-center justify-between border-b backdrop-blur-xl transition-all",
@@ -238,7 +239,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         </motion.button>
         <div className="text-center">
           <h1 className={cn("text-[11px] font-black tracking-widest uppercase", isDark ? "text-white" : "text-slate-900")}>Feed Intelligence</h1>
-          <p className={cn("text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5", isDark ? "text-emerald-400/70" : "text-emerald-600")}>SOP-Driven Â· DOC Auto-Calculated</p>
+          <p className={cn("text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5", isDark ? "text-emerald-400/70" : "text-emerald-600")}>SOP-Driven &bull; DOC Auto-Calculated</p>
         </div>
         <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center border",
           isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}>
@@ -248,7 +249,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
       <div className="pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[420px] mx-auto relative z-10 space-y-4">
 
-        {/* â”€â”€ Pond Tabs â”€â”€ */}
+        {/* ”€”€ Pond Tabs ”€”€ */}
         {ponds.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none no-scrollbar">
             {ponds.map(p => (
@@ -272,7 +273,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           </div>
 
         ) : selectedPond.status === 'planned' ? (
-          /* â”€â”€ Pre-Stocking â”€â”€ */
+          /* ”€”€ Pre-Stocking ”€”€ */
           <div className={cn("rounded-[2rem] p-5 border space-y-4 relative overflow-hidden",
             isDark ? "bg-white/[0.03] border-white/8" : "bg-white border-slate-100 shadow-sm")}>
             <div className="absolute -top-8 -right-8 opacity-[0.04]"><Leaf size={160} /></div>
@@ -293,19 +294,19 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
             {/* Starter Feed Specs */}
             <div className={cn("p-4 rounded-2xl border space-y-2", isDark ? "bg-blue-500/5 border-blue-500/15" : "bg-blue-50 border-blue-100")}>
-              <p className={cn("text-[8px] font-black uppercase tracking-widest mb-2", isDark ? "text-blue-400" : "text-blue-700")}>ðŸŒ¾ Required Starter Feed</p>
+              <p className={cn("text-[8px] font-black uppercase tracking-widest mb-2", isDark ? "text-blue-400" : "text-blue-700")}> Required Starter Feed</p>
               {(selectedPond.species === 'Tiger' ? [
                 { label: 'Feed Type', value: 'Crumble No.1 (Tiger)' },
                 { label: 'Protein', value: '42% minimum' },
-                { label: 'Pellet Size', value: '0.4 â€“ 0.6 mm' },
-                { label: 'Daily Rate', value: '1.2â€“1.5 kg/acre/day' },
-                { label: 'Frequency', value: '4Ã— daily (blind feed)' },
+                { label: 'Pellet Size', value: '0.4 -“ 0.6 mm' },
+                { label: 'Daily Rate', value: '1.2-“1.5 kg/acre/day' },
+                { label: 'Frequency', value: '4x daily (blind feed)' },
               ] : [
                 { label: 'Feed Type', value: 'Crumble No.1 (Vannamei)' },
                 { label: 'Protein', value: '40% minimum' },
-                { label: 'Pellet Size', value: '0.4 â€“ 0.8 mm' },
-                { label: 'Daily Rate', value: '1.0â€“1.5 kg/acre/day' },
-                { label: 'Frequency', value: '4Ã— daily (blind feed)' },
+                { label: 'Pellet Size', value: '0.4 -“ 0.8 mm' },
+                { label: 'Daily Rate', value: '1.0-“1.5 kg/acre/day' },
+                { label: 'Frequency', value: '4x daily (blind feed)' },
               ]).map((item, i) => (
                 <div key={i} className="flex justify-between items-center py-1 border-b border-blue-200/20 last:border-0">
                   <span className={cn("text-[9px] font-bold", isDark ? "text-white/40" : "text-slate-500")}>{item.label}</span>
@@ -319,9 +320,9 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               <p className={cn("text-[8px] font-black uppercase tracking-widest mb-2", isDark ? "text-emerald-400" : "text-emerald-700")}>ðŸ“… First 30 Days Transition</p>
               <div className="space-y-2">
                 {[
-                  { phase: 'DOC 1â€“3', feed: 'Blind Feed Â· Scatter evenly', type: 'Crumble No.1' },
-                  { phase: 'DOC 4â€“15', feed: 'Crumble + Start tray checks', type: '40%+ protein' },
-                  { phase: 'DOC 16â€“30', feed: 'Pellet No.2 Â· 3-day transition', type: '38% protein' },
+                  { phase: 'DOC 1-“3', feed: 'Blind Feed · Scatter evenly', type: 'Crumble No.1' },
+                  { phase: 'DOC 4-“15', feed: 'Crumble + Start tray checks', type: '40%+ protein' },
+                  { phase: 'DOC 16-“30', feed: 'Pellet No.2 · 3-day transition', type: '38% protein' },
                 ].map((row, i) => (
                   <div key={i} className={cn("flex items-center justify-between p-2.5 rounded-xl",
                     isDark ? "bg-black/20" : "bg-white/70")}>
@@ -344,7 +345,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               </button>
               <button onClick={() => navigate('/ponds')}
                 className="flex-1 py-3 bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-indigo-500/20">
-                Set Stocking Date â†’
+                Set Stocking Date †’
               </button>
             </div>
           </div>
@@ -353,25 +354,27 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           <AnimatePresence mode="wait">
             <motion.div key={selectedPond.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
 
-              {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+              {/* ••••••••••••••••••••••••••••••••••
                   HERO COMMAND CARD
-              â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+              •••••••••••••••••••••••••••••••••• */}
               <div className="rounded-[2rem] overflow-hidden shadow-2xl relative"
-                style={{ background: 'linear-gradient(135deg, #054830 0%, #065F46 45%, #059669 100%)' }}>
-                {/* Pattern bg */}
-                <div className="absolute inset-0 opacity-[0.04]"
-                  style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
-                <div className="absolute -bottom-12 -right-12 w-56 h-56 bg-white/5 blur-[60px] rounded-full" />
+                style={{ background: 'linear-gradient(135deg, #022C1E 0%, #064E3B 40%, #047857 80%, #059669 100%)' }}>
+                {/* Mesh pattern */}
+                <div className="absolute inset-0 opacity-[0.05]"
+                  style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                {/* Glow orbs */}
+                <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-emerald-400/10 blur-[80px] rounded-full" />
+                <div className="absolute top-4 left-8 w-32 h-32 bg-teal-300/5 blur-[60px] rounded-full" />
 
                 <div className="relative z-10 p-5">
                   {/* Top row */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <p className="text-[7.5px] font-black text-emerald-200/60 uppercase tracking-[0.25em] mb-0.5">
-                        {selectedPond.name} Â· DOC {currentDoc}
+                        {selectedPond.name} . DOC {currentDoc}
                       </p>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-5xl font-black text-white tracking-tighter leading-none">{adjustedDailyKg}</span>
+                        <span className="text-5xl font-black text-white tracking-tighter leading-none" style={{textShadow:'0 2px 20px rgba(52,211,153,0.3)'}}>{adjustedDailyKg}</span>
                         <span className="text-base text-emerald-300 font-black">kg/day</span>
                       </div>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -402,13 +405,13 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-xl font-black text-white leading-none">{fcrValue > 0 ? fcrValue.toFixed(1) : 'â€”'}</span>
+                          <span className="text-xl font-black text-white leading-none">{fcrValue > 0 ? fcrValue.toFixed(1) : '-”'}</span>
                           <span className="text-[6px] font-black text-emerald-300/60 uppercase tracking-widest">FCR</span>
                         </div>
                       </div>
                       <span className={cn("text-[7px] font-black uppercase tracking-widest",
                         fcrCritical ? 'text-red-300' : fcrWarning ? 'text-amber-300' : 'text-emerald-300')}>
-                        {fcrCritical ? 'âš  High' : fcrWarning ? 'â— Watch' : 'âœ“ Good'}
+                        {fcrCritical ? 'š  High' : fcrWarning ? '● Watch' : 'œ“ Good'}
                       </span>
                     </div>
                   </div>
@@ -443,7 +446,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                   <div className="mt-3">
                     <div className="flex justify-between items-center mb-1">
                       <p className="text-[7.5px] font-black text-emerald-200/50 uppercase tracking-widest">Today's Compliance</p>
-                      <p className="text-[8.5px] font-black text-white/80">{slotsCompleted}/{feedSlots.length} slots Â· {todayCompliance}%</p>
+                      <p className="text-[8.5px] font-black text-white/80">{slotsCompleted}/{feedSlots.length} slots &bull; {todayCompliance}%</p>
                     </div>
                     <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                       <motion.div
@@ -464,7 +467,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                   <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-red-400' : 'text-red-700')}>
-                      WSSV Risk Â· DOC {currentDoc} â€” Critical Window
+                      WSSV Risk · DOC {currentDoc} -” Critical Window
                     </p>
                     <p className={cn('text-[8px] font-medium mt-0.5 leading-snug', isDark ? 'text-red-300/60' : 'text-red-600/70')}>
                       Reduce feed 10% if tail redness observed. Monitor tray residue closely after each slot.
@@ -473,7 +476,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 </motion.div>
               )}
 
-              {/* â•â• TABS â•â• */}
+              {/* •• TABS •• */}
               <div className={cn("flex p-1 rounded-2xl border gap-1",
                 isDark ? "bg-white/5 border-white/8" : "bg-slate-100/80 border-slate-200")}>
                 {(['schedule', 'sow', 'fcr'] as const).map(tab => (
@@ -483,14 +486,14 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                         ? isDark ? "bg-white/12 text-white shadow-sm" : "bg-white text-emerald-700 shadow-md"
                         : isDark ? "text-white/35 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
                     )}>
-                    {tab === 'schedule' ? 'ðŸŒ¿ Daily Plan' : tab === 'sow' ? 'ðŸ“‹ SOP Data' : 'ðŸ“ˆ FCR Track'}
+                    {tab === 'schedule' ? 'Daily Plan' : tab === 'sow' ? 'SOP Data' : 'FCR Track'}
                   </button>
                 ))}
               </div>
 
-              {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+              {/* ••••••••••••••••••••••••••••••••••
                   TAB: DAILY PLAN (SCHEDULE)
-              â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+              •••••••••••••••••••••••••••••••••• */}
               {activeTab === 'schedule' && (
                 <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
 
@@ -538,10 +541,10 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                     </div>
                   </div>
 
-                  {/* â”€â”€ Daily Sequence Slots â”€â”€ */}
+                  {/* ”€”€ Daily Sequence Slots ”€”€ */}
                   <div>
                     <p className={cn("text-[8px] font-black uppercase tracking-widest px-1 mb-2",
-                      isDark ? "text-white/30" : "text-slate-400")}>Daily Sequence Â· {feedSlots.length} slots</p>
+                      isDark ? "text-white/30" : "text-slate-400")}>Daily Sequence &bull; {feedSlots.length} slots</p>
                     <div className="space-y-2">
                       {feedSlots.map((slot, i) => {
                         const isNow = now.getHours() === slot.hour;
@@ -552,28 +555,34 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                           <motion.div key={i}
                             initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.04 }}
-                            className={cn("rounded-[1.6rem] border overflow-hidden transition-all",
+                            className={cn("rounded-[1.6rem] border overflow-hidden transition-all duration-200",
                               isSynced
-                                ? isDark ? "bg-emerald-500/8 border-emerald-500/25" : "bg-emerald-50 border-emerald-200"
+                                ? isDark
+                                  ? "bg-gradient-to-r from-emerald-900/30 to-emerald-800/20 border-emerald-500/30 shadow-md shadow-emerald-900/20"
+                                  : "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-300 shadow-sm"
                                 : isNow
-                                ? isDark ? "bg-[#0A1628] border-[#059669]/40" : "bg-white border-emerald-300 shadow-md"
+                                ? isDark
+                                  ? "bg-[#0A1E14] border-emerald-600/50 shadow-lg shadow-emerald-900/20"
+                                  : "bg-white border-emerald-400 shadow-md shadow-emerald-100"
+                                : isPast
+                                ? isDark ? "bg-red-950/20 border-red-800/20" : "bg-red-50/50 border-red-200/60"
                                 : isDark ? "bg-white/[0.03] border-white/8" : "bg-white border-slate-100 shadow-sm"
                             )}>
                             {/* Main row */}
                             <div className="flex items-center gap-3 px-4 py-3">
                               {/* Tap button */}
-                              <motion.button whileTap={{ scale: 0.85 }}
+                              <motion.button whileTap={{ scale: 0.82 }}
                                 onClick={() => toggleSlot(slot.time, kgPerSlot, slot.label)}
-                                className={cn("w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all",
+                                className={cn("w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-sm",
                                   isSynced
-                                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+                                    ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/40"
                                     : isNow
-                                    ? "bg-[#059669] text-white shadow-md shadow-emerald-700/30"
+                                    ? "bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-700/40"
                                     : isPast
-                                    ? "bg-red-400/80 text-white"
+                                    ? "bg-gradient-to-br from-red-400 to-rose-500 text-white shadow-sm"
                                     : isDark
-                                    ? "bg-white/8 border border-white/10 text-white/40 hover:bg-white/15"
-                                    : "bg-slate-100 border border-slate-200 text-slate-400 hover:border-emerald-400 hover:bg-emerald-50"
+                                    ? "bg-white/8 border border-white/10 text-white/40 hover:bg-emerald-900/30 hover:border-emerald-600/30 hover:text-emerald-400"
+                                    : "bg-slate-100 border border-slate-200 text-slate-400 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-600"
                                 )}>
                                 {isSynced ? <CheckCircle2 size={17} /> : <Clock size={16} />}
                               </motion.button>
@@ -595,7 +604,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                                     <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-500 border border-red-500/20 text-[6.5px] font-black uppercase tracking-widest">Missed</span>
                                   )}
                                   {isSynced && (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[6.5px] font-black uppercase tracking-widest">Logged âœ“</span>
+                                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[6.5px] font-black uppercase tracking-widest">Logged œ“</span>
                                   )}
                                 </div>
                                 <p className={cn("text-[8px] font-bold", isDark ? "text-white/30" : "text-slate-400")}>{slot.time}</p>
@@ -636,9 +645,9 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 </motion.div>
               )}
 
-              {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+              {/* ••••••••••••••••••••••••••••••••••
                   TAB: SOP DATA
-              â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+              •••••••••••••••••••••••••••••••••• */}
               {activeTab === 'sow' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                   <div className={cn("rounded-[2rem] border p-5 space-y-0",
@@ -668,7 +677,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                       </div>
                       <p className={cn("text-[7px] font-bold mt-1.5",
                         isDark ? "text-white/25" : "text-slate-400")}>
-                        Formula: (Stock Ã— SR%) Ã— ABW Ã· 1000
+                        Formula: (Stock x SR%) x ABW / 1000
                       </p>
                     </div>
                   </div>
@@ -676,26 +685,26 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                   <div className={cn("rounded-[2rem] border p-5",
                     isDark ? "bg-blue-500/5 border-blue-500/15" : "bg-blue-50 border-blue-100")}>
                     <p className={cn("text-[8px] font-black uppercase tracking-widest mb-2",
-                      isDark ? "text-blue-400" : "text-blue-700")}>Feed Rate Formula Â· DOC {currentDoc}</p>
+                      isDark ? "text-blue-400" : "text-blue-700")}>Feed Rate Formula &bull; DOC {currentDoc}</p>
                     <p className={cn("text-[11px] font-black leading-snug",
                       isDark ? "text-white/70" : "text-slate-700")}>
                       {sop.feedRatePct > 0
-                        ? `${biomassKg}kg biomass Ã— ${sop.feedRatePct}% feed rate = ${rawDailyKg}kg raw`
+                        ? `${biomassKg}kg biomass x ${sop.feedRatePct}% feed rate = ${rawDailyKg}kg raw`
                         : `Blind feed phase: flat ${sop.staticKg}kg/day`}
                     </p>
                     {combinedFactor !== 1.0 && (
                       <p className={cn("text-[9px] font-black mt-2",
                         isDark ? "text-amber-400" : "text-amber-700")}>
-                        After adjustments: {rawDailyKg}kg Ã— {combinedFactor.toFixed(2)} = <strong>{adjustedDailyKg}kg</strong>
+                        After adjustments: {rawDailyKg}kg x {combinedFactor.toFixed(2)} = <strong>{adjustedDailyKg}kg</strong>
                       </p>
                     )}
                   </div>
                 </motion.div>
               )}
 
-              {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+              {/* ••••••••••••••••••••••••••••••••••
                   TAB: FCR TRACK
-              â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+              •••••••••••••••••••••••••••••••••• */}
               {activeTab === 'fcr' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
 
@@ -709,7 +718,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                         isDark ? "text-white/30" : "text-slate-400")}>Live Feed Conversion Ratio</p>
                       <div className={cn("text-7xl font-black tracking-tighter mb-2",
                         fcrCritical ? 'text-red-500' : fcrWarning ? 'text-amber-500' : isDark ? 'text-emerald-400' : 'text-emerald-600')}>
-                        {fcrValue > 0 ? fcrValue.toFixed(2) : 'â€”'}
+                        {fcrValue > 0 ? fcrValue.toFixed(2) : '-”'}
                       </div>
                       <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[8.5px] font-black",
                         fcrCritical
@@ -717,7 +726,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                           : fcrWarning
                           ? isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'
                           : isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700')}>
-                        {fcrCritical ? 'âš  High FCR â€” Check overfeeding' : fcrWarning ? 'â— Monitor closely' : 'âœ“ Excellent efficiency'}
+                        {fcrCritical ? 'š  High FCR -” Check overfeeding' : fcrWarning ? '● Monitor closely' : 'œ“ Excellent efficiency'}
                       </div>
                     </div>
                   </div>
@@ -746,8 +755,8 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                     <div className="space-y-2">
                       {[
                         { range: '< 1.3', label: 'Excellent', color: 'bg-emerald-500', active: fcrValue < 1.3 && fcrValue > 0 },
-                        { range: '1.3 â€“ 1.6', label: 'Normal', color: 'bg-amber-400', active: fcrValue >= 1.3 && fcrValue < 1.7 },
-                        { range: '> 1.7', label: 'High â€” Review feed', color: 'bg-red-500', active: fcrValue >= 1.7 },
+                        { range: '1.3 -“ 1.6', label: 'Normal', color: 'bg-amber-400', active: fcrValue >= 1.3 && fcrValue < 1.7 },
+                        { range: '> 1.7', label: 'High -” Review feed', color: 'bg-red-500', active: fcrValue >= 1.7 },
                       ].map((r, i) => (
                         <div key={i} className={cn("flex items-center gap-3 p-2.5 rounded-xl border transition-all",
                           r.active
@@ -779,7 +788,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                                 {(log as any).slotLabel || new Date(log.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
                               </p>
                               <p className={cn("text-[7px] font-bold", isDark ? "text-white/25" : "text-slate-400")}>
-                                {(log as any).feedNo || 'Feed'} Â· {new Date(log.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
+                                {(log as any).feedNo || 'Feed'} &bull; {new Date(log.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
                               </p>
                             </div>
                             <span className={cn("text-[11px] font-black", isDark ? "text-emerald-400" : "text-emerald-600")}>+{log.quantity}kg</span>
@@ -803,3 +812,4 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 const Users_FallbackIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
 );
+
