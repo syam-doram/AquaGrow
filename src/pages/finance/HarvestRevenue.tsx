@@ -1,310 +1,638 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronLeft, 
-  TrendingUp, 
-  Download, 
-  CheckCircle2, 
-  Clock, 
-  Building2, 
-  History,
-  FileText,
-  ShieldCheck,
-  Scale,
-  Fish,
-  Calendar,
-  IndianRupee,
-  Star,
-  ChevronRight
+import {
+  ChevronLeft, CheckCircle2, Clock, ShieldCheck,
+  Scale, Fish, Calendar, IndianRupee, TrendingUp,
+  TrendingDown, Star, Award, Layers, Package,
+  ArrowUpRight, ArrowDownRight, Home, Users,
+  BarChart2, Target, Percent, X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, Tooltip, CartesianGrid,
+  BarChart, Bar, Cell,
+} from 'recharts';
 import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
 import type { Translations } from '../../translations';
 
+// ─── helpers ─────────────────────────────────────────────────────────────────
+const n = (v: any) => parseFloat(v) || 0;
+const currency = (v: number) =>
+  v >= 100000
+    ? `₹${(v / 100000).toFixed(2)}L`
+    : v >= 1000
+    ? `₹${(v / 1000).toFixed(1)}K`
+    : `₹${Math.round(v)}`;
 
-// ─── SETTLEMENT DETAIL SHEET ───────────────────────────────────────────────
-const SettlementDetailSheet = ({ entry, onClose, t }: { entry: any, onClose: () => void, t: Translations }) => {
-  const n = (v: any) => parseFloat(v) || 0;
+const fmt = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+  } catch {
+    return iso;
+  }
+};
+
+// ─── STATUS config ────────────────────────────────────────────────────────────
+const statusConfig = (harvestType: string, isDark: boolean) => {
+  if (harvestType === 'self') return {
+    label: 'Self Harvest',
+    icon: Home,
+    color: 'text-amber-400',
+    bg: isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200',
+    fill: '#f59e0b',
+  };
+  return {
+    label: 'Market Sale',
+    icon: Users,
+    color: 'text-emerald-400',
+    bg: isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200',
+    fill: '#10b981',
+  };
+};
+
+// ─── ROI badge helper ─────────────────────────────────────────────────────────
+const roiBadge = (roi: number) => {
+  if (roi >= 30) return { label: 'Excellent', color: '#10b981' };
+  if (roi >= 15) return { label: 'Good', color: '#f59e0b' };
+  if (roi >= 0)  return { label: 'Break-even', color: '#94a3b8' };
+  return { label: 'Loss', color: '#ef4444' };
+};
+
+// ─── MINI RING ────────────────────────────────────────────────────────────────
+const MiniRing = ({ pct, fill, size = 36 }: { pct: number; fill: string; size?: number }) => {
+  const r = 14, circ = 2 * Math.PI * r;
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-end"
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: "spring", damping: 28, stiffness: 320 }}
-        className="w-full max-w-md mx-auto bg-[#051F19] rounded-t-[3rem] p-6 pb-12 shadow-2xl border-t border-white/10"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="w-12 h-1.5 bg-card/20 rounded-full mx-auto mb-8" />
-        
-        <div className="flex items-center gap-4 mb-8">
-           <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 size={24} />
-           </div>
-           <div>
-              <p className="text-emerald-500/60 text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t.settledAndVerified}</p>
-              <h3 className="text-white text-xl font-black tracking-tighter">{t.harvest} {t.payment}</h3>
-           </div>
+    <svg width={size} height={size} viewBox="0 0 36 36" className="-rotate-90">
+      <circle cx={18} cy={18} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={3} />
+      <motion.circle cx={18} cy={18} r={r} fill="none" stroke={fill} strokeWidth={3}
+        strokeLinecap="round" strokeDasharray={circ}
+        initial={{ strokeDashoffset: circ }}
+        animate={{ strokeDashoffset: circ - (Math.min(100, Math.max(0, pct)) / 100) * circ }}
+        transition={{ duration: 1.1, ease: 'easeOut' }} />
+    </svg>
+  );
+};
+
+// ─── DETAIL BOTTOM SHEET ──────────────────────────────────────────────────────
+const DetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () => void; isDark: boolean }) => {
+  const st = statusConfig(entry.harvestType || 'market', isDark);
+  const roi = n(entry.roi);
+  const badge = roiBadge(roi);
+  const netProfit = n(entry.netProfit);
+  const totalRevenue = n(entry.totalRevenue || entry.saleAmountTotal);
+  const totalInvested = n(entry.totalInvested);
+
+  const rows = [
+    { label: 'Buyer / Method', value: entry.buyerName || (entry.harvestType === 'self' ? 'Self Harvest' : 'Market Sale') },
+    { label: 'Harvest Date', value: fmt(entry.harvestDate || entry.savedAt) },
+    { label: 'Pond', value: entry.pondId || '--' },
+    { label: 'Weight Sold', value: `${n(entry.harvestWeightKg).toLocaleString('en-IN')} kg` },
+    { label: 'Count / kg', value: entry.countPerKg ? `${entry.countPerKg}/kg` : '--' },
+    { label: 'Rate / kg', value: entry.pricePerKg ? `₹${n(entry.pricePerKg).toLocaleString('en-IN')}` : '--' },
+    { label: 'Culture Days', value: entry.cultureDays ? `${entry.cultureDays} DOC` : '--' },
+    { label: 'Survival Rate', value: entry.survivalRate ? `${entry.survivalRate}%` : '--' },
+  ];
+
+  const costBreakdown = [
+    { label: 'Seed', value: n(entry.seedCost), fill: '#10b981' },
+    { label: 'Feed', value: n(entry.feedCost), fill: '#f59e0b' },
+    { label: 'Medicine', value: n(entry.medicineCost), fill: '#3b82f6' },
+    { label: 'Labour', value: n(entry.laborCost), fill: '#f97316' },
+    { label: 'Utilities', value: n(entry.utilityCost), fill: '#a855f7' },
+    { label: 'Other', value: n(entry.otherCost) + n(entry.infrastructureCost), fill: '#94a3b8' },
+  ].filter(c => c.value > 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end"
+      onClick={onClose}>
+      <motion.div
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        className="w-full max-w-[480px] mx-auto rounded-t-[2.5rem] border-t shadow-2xl max-h-[88vh] overflow-y-auto"
+        style={{ background: isDark ? '#051F19' : '#fff', borderColor: isDark ? 'rgba(16,185,129,0.15)' : '#e2e8f0' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Handle */}
+        <div className="w-10 h-1.5 rounded-full mx-auto mt-4 mb-5" style={{ background: isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0' }} />
+
+        {/* Header */}
+        <div className="px-6 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center border', st.bg)}>
+              <st.icon size={18} style={{ color: st.fill }} />
+            </div>
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: st.fill }}>{st.label}</p>
+              <h3 className={cn('text-base font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+                Harvest Settlement
+              </h3>
+            </div>
+          </div>
+          <button onClick={onClose}
+            className={cn('w-8 h-8 rounded-xl flex items-center justify-center', isDark ? 'bg-white/8 text-white/50' : 'bg-slate-100 text-slate-500')}>
+            <X size={14} />
+          </button>
         </div>
 
-        <div className="bg-[#02130F] rounded-[2rem] p-6 border border-white/5 mb-6">
-           <p className="text-white/30 text-[9px] font-black uppercase tracking-widest text-center mb-1">{t.totalReceivedAmount}</p>
-           <p className="text-4xl font-black text-[#EAB308] tracking-tighter text-center">₹{n(entry.totalRevenue).toLocaleString()}</p>
+        {/* Revenue hero */}
+        <div className="mx-6 mb-5 rounded-[1.8rem] p-4 text-center relative overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${isDark ? '#022C1E' : '#ecfdf5'}, ${isDark ? '#064E3B' : '#d1fae5'})`, border: `1px solid ${isDark ? 'rgba(16,185,129,0.2)' : '#a7f3d0'}` }}>
+          <p className={cn('text-[7.5px] font-black uppercase tracking-[0.3em] mb-1', isDark ? 'text-emerald-400/60' : 'text-emerald-700')}>
+            Total Revenue
+          </p>
+          <p className="text-3xl font-black tracking-tighter" style={{ color: isDark ? '#34d399' : '#059669' }}>
+            {currency(totalRevenue)}
+          </p>
+          <div className="flex items-center justify-center gap-3 mt-3 pt-3" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
+            <div>
+              <p className="text-[7px] font-black uppercase tracking-widest" style={{ color: badge.color }}>{badge.label}</p>
+              <p className="text-sm font-black" style={{ color: badge.color }}>ROI {roi.toFixed(1)}%</p>
+            </div>
+            <div className={cn('w-px h-8', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+            <div>
+              <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>Net Profit</p>
+              <p className={cn('text-sm font-black', netProfit >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                {netProfit >= 0 ? '+' : ''}{currency(netProfit)}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-4 mb-8">
-           <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.buyerEntity}</span>
-              <span className="text-white text-sm font-black">{entry.buyerName || 'Local Trader'}</span>
-           </div>
-           <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.saleDate}</span>
-              <span className="text-white text-sm font-black">{entry.harvestDate}</span>
-           </div>
-           <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.totalHarvestWeight}</span>
-              <span className="text-emerald-500 text-sm font-black">{n(entry.harvestWeightKg).toLocaleString()} kg</span>
-           </div>
-           <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.countSize}</span>
-              <span className="text-[#EAB308] text-sm font-black">{entry.countPerKg || '--'} /kg</span>
-           </div>
-           <div className="flex justify-between items-center py-3 border-b border-white/5">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{t.baseRate}</span>
-              <span className="text-white text-sm font-black">₹{n(entry.pricePerKg).toLocaleString()}/kg</span>
-           </div>
+        {/* Details rows */}
+        <div className="mx-6 mb-5 rounded-[1.6rem] border overflow-hidden"
+          style={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', background: isDark ? 'rgba(255,255,255,0.02)' : '#fff' }}>
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-center justify-between px-4 py-3"
+              style={{ borderBottom: i < rows.length - 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'}` : 'none' }}>
+              <span className={cn('text-[8.5px] font-black uppercase tracking-widest', isDark ? 'text-white/35' : 'text-slate-400')}>{r.label}</span>
+              <span className={cn('text-[10px] font-black', isDark ? 'text-white/80' : 'text-slate-800')}>{r.value}</span>
+            </div>
+          ))}
         </div>
 
-        <button 
-          onClick={onClose}
-          className="w-full py-5 bg-card/5 text-white rounded-[1.8rem] border border-white/5 font-black text-[10px] uppercase tracking-widest hover:bg-card/10 transition-all"
-        >
-          {t.closeLedger}
-        </button>
+        {/* Cost mini breakdown */}
+        {costBreakdown.length > 0 && (
+          <div className="mx-6 mb-6">
+            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-3', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Cost Breakdown
+            </p>
+            <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-3">
+              {costBreakdown.map((c, i) => (
+                <motion.div key={i}
+                  initial={{ width: 0 }} animate={{ width: `${Math.round((c.value / totalInvested) * 100)}%` }}
+                  transition={{ duration: 0.8, delay: i * 0.08, ease: 'easeOut' }}
+                  className="h-full rounded-sm" style={{ background: c.fill }} />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {costBreakdown.map((c, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ background: c.fill }} />
+                  <span className={cn('text-[7px] font-black', isDark ? 'text-white/30' : 'text-slate-400')}>
+                    {c.label} {currency(c.value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mx-6 mb-8">
+          <button onClick={onClose}
+            className="w-full py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest transition-all"
+            style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}` }}>
+            Close
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
 };
 
-// ─── MAIN PAGE COMPONENT ───────────────────────────────────────────────────
-export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations, onMenuClick?: () => void }) => {
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClick?: () => void }) => {
   const navigate = useNavigate();
+  const { roiEntries, ponds, theme } = useData();
+  const isDark = theme === 'dark' || theme === 'midnight';
+
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'market' | 'self'>('all');
 
-  // Load from DB-backed ROI entries via DataContext
-  const { roiEntries } = useData();
-  const savedEntries = useMemo(() => roiEntries || [], [roiEntries]);
+  const entries: any[] = useMemo(() => (roiEntries || []).slice().reverse(), [roiEntries]);
 
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const totalCycles   = entries.length;
+  const totalRevenue  = entries.reduce((a, e) => a + n(e.totalRevenue || e.saleAmountTotal), 0);
+  const totalInvested = entries.reduce((a, e) => a + n(e.totalInvested), 0);
+  const totalProfit   = entries.reduce((a, e) => a + n(e.netProfit), 0);
+  const avgROI        = totalCycles > 0 ? entries.reduce((a, e) => a + n(e.roi), 0) / totalCycles : 0;
+  const bestROI       = totalCycles > 0 ? Math.max(...entries.map(e => n(e.roi))) : 0;
+  const totalWeightKg = entries.reduce((a, e) => a + n(e.harvestWeightKg), 0);
+  const avgPricePerKg = totalWeightKg > 0 ? totalRevenue / totalWeightKg : 0;
 
-  const n = (v: any) => parseFloat(v) || 0;
+  // ── Trend chart: revenue per cycle ───────────────────────────────────────
+  const trendData = useMemo(() =>
+    entries.slice(-8).map((e, i) => ({
+      label: `C${i + 1}`,
+      revenue: n(e.totalRevenue || e.saleAmountTotal),
+      cost: n(e.totalInvested),
+      profit: n(e.netProfit),
+    })),
+    [entries]);
 
-  // Use the most recent entry for the hero, or a realistic shrimp farming mock
-  const latestEntry = savedEntries.length > 0 ? savedEntries[0] : null;
-  
-  const totalWeight = latestEntry ? n(latestEntry.harvestWeightKg) : 4850;
-  const countSize = latestEntry ? latestEntry.countPerKg : "30";
-  const priceKg = latestEntry ? n(latestEntry.pricePerKg) : 420;
-  const baseRevenue = latestEntry ? n(latestEntry.saleAmountTotal) : totalWeight * priceKg;
-  const subsidyAmount = latestEntry ? n(latestEntry.subsidyAmount) : 45000; // Mock subsidy/bonus
-  
-  const netEarnings = baseRevenue + subsidyAmount;
-  const date = latestEntry ? latestEntry.harvestDate : new Date().toISOString().split('T')[0];
+  // ── Filtered entries ──────────────────────────────────────────────────────
+  const filteredEntries = useMemo(() =>
+    activeFilter === 'all'
+      ? entries
+      : entries.filter(e => (e.harvestType || 'market') === activeFilter),
+    [entries, activeFilter]);
+
+  // ── Harvested ponds for quick stats  ─────────────────────────────────────
+  const harvestedPonds = useMemo(() =>
+    ponds.filter(p => p.status === 'harvested'),
+    [ponds]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="rounded-xl border px-3 py-2 shadow-xl text-xs"
+        style={{ background: isDark ? '#051F19' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0' }}>
+        <p className="font-black uppercase tracking-widest text-[8px] mb-1" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8' }}>{label}</p>
+        {payload.map((p: any, i: number) => (
+          <p key={i} className="font-black text-[10px]" style={{ color: p.color }}>
+            {p.name}: {currency(p.value)}
+          </p>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="pb-[180px] bg-[#02130F] min-h-[100dvh] text-left font-sans text-white">
-      
+    <div className={cn('pb-40 min-h-[100dvh] font-sans relative', isDark ? 'bg-[#010C14]' : 'bg-[#EEF4F0]')}>
+
+      {/* Ambient */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className={cn('absolute -top-24 -right-16 w-80 h-80 rounded-full blur-[150px]', isDark ? 'bg-emerald-600/10' : 'bg-emerald-400/12')} />
+        <div className={cn('absolute bottom-32 -left-16 w-72 h-72 rounded-full blur-[130px]', isDark ? 'bg-teal-600/8' : 'bg-teal-400/8')} />
+      </div>
+
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-[#02130F]/90 backdrop-blur-xl px-5 py-6 flex items-center justify-between border-b border-white/5">
-        <button onClick={() => navigate(-1)} className="p-3 text-white/50 hover:bg-card/5 rounded-2xl transition-all">
-           <ChevronLeft size={22} />
-        </button>
-        <div className="flex flex-col items-center">
-           <h1 className="text-sm font-black text-white tracking-tight">{t.harvestRevenue}</h1>
-           <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mt-0.5">{t.yieldLedger}</p>
+      <header className={cn(
+        'fixed top-0 left-0 right-0 max-w-[480px] mx-auto z-50 px-4',
+        'pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-3',
+        'flex items-center justify-between border-b backdrop-blur-xl transition-all',
+        isDark ? 'bg-[#010C14]/90 border-white/5' : 'bg-white/95 border-slate-100 shadow-sm',
+      )}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)}
+          className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
+            isDark ? 'bg-white/5 border-white/10 text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm')}>
+          <ChevronLeft size={16} />
+        </motion.button>
+        <div className="text-center">
+          <h1 className={cn('text-[11px] font-black tracking-widest uppercase', isDark ? 'text-white' : 'text-slate-900')}>
+            Harvest Revenue
+          </h1>
+          <p className={cn('text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5', isDark ? 'text-emerald-400/70' : 'text-emerald-600')}>
+            Settled Yield Ledger
+          </p>
         </div>
-        <div className="w-12" />
+        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
+          isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200')}>
+          <Fish size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+        </div>
       </header>
 
-      {/* DETAIL SHEET */}
+      {/* Detail Sheet */}
       <AnimatePresence>
-         {selectedEntry && (
-            <SettlementDetailSheet entry={selectedEntry} onClose={() => setSelectedEntry(null)} t={t} />
-         )}
+        {selectedEntry && (
+          <DetailSheet entry={selectedEntry} onClose={() => setSelectedEntry(null)} isDark={isDark} />
+        )}
       </AnimatePresence>
 
-      <div className="pt-28 px-5 space-y-8">
-        
-        {/* HERO CARD */}
-        <motion.div 
-           initial={{ y: 20, opacity: 0 }}
-           animate={{ y: 0, opacity: 1 }}
-           className="bg-gradient-to-br from-[#0D523C] via-[#0A4030] to-[#041F1A] p-8 rounded-[3rem] shadow-2xl relative overflow-hidden border border-emerald-500/20"
-        >
-           <div className="relative z-10">
-              <div className="bg-emerald-500/20 w-max px-4 py-1.5 rounded-full flex items-center gap-2 mb-8 border border-emerald-500/30">
-                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                 <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">{t.latestHarvestSettlement}</span>
-              </div>
-              
-              <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <IndianRupee size={12} /> {t.totalNetEarnings}
-              </p>
-              <div className="flex items-baseline gap-2 mb-8">
-                 <h3 className="text-5xl font-black tracking-tighter">₹{(netEarnings / 100000).toFixed(2)}<span className="text-2xl text-white/40">L</span></h3>
-                 <div className="flex flex-col">
-                    <span className="text-emerald-400 text-xs font-black">+4.2%</span>
-                    <span className="text-emerald-400/40 text-[7px] font-bold uppercase tracking-widest">{t.premiumMargin}</span>
-                 </div>
+      <div className="relative z-10 pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[480px] mx-auto space-y-4">
+
+        {/* ── HERO CARD ── */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="rounded-[2.2rem] overflow-hidden shadow-2xl relative"
+            style={{ background: 'linear-gradient(135deg, #022C1E 0%, #064E3B 45%, #047857 85%, #059669 100%)' }}>
+            <div className="absolute inset-0 opacity-[0.05]"
+              style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+            <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-emerald-400/10 blur-[80px] rounded-full" />
+
+            <div className="relative z-10 p-5">
+              {/* Cycle badge */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 mb-4">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-[7.5px] font-black uppercase tracking-[0.25em] text-emerald-300">
+                  {totalCycles} Harvest Cycles Settled
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-y-6 gap-x-4 border-t border-white/10 pt-6">
-                 <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Scale size={10} /> {t.totalHarvestWeight}</p>
-                    <p className="text-lg font-black">{totalWeight.toLocaleString()} <span className="text-white/40 text-[10px]">kg</span></p>
-                 </div>
-                 <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Fish size={10} /> {t.countPerKgSize}</p>
-                    <p className="text-lg font-black text-[#EAB308]">{countSize} <span className="text-white/40 text-[10px]">/kg</span></p>
-                 </div>
-                 <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><TrendingUp size={10} /> {t.baseRate}</p>
-                    <p className="text-lg font-black">₹{priceKg.toLocaleString()} <span className="text-white/40 text-[10px]">/kg</span></p>
-                 </div>
-                 <div>
-                    <p className="text-white/40 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5"><Clock size={10} /> {t.settledDate}</p>
-                    <p className="text-sm font-black">{date}</p>
-                 </div>
+              {/* Total revenue */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-[7.5px] font-black text-emerald-200/50 uppercase tracking-[0.25em] mb-1">
+                    Total Revenue Earned
+                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white tracking-tighter leading-none"
+                      style={{ textShadow: '0 2px 20px rgba(52,211,153,0.35)' }}>
+                      {totalRevenue > 0 ? currency(totalRevenue) : '₹0'}
+                    </span>
+                  </div>
+                  <p className="text-[8px] font-bold text-emerald-300/50 mt-1">
+                    Net Profit: <span className={totalProfit >= 0 ? 'text-emerald-300' : 'text-red-300'}>{totalProfit >= 0 ? '+' : ''}{currency(totalProfit)}</span>
+                  </p>
+                </div>
+                {/* ROI ring */}
+                <div className="flex flex-col items-center gap-1">
+                  <div className="relative w-16 h-16">
+                    <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+                      <circle cx={18} cy={18} r={14} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3} />
+                      <motion.circle cx={18} cy={18} r={14} fill="none"
+                        stroke={avgROI >= 20 ? '#34d399' : avgROI >= 5 ? '#fbbf24' : '#f87171'}
+                        strokeWidth={3} strokeLinecap="round"
+                        strokeDasharray={2 * Math.PI * 14}
+                        initial={{ strokeDashoffset: 2 * Math.PI * 14 }}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 14 - (Math.min(100, Math.abs(avgROI)) / 100) * 2 * Math.PI * 14 }}
+                        transition={{ duration: 1.2, ease: 'easeOut' }} />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-sm font-black text-white leading-none">{avgROI.toFixed(0)}%</span>
+                      <span className="text-[5.5px] font-black text-emerald-300/50 uppercase tracking-widest">ROI</span>
+                    </div>
+                  </div>
+                  <span className="text-[6px] font-black text-emerald-300/50 uppercase tracking-widest">Avg</span>
+                </div>
               </div>
-           </div>
-           
-           <div className="absolute right-[-15%] top-[-5%] opacity-5 pointer-events-none">
-              <TrendingUp size={200} strokeWidth={3} />
-           </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-4 gap-2 pt-3 border-t border-white/10">
+                {[
+                  { label: 'Total kg', value: totalWeightKg > 0 ? `${(totalWeightKg / 1000).toFixed(1)}T` : '--' },
+                  { label: 'Avg Rate', value: avgPricePerKg > 0 ? `₹${Math.round(avgPricePerKg)}/kg` : '--' },
+                  { label: 'Best ROI', value: bestROI > 0 ? `${bestROI.toFixed(0)}%` : '--' },
+                  { label: 'Ponds', value: String(harvestedPonds.length) },
+                ].map((m, i) => (
+                  <div key={i} className="text-center">
+                    <p className="text-[11px] font-black text-white leading-none">{m.value}</p>
+                    <p className="text-[5.5px] font-black text-emerald-200/40 uppercase tracking-widest mt-0.5">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </motion.div>
 
-        {/* EARNINGS BREAKDOWN */}
-        <div className="bg-[#051F19] rounded-[2.5rem] p-6 border border-white/5 space-y-6">
-           <div className="flex items-center justify-between">
-              <p className="text-emerald-500 text-[9px] font-black uppercase tracking-[0.2em]">{t.revenueComposition}</p>
-              <div className="bg-card/5 px-2 py-1 rounded-md">
-                 <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">{t.totalAmount}</span>
-              </div>
-           </div>
-           
-           <div className="space-y-6">
-              <div>
-                 <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{t.baseBiomassSales}</span>
-                    <span className="text-white text-base font-black">₹{baseRevenue.toLocaleString()}</span>
-                 </div>
-                 <div className="h-1.5 w-full bg-card/5 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${(baseRevenue/netEarnings)*100}%` }} transition={{ duration: 1 }} className="h-full bg-emerald-500 rounded-full" />
-                 </div>
-              </div>
-              
-              <div>
-                 <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-white/60 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><Star size={10} className="text-[#EAB308]" /> {t.bonusSubsidies}</span>
-                    <span className="text-[#EAB308] text-base font-black">₹{subsidyAmount.toLocaleString()}</span>
-                 </div>
-                 <div className="h-1.5 w-full bg-card/5 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${(subsidyAmount/netEarnings)*100}%` }} transition={{ duration: 1, delay: 0.2 }} className="h-full bg-[#EAB308] rounded-full" />
-                 </div>
-              </div>
-           </div>
-        </div>
+        {/* No data state */}
+        {totalCycles === 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className={cn('rounded-[2rem] border p-8 text-center', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+            <div className={cn('w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center', isDark ? 'bg-emerald-500/10' : 'bg-emerald-50')}>
+              <Layers size={28} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+            </div>
+            <p className={cn('text-sm font-black', isDark ? 'text-white' : 'text-slate-900')}>No Harvest Records Yet</p>
+            <p className={cn('text-[8px] font-bold mt-1 mb-4', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Complete a harvest cycle and add ROI entry to see records here.
+            </p>
+            <button onClick={() => navigate('/roi-entry')}
+              className="px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-white"
+              style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
+              Add ROI Entry
+            </button>
+          </motion.div>
+        )}
 
-        {/* SETTLEMENT HISTORY */}
-        <div className="space-y-4 pt-4">
-           <div className="flex items-center justify-between px-2 mb-2">
-              <h3 className="text-white text-lg font-black tracking-tight">{t.settlementAudit}</h3>
-              <button className="text-emerald-500 text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-                {t.pdfStatement}
+        {/* ── REVENUE TREND CHART ── */}
+        {trendData.length > 1 && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+            className={cn('rounded-[2rem] border p-5', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+                  Revenue Trend
+                </p>
+                <p className={cn('text-sm font-black', isDark ? 'text-white' : 'text-slate-900')}>
+                  Cycle Performance
+                </p>
+              </div>
+              <div className={cn('px-2.5 py-1 rounded-xl text-[7.5px] font-black uppercase tracking-widest border',
+                isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700')}>
+                Last {trendData.length} cycles
+              </div>
+            </div>
+            <div className="h-36">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'} />
+                  <XAxis dataKey="label"
+                    tick={{ fontSize: 8, fontWeight: 900, fill: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)' }}
+                    axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={2}
+                    fill="url(#revGrad)" dot={false} />
+                  <Area type="monotone" dataKey="cost" name="Cost" stroke="#f59e0b" strokeWidth={1.5}
+                    strokeDasharray="4 2" fill="url(#costGrad)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center gap-4 mt-2">
+              {[{ color: '#10b981', label: 'Revenue' }, { color: '#f59e0b', label: 'Cost', dash: true }].map((l, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <div className="w-5 h-0.5 rounded-full" style={{ background: l.color, opacity: l.dash ? 0.6 : 1 }} />
+                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>{l.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── FILTER TABS ── */}
+        {filteredEntries.length > 0 && (
+          <div className={cn('flex p-1 rounded-2xl border gap-1', isDark ? 'bg-white/5 border-white/8' : 'bg-slate-100 border-transparent')}>
+            {(['all', 'market', 'self'] as const).map(f => (
+              <button key={f} onClick={() => setActiveFilter(f)}
+                className={cn('flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all',
+                  activeFilter === f
+                    ? isDark
+                      ? 'bg-emerald-700/50 text-white border border-emerald-500/20 shadow-sm'
+                      : 'bg-white text-emerald-700 shadow-md border border-emerald-100'
+                    : isDark ? 'text-white/35' : 'text-slate-400'
+                )}>
+                {f === 'all' ? 'All' : f === 'market' ? 'Market' : 'Self'}
               </button>
-           </div>
-           
-           <div className="bg-[#051F19] rounded-[2.5rem] p-5 border border-white/5">
-              
-              {savedEntries.length > 0 ? (
-                 savedEntries.map((entry: any, i: number) => (
-                    <div 
-                      key={i} 
-                      onClick={() => setSelectedEntry(entry)}
-                      className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all"
-                    >
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
-                             <ShieldCheck size={20} />
-                          </div>
-                          <div>
-                             <h4 className="text-sm font-black tracking-tight text-white mb-0.5 group-hover:text-emerald-400 transition-colors">
-                               {entry.buyerName || `Harvest C-${savedEntries.length - i}`}
-                             </h4>
-                             <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
-                               <Calendar size={10} className="text-white/20" /> {entry.harvestDate}
-                             </p>
-                          </div>
-                       </div>
-                       <div className="text-right flex flex-col items-end gap-1.5">
-                          <p className="text-sm font-black tracking-tighter text-white">₹{n(entry.totalRevenue).toLocaleString()}</p>
-                          <span className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 flex items-center gap-1">
-                             <CheckCircle2 size={8} /> {t.settled}
+            ))}
+          </div>
+        )}
+
+        {/* ── SETTLEMENT LEDGER ── */}
+        {filteredEntries.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+                Settlement Ledger
+              </p>
+              <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
+                isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400')}>
+                {filteredEntries.length} records
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {filteredEntries.map((entry, i) => {
+                const st = statusConfig(entry.harvestType || 'market', isDark);
+                const roi = n(entry.roi);
+                const badge = roiBadge(roi);
+                const revenue = n(entry.totalRevenue || entry.saleAmountTotal);
+                const profit = n(entry.netProfit);
+                const pondName = ponds.find(p => p.id === entry.pondId)?.name || entry.pondId || `Cycle ${i + 1}`;
+
+                return (
+                  <motion.div key={i}
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className={cn('rounded-[1.8rem] border overflow-hidden cursor-pointer transition-all active:scale-[0.98]',
+                      isDark ? 'bg-white/[0.03] border-white/8 hover:border-emerald-600/30' : 'bg-white border-slate-100 shadow-sm hover:border-emerald-300')}
+                    onClick={() => setSelectedEntry(entry)}>
+
+                    {/* Main row */}
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      {/* Icon */}
+                      <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center border flex-shrink-0', st.bg)}>
+                        <ShieldCheck size={17} style={{ color: st.fill }} />
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className={cn('text-[11px] font-black tracking-tight truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                            {entry.buyerName || pondName}
+                          </p>
+                          <span className="text-[6.5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                            style={{ background: st.fill + '22', color: st.fill }}>
+                            {st.label}
                           </span>
-                       </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar size={8} className={isDark ? 'text-white/20' : 'text-slate-300'} />
+                          <span className={cn('text-[7.5px] font-bold', isDark ? 'text-white/30' : 'text-slate-400')}>
+                            {fmt(entry.harvestDate || entry.savedAt)}
+                          </span>
+                          {entry.harvestWeightKg && (
+                            <>
+                              <span className={cn('text-[7px]', isDark ? 'text-white/15' : 'text-slate-200')}>•</span>
+                              <span className={cn('text-[7.5px] font-bold', isDark ? 'text-white/30' : 'text-slate-400')}>
+                                {n(entry.harvestWeightKg).toLocaleString('en-IN')} kg
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Revenue + ROI */}
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-black" style={{ color: isDark ? '#34d399' : '#059669' }}>
+                          {currency(revenue)}
+                        </p>
+                        <div className="flex items-center justify-end gap-1 mt-0.5">
+                          {profit >= 0
+                            ? <ArrowUpRight size={9} className="text-emerald-500" />
+                            : <ArrowDownRight size={9} className="text-red-500" />}
+                          <span className="text-[7px] font-black" style={{ color: badge.color }}>
+                            {roi.toFixed(0)}% ROI
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                 ))
-              ) : (
-                 // Fallback Mock Ledger
-                 <>
-                    <LedgerItem 
-                       company="Godrej Seafood Processors" 
-                       date="Nov 12, 2025" 
-                       amount={2036500} 
-                       status="SETTLED" 
-                       onTap={() => setSelectedEntry({ buyerName: 'Godrej Seafood', harvestDate: '2025-11-12', totalRevenue: 2036500, harvestWeightKg: 4850, countPerKg: 30, pricePerKg: 420 })}
-                    />
-                    <LedgerItem 
-                       company="Apex Marine Exports" 
-                       date="Aug 04, 2025" 
-                       amount={1840000} 
-                       status="SETTLED" 
-                       onTap={() => setSelectedEntry({ buyerName: 'Apex Marine', harvestDate: '2025-08-04', totalRevenue: 1840000, harvestWeightKg: 4600, countPerKg: 32, pricePerKg: 400 })}
-                    />
-                 </>
-              )}
-           </div>
-        </div>
+
+                    {/* Revenue vs cost mini bar */}
+                    {revenue > 0 && n(entry.totalInvested) > 0 && (
+                      <div className={cn('px-4 py-2 border-t flex items-center gap-2',
+                        isDark ? 'bg-black/20 border-white/5' : 'bg-slate-50/80 border-slate-100')}>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0' }}>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, Math.round((revenue / (revenue + n(entry.totalInvested))) * 100))}%` }}
+                            transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.05 }}
+                            className="h-full rounded-full"
+                            style={{ background: `linear-gradient(90deg, #059669, #34d399)` }} />
+                        </div>
+                        <span className={cn('text-[6.5px] font-black uppercase tracking-widest flex-shrink-0', isDark ? 'text-white/20' : 'text-slate-400')}>
+                          {badge.label}
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── ROI by cycle bar chart ── */}
+        {trendData.length > 1 && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className={cn('rounded-[2rem] border p-5', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-4', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Profit per Cycle
+            </p>
+            <div className="h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="label"
+                    tick={{ fontSize: 8, fontWeight: 900, fill: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)' }}
+                    axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <CartesianGrid vertical={false} stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="profit" name="Net Profit" radius={[6, 6, 2, 2]} maxBarSize={32}>
+                    {trendData.map((d, i) => (
+                      <Cell key={i} fill={d.profit >= 0 ? '#10b981' : '#ef4444'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Summary stats strip ── */}
+        {totalCycles > 0 && (
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              { label: 'Total Invested', value: currency(totalInvested), icon: Target, color: '#f59e0b' },
+              { label: 'Total Profit', value: currency(Math.abs(totalProfit)), icon: totalProfit >= 0 ? TrendingUp : TrendingDown, color: totalProfit >= 0 ? '#10b981' : '#ef4444' },
+              { label: 'Avg Per kg', value: avgPricePerKg > 0 ? `₹${Math.round(avgPricePerKg)}` : '--', icon: Scale, color: '#3b82f6' },
+              { label: 'Best Cycle ROI', value: `${bestROI.toFixed(0)}%`, icon: Award, color: '#a855f7' },
+            ].map((m, i) => (
+              <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.06 }}
+                className={cn('rounded-[1.5rem] border p-4', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-2"
+                  style={{ background: m.color + '18' }}>
+                  <m.icon size={14} style={{ color: m.color }} />
+                </div>
+                <p className="text-base font-black tracking-tight" style={{ color: m.color }}>{m.value}</p>
+                <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>{m.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-// Internal Mock Ledger Item generator
-const LedgerItem = ({ company, date, amount, status }: any) => (
-  <div className="flex items-center justify-between py-5 border-b border-white/5 last:border-0 group cursor-pointer active:scale-95 transition-all">
-     <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all border border-emerald-500/10">
-           <ShieldCheck size={20} />
-        </div>
-        <div>
-           <h4 className="text-sm font-black tracking-tight text-white mb-0.5 group-hover:text-emerald-400 transition-colors">{company}</h4>
-           <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
-             <Calendar size={10} className="text-white/20" /> {date}
-           </p>
-        </div>
-     </div>
-     <div className="text-right flex flex-col items-end gap-1.5">
-        <p className="text-sm font-black tracking-tighter text-white">₹{amount.toLocaleString()}</p>
-        <span className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 flex items-center gap-1">
-           <CheckCircle2 size={8} /> {status}
-        </span>
-     </div>
-  </div>
-);
