@@ -22,8 +22,19 @@ import {
   Moon,
   ChevronRight,
   Leaf,
+  MessageSquare,
+  BarChart2,
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  Minus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Cell, ReferenceLine,
+  Area, AreaChart,
+} from 'recharts';
 import { useData } from '../../context/DataContext';
 import type { Translations } from '../../translations';
 import { calculateDOC } from '../../utils/pondUtils';
@@ -126,7 +137,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const { ponds, feedLogs, addFeedLog, theme } = useData();
   const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
   const [syncedSlots, setSyncedSlots] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'schedule' | 'fcr' | 'sow'>('schedule'); // Added SOW Details tab
+  const [activeTab, setActiveTab] = useState<'schedule' | 'fcr' | 'sow' | 'chat'>('schedule');
   const [expandedDetails, setExpandedDetails] = useState(false);
   const [now, setNow] = useState(new Date());
   const [weather] = useState(getSimulatedWeather());
@@ -479,14 +490,14 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               {/* •• TABS •• */}
               <div className={cn("flex p-1 rounded-2xl border gap-1",
                 isDark ? "bg-white/5 border-white/8" : "bg-slate-100/80 border-slate-200")}>
-                {(['schedule', 'sow', 'fcr'] as const).map(tab => (
+                {(['schedule', 'sow', 'fcr', 'chat'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
-                    className={cn("flex-1 py-2 rounded-xl text-[8.5px] font-black uppercase tracking-widest transition-all",
+                    className={cn("flex-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-widest transition-all",
                       activeTab === tab
                         ? isDark ? "bg-white/12 text-white shadow-sm" : "bg-white text-emerald-700 shadow-md"
                         : isDark ? "text-white/35 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
                     )}>
-                    {tab === 'schedule' ? 'Daily Plan' : tab === 'sow' ? 'SOP Data' : 'FCR Track'}
+                    {tab === 'schedule' ? (<><Clock size={8} strokeWidth={3} className="mr-0.5"/>Plan</>) : tab === 'sow' ? (<><Scale size={8} strokeWidth={3} className="mr-0.5"/>SOP</>) : tab === 'fcr' ? (<><Activity size={8} strokeWidth={3} className="mr-0.5"/>FCR</>) : (<><MessageSquare size={8} strokeWidth={3} className="mr-0.5"/>Chat</>)}
                   </button>
                 ))}
               </div>
@@ -800,6 +811,278 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                 </motion.div>
               )}
 
+              {/* ══════════════════════════════════════
+                  TAB: FEED CHAT
+              ══════════════════════════════════════ */}
+              {activeTab === 'chat' && (() => {
+                // ── Build 14-day chart data: actual fed vs SOP recommended ──
+                const today = new Date();
+                const last14: { day: string; actual: number; sop: number; doc: number; gap: number }[] = [];
+                for (let i = 13; i >= 0; i--) {
+                  const d = new Date(today);
+                  d.setDate(today.getDate() - i);
+                  const dStr = d.toDateString();
+                  const docForDay = currentDoc - i;
+                  if (docForDay < 1) continue;
+                  const sopForDay = getSopData(docForDay);
+                  const seedCnt = selectedPond?.seedCount || 100000;
+                  const pop = Math.round(seedCnt * sopForDay.survivalPct);
+                  const bm = Math.round((pop * sopForDay.avgWeightG) / 1000);
+                  const sopKg = sopForDay.feedRatePct === 0 ? sopForDay.staticKg : Math.round((bm * sopForDay.feedRatePct) / 100);
+                  const actual = pondFeedLogs
+                    .filter(l => new Date(l.date).toDateString() === dStr)
+                    .reduce((a, l) => a + l.quantity, 0);
+                  last14.push({
+                    day: `D${docForDay}`,
+                    actual: parseFloat(actual.toFixed(1)),
+                    sop: sopKg,
+                    doc: docForDay,
+                    gap: parseFloat((actual - sopKg).toFixed(1)),
+                  });
+                }
+
+                const overDays  = last14.filter(d => d.gap > 1).length;
+                const underDays = last14.filter(d => d.actual > 0 && d.gap < -1).length;
+                const onTrack   = last14.filter(d => d.actual > 0 && Math.abs(d.gap) <= 1).length;
+                const totalActual = last14.reduce((a, d) => a + d.actual, 0);
+                const totalSop    = last14.reduce((a, d) => a + d.sop, 0);
+                const efficiency  = totalSop > 0 ? Math.round((totalActual / totalSop) * 100) : 0;
+
+                // ── SOP Intelligence cards ──
+                const cards = [
+                  {
+                    id: 'today',
+                    color: '#10b981',
+                    icon: Target,
+                    title: "Today's Target",
+                    lines: [
+                      `SOP Recommended: ${rawDailyKg} kg/day`,
+                      `After ${adjustments.length > 0 ? adjustments.map(a => a.label).join(', ') : 'no adjustments'}: ${adjustedDailyKg} kg/day`,
+                      `Per slot (${sop.slotCount}x): ${kgPerSlot} kg each`,
+                      `Today fed so far: ${todayFedKg.toFixed(1)} kg (${todayCompliance}%)`,
+                    ],
+                  },
+                  {
+                    id: 'feedtype',
+                    color: '#f59e0b',
+                    icon: Package,
+                    title: 'Feed Type (DOC ' + currentDoc + ')',
+                    lines: [
+                      `Type: ${feedProfile.type}`,
+                      `Product: ${feedProfile.no}`,
+                      `Pellet Size: ${feedProfile.size}`,
+                      `Protein: ${feedProfile.protein}`,
+                    ],
+                  },
+                  {
+                    id: 'tray',
+                    color: '#3b82f6',
+                    icon: Eye,
+                    title: 'Tray Check Timing',
+                    lines: [
+                      `Check your feed tray ${getTrayCheckTime(currentDoc)} after feeding`,
+                      currentDoc > 60
+                        ? 'Tray empty in 1hr = increase by 5-10%'
+                        : currentDoc >= 30
+                        ? 'Tray empty in 90min = increase by 5%'
+                        : 'Blind phase — trays not needed',
+                      'If tray has leftover, reduce next slot by 10%',
+                    ],
+                  },
+                  {
+                    id: 'fcr_chat',
+                    color: fcrCritical ? '#ef4444' : fcrWarning ? '#f59e0b' : '#10b981',
+                    icon: Activity,
+                    title: 'FCR Intelligence',
+                    lines: [
+                      `Current FCR: ${fcrValue > 0 ? fcrValue.toFixed(2) : '--'} (Target: <1.4)`,
+                      `Total feed consumed: ${totalFeedConsumed.toFixed(1)} kg`,
+                      `Estimated biomass: ${biomassKg} kg`,
+                      fcrCritical
+                        ? 'HIGH FCR — Check overfeeding or poor tray clearing. Reduce next meal by 15%.'
+                        : fcrWarning
+                        ? 'FCR rising — Review tray checks and reduce feed 10%'
+                        : 'FCR is healthy — keep current feeding rate',
+                    ],
+                  },
+                  {
+                    id: 'adjustments',
+                    color: '#a855f7',
+                    icon: Zap,
+                    title: 'Active Adjustments',
+                    lines: adjustments.length > 0
+                      ? adjustments.map(a => `${a.label}: ${a.reason}`)
+                      : ['No adjustments today — optimal conditions', 'Feed at full SOP rate', `Combined factor: 1.00x`],
+                  },
+                  {
+                    id: 'wssv',
+                    color: isCriticalStage ? '#ef4444' : '#64748b',
+                    icon: AlertTriangle,
+                    title: isCriticalStage ? 'WSSV Alert — Critical Stage' : 'Disease Risk This Stage',
+                    lines: isCriticalStage
+                      ? [
+                          `DOC ${currentDoc} is inside WSSV critical window (DOC 31-45)`,
+                          'Reduce feed by 20% as molting stress indicator',
+                          'Run aerators 24/7. Test DO every 6 hrs.',
+                          'Treat probiotics in feed: 10g/kg feed',
+                        ]
+                      : [
+                          `DOC ${currentDoc} — Not in critical window`,
+                          'Continue standard SOP feeding schedule',
+                          'Monitor tray check times daily',
+                        ],
+                  },
+                ];
+
+                return (
+                  <motion.div initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+
+                    {/* Actual vs SOP chart */}
+                    <div className={cn("rounded-[1.8rem] border p-4", isDark ? "bg-white/[0.03] border-white/8" : "bg-white border-slate-100 shadow-sm")}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>Actual vs SOP Feed</p>
+                          <p className={cn("text-[11px] font-black", isDark ? "text-white" : "text-slate-900")}>Last {last14.length} days <span className="font-normal text-[9px]" style={{ color: '#94a3b8' }}>DOC {currentDoc - last14.length + 1}–{currentDoc}</span></p>
+                        </div>
+                        <div className={cn("px-2.5 py-1 rounded-xl text-[7px] font-black uppercase tracking-widest border",
+                          efficiency >= 90 ? isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700')}>
+                          {efficiency}% on-track
+                        </div>
+                      </div>
+
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={last14} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barGap={2}>
+                            <CartesianGrid vertical={false} stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)'} />
+                            <XAxis dataKey="day" tick={{ fontSize: 7, fontWeight: 900, fill: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)' }}
+                              axisLine={false} tickLine={false} interval={1} />
+                            <YAxis hide />
+                            <Tooltip
+                              cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }}
+                              content={({ active, payload, label }: any) => {
+                                if (!active || !payload?.length) return null;
+                                const act = payload.find((p: any) => p.dataKey === 'actual')?.value || 0;
+                                const sop = payload.find((p: any) => p.dataKey === 'sop')?.value || 0;
+                                const gap = (act - sop).toFixed(1);
+                                return (
+                                  <div className="rounded-2xl border px-3 py-2 shadow-xl text-[9px] font-black"
+                                    style={{ background: isDark ? '#051F19' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0' }}>
+                                    <p className="text-white/50 uppercase tracking-widest text-[7px] mb-1">{label}</p>
+                                    <p style={{ color: '#10b981' }}>Actual: {act}kg</p>
+                                    <p style={{ color: '#f59e0b' }}>SOP: {sop}kg</p>
+                                    <p style={{ color: parseFloat(gap) >= 0 ? '#10b981' : '#ef4444' }}>Gap: {gap}kg</p>
+                                  </div>
+                                );
+                              }}
+                            />
+                            <Bar dataKey="sop" name="SOP" fill={isDark ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.3)'}
+                              radius={[4, 4, 2, 2]} maxBarSize={14} />
+                            <Bar dataKey="actual" name="Actual" radius={[4, 4, 2, 2]} maxBarSize={14}>
+                              {last14.map((d, i) => (
+                                <Cell key={i}
+                                  fill={d.actual === 0 ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')
+                                    : d.gap > 1 ? '#f59e0b'
+                                    : d.gap < -1 ? '#ef4444'
+                                    : '#10b981'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex items-center gap-3 mt-1">
+                        {[
+                          { color: '#f59e0b', label: 'SOP Target', dashed: true },
+                          { color: '#10b981', label: 'On Track' },
+                          { color: '#f59e0b', label: 'Over-fed' },
+                          { color: '#ef4444', label: 'Under-fed' },
+                        ].map((l, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-sm" style={{ background: l.color, opacity: l.dashed ? 0.4 : 1 }} />
+                            <span className={cn("text-[6.5px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>{l.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Gap Analysis strip */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'On Track', value: onTrack, icon: Minus, color: '#10b981', bg: isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200' },
+                        { label: 'Over-fed', value: overDays, icon: ArrowUp, color: '#f59e0b', bg: isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200' },
+                        { label: 'Under-fed', value: underDays, icon: ArrowDown, color: '#ef4444', bg: isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200' },
+                      ].map((m, i) => (
+                        <div key={i} className={cn('rounded-[1.4rem] border p-3 text-center', m.bg)}>
+                          <m.icon size={14} className="mx-auto mb-1" style={{ color: m.color }} />
+                          <p className="text-base font-black" style={{ color: m.color }}>{m.value}</p>
+                          <p className={cn('text-[6.5px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* SOP Intelligence Chat Cards */}
+                    <p className={cn("text-[8px] font-black uppercase tracking-widest px-1", isDark ? "text-white/25" : "text-slate-400")}>
+                      Feed Intelligence &bull; DOC {currentDoc}
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {cards.map((card, ci) => (
+                        <motion.div key={card.id}
+                          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: ci * 0.06 }}
+                          className={cn("rounded-[1.6rem] border p-4", isDark ? "bg-white/[0.03] border-white/8" : "bg-white border-slate-100 shadow-sm")}>
+                          {/* card header */}
+                          <div className="flex items-center gap-2.5 mb-2.5">
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ background: card.color + '18', boxShadow: `0 0 0 1px ${card.color}30` }}>
+                              <card.icon size={13} style={{ color: card.color }} />
+                            </div>
+                            <p className={cn("text-[9.5px] font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>{card.title}</p>
+                            <div className="ml-auto w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: card.color }} />
+                          </div>
+                          {/* chat bubble lines */}
+                          <div className="space-y-1.5">
+                            {card.lines.map((line, li) => (
+                              <div key={li} className="flex items-start gap-2">
+                                <div className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ background: card.color + '80' }} />
+                                <p className={cn("text-[8.5px] font-semibold leading-snug", isDark ? "text-white/60" : "text-slate-600")}>{line}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Cumulative efficiency meter */}
+                    <div className={cn("rounded-[1.8rem] border p-4", isDark ? "bg-white/[0.03] border-white/8" : "bg-white border-slate-100 shadow-sm")}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>Feed Efficiency</p>
+                          <p className={cn("text-[11px] font-black", isDark ? "text-white" : "text-slate-900")}>Cumulative vs SOP</p>
+                        </div>
+                        <span className="text-xl font-black" style={{ color: efficiency >= 90 ? '#10b981' : efficiency >= 70 ? '#f59e0b' : '#ef4444' }}>
+                          {efficiency}%
+                        </span>
+                      </div>
+                      <div className={cn("h-2.5 rounded-full overflow-hidden", isDark ? "bg-white/8" : "bg-slate-100")}>
+                        <motion.div initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, efficiency)}%` }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className="h-full rounded-full"
+                          style={{ background: efficiency >= 90 ? 'linear-gradient(90deg,#059669,#34d399)' : efficiency >= 70 ? 'linear-gradient(90deg,#d97706,#fbbf24)' : 'linear-gradient(90deg,#dc2626,#f87171)' }} />
+                      </div>
+                      <div className="flex justify-between mt-2">
+                        <span className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>Actual: {totalActual.toFixed(0)}kg</span>
+                        <span className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>SOP: {totalSop.toFixed(0)}kg</span>
+                      </div>
+                    </div>
+
+                  </motion.div>
+                );
+              })()}
+
             </motion.div>
           </AnimatePresence>
         )}
@@ -807,7 +1090,6 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
     </div>
   );
 };
-
 // Fallback user icon component inline
 const Users_FallbackIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
