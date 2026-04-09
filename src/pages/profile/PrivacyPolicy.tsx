@@ -9,103 +9,10 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import { Header } from '../../components/Header';
 
-// ─── SECTION DATA ─────────────────────────────────────────────────────────────
-const SECTIONS = [
-  {
-    icon: Database,
-    color: 'text-blue-500',
-    bg: 'bg-blue-500/10 border-blue-500/20',
-    title: 'Data We Collect',
-    content: [
-      '**Account Information:** Name, phone number, email address, farm name, and location (state/district) provided during registration.',
-      '**Pond & Culture Data:** Pond dimensions, species (Vannamei/Monodon), stocking date, seed count, water quality readings (pH, DO, ammonia, temperature, salinity), feed logs, medicine schedules, and harvest records.',
-      '**Device Information:** Device type, OS version, app version, and crash/error logs for support purposes.',
-      '**Usage Data:** Pages visited, features used, and interaction timestamps to improve app performance.',
-      '**Push Notification Tokens:** FCM tokens to deliver real-time farm alerts to your device.',
-    ],
-  },
-  {
-    icon: Eye,
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-500/10 border-emerald-500/20',
-    title: 'How We Use Your Data',
-    content: [
-      '**Farm Intelligence:** Your pond and water data drives our AI-powered SOP engine, disease detection alerts, feed adjustment recommendations, and harvest timing guidance.',
-      '**Smart Alerts:** Water quality thresholds, lunar phase cautions, DOC-based reminders, and WSSV/EMS risk warnings are generated from your logged data.',
-      '**ROI & Analytics:** Profit, cost, and yield calculations shown in the Finance module are computed locally from your entered data.',
-      '**Notifications:** Alert preferences you set control what push and in-app notifications you receive.',
-      '**Support & Improvement:** Anonymised usage patterns help us improve features and fix bugs.',
-    ],
-  },
-  {
-    icon: Share2,
-    color: 'text-purple-500',
-    bg: 'bg-purple-500/10 border-purple-500/20',
-    title: 'Data Sharing',
-    content: [
-      '**We do not sell your data.** Your farm records, pond data, and personal information are never sold to third parties.',
-      '**Expert Consultations:** If you request an expert consultation, your pond summary (species, DOC, water quality) is shared only with the assigned expert.',
-      '**Market Data:** Market price information displayed is sourced from public APIs and does not include your personal farm data.',
-      '**Service Providers:** We use Firebase (Google) for authentication, notifications, and data storage, all governed by their enterprise privacy standards.',
-      '**Legal Compliance:** We may disclose data if required by Indian law (IT Act 2000 / DPDP Act 2023) or valid legal process.',
-    ],
-  },
-  {
-    icon: Lock,
-    color: 'text-amber-500',
-    bg: 'bg-amber-500/10 border-amber-500/20',
-    title: 'Data Storage & Security',
-    content: [
-      '**Encryption:** All data is encrypted in transit using TLS 1.3 and at rest using AES-256 encryption on Firebase infrastructure.',
-      '**Authentication:** Account access is protected by password hashing (bcrypt) and optional biometric login (FaceID / Fingerprint).',
-      '**Data Location:** Your data is stored on Google Firebase servers with regional data centres compliant with Indian data localisation guidelines.',
-      '**Retention:** Active farm data is retained for the duration of your account. Archived pond records are kept for 3 years to preserve yield history.',
-      '**Breach Protocol:** In case of a data breach, affected users will be notified within 72 hours with details of what was exposed and remediation steps.',
-    ],
-  },
-  {
-    icon: Bell,
-    color: 'text-red-500',
-    bg: 'bg-red-500/10 border-red-500/20',
-    title: 'Notifications & Tracking',
-    content: [
-      '**Push Notifications:** You control which alert categories you receive (Water, Feed, Disease, Harvest, Market, Lunar) via Notification Settings.',
-      '**No Ad Tracking:** AquaGrow does not use any advertising networks, pixels, or cross-site tracking technologies.',
-      '**Analytics:** We use privacy-safe analytics (no personally identifiable information) to understand feature adoption and fix performance issues.',
-      '**Camera / Gallery:** The Disease Detection and Water Test Scanner features use your camera only while those screens are active. No images are stored without your explicit save action.',
-    ],
-  },
-  {
-    icon: UserCheck,
-    color: 'text-indigo-500',
-    bg: 'bg-indigo-500/10 border-indigo-500/20',
-    title: 'Your Rights',
-    content: [
-      '**Access:** You may request a full export of your personal data via Settings → Security & Privacy → Export Data.',
-      '**Correction:** You can update your profile, farm name, pond details, and contact information at any time within the app.',
-      '**Deletion:** You may request account deletion from Profile → Danger Zone. All personal data and pond records will be permanently removed within 30 days.',
-      '**Opt-out:** You can disable all push notifications or revoke camera/location permissions from your device Settings at any time.',
-      '**Grievance Redressal:** Contact our Data Protection Officer at privacy@aquagrow.in within 30 days for any data-related concerns.',
-    ],
-  },
-  {
-    icon: Globe,
-    color: 'text-teal-500',
-    bg: 'bg-teal-500/10 border-teal-500/20',
-    title: 'Updates to This Policy',
-    content: [
-      'We may update this Privacy Policy as we add new features or comply with regulatory changes.',
-      'Significant changes will be notified via in-app alerts and email at least 14 days before they take effect.',
-      'Continued use of AquaGrow after the effective date constitutes acceptance of the updated policy.',
-      'This policy was last updated: **April 2026**. Effective from launch.',
-    ],
-  },
-];
-
 // ─── EXPANDABLE SECTION CARD ──────────────────────────────────────────────────
 const SectionCard = ({
   section, isDark, index,
-}: { section: typeof SECTIONS[0]; isDark: boolean; index: number }) => {
+}: { section: { icon: any; color: string; bg: string; title: string; content: string[] }; isDark: boolean; index: number }) => {
   const [open, setOpen] = useState(index === 0);
 
   const renderLine = (line: string) => {
@@ -174,9 +81,68 @@ export const PrivacyPolicy = ({ t }: { t: any }) => {
   const { theme } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
+  // All section data built from translation keys — auto-translates with user language
+  const SECTIONS = [
+    {
+      icon: Database,
+      color: 'text-blue-500',
+      bg: 'bg-blue-500/10 border-blue-500/20',
+      title: t.ppSec1Title,
+      content: [t.ppSec1P1, t.ppSec1P2, t.ppSec1P3, t.ppSec1P4, t.ppSec1P5],
+    },
+    {
+      icon: Eye,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10 border-emerald-500/20',
+      title: t.ppSec2Title,
+      content: [t.ppSec2P1, t.ppSec2P2, t.ppSec2P3, t.ppSec2P4, t.ppSec2P5],
+    },
+    {
+      icon: Share2,
+      color: 'text-purple-500',
+      bg: 'bg-purple-500/10 border-purple-500/20',
+      title: t.ppSec3Title,
+      content: [t.ppSec3P1, t.ppSec3P2, t.ppSec3P3, t.ppSec3P4, t.ppSec3P5],
+    },
+    {
+      icon: Lock,
+      color: 'text-amber-500',
+      bg: 'bg-amber-500/10 border-amber-500/20',
+      title: t.ppSec4Title,
+      content: [t.ppSec4P1, t.ppSec4P2, t.ppSec4P3, t.ppSec4P4, t.ppSec4P5],
+    },
+    {
+      icon: Bell,
+      color: 'text-red-500',
+      bg: 'bg-red-500/10 border-red-500/20',
+      title: t.ppSec5Title,
+      content: [t.ppSec5P1, t.ppSec5P2, t.ppSec5P3, t.ppSec5P4],
+    },
+    {
+      icon: UserCheck,
+      color: 'text-indigo-500',
+      bg: 'bg-indigo-500/10 border-indigo-500/20',
+      title: t.ppSec6Title,
+      content: [t.ppSec6P1, t.ppSec6P2, t.ppSec6P3, t.ppSec6P4, t.ppSec6P5],
+    },
+    {
+      icon: Globe,
+      color: 'text-teal-500',
+      bg: 'bg-teal-500/10 border-teal-500/20',
+      title: t.ppSec7Title,
+      content: [t.ppSec7P1, t.ppSec7P2, t.ppSec7P3, t.ppSec7P4],
+    },
+  ];
+
+  const commitmentChips = [
+    { icon: Lock,   label: t.ppChipNoSell },
+    { icon: Shield, label: t.ppChipEncrypted },
+    { icon: Trash2, label: t.ppChipDelete },
+  ];
+
   return (
     <div className={cn('min-h-screen pb-32', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
-      <Header title="Privacy Policy" showBack />
+      <Header title={t.ppHeaderTitle} showBack />
 
       <div className="pt-22 px-4 py-5 space-y-4">
 
@@ -189,16 +155,16 @@ export const PrivacyPolicy = ({ t }: { t: any }) => {
             <Shield size={140} strokeWidth={0.5} />
           </div>
           <div className="relative z-10">
-            <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">AquaGrow · Data Policy</p>
-            <h1 className="text-white text-xl font-black tracking-tight mb-2">Privacy Policy</h1>
+            <p className="text-white/40 text-[7px] font-black uppercase tracking-widest mb-1">AquaGrow · {t.ppDataPolicy}</p>
+            <h1 className="text-white text-xl font-black tracking-tight mb-2">{t.ppHeaderTitle}</h1>
             <p className="text-white/30 text-[9px] font-medium leading-relaxed max-w-[260px]">
-              We are committed to protecting your farm data, ensuring transparency, and giving you full control over your personal information.
+              {t.ppHeroDesc}
             </p>
             <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/5">
               {[
-                { label: 'Last Updated', value: 'April 2026' },
-                { label: 'Version', value: '2.0' },
-                { label: 'Jurisdiction', value: 'India (DPDP)' },
+                { label: t.ppLastUpdated, value: 'April 2026' },
+                { label: t.ppVersion,     value: '2.0' },
+                { label: t.ppJurisdiction, value: 'India (DPDP)' },
               ].map((s, i) => (
                 <div key={i}>
                   <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">{s.label}</p>
@@ -211,11 +177,7 @@ export const PrivacyPolicy = ({ t }: { t: any }) => {
 
         {/* Commitment chips */}
         <div className="flex gap-2 flex-wrap">
-          {[
-            { icon: Lock, label: 'No Data Selling' },
-            { icon: Shield, label: 'End-to-End Encrypted' },
-            { icon: Trash2, label: 'Right to Delete' },
-          ].map((c, i) => (
+          {commitmentChips.map((c, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 + i * 0.05 }}
@@ -244,19 +206,19 @@ export const PrivacyPolicy = ({ t }: { t: any }) => {
           className={cn('rounded-[2rem] border p-5 text-center', isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}
         >
           <p className={cn('text-[8px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-            Questions or Concerns?
+            {t.ppContactQuestion}
           </p>
           <p className={cn('text-[11px] font-black', isDark ? 'text-white' : 'text-slate-900')}>
             privacy@aquagrow.in
           </p>
           <p className={cn('text-[8px] font-medium mt-1', isDark ? 'text-white/30' : 'text-slate-500')}>
-            Data Protection Officer · AquaGrow Technologies Pvt. Ltd.
+            {t.ppDPO}
           </p>
           <button
             onClick={() => navigate(-1)}
             className="mt-4 flex items-center gap-1.5 mx-auto text-[8px] font-black uppercase tracking-widest text-emerald-500"
           >
-            <ChevronRight size={12} className="rotate-180" /> Back to Security Settings
+            <ChevronRight size={12} className="rotate-180" /> {t.ppBackToSettings}
           </button>
         </motion.div>
       </div>
