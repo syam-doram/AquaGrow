@@ -619,11 +619,15 @@ app.delete('/api/medicine-logs/:id', authenticate, async (req, res) => {
 
 // ─── AI Routes (Gemini runs server-side — key never exposed to client) ─────────
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // ── Shared AI error normaliser ────────────────────────────────────────────────
 const normaliseAIError = (e: any): { status: number; body: object } => {
   const msg: string = e?.message || JSON.stringify(e) || '';
+  // 404 — model deprecated / not found
+  if (e?.status === 404 || msg.includes('NOT_FOUND') || msg.includes('no longer available') || msg.includes('is not found')) {
+    return { status: 503, body: { error: 'AI model unavailable. The server is being updated — please try again shortly.' } };
+  }
   // 429 / RESOURCE_EXHAUSTED — quota exceeded
   if (e?.status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
     // Try to extract retryDelay from error details
