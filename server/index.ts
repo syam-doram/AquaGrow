@@ -467,63 +467,117 @@ app.post('/api/medicine-logs', authenticate, async (req: AuthenticatedRequest, r
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// AI Client Instance
+// ─── AI Routes (Gemini runs server-side — key never exposed to client) ─────────
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
-app.post('/api/ai/analyze-health', authenticate, async (req, res) => {
+// ── Disease Detection ───────────────────────────────────────────────────────────
+app.post('/api/ai/analyze-health', authenticate, async (req: any, res: any) => {
   try {
-    const { base64Image, language } = req.body;
-    if (!base64Image) return res.status(400).json({ error: 'Image is required' });
+    if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'AI service not configured on server.' });
+    const { base64Image, language = 'English' } = req.body;
+    if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
 
-    const prompt = `
-      As a world-class Aquatic Veterinarian specializing in Vannamei Shrimp, analyze this image.
-      Look for:
-      1. White gut syndrome (WGD) or White fecal strings (WFD).
-      2. Shrunken or pale hepatopancreas (Signs of EHP).
-      3. White spots on carapace (WSSV).
-      4. Redness or deformities (Vibriosis).
-      
-      Respond only in a strict JSON format:
-      {
-        "disease": "string (localized in ${language})",
-        "confidence": number (0-100),
-        "severity": "Safe | Warning | Critical",
-        "markerAnalysis": "brief description of what you see",
-        "reasoning": "Scientific explanation of clinical symptoms (localized in ${language})",
-        "action": "immediate treatment steps (localized in ${language})"
-      }
-    `;
+    const mimeType = base64Image.startsWith('data:') ? base64Image.split(';')[0].split(':')[1] : 'image/jpeg';
+    const data     = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
+    const prompt = `You are a certified aquaculture pathologist with 20 years of shrimp disease diagnosis experience.
+Analyze this shrimp specimen photo carefully. Return a precise diagnosis using ONLY the visual evidence visible in the image.
+
+1. HEALTHY SHRIMP: Full dark-brown/orange gut line, clear body, normal opacity → disease: "Healthy Shrimp", severity: "Safe"
+2. WHITE SPOT DISEASE (WSSV): White calcified spots on shell, reddish body → severity: "Critical"
+3. EARLY MORTALITY SYNDROME (EMS/AHPND): Pale shrunken hepatopancreas, empty gut → severity: "Critical"
+4. BLACK GILL DISEASE: Dark brown/black gills → severity: "Moderate"
+5. WHITE GUT DISEASE (WGD): White gut line, white fecal strings → severity: "Medium"
+6. RUNNING MORTALITY SYNDROME (RMS): Soft wrinkled carapace, no spots → severity: "High"
+7. EHP: Stunted growth, soft carapace → severity: "High"
+8. VIBRIOSIS: Reddish/black necrotic legs/tail, luminescent → severity: "High"
+9. IHHNV: Bent rostrum, deformed body → severity: "Moderate"
+10. SHELL DISEASE: Black spots on carapace → severity: "Low"
+11. FOULING: Fuzzy coating on body → severity: "Low"
+
+RULES: If no shrimp visible → shrimpObserved: false. If blurry → confidence: 0, disease: "Clear Photo Required".
+Translate all text values to: ${language}
+
+Return ONLY this JSON (no markdown):
+{"shrimpObserved":true,"notObservedReason":"","disease":"string","confidence":number,"severity":"Safe|Low|Medium|Moderate|High|Critical|N/A","affectedPart":"string","reasoning":"string","action":"string"}`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                data: base64Image.split(',')[1] || base64Image,
-                mimeType: 'image/jpeg'
-              }
-            }
-          ]
-        }
-      ]
+      model: GEMINI_MODEL,
+      contents: [{ parts: [{ inlineData: { data, mimeType } }, { text: prompt }] }],
+      config: { responseMimeType: 'application/json' },
     });
 
-    const text = response.text;
-
-    // Final check for valid JSON in response
-    const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
-    const diagnosis = JSON.parse(jsonStr);
-
-    res.json(diagnosis);
-  } catch (e) {
-    console.error("AI Analysis Backend Error:", e);
-    res.status(500).json({ error: 'AI processing failed' });
+    const text = response.text?.trim() || '';
+    const jsonStr = text.startsWith('```') ? text.replace(/^```json?/, '').replace(/```$/, '').trim() : text;
+    res.json(JSON.parse(jsonStr));
+  } catch (e: any) {
+    console.error('[AI-Health Error]', e.message);
+    const is503 = e.message?.includes('503') || e.message?.includes('UNAVAILABLE');
+    res.status(is503 ? 503 : 500).json({ error: is503 ? 'AI server overloaded. Please retry.' : e.message });
   }
 });
+
+// ── Water Test Scanner ─────────────────────────────────────────────────────────
+app.post('/api/ai/analyze-water', authenticate, async (req: any, res: any) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'AI service not configured on server.' });
+    const { base64Image } = req.body;
+    if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
+
+    const mimeType = base64Image.startsWith('data:') ? base64Image.split(';')[0].split(':')[1] : 'image/jpeg';
+    const data     = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
+    const prompt = `You are an expert aquaculture water quality analyst.
+Analyze this image — it may show pond water color, test kits, strips, or meters.
+
+Water colors: LIGHT_GREEN=healthy, DARK_GREEN=over-bloom, BROWN=diatoms/organic, BLACK=toxic, BLUE_GREEN=cyanobacteria, CLEAR=no plankton, MURKY_YELLOW=turbidity, REDDISH=iron/flagellate.
+Safe ranges (L. vannamei): pH 7.5–8.5, DO >5 mg/L, NH3 <0.1 mg/L, Salinity 10–25 ppt, Temp 23–31°C.
+
+If not pond water or test equipment → imageValid: false.
+Return ONLY valid JSON:
+{"detectedEquipment":"string","confidence":number,"overallStatus":"excellent|good|warning|critical","summary":"string","urgentAction":"string","ph":{"value":0,"raw":"string","status":"string"},"do_":{"value":0,"raw":"string","status":"string"},"ammonia":{"value":0,"raw":"string","status":"string"},"salinity":{"value":0,"raw":"string","status":"string"},"temperature":{"value":0,"raw":"string","status":"string"},"waterColor":{"detected":"string","label":"string","hex":"string","meaning":"string","status":"string"},"problems":[],"diseaseRisks":[],"imageValid":true,"notDetectedReason":"","recommendations":[]}`;
+
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ parts: [{ inlineData: { data, mimeType } }, { text: prompt }] }],
+      config: { responseMimeType: 'application/json' },
+    });
+
+    const text = response.text?.trim() || '';
+    const jsonStr = text.startsWith('```') ? text.replace(/^```json?/, '').replace(/```$/, '').trim() : text;
+    res.json(JSON.parse(jsonStr));
+  } catch (e: any) {
+    console.error('[AI-Water Error]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Live Stream Frame Analysis ─────────────────────────────────────────────────
+app.post('/api/ai/analyze-live', authenticate, async (req: any, res: any) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'AI service not configured.' });
+    const { base64Image } = req.body;
+    if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
+
+    const mimeType = base64Image.startsWith('data:') ? base64Image.split(';')[0].split(':')[1] : 'image/jpeg';
+    const data     = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ parts: [{ inlineData: { data, mimeType } }, { text: 'Analyze these shrimp post-larvae. Return ONLY JSON: {"activity":number,"health":number,"count":number}' }] }],
+      config: { responseMimeType: 'application/json' },
+    });
+
+    const text = response.text?.trim() || '';
+    const jsonStr = text.startsWith('```') ? text.replace(/^```json?/, '').replace(/```$/, '').trim() : text;
+    res.json(JSON.parse(jsonStr));
+  } catch (e: any) {
+    console.error('[AI-Live Error]', e.message);
+    res.json({ activity: 0, health: 0, count: 0 });
+  }
+});
+
 
 // ─── Admin: list all users ────────────────────────────────────────────────────
 app.get('/api/admin/users', authenticate, requireRole('admin'), async (_req, res) => {
