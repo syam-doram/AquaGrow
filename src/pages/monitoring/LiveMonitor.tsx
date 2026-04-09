@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, TrendingUp, Activity, Sparkles, Waves, Lock,
@@ -10,7 +10,6 @@ import type { Translations } from '../../translations';
 import { User } from '../../types';
 import { analyzeLiveStream } from '../../services/geminiService';
 import { cn } from '../../utils/cn';
-import { Capacitor } from '@capacitor/core';
 
 // ─── METRIC PILLAR ────────────────────────────────────────────────────────────
 const MetricPillar = ({ label, value, sub, color }: {
@@ -284,20 +283,20 @@ export const LiveMonitor = ({ user, t }: { user: User; t: Translations }) => {
 
     const startCamera = async () => {
       try {
-        // ── Request Android camera permission via Capacitor ──
-        if (Capacitor.isNativePlatform()) {
+        // ── Check/request camera permission using Web API (works on Android WebView & browser) ──
+        if (navigator.permissions) {
           try {
-            const { Camera } = await import('@capacitor/camera');
-            const perm = await Camera.requestPermissions({ permissions: ['camera'] });
-            if (perm.camera !== 'granted') {
-              setCameraError('Camera permission denied. Please allow in device settings.');
+            const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+            if (result.state === 'denied') {
+              setCameraError('Camera permission denied. Please allow camera access in your device settings.');
               return;
             }
+            // If 'prompt', getUserMedia below will trigger the native OS dialog automatically
           } catch {
-            // Capacitor Camera plugin not installed — fall through to web getUserMedia
+            // permissions.query not supported — proceed directly to getUserMedia
           }
         }
-        if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera not supported');
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera not supported on this device.');
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
         });
@@ -305,7 +304,14 @@ export const LiveMonitor = ({ user, t }: { user: User; t: Translations }) => {
         setStream(mediaStream);
         if (videoRef.current) videoRef.current.srcObject = mediaStream;
       } catch (err: any) {
-        setCameraError(err.message || 'Camera access denied. Please grant camera permission.');
+        // NotAllowedError = user denied, NotFoundError = no camera hardware
+        if (err?.name === 'NotAllowedError') {
+          setCameraError('Camera access denied. Please grant permission in your device settings and try again.');
+        } else if (err?.name === 'NotFoundError') {
+          setCameraError('No camera found on this device.');
+        } else {
+          setCameraError(err.message || 'Camera access denied. Please grant camera permission.');
+        }
       }
     };
 
