@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Target, ArrowRight, Clock, Waves, Layers, Zap, Info,
-  Fish, CheckCircle2, MapPin, Droplets, BarChart2,
+  Fish, CheckCircle2, MapPin, Droplets, BarChart2, Wind,
 } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
@@ -116,7 +117,10 @@ export const PondEntry = ({ t }: { t: Translations }) => {
     initialSalinity: '5',
     seedSource: 'Local Hatchery',
     stockingMode: 'stocked' as 'planned' | 'stocked',
+    aeratorCount: '',
+    aeratorHp: '1',
   });
+
 
   const set = (key: keyof typeof form) => (v: string) => setForm(prev => ({ ...prev, [key]: v }));
   const isStocked = form.stockingMode === 'stocked';
@@ -151,7 +155,28 @@ export const PondEntry = ({ t }: { t: Translations }) => {
         waterType: form.waterType,
         initialSalinity: parseInt(form.initialSalinity),
         isStocked,
-      });
+        // Initial aerator setup if provided
+        ...(form.aeratorCount && parseInt(form.aeratorCount) > 0 ? {
+          aerators: {
+            count: parseInt(form.aeratorCount),
+            hp: parseFloat(form.aeratorHp) || 1,
+            positions: [],
+            addedNew: false,
+            lastUpdated: new Date().toISOString(),
+            lastDoc: 0,
+            log: [{
+              doc: 0,
+              date: new Date().toISOString(),
+              count: parseInt(form.aeratorCount),
+              hp: parseFloat(form.aeratorHp) || 1,
+              positions: [],
+              addedNew: false,
+              notes: 'Initial aerator setup at pond creation',
+            }],
+          }
+        } : {}),
+      } as any);
+
       setDone(true);
       setTimeout(() => navigate('/ponds'), 1200);
     } catch (err) {
@@ -273,13 +298,35 @@ export const PondEntry = ({ t }: { t: Translations }) => {
           <SectionCard title={t.stockingAnalytics} subtitle="Growth markers" icon={Zap} iconBg={isDark ? "bg-orange-500/15 text-orange-400" : "bg-orange-100 text-orange-600"} isDark={isDark}>
             <FieldInput label={t.seedCount} icon={Fish} value={form.seedCount} onChange={set('seedCount')} placeholder="e.g. 50,000" isDark={isDark} />
             <div className="grid grid-cols-2 gap-3">
-              <FieldInput
-                label={t.stockingDate} icon={Clock} type="date"
-                min={form.stockingMode === 'planned' ? new Date().toISOString().split('T')[0] : undefined}
-                value={form.stockingDate} onChange={set('stockingDate')} isDark={isDark}
-              />
+              <div className="space-y-1.5">
+                <label className={cn("text-[8px] font-black uppercase tracking-[0.2em] ml-1 flex items-center gap-1", isDark ? "text-white/30" : "text-slate-400")}>
+                  {t.stockingDate} {isStocked && <span className="text-emerald-400">*</span>}
+                </label>
+                <input
+                  type="date"
+                  value={form.stockingDate}
+                  onChange={e => set('stockingDate')(e.target.value)}
+                  min={form.stockingMode === 'planned'
+                    ? new Date().toISOString().split('T')[0]
+                    : (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0]; })()
+                  }
+                  max={new Date().toISOString().split('T')[0]}
+                  className={cn(
+                    "w-full pl-4 pr-3 py-3 rounded-2xl border outline-none transition-all text-xs font-bold",
+                    isDark
+                      ? "bg-white/5 border-white/10 text-white focus:border-[#C78200]/40 focus:bg-white/8"
+                      : "bg-slate-50 border-slate-200 text-slate-800 focus:border-[#C78200] focus:bg-white shadow-inner"
+                  )}
+                />
+                {isStocked && (
+                  <p className={cn("text-[7px] font-bold ml-1", isDark ? "text-emerald-500/60" : "text-emerald-600/70")}>
+                    ↩ Up to 7 days back allowed
+                  </p>
+                )}
+              </div>
               <FieldInput label={t.plAge} icon={Target} value={form.plAge} onChange={set('plAge')} placeholder="12" suffix="DAYS" isDark={isDark} />
             </div>
+
 
             {/* Live Preview Card */}
             <AnimatePresence>
@@ -332,6 +379,98 @@ export const PondEntry = ({ t }: { t: Translations }) => {
             </div>
           </SectionCard>
 
+          {/* ── AERATOR SETUP (optional) ── */}
+          <SectionCard title="Initial Aerator Setup" subtitle="Optional · can update later" icon={Wind} iconBg={isDark ? "bg-blue-500/15 text-blue-400" : "bg-blue-100 text-blue-600"} isDark={isDark}>
+            {/* Recommended hint */}
+            {parseFloat(form.size) > 0 && (
+              <div className={cn("flex items-center gap-2 px-3 py-2 rounded-xl border", isDark ? "bg-blue-500/8 border-blue-500/15" : "bg-blue-50 border-blue-200")}>
+                <Zap size={12} className="text-blue-500 flex-shrink-0" />
+                <p className={cn("text-[8px] font-black", isDark ? "text-blue-400" : "text-blue-700")}>
+                  SOP Minimum: <strong>{Math.ceil(parseFloat(form.size) * 4)} aerators</strong> for {form.size} acres
+                </p>
+              </div>
+            )}
+
+            {/* Count + HP row */}
+            <div className="grid grid-cols-2 gap-3">
+
+              {/* Count stepper */}
+              <div className="space-y-1.5">
+                <label className={cn("text-[8px] font-black uppercase tracking-[0.2em] ml-1", isDark ? "text-white/30" : "text-slate-400")}>
+                  Aerator Count
+                </label>
+                <div className={cn("flex items-center justify-between rounded-2xl border p-2", isDark ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-200")}>
+                  <button type="button"
+                    onClick={() => set('aeratorCount')(String(Math.max(0, parseInt(form.aeratorCount || '0') - 1)))}
+                    className={cn("w-9 h-9 rounded-xl flex items-center justify-center font-black text-lg transition-all",
+                      isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-white border border-slate-200 text-slate-700 shadow-sm"
+                    )}>−</button>
+                  <div className="text-center">
+                    <span className={cn("text-2xl font-black tracking-tighter", isDark ? "text-white" : "text-slate-900")}>
+                      {form.aeratorCount || '0'}
+                    </span>
+                    <p className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>units</p>
+                  </div>
+                  <button type="button"
+                    onClick={() => set('aeratorCount')(String(parseInt(form.aeratorCount || '0') + 1))}
+                    className={cn("w-9 h-9 rounded-xl flex items-center justify-center font-black text-lg transition-all",
+                      isDark ? "bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30" : "bg-blue-50 border border-blue-200 text-blue-600 shadow-sm"
+                    )}>+</button>
+                </div>
+              </div>
+
+              {/* HP selector */}
+              <div className="space-y-1.5">
+                <label className={cn("text-[8px] font-black uppercase tracking-[0.2em] ml-1", isDark ? "text-white/30" : "text-slate-400")}>
+                  HP Per Aerator
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[0.5, 1, 1.5, 2, 3, 5].map(h => (
+                    <button type="button" key={h}
+                      onClick={() => set('aeratorHp')(String(h))}
+                      className={cn("py-2 rounded-xl border text-[8px] font-black uppercase tracking-widest transition-all",
+                        parseFloat(form.aeratorHp) === h
+                          ? isDark ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-blue-100 border-blue-400 text-blue-700"
+                          : isDark ? "bg-white/5 border-white/8 text-white/30" : "bg-white border-slate-200 text-slate-500"
+                      )}
+                    >{h}HP</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Live total HP display */}
+            {parseInt(form.aeratorCount || '0') > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                className={cn("rounded-2xl border p-3", isDark ? "bg-white/3 border-white/5" : "bg-slate-50 border-slate-100")}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wind size={13} className="text-blue-500" />
+                    <p className={cn("text-[9px] font-black", isDark ? "text-white/60" : "text-slate-700")}>
+                      {form.aeratorCount} × {form.aeratorHp} HP = <span className="text-blue-500">{(parseInt(form.aeratorCount) * parseFloat(form.aeratorHp || '1')).toFixed(1)} HP total</span>
+                    </p>
+                  </div>
+                  {parseFloat(form.size) > 0 && (
+                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-lg",
+                      parseInt(form.aeratorCount) >= Math.ceil(parseFloat(form.size) * 4)
+                        ? isDark ? "bg-emerald-500/15 text-emerald-400" : "bg-emerald-50 text-emerald-700"
+                        : isDark ? "bg-amber-500/15 text-amber-400" : "bg-amber-50 text-amber-700"
+                    )}>
+                      {parseInt(form.aeratorCount) >= Math.ceil(parseFloat(form.size) * 4) ? '✓ SOP Met' : `Need ${Math.max(0, Math.ceil(parseFloat(form.size) * 4) - parseInt(form.aeratorCount))} more`}
+                    </span>
+                  )}
+                </div>
+                {parseFloat(form.size) > 0 && (
+                  <p className={cn("text-[7px] font-medium mt-1", isDark ? "text-white/20" : "text-slate-400")}>
+                    {(parseInt(form.aeratorCount) * parseFloat(form.aeratorHp || '1') / parseFloat(form.size)).toFixed(1)} HP/acre
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </SectionCard>
+
           {/* ── SUBMIT ── */}
           <motion.button
             type="submit"
@@ -365,3 +504,4 @@ export const PondEntry = ({ t }: { t: Translations }) => {
     </div>
   );
 };
+

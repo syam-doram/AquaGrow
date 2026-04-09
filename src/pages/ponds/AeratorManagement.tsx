@@ -60,20 +60,23 @@ export const AeratorManagement = ({ pond, isDark }: AeratorManagementProps) => {
           <div className="grid grid-cols-3 gap-3">
             {[
               {
-                label: 'Count', value: aerators ? `${aerators.count}` : '--',
+                label: 'Count',
+                value: aerators ? `${aerators.count}` : '--',
                 sub: `Rec. ${recommended}`,
                 color: isMet ? 'text-emerald-500' : 'text-red-400',
                 icon: Wind,
               },
               {
-                label: 'Total Power', value: aerators ? `${totalHp.toFixed(1)}HP` : '--',
-                sub: `${hpPerAcre} HP/acre`,
+                label: 'HP / Aerator',
+                value: aerators ? `${aerators.hp} HP` : '--',
+                sub: `${aerators ? aerators.count : 0} × ${aerators?.hp ?? 1} HP`,
                 color: 'text-blue-500',
                 icon: Zap,
               },
               {
-                label: 'Last Updated', value: aerators ? `DOC ${aerators.lastDoc}` : '--',
-                sub: aerators ? new Date(aerators.lastUpdated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Never',
+                label: 'Total Power',
+                value: aerators ? `${totalHp.toFixed(1)} HP` : '--',
+                sub: `${hpPerAcre} HP/acre`,
                 color: isDark ? 'text-white/60' : 'text-slate-700',
                 icon: Clock,
               },
@@ -88,6 +91,24 @@ export const AeratorManagement = ({ pond, isDark }: AeratorManagementProps) => {
               </div>
             ))}
           </div>
+
+          {/* Equation summary: N × HP = Total */}
+          {aerators && (
+            <div className={cn('flex items-center justify-center gap-1.5 py-2 rounded-2xl border font-black text-[10px]',
+              isDark ? 'bg-white/3 border-white/5 text-white/50' : 'bg-slate-50 border-slate-100 text-slate-600'
+            )}>
+              <Wind size={11} className="text-blue-400" />
+              <span>{aerators.count} aerators</span>
+              <span className={isDark ? 'text-white/20' : 'text-slate-300'}>×</span>
+              <span>{aerators.hp} HP</span>
+              <span className={isDark ? 'text-white/20' : 'text-slate-300'}>=</span>
+              <span className="text-blue-500">{totalHp.toFixed(1)} HP</span>
+              <span className={isDark ? 'text-white/20' : 'text-slate-300'}>·</span>
+              <span className={isDark ? 'text-white/40' : 'text-slate-500'}>{hpPerAcre} HP/acre</span>
+            </div>
+          )}
+
+
 
           {/* Warning if below recommendation */}
           {aerators && !isMet && (
