@@ -716,30 +716,50 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       });
       if (response.ok) {
         const data = await response.json();
+        // Server returns the correctly-mapped subscriptionStatus (e.g. 'pro_diamond')
+        const newStatus = data.subscriptionStatus || planName;
+
         setSubscription(data);
+
         if (user) {
           const currentExpiry = user.subscriptionExpiry ? new Date(user.subscriptionExpiry) : null;
           const baseDate = (currentExpiry && currentExpiry > new Date()) ? currentExpiry : new Date();
-          
           const expiry = new Date(baseDate);
           expiry.setFullYear(expiry.getFullYear() + 1);
-          
-          const updatedUser = { 
-            ...user, 
-            subscriptionStatus: planName,
+
+          const updatedUser = {
+            ...user,
+            subscriptionStatus: newStatus as any,
             subscriptionExpiry: expiry.toISOString()
           } as User;
-          setUser(updatedUser);
+
+          // Update local state + localStorage
+          setUserState(updatedUser);
+          localStorage.setItem('aqua_user', JSON.stringify(updatedUser));
+
+          // Persist subscriptionStatus to MongoDB user doc
+          const uid = user.id || (user as any)._id;
+          await apiFetch(`${API_BASE_URL}/user/${uid}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              subscriptionStatus: newStatus,
+              subscriptionExpiry: expiry.toISOString()
+            })
+          });
         }
         return true;
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error('Upgrade failed:', err);
       }
     } catch (error) {
-      console.error("Upgrade error:", error);
+      console.error('Upgrade error:', error);
     } finally {
       setIsSyncing(false);
     }
     return false;
   };
+
   const setAppTheme = async (t: 'light' | 'dark') => {
     setThemeState(t);
     localStorage.setItem('aqua_theme', t);
