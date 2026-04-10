@@ -220,11 +220,19 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                 : <TrendingDown size={15} className="text-white" />}
             </div>
             <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-0.5">
               <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
-                {avgROI >= 30 ? '🏆 Premium Performance!' : avgROI >= 15 ? '✅ Good Farm Returns' : avgROI >= 0 ? '📈 Moderate Returns' : '⚠ Review Costs'}
+                {avgROI >= 30 ? '🏆 Premium Performance!' : avgROI >= 15 ? '✅ Good Farm Returns' : avgROI >= 0 ? '📈 Low Returns — Check Input Costs' : '⚠️ Loss Cycle — Review All Expenses'}
               </p>
+          </div>
               <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>
-                Average ROI across {totalCycles} harvest cycle{totalCycles !== 1 ? 's' : ''}
+                {avgROI >= 30
+                  ? `Excellent ROI across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Keep it up!`
+                  : avgROI >= 15
+                  ? `Solid returns across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Room to improve.`
+                  : avgROI >= 0
+                  ? `Low profit margin. Review feed, medicine & operational costs.`
+                  : `Net loss detected. Check if all revenue was logged correctly.`}
               </p>
             </div>
             <ArrowUpRight size={14} className={isDark ? 'text-white/20' : 'text-slate-300'} />
