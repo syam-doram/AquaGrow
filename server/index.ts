@@ -14,7 +14,9 @@ import cors from 'cors';
 import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo, AeratorLog as AeratorLogMongo } from './db.js';
 import { apiLimiter, authenticate, requireRole, requireSelf } from './middleware/auth.js';
 import { GoogleGenAI } from "@google/genai";
-import authRoutes from './routes/auth.js';
+import authRoutes    from './routes/auth.js';
+import providerRoutes from './routes/provider.js';
+import { connectProviderDB, isProviderDbReady } from './providerDb.js';
 
 
 const app = express();
@@ -53,10 +55,15 @@ app.use(cors({
 // Use modular routes
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/provider', providerRoutes);
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) =>
-  res.json({ status: 'ok', db: mongoose.connection.readyState })
+  res.json({
+    status: 'ok',
+    farmerDb:   mongoose.connection.readyState,   // 1 = connected (aquagrow)
+    providerDb: isProviderDbReady() ? 1 : 0,      // 1 = connected (aquagrow_providers)
+  })
 );
 
 // ═══════════════════════════════╗
@@ -1127,8 +1134,17 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`[Aqua Server] Running on http://0.0.0.0:${PORT}`);
     console.log(`[Aqua Server] Port ${PORT} claimed.`);
 
-    connectDB().then(() => {
-      console.log(`[Aqua Server] ✅ MongoDB connected. AI: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
+    connectDB().then(async () => {
+      console.log(`[Aqua Server] ✅ Farmer MongoDB (aquagrow) connected. AI: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
+
+      // Connect to the separate provider database in parallel
+      connectProviderDB().then(() => {
+        console.log('[Aqua Server] ✅ Provider MongoDB (aquagrow_providers) connected.');
+      }).catch(err => {
+        console.error('[Aqua Server] ⚠️  Provider DB connection failed (non-fatal):', err.message);
+        // Non-fatal: provider routes will return 503 if DB is down
+      });
+
       setInterval(runPushEngine, 120000);
     }).catch(err => {
       // connectDB already calls process.exit(1) on failure — this catch won't be reached
