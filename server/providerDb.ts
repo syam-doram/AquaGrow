@@ -1,4 +1,4 @@
-import mongoose, { Connection } from 'mongoose';
+import mongoose from 'mongoose';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PROVIDER DATABASE — aquagrow_providers
@@ -133,13 +133,14 @@ const ProviderFarmerLinkSchema = new mongoose.Schema({
 // We use connection.model() instead of mongoose.model() so models are
 // registered on the provider connection (aquagrow_providers DB), not default.
 
-let ProviderProfile:     ReturnType<Connection['model']>;
-let ProviderInventory:   ReturnType<Connection['model']>;
-let ProviderOrder:       ReturnType<Connection['model']>;
-let ProviderRateCard:    ReturnType<Connection['model']>;
-let ProviderChat:        ReturnType<Connection['model']>;
-let ProviderLedger:      ReturnType<Connection['model']>;
-let ProviderFarmerLink:  ReturnType<Connection['model']>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let ProviderProfile:     mongoose.Model<any>;
+let ProviderInventory:   mongoose.Model<any>;
+let ProviderOrder:       mongoose.Model<any>;
+let ProviderRateCard:    mongoose.Model<any>;
+let ProviderChat:        mongoose.Model<any>;
+let ProviderLedger:      mongoose.Model<any>;
+let ProviderFarmerLink:  mongoose.Model<any>;
 
 // ── Connection ────────────────────────────────────────────────────────────────
 
