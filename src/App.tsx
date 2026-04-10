@@ -128,8 +128,33 @@ const AppContent = () => {
   }, [theme]);
 
   useEffect(() => {
-    if (!loading && user && location.pathname === '/') {
-      navigate(user.role === 'provider' ? '/provider/dashboard' : '/dashboard');
+    if (loading || !user) return;
+
+    const path = location.pathname;
+    const isProviderUser = user.role === 'provider';
+
+    // ─── Root path: redirect to correct home ───────────────────────────────
+    if (path === '/') {
+      navigate(isProviderUser ? '/provider/dashboard' : '/dashboard', { replace: true });
+      return;
+    }
+
+    // ─── Provider on farmer route: push back to provider hub ──────────────
+    const farmerOnlyPaths = [
+      '/dashboard', '/ponds', '/monitor', '/feed', '/medicine',
+      '/roi', '/harvest-revenue', '/expense-report', '/roi-entry',
+      '/daily-expense', '/market', '/live-monitor', '/water-test-scanner',
+      '/disease-detection', '/aqua-calc', '/sop-library',
+    ];
+    if (isProviderUser && farmerOnlyPaths.some(p => path.startsWith(p))) {
+      navigate('/provider/dashboard', { replace: true });
+      return;
+    }
+
+    // ─── Farmer on provider route: push back to farmer hub ───────────────
+    if (!isProviderUser && path.startsWith('/provider/')) {
+      navigate('/dashboard', { replace: true });
+      return;
     }
   }, [loading, user, location.pathname, navigate]);
 

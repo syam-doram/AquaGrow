@@ -345,18 +345,24 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
               localStorage.setItem('aqua_user', JSON.stringify(u));
             }
             setUserState(u);
-            await Promise.all([
-              fetchUserPonds(u.id || u._id, activeTokens),
-              fetchSubscription(u.id || u._id, activeTokens),
-              fetchFeedLogs(u.id || u._id, activeTokens),
-              fetchMedicineLogs(u.id || u._id, activeTokens),
-              fetchWaterLogs(u.id || u._id, activeTokens),
-              fetchSOPLogs(u.id || u._id, activeTokens),
-              fetchROIEntries(u.id || u._id, activeTokens),
-              fetchAeratorLogs(u.id || u._id, activeTokens),
-              fetchExpenses(u.id || u._id, activeTokens),
-              fetchHarvestRequests(activeTokens)
-            ]);
+            // Only fetch farmer-specific data for farmers — providers don't need pond/feed/water logs
+            if (u.role !== 'provider') {
+              await Promise.all([
+                fetchUserPonds(u.id || u._id, activeTokens),
+                fetchSubscription(u.id || u._id, activeTokens),
+                fetchFeedLogs(u.id || u._id, activeTokens),
+                fetchMedicineLogs(u.id || u._id, activeTokens),
+                fetchWaterLogs(u.id || u._id, activeTokens),
+                fetchSOPLogs(u.id || u._id, activeTokens),
+                fetchROIEntries(u.id || u._id, activeTokens),
+                fetchAeratorLogs(u.id || u._id, activeTokens),
+                fetchExpenses(u.id || u._id, activeTokens),
+                fetchHarvestRequests(activeTokens)
+              ]);
+            } else {
+              // For providers: just fetch subscription
+              await fetchSubscription(u.id || u._id, activeTokens);
+            }
           }
         } else {
           setUserState(null);
