@@ -244,15 +244,6 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const totalWeightKg = entries.reduce((a, e) => a + n(e.harvestWeightKg), 0);
   const avgPricePerKg = totalWeightKg > 0 ? totalRevenue / totalWeightKg : 0;
 
-  // ── Trend chart: revenue per cycle (respects active filters) ────────────
-  const trendData = useMemo(() =>
-    filteredEntries.slice().reverse().map((e, i) => ({
-      label: new Date(e.harvestDate || e.savedAt).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
-      revenue: n(e.totalRevenue || e.saleAmountTotal),
-      cost: n(e.totalInvested),
-      profit: n(e.netProfit),
-    })),
-    [filteredEntries]);
 
   // ── Available years from entries ──────────────────────────────────────────
   const availableYears = useMemo(() => {
@@ -289,7 +280,17 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
     });
   }, [entries, activeFilter, selectedYear, selectedPondId]);
 
-  // ── Harvested ponds for quick stats  ─────────────────────────────────────
+  // ── Trend chart: revenue per cycle (respects active filters) ────────────
+  const trendData = useMemo(() =>
+    filteredEntries.slice().reverse().map((e) => ({
+      label: new Date(e.harvestDate || e.savedAt).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+      revenue: n(e.totalRevenue || e.saleAmountTotal),
+      cost: n(e.totalInvested),
+      profit: n(e.netProfit),
+    })),
+    [filteredEntries]);
+
+  // ── Harvested ponds for quick stats ───────────────────────────────────────
   const harvestedPonds = useMemo(() =>
     ponds.filter(p => p.status === 'harvested'),
     [ponds]);
