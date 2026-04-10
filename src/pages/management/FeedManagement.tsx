@@ -135,7 +135,10 @@ const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPh
 export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, feedLogs, addFeedLog, theme } = useData();
-  const [selectedPondId, setSelectedPondId] = useState(ponds[0]?.id || '');
+
+  // Only show active / planned ponds — never harvested ones in Feed
+  const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'planned');
+  const [selectedPondId, setSelectedPondId] = useState(activePonds[0]?.id || '');
 
   // ── Persist completed slots per pond per day ──
   const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -143,7 +146,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
   const [syncedSlots, setSyncedSlots] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(getSlotsKey(ponds[0]?.id || ''));
+      const saved = localStorage.getItem(getSlotsKey(activePonds[0]?.id || ''));
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
@@ -168,7 +171,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
     return () => clearInterval(timer);
   }, []);
 
-  const selectedPond = ponds.find(p => p.id === selectedPondId);
+  const selectedPond = activePonds.find(p => p.id === selectedPondId);
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
   
 
@@ -284,9 +287,9 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
       <div className="pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[420px] mx-auto relative z-10 space-y-4">
 
         {/* ”€”€ Pond Tabs ”€”€ */}
-        {ponds.length > 0 && (
+        {activePonds.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none no-scrollbar">
-            {ponds.map(p => (
+            {activePonds.map(p => (
               <button key={p.id}
                 onClick={() => { setSelectedPondId(p.id); }}
                 className={cn(
@@ -299,9 +302,13 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               </button>
             ))}
           </div>
+        ) : (
+          <div className="mt-8">
+            <NoPondState isDark={isDark} subtitle="Add a pond to start tracking daily feed schedules and FCR analytics." />
+          </div>
         )}
 
-        {!selectedPond ? (
+        {!selectedPond && activePonds.length > 0 ? (
           <div className="mt-8">
             <NoPondState isDark={isDark} subtitle="Add a pond to start tracking daily feed schedules and FCR analytics." />
           </div>

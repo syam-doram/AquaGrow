@@ -46,7 +46,7 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchWeatherData('Current Location');
+      const data = await fetchWeatherData('Hyderabad');
       setWeather(data);
       setLastRefresh(new Date());
     } catch (e) { console.error(e); }
@@ -77,7 +77,7 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
         <div className="text-center">
           <h1 className={cn('text-xs font-black tracking-tight uppercase', isDark ? 'text-white' : 'text-slate-900')}>{t.weather}</h1>
           <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>
-            Live Aquaculture Intelligence
+            {weather?.location ? `📍 ${weather.location}` : 'Live Aquaculture Intelligence'}
           </p>
         </div>
 
@@ -90,6 +90,7 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </motion.button>
       </header>
+
 
       {/* ── LOADING STATE ── */}
       {loading && !weather && (

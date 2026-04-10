@@ -416,7 +416,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   // ─── SYNC ACTIVE POND SELECTION ───────────────────────────────────────────
   useEffect(() => {
     if (!selectedPondId && ponds.length > 0) {
-      setSelectedPondId(ponds[0].id);
+      setSelectedPondId(activePonds[0]?.id || ponds[0]?.id || "");
     }
   }, [ponds, selectedPondId]);
 
@@ -561,9 +561,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
       <div className="pt-[calc(env(safe-area-inset-top)+6.5rem)] px-5 space-y-5">
         {/* Pond Selector Tabs */}
-        {ponds.length > 0 ? (
+        {activePonds.length > 0 ? (
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-            {ponds.map(p => (
+            {activePonds.map(p => (
               <button
                 key={p.id}
                 onClick={() => { setSelectedPondId(p.id); setCompletedMeds([]); }}
@@ -591,7 +591,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
           </div>
         )}
 
-        {ponds.length > 0 && selectedPond && (
+        {activePonds.length > 0 && selectedPond && (
           <>
             {/* ─── MEDICINE INTELLIGENCE HERO ─── */}
             <motion.div

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Target, ArrowRight, Clock, Waves, Layers, Zap, Info,
-  Fish, CheckCircle2, MapPin, Droplets, BarChart2, Wind,
+  Fish, CheckCircle2, MapPin, Droplets, BarChart2, Wind, IndianRupee,
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'motion/react';
@@ -111,6 +111,7 @@ export const PondEntry = ({ t }: { t: Translations }) => {
     species: 'Vannamei',
     size: '',
     seedCount: '',
+    seedCost: '',
     stockingDate: new Date().toISOString().split('T')[0],
     plAge: '12',
     waterType: 'Borewell',
@@ -148,6 +149,7 @@ export const PondEntry = ({ t }: { t: Translations }) => {
         size: parseFloat(form.size),
         species: form.species as 'Vannamei' | 'Tiger',
         seedCount: parseInt(form.seedCount.replace(/,/g, '')),
+        seedCost: parseFloat(form.seedCost) || 0,
         plAge: parseInt(form.plAge),
         stockingDate: form.stockingDate,
         status: isStocked ? 'active' : 'planned',
@@ -296,7 +298,10 @@ export const PondEntry = ({ t }: { t: Translations }) => {
 
           {/* ── STOCKING ANALYTICS ── */}
           <SectionCard title={t.stockingAnalytics} subtitle="Growth markers" icon={Zap} iconBg={isDark ? "bg-orange-500/15 text-orange-400" : "bg-orange-100 text-orange-600"} isDark={isDark}>
-            <FieldInput label={t.seedCount} icon={Fish} value={form.seedCount} onChange={set('seedCount')} placeholder="e.g. 50,000" isDark={isDark} />
+            <div className="grid grid-cols-2 gap-3">
+              <FieldInput label={t.seedCount} icon={Fish} value={form.seedCount} onChange={set('seedCount')} placeholder="e.g. 50,000" isDark={isDark} />
+              <FieldInput label="Seed Cost" icon={IndianRupee} value={form.seedCost} onChange={set('seedCost')} placeholder="e.g. 4500" suffix="₹" type="number" isDark={isDark} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className={cn("text-[8px] font-black uppercase tracking-[0.2em] ml-1 flex items-center gap-1", isDark ? "text-white/30" : "text-slate-400")}>

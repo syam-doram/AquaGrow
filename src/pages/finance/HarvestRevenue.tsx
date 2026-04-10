@@ -221,6 +221,8 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'market' | 'self'>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedPondId, setSelectedPondId] = useState<string>('all');
 
   const entries: any[] = useMemo(() => (roiEntries || []).slice().reverse(), [roiEntries]);
 
@@ -244,17 +246,46 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
     })),
     [entries]);
 
-  // ── Filtered entries ──────────────────────────────────────────────────────
-  const filteredEntries = useMemo(() =>
-    activeFilter === 'all'
-      ? entries
-      : entries.filter(e => (e.harvestType || 'market') === activeFilter),
-    [entries, activeFilter]);
+  // ── Available years from entries ──────────────────────────────────────────
+  const availableYears = useMemo(() => {
+    const yrs = new Set<string>();
+    entries.forEach(e => {
+      const date = e.harvestDate || e.createdAt || e.date;
+      if (date) yrs.add(new Date(date).getFullYear().toString());
+    });
+    return ['all', ...Array.from(yrs).sort((a, b) => b.localeCompare(a))];
+  }, [entries]);
+
+  // ── Available ponds from entries ──────────────────────────────────────────
+  const pondOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    entries.forEach(e => {
+      if (e.pondId) {
+        const pond = ponds.find(p => p.id === e.pondId);
+        seen.set(e.pondId, pond?.name || e.pondName || e.pondId);
+      }
+    });
+    return [{ id: 'all', name: 'All Ponds' }, ...Array.from(seen.entries()).map(([id, name]) => ({ id, name }))];
+  }, [entries, ponds]);
+
+  // ── Filtered entries (by type + year + pond) ──────────────────────────────
+  const filteredEntries = useMemo(() => {
+    return entries.filter(e => {
+      const matchType = activeFilter === 'all' || (e.harvestType || 'market') === activeFilter;
+      const matchYear = selectedYear === 'all' || (() => {
+        const date = e.harvestDate || e.createdAt || e.date;
+        return date && new Date(date).getFullYear().toString() === selectedYear;
+      })();
+      const matchPond = selectedPondId === 'all' || e.pondId === selectedPondId;
+      return matchType && matchYear && matchPond;
+    });
+  }, [entries, activeFilter, selectedYear, selectedPondId]);
 
   // ── Harvested ponds for quick stats  ─────────────────────────────────────
   const harvestedPonds = useMemo(() =>
     ponds.filter(p => p.status === 'harvested'),
     [ponds]);
+
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -358,6 +389,67 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
           </div>
         </motion.div>
 
+        {/* ── FILTERS: Harvest Type / Year / Pond ── */}
+        {entries.length > 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+            {/* Harvest type pills */}
+            <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+              {(['all', 'market', 'self'] as const).map(f => (
+                <button key={f} onClick={() => setActiveFilter(f)}
+                  className={cn('px-3.5 py-2 rounded-2xl text-[8px] font-black uppercase tracking-widest whitespace-nowrap border flex-shrink-0 transition-all',
+                    activeFilter === f
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                      : isDark ? 'bg-white/5 text-white/40 border-white/8' : 'bg-white text-slate-500 border-slate-100 shadow-sm'
+                  )}>
+                  {f === 'all' ? '🏷 All Types' : f === 'market' ? '🏪 Market' : '🏠 Self'}
+                </button>
+              ))}
+            </div>
+
+            {/* Year + Pond row */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Year filter */}
+              <div className={cn('relative rounded-2xl border overflow-hidden', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm')}>
+                <select
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(e.target.value)}
+                  className={cn('w-full pl-3 pr-8 py-2.5 text-[8.5px] font-black uppercase tracking-widest appearance-none outline-none bg-transparent',
+                    isDark ? 'text-white' : 'text-slate-800'
+                  )}
+                >
+                  {availableYears.map(y => (
+                    <option key={y} value={y}>{y === 'all' ? '📅 All Years' : `📅 ${y}`}</option>
+                  ))}
+                </select>
+                <div className={cn('absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px]', isDark ? 'text-white/30' : 'text-slate-400')}>▾</div>
+              </div>
+
+              {/* Pond filter */}
+              <div className={cn('relative rounded-2xl border overflow-hidden', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm')}>
+                <select
+                  value={selectedPondId}
+                  onChange={e => setSelectedPondId(e.target.value)}
+                  className={cn('w-full pl-3 pr-8 py-2.5 text-[8.5px] font-black uppercase tracking-widest appearance-none outline-none bg-transparent',
+                    isDark ? 'text-white' : 'text-slate-800'
+                  )}
+                >
+                  {pondOptions.map(p => (
+                    <option key={p.id} value={p.id}>{p.id === 'all' ? '🐟 All Ponds' : `🐟 ${p.name}`}</option>
+                  ))}
+                </select>
+                <div className={cn('absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px]', isDark ? 'text-white/30' : 'text-slate-400')}>▾</div>
+              </div>
+            </div>
+
+            {/* Active filter count */}
+            {filteredEntries.length !== entries.length && (
+              <p className={cn('text-[7.5px] font-black uppercase tracking-widest text-center', isDark ? 'text-white/30' : 'text-slate-400')}>
+                Showing {filteredEntries.length} of {entries.length} records
+              </p>
+            )}
+          </motion.div>
+        )}
+
         {/* No data state */}
         {totalCycles === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -371,6 +463,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
             </p>
           </motion.div>
         )}
+
 
         {/* ── REVENUE TREND CHART ── */}
         {trendData.length > 1 && (

@@ -23,7 +23,6 @@ import {
   Thermometer,
   Wind,
   CloudRain,
-  CloudSun,
   RefreshCw,
   CheckCircle2,
   Clock,
@@ -609,7 +608,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         <div className={cn("absolute bottom-[-10%] left-[-10%] w-[60%] h-[40%] blur-[120px] rounded-full", isDark ? "bg-emerald-600/10" : "bg-emerald-500/5")} />
       </div>
 
-      <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} />
+      <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo />
 
       {/* ── HARVEST STAGE TOAST (foreground in-app alert) ── */}
       <AnimatePresence>
@@ -752,7 +751,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               { label: t.disease,      icon: HeartPulse, path: '/disease-detection',    from: '#f87171', to: '#dc2626' },
               { label: t.market,       icon: TrendingUp, path: '/market',               from: '#34d399', to: '#059669' },
               { label: t.weather,      icon: Wind,       path: '/weather',              from: '#818cf8', to: '#4f46e5' },
-              { label: t.feedPlanner || 'Feed Plan', icon: CloudSun, path: '/weather-feed', from: '#06b6d4', to: '#0891b2' },
+              { label: 'AquaCalc',    icon: Calculator, path: '/aqua-calc',            from: '#10b981', to: '#059669' },
               { label: 'SOP Hub',      icon: FileText,   path: '/sop-library',          from: '#e879f9', to: '#c026d3' },
               { label: t.expert,       icon: Target,     path: '/expert-consultations', from: '#fbbf24', to: '#d97706' },
             ].map((n, i) => (

@@ -70,6 +70,7 @@ import { ExpenseReport } from './pages/finance/ExpenseReport';
 import { ROIEntry } from './pages/finance/ROIEntry';
 import { SOPLibrary } from './pages/management/SOPLibrary';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
+import { AquaCalc } from './pages/tools/AquaCalc';
 
 // Provider Pages
 import { ProviderDashboard } from './pages/provider/ProviderDashboard';
@@ -366,6 +367,7 @@ const AppContent = () => {
                 <Route path="/expense-report" element={<ExpenseReport t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/roi-entry" element={<ROIEntry t={t} />} />
                 <Route path="/daily-expense" element={<DailyExpenseLog t={t} />} />
+                <Route path="/aqua-calc" element={<AquaCalc />} />
                 <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
 
                 {/* Provider Routes */}
