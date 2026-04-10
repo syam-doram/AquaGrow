@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Connection } from 'mongoose';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PROVIDER DATABASE — aquagrow_providers
