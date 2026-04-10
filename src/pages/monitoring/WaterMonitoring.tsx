@@ -45,7 +45,8 @@ const pondPalette = (score: number) =>
 export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, waterRecords, isPro, addWaterRecord } = useData();
-  const [selectedPondId, setSelectedPondId] = useState<string>(ponds[0]?.id || '');
+  const activePonds = ponds.filter(p => p.status !== 'harvested');
+  const [selectedPondId, setSelectedPondId] = useState<string>(activePonds[0]?.id || '');
   const [selectedDate,   setSelectedDate]   = useState<Date>(startOfToday());
   const [isLiveMode,     setIsLiveMode]     = useState(false);
   const [isConnecting,   setIsConnecting]   = useState(false);
@@ -58,7 +59,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
   const dateRailRef = useRef<HTMLDivElement>(null);
   const pondRailRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (ponds.length > 0 && !selectedPondId) setSelectedPondId(ponds[0].id); }, [ponds]);
+  useEffect(() => { if (activePonds.length > 0 && !selectedPondId) setSelectedPondId(activePonds[0].id); }, [ponds]);
   useEffect(() => { setSelectedDate(startOfToday()); }, [selectedPondId]);
   useEffect(() => {
     const t = setTimeout(() => { if (dateRailRef.current) dateRailRef.current.scrollLeft = dateRailRef.current.scrollWidth; }, 150);
@@ -102,7 +103,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
   const auditCount = METRICS.filter(m => m.val !== undefined && m.val !== null).length;
 
   // ── EMPTY STATE ────────────────────────────────────────────────────────────
-  if (ponds.length === 0) return (
+  if (activePonds.length === 0) return (
     <div className="min-h-screen bg-paper flex flex-col">
       <Header title={t.monitor} showBack onMenuClick={onMenuClick} />
       <div className="pt-28 flex-1 flex items-center justify-center">
@@ -151,7 +152,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
 
           {/* Pond chips rail */}
           <div ref={pondRailRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
-            {ponds.map(p => {
+            {activePonds.map(p => {
               const pr       = waterRecords.filter(r => r.pondId === p.id && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
               const ph       = calcHealth(pr);
               const pal      = pondPalette(ph.score);
@@ -402,11 +403,18 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
         )}
 
         {/* ── 7. LOG BUTTON ─────────────────────────────────────── */}
-        <motion.button whileTap={{ scale: 0.97 }}
-          onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
-          className="w-full bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-          <Plus size={14} /> Log Today's Water Parameters
-        </motion.button>
+        {selectedPond?.status === 'harvested' ? (
+          <div className="w-full rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-400">
+            🏁 Pond Harvested — No Logging Required
+          </div>
+        ) : (
+          <motion.button whileTap={{ scale: 0.97 }}
+            onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
+            className="w-full bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+            <Plus size={14} /> Log Today's Water Parameters
+          </motion.button>
+        )}
+
 
       </div>
     </div>

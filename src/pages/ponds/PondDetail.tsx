@@ -299,11 +299,20 @@ export const PondDetail = ({ t }: { t: Translations }) => {
               <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/40 text-[8px] font-black uppercase tracking-widest">{t.growthMilestonesTitle}</p>
-                  <p className="text-white/40 text-[8px] font-black">
-                    {milestones.find(m => currentDoc < m.targetDoc)?.g
-                      ? `Next: ${milestones.find(m => currentDoc < m.targetDoc)?.g} @ DOC ${milestones.find(m => currentDoc < m.targetDoc)?.targetDoc}`
-                      : 'Max size reached'}
-                  </p>
+                  {(() => {
+                    const nextMs = milestones.find(m => currentDoc < m.targetDoc);
+                    if (!nextMs) return <p className="text-white/40 text-[8px] font-black">Max size reached 🎊</p>;
+                    const daysLeft = nextMs.targetDoc - currentDoc;
+                    const reachDate = new Date();
+                    reachDate.setDate(reachDate.getDate() + daysLeft);
+                    const label = reachDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                    return (
+                      <div className="text-right">
+                        <p className="text-emerald-300/80 text-[7px] font-black">Next: {nextMs.g} · {label}</p>
+                        <p className="text-white/30 text-[6px] font-black">{daysLeft} days · DOC {nextMs.targetDoc}</p>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex gap-1 items-center">
                   {milestones.filter(m => [5, 10, 20, 25, 30].includes(m.val)).map((step, i) => {

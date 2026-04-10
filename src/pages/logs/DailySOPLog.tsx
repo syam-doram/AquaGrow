@@ -324,6 +324,34 @@ export const DailySOPLog = ({ t }: { t: Translations }) => {
     />
   );
 
+  // Block logging for harvested ponds
+  if (pond.status === 'harvested') return (
+    <div className={cn("min-h-screen flex flex-col", isDark ? "bg-[#070D12]" : "bg-[#F0F4F8]")}>
+      <header className={cn("flex items-center px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 border-b", isDark ? "bg-[#070D12] border-white/5" : "bg-white/90 border-slate-100 shadow-sm")}>
+        <button onClick={() => navigate(-1)} className={cn("w-10 h-10 rounded-2xl flex items-center justify-center border", isDark ? "bg-white/5 border-white/10 text-white/70" : "bg-white border-slate-200 text-slate-600 shadow-sm")}>
+          <ChevronLeft size={18} />
+        </button>
+      </header>
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className={cn("w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center", isDark ? "bg-emerald-500/10" : "bg-emerald-50")}>
+            <span className="text-4xl">🏁</span>
+          </div>
+          <h2 className={cn("font-black text-xl tracking-tight mb-2", isDark ? "text-white" : "text-slate-900")}>Harvest Complete</h2>
+          <p className={cn("text-[9px] font-black uppercase tracking-widest mb-4", isDark ? "text-white/30" : "text-slate-400")}>
+            {pond.name} — Cycle Archived
+          </p>
+          <p className={cn("text-[11px] font-medium leading-relaxed", isDark ? "text-white/40" : "text-slate-500")}>
+            Daily SOP logs are only required for active ponds. This pond has been harvested and archived.
+          </p>
+          <button onClick={() => navigate(-1)} className="mt-6 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest">
+            Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const docOnDate   = calculateDOC(pond.stockingDate);
   const stageConfig = getStageConfig(docOnDate, t);
 

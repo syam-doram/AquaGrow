@@ -248,8 +248,10 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
         </div>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-          className="w-10 h-10 bg-[#0D523C] rounded-2xl flex items-center justify-center text-white shadow-lg"
+          onClick={() => pond.status !== 'harvested' && navigate(`/ponds/${pond.id}/water-log`)}
+          className={cn("w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg",
+            pond.status === 'harvested' ? "bg-slate-400 cursor-not-allowed opacity-50" : "bg-[#0D523C]"
+          )}
         >
           <Plus size={18} />
         </motion.button>
@@ -322,7 +324,15 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
         </motion.div>
 
         {/* ── LOG TODAY CTA ── */}
-        {(!latestRecord || latestRecord.date !== new Date().toISOString().split('T')[0]) && (
+        {pond.status === 'harvested' ? (
+          <div className={cn('w-full rounded-[2rem] px-5 py-4 flex items-center gap-3 border', isDark ? 'bg-emerald-900/10 border-emerald-900/20' : 'bg-emerald-50 border-emerald-200')}>
+            <span className="text-2xl">🏁</span>
+            <div>
+              <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Harvest Complete</p>
+              <p className="text-[9px] text-emerald-600 font-black uppercase tracking-widest">This pond is archived — no further logging required</p>
+            </div>
+          </div>
+        ) : (!latestRecord || latestRecord.date !== new Date().toISOString().split('T')[0]) && (
           <motion.button
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
             onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
@@ -499,12 +509,14 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <h2 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>{t.waterHistory}</h2>
-                <button
-                  onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-                  className="bg-[#0D523C] text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
-                >
-                  <Plus size={12} /> {t.logConditions}
-                </button>
+                {pond.status !== 'harvested' && (
+                  <button
+                    onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
+                    className="bg-[#0D523C] text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
+                  >
+                    <Plus size={12} /> {t.logConditions}
+                  </button>
+                )}
               </div>
 
               {pondRecords.length === 0 ? (

@@ -52,6 +52,10 @@ export const useSmartAlerts = (params: {
 
   const lastRunRef     = useRef<number>(0);
   const suppressedIds  = useRef<Set<string>>(loadSuppressed());
+  const alertsRef      = useRef<SmartAlert[]>(alerts);
+
+  // Keep alertsRef in sync with state
+  useEffect(() => { alertsRef.current = alerts; }, [alerts]);
 
   // ── Save to localStorage whenever alerts change ──
   useEffect(() => {
@@ -74,7 +78,18 @@ export const useSmartAlerts = (params: {
   // ── Fire a local OS-level notification (browser or native) ──
   const fireLocalNotification = useCallback(async (alert: SmartAlert) => {
     if (!enabled) return;
-    const cfg = PRIORITY_CONFIG[alert.priority];
+
+    // Priority → channel + accent color mapping
+    const CHANNEL_MAP: Record<string, { channelId: string; accentColor: string; importance: string }> = {
+      critical: { channelId: 'aquagrow-critical',  accentColor: '#FF3B30', importance: 'high' },
+      high:     { channelId: 'aquagrow-high',       accentColor: '#FF9500', importance: 'high' },
+      medium:   { channelId: 'aquagrow-medium',     accentColor: '#C78200', importance: 'default' },
+      info:     { channelId: 'aquagrow-info',       accentColor: '#10b981', importance: 'low' },
+    };
+    const ch = CHANNEL_MAP[alert.priority] ?? CHANNEL_MAP.info;
+
+    // Stable numeric ID from alert string ID
+    const numericId = Math.abs(alert.id.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)) % 2147483647;
 
     // Browser Web Notifications
     if (!Capacitor.isNativePlatform() && 'Notification' in window && Notification.permission === 'granted') {
@@ -82,6 +97,7 @@ export const useSmartAlerts = (params: {
         new Notification(`${alert.icon} ${alert.title}`, {
           body: alert.body,
           icon: '/logo192.png',
+          badge: '/logo192.png',
           tag: alert.id,
           requireInteraction: alert.priority === 'critical',
           silent: alert.priority === 'info',
@@ -90,22 +106,84 @@ export const useSmartAlerts = (params: {
       return;
     }
 
-    // Native Capacitor Notifications (Android/iOS)
+    // Native Capacitor Notifications (Android/iOS) — rich style
     if (Capacitor.isNativePlatform()) {
       try {
         const perm = await LocalNotifications.checkPermissions();
         if (perm.display !== 'granted') {
           await LocalNotifications.requestPermissions();
         }
+
+        // Ensure notification channels exist (Android O+)
+        try {
+          await (LocalNotifications as any).createChannel?.({
+            id: 'aquagrow-critical',
+            name: '🚨 AquaGrow Critical Alerts',
+            description: 'Urgent pond health & disease alerts',
+            importance: 5, // IMPORTANCE_HIGH
+            visibility: 1,
+            sound: 'alarm.wav',
+            vibration: true,
+            lights: true,
+            lightColor: '#FF3B30',
+          });
+          await (LocalNotifications as any).createChannel?.({
+            id: 'aquagrow-high',
+            name: '⚠️ AquaGrow High Priority',
+            description: 'Feed, water quality, and SOP alerts',
+            importance: 4,
+            visibility: 1,
+            sound: 'default',
+            vibration: true,
+            lights: true,
+            lightColor: '#FF9500',
+          });
+          await (LocalNotifications as any).createChannel?.({
+            id: 'aquagrow-medium',
+            name: '📢 AquaGrow Reminders',
+            description: 'Harvest timing, lunar phase alerts',
+            importance: 3,
+            visibility: 0,
+            sound: 'default',
+            vibration: false,
+            lights: false,
+          });
+          await (LocalNotifications as any).createChannel?.({
+            id: 'aquagrow-info',
+            name: 'ℹ️ AquaGrow Tips',
+            description: 'Daily SOP tips & market insights',
+            importance: 2,
+            visibility: -1,
+            sound: undefined,
+            vibration: false,
+            lights: false,
+          });
+        } catch { /* channel creation fails gracefully on iOS */ }
+
         await LocalNotifications.schedule({
           notifications: [{
-            id: Math.abs(alert.id.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)),
+            id: numericId,
             title: `${alert.icon} ${alert.title}`,
             body: alert.body,
+            // Subtitle visible on iOS & Notification shade large view
+            ...(alert.pondName ? { summaryText: `📍 ${alert.pondName}` } : {}),
             schedule: { at: new Date(Date.now() + 500) },
-            sound: alert.priority === 'critical' ? 'alarm' : 'default',
-            channelId: 'aquagrow-premium',
-            extra: { route: alert.actionRoute, category: alert.category },
+            sound: alert.priority === 'critical' ? 'alarm.wav' : 'default',
+            channelId: ch.channelId,
+            // Android-specific rich styling
+            smallIcon: 'ic_stat_aquagrow',   // must exist in android/app/src/main/res/drawable
+            iconColor: ch.accentColor,
+            // Group same-category alerts together
+            group: `aquagrow-${alert.category}`,
+            groupSummary: false,
+            ongoing: alert.priority === 'critical',   // sticky for critical
+            autoCancel: alert.priority !== 'critical',
+            extra: {
+              route: alert.actionRoute,
+              category: alert.category,
+              priority: alert.priority,
+              alertId: alert.id,
+            },
           }]
         });
       } catch (e) {
@@ -136,12 +214,12 @@ export const useSmartAlerts = (params: {
     const newAlerts: SmartAlert[] = [];
 
     for (const alert of generated) {
-      // Check if a similar alert (same title) was already shown today
-      const alreadyShown = alerts.some(
+      // Check if a similar alert (same title) was already shown today — use ref for fresh state
+      const alreadyShown = alertsRef.current.some(
         a => a.title === alert.title &&
         new Date(a.timestamp).toDateString() === todayKey
       );
-      // Also skip if user has dismissed an alert with this title today
+      // Also skip if user has dismissed an alert with this title
       if (alreadyShown) continue;
       if (suppressedIds.current.has(alert.title)) continue;
 
@@ -156,7 +234,7 @@ export const useSmartAlerts = (params: {
     if (newAlerts.length > 0) {
       setAlerts(prev => [...newAlerts, ...prev].slice(0, 100));
     }
-  }, [enabled, ponds, waterRecords, feedRecords, marketPrices, prefs, alerts, fireLocalNotification]);
+  }, [enabled, ponds, waterRecords, feedRecords, marketPrices, prefs, fireLocalNotification]);
 
   // ── Auto-run on interval ──
   useEffect(() => {
