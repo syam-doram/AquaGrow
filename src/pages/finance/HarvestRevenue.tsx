@@ -84,16 +84,24 @@ const DetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () => vo
   const totalRevenue = n(entry.totalRevenue || entry.saleAmountTotal);
   const totalInvested = n(entry.totalInvested);
 
+  // Resolve pond name from context
+  const { ponds: allPonds } = useData();
+  const pondLabel = entry.pondId
+    ? allPonds.find((p: any) => p.id === entry.pondId)?.name || entry.pondName || entry.pondId
+    : '--';
+
   const rows = [
     { label: 'Buyer / Method', value: entry.buyerName || (entry.harvestType === 'self' ? 'Self Harvest' : 'Market Sale') },
     { label: 'Harvest Date', value: fmt(entry.harvestDate || entry.savedAt) },
-    { label: 'Pond', value: entry.pondId || '--' },
+    { label: 'Pond', value: pondLabel },
     { label: 'Weight Sold', value: `${n(entry.harvestWeightKg).toLocaleString('en-IN')} kg` },
     { label: 'Count / kg', value: entry.countPerKg ? `${entry.countPerKg}/kg` : '--' },
     { label: 'Rate / kg', value: entry.pricePerKg ? `₹${n(entry.pricePerKg).toLocaleString('en-IN')}` : '--' },
     { label: 'Culture Days', value: entry.cultureDays ? `${entry.cultureDays} DOC` : '--' },
     { label: 'Survival Rate', value: entry.survivalRate ? `${entry.survivalRate}%` : '--' },
-  ];
+    { label: 'Grade A', value: entry.gradeA ? `${entry.gradeA}%` : '--' },
+    { label: 'Subsidy', value: entry.subsidyAmount && n(entry.subsidyAmount) > 0 ? `₹${n(entry.subsidyAmount).toLocaleString('en-IN')}` : '--' },
+  ].filter(r => r.value !== '--');
 
   const costBreakdown = [
     { label: 'Seed', value: n(entry.seedCost), fill: '#10b981' },
@@ -236,15 +244,15 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const totalWeightKg = entries.reduce((a, e) => a + n(e.harvestWeightKg), 0);
   const avgPricePerKg = totalWeightKg > 0 ? totalRevenue / totalWeightKg : 0;
 
-  // ── Trend chart: revenue per cycle ───────────────────────────────────────
+  // ── Trend chart: revenue per cycle (respects active filters) ────────────
   const trendData = useMemo(() =>
-    entries.slice(-8).map((e, i) => ({
-      label: `C${i + 1}`,
+    filteredEntries.slice().reverse().map((e, i) => ({
+      label: new Date(e.harvestDate || e.savedAt).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
       revenue: n(e.totalRevenue || e.saleAmountTotal),
       cost: n(e.totalInvested),
       profit: n(e.netProfit),
     })),
-    [entries]);
+    [filteredEntries]);
 
   // ── Available years from entries ──────────────────────────────────────────
   const availableYears = useMemo(() => {
@@ -314,7 +322,7 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
       </AnimatePresence>
 
-      <div className="pt-20 px-4 max-w-[480px] mx-auto space-y-4">
+      <div className="pt-20 px-4 max-w-[420px] mx-auto space-y-4">
 
         {/* ── HERO CARD ── */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -520,23 +528,6 @@ export const HarvestRevenue = ({ t, onMenuClick }: { t: Translations; onMenuClic
           </motion.div>
         )}
 
-        {/* ── FILTER TABS ── */}
-        {filteredEntries.length > 0 && (
-          <div className={cn('flex p-1 rounded-2xl border gap-1', isDark ? 'bg-white/5 border-white/8' : 'bg-slate-100 border-transparent')}>
-            {(['all', 'market', 'self'] as const).map(f => (
-              <button key={f} onClick={() => setActiveFilter(f)}
-                className={cn('flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all',
-                  activeFilter === f
-                    ? isDark
-                      ? 'bg-emerald-700/50 text-white border border-emerald-500/20 shadow-sm'
-                      : 'bg-white text-emerald-700 shadow-md border border-emerald-100'
-                    : isDark ? 'text-white/35' : 'text-slate-400'
-                )}>
-                {f === 'all' ? 'All' : f === 'market' ? 'Market' : 'Self'}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* ── SETTLEMENT LEDGER ── */}
         {filteredEntries.length > 0 && (

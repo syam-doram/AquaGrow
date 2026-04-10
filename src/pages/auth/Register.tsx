@@ -27,6 +27,8 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
   const [step, setStep] = useState<'form' | 'terms' | 'otp'>('form');
   const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [farmArea, setFarmArea] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const handleRegisterSteps = async () => {
     setError('');
     if (step === 'form') {
+      if (!name.trim()) { setError('Please enter your name'); return; }
       if (!phone) { setError(t.fillAllFields || 'Please enter your phone number'); return; }
       const phoneClean = phone.replace(/\D/g, '');
       if (!/^[6789]\d{9}$/.test(phoneClean)) { setError('Invalid phone number (10 digits required)'); return; }
@@ -85,13 +88,13 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     const phoneClean = phone.replace(/\D/g, '');
     try {
       const result = await register({
-        name: 'Farmer Member',
+        name: name.trim() || 'Farmer Member',
         phoneNumber: `+91 ${phoneClean}`,
         email: `${phoneClean}@aquagrow.com`,
         password: 'aquagrow123',
         location: 'Unknown',
         role,
-        farmSize: 0,
+        farmSize: parseFloat(farmArea) || 0,
         pondCount: 0,
         language: currentLang,
         termsAccepted: true,
@@ -223,13 +226,62 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
             </AnimatePresence>
 
             {step === 'form' ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3.5">
                 <p className={cn("text-center text-[8px] font-black uppercase tracking-[0.25em]", isDark ? "text-white/20" : "text-slate-300")}>
                   Empowering the Blue Revolution
                 </p>
-                
+
+                {/* Name Input */}
+                <div className="space-y-1.5">
+                  <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
+                    Your Full Name
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
+                      <UserIcon size={16} />
+                    </div>
+                    <input
+                      className={cn(
+                        "w-full pl-11 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
+                        isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
+                      )}
+                      placeholder={role === 'farmer' ? 'e.g. Ravi Kumar' : 'e.g. Vijay Exports'}
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={60}
+                    />
+                  </div>
+                </div>
+
+                {/* Farm Area Input */}
+                <div className="space-y-1.5">
+                  <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
+                    {role === 'farmer' ? 'Total Farm Area (optional)' : 'Coverage Area (optional)'}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
+                      <Scale size={16} />
+                    </div>
+                    <input
+                      className={cn(
+                        "w-full pl-11 pr-16 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
+                        isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
+                      )}
+                      placeholder="e.g. 2.5"
+                      type="number"
+                      inputMode="decimal"
+                      value={farmArea}
+                      onChange={(e) => setFarmArea(e.target.value)}
+                    />
+                    <span className={cn("absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-widest pointer-events-none", isDark ? "text-white/20" : "text-slate-400")}>
+                      Acres
+                    </span>
+                  </div>
+                </div>
+
                 {/* Phone Input */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
                     {t.phoneNumber}
                   </label>
@@ -238,25 +290,25 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
                       <Smartphone size={16} />
                     </div>
                     <div className={cn("absolute left-12 top-1/2 -translate-y-1/2 text-[11px] font-black", isDark ? "text-white/30" : "text-slate-400")}>+91</div>
-                    <input 
+                    <input
                       className={cn(
                         "w-full pl-20 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
                         isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
                       )}
-                      placeholder="00000 00000" 
-                      type="tel" 
-                      value={phone} 
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} 
-                      maxLength={10} 
+                      placeholder="00000 00000"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                      maxLength={10}
                     />
                   </div>
                 </div>
 
-                <motion.button 
-                  onClick={handleRegisterSteps} 
-                  disabled={loading || phone.length < 10} 
+                <motion.button
+                  onClick={handleRegisterSteps}
+                  disabled={loading || phone.length < 10 || !name.trim()}
                   whileTap={{ scale: 0.97 }}
-                  className="w-full py-4 rounded-[1.4rem] text-[10px] font-black uppercase tracking-[0.3em] text-white disabled:opacity-40 transition-all relative overflow-hidden" 
+                  className="w-full py-4 rounded-[1.4rem] text-[10px] font-black uppercase tracking-[0.3em] text-white disabled:opacity-40 transition-all relative overflow-hidden"
                   style={{ background: activeGradient, boxShadow: `0 12px 32px ${shadowColor}` }}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
@@ -269,9 +321,10 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
                 {/* Security note */}
                 <div className="flex items-center justify-center gap-2">
                   <ShieldCheck size={11} className="text-emerald-500" />
-                  <p className={cn("text-[8px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/20" : "text-slate-300")}>Your data is encrypted & safe</p>
+                  <p className={cn("text-[8px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/20" : "text-slate-300")}>Your data is encrypted &amp; safe</p>
                 </div>
               </motion.div>
+
             ) : step === 'terms' ? (
               /* ── TERMS & DISCLAIMER (compact) ── */
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
