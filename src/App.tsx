@@ -75,7 +75,11 @@ import { AquaCalc } from './pages/tools/AquaCalc';
 // Provider Pages
 import { ProviderDashboard } from './pages/provider/ProviderDashboard';
 import { ProviderInventory } from './pages/provider/ProviderInventory';
-import { ProviderOrders } from './pages/provider/ProviderOrders';
+import { ProviderOrders }   from './pages/provider/ProviderOrders';
+import { ProviderRates }    from './pages/provider/ProviderRates';
+import { ProviderChat }     from './pages/provider/ProviderChat';
+import { ProviderLedger }   from './pages/provider/ProviderLedger';
+import { ProviderFarmers }  from './pages/provider/ProviderFarmers';
 
 export default function App() {
   return (
@@ -373,7 +377,11 @@ const AppContent = () => {
                 {/* Provider Routes */}
                 <Route path="/provider/dashboard" element={<ProviderDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/provider/inventory" element={<ProviderInventory t={t} onMenuClick={() => navigate('/profile')} />} />
-                <Route path="/provider/orders" element={<ProviderOrders t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/provider/orders"    element={<ProviderOrders t={t} onMenuClick={() => navigate('/profile')} />} />
+                <Route path="/provider/rates"     element={<ProviderRates t={t} />} />
+                <Route path="/provider/chat"      element={<ProviderChat t={t} />} />
+                <Route path="/provider/ledger"    element={<ProviderLedger t={t} />} />
+                <Route path="/provider/farmers"   element={<ProviderFarmers t={t} />} />
 
                 <Route path="*" element={<Navigate to={isProvider ? "/provider/dashboard" : "/dashboard"} replace />} />
               </Routes>
