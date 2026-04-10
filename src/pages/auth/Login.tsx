@@ -25,7 +25,7 @@ import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometri
 import { Language } from '../../types';
 
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
-  const { login, loginWithOtp, updateUser, theme } = useData();
+  const { login, loginWithOtp, updateUser, user: ctxUser, theme } = useData();
   const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +44,12 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
 
   const navigate = useNavigate();
   const isDark = theme === 'dark';
+
+  // Helper: navigate to the correct home based on user role from server
+  const goHome = (userObj?: any) => {
+    const resolvedRole = userObj?.role || ctxUser?.role;
+    navigate(resolvedRole === 'provider' ? '/provider/dashboard' : '/dashboard');
+  };
 
   const farmerGradient = 'linear-gradient(135deg, #059669 0%, #0D523C 100%)';
   const providerGradient = 'linear-gradient(135deg, #1d4ed8 0%, #4f46e5 100%)';
@@ -82,7 +88,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
         const result = await login(`+91 ${targetPhone}`, pass);
         if (result.success) {
           setBioSuccess(true);
-          setTimeout(() => navigate('/dashboard'), 800);
+          setTimeout(() => goHome(result?.user), 800);
         } else {
           setError(result.error || 'Biometric login failed');
           setHasSavedBio(false);
@@ -115,7 +121,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
         // If biometric is available and user has it enabled → save creds silently, go to dashboard
         if (canBiometric && (result.user as any)?.biometricEnabled) {
           if (step !== 'otp') await setBiometric(phone, password);
-          navigate('/dashboard');
+          goHome(result.user);
           return;
         }
 
@@ -126,7 +132,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
           return;
         }
 
-        navigate('/dashboard');
+        goHome(result.user);
       } else {
         setError(result.error || t.loginFailed);
       }
@@ -145,13 +151,13 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       localStorage.setItem('aqua_bio_asked', 'true');
     } catch { /* silent */ }
     setShowBioSetup(false);
-    navigate('/dashboard');
+    goHome(pendingLoginResult?.user);
   };
 
   const declineBioSetup = () => {
     localStorage.setItem('aqua_bio_asked', 'true');
     setShowBioSetup(false);
-    navigate('/dashboard');
+    goHome(pendingLoginResult?.user);
   };
 
   return (
