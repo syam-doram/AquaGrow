@@ -9,9 +9,22 @@ import {
   PRIORITY_CONFIG,
 } from '../services/notificationEngine';
 
-const STORAGE_KEY = 'aquagrow_smart_alerts_v1';
-const PREFS_KEY   = 'aquagrow_alert_prefs_v1';
+const STORAGE_KEY     = 'aquagrow_smart_alerts_v1';
+const PREFS_KEY       = 'aquagrow_alert_prefs_v1';
+const SUPPRESSED_KEY  = 'aquagrow_suppressed_alerts_v1';
 const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
+// ─── Helpers for persisted suppression list ──────────────────────────────────
+const loadSuppressed = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(SUPPRESSED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+};
+
+const saveSuppressed = (s: Set<string>) => {
+  try { localStorage.setItem(SUPPRESSED_KEY, JSON.stringify([...s])); } catch {}
+};
 
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
 export const useSmartAlerts = (params: {
@@ -37,8 +50,8 @@ export const useSmartAlerts = (params: {
     } catch { return DEFAULT_PREFS; }
   });
 
-  const lastRunRef = useRef<number>(0);
-  const suppressedIds = useRef<Set<string>>(new Set());
+  const lastRunRef     = useRef<number>(0);
+  const suppressedIds  = useRef<Set<string>>(loadSuppressed());
 
   // ── Save to localStorage whenever alerts change ──
   useEffect(() => {
@@ -128,6 +141,7 @@ export const useSmartAlerts = (params: {
         a => a.title === alert.title &&
         new Date(a.timestamp).toDateString() === todayKey
       );
+      // Also skip if user has dismissed an alert with this title today
       if (alreadyShown) continue;
       if (suppressedIds.current.has(alert.title)) continue;
 
@@ -164,15 +178,23 @@ export const useSmartAlerts = (params: {
   }, []);
 
   const dismissAlert = useCallback((id: string) => {
-    const alert = alerts.find(a => a.id === id);
-    if (alert) suppressedIds.current.add(alert.title);
-    setAlerts(prev => prev.filter(a => a.id !== id));
-  }, [alerts]);
+    setAlerts(prev => {
+      const alert = prev.find(a => a.id === id);
+      if (alert) {
+        suppressedIds.current.add(alert.title);
+        saveSuppressed(suppressedIds.current);
+      }
+      const updated = prev.filter(a => a.id !== id);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, []);
 
   const clearAll = useCallback(() => {
     setAlerts([]);
     suppressedIds.current.clear();
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /**/ }
+    saveSuppressed(suppressedIds.current);
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
   }, []);
 
   const forceRun = useCallback(() => {
