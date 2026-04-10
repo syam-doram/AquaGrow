@@ -184,6 +184,10 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
 
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [selectedPondId, setSelectedPondId] = useState<string>('all');
+  const [recentTypeFilter, setRecentTypeFilter] = useState<string | null>(null);
+
+  // Only non-harvested ponds in the filter
+  const activePonds = useMemo(() => ponds.filter(p => p.status !== 'harvested'), [ponds]);
 
   const n = (v: any) => parseFloat(v) || 0;
 
@@ -270,7 +274,10 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
 
   // ── Pond breakdown ──────────────────────────────────────────────────────────
   const pondBreakdown = useMemo(() => {
-    return ponds.map(pond => {
+    // Only show active/planned ponds in the breakdown
+    return ponds
+      .filter(pond => pond.status !== 'harvested')
+      .map(pond => {
       const pe = expenses.filter(e => e.pondId === pond.id);
       const pf = feedLogs.filter((l: any) => l.pondId === pond.id);
       const pm = medicineLogs.filter((l: any) => l.pondId === pond.id);
@@ -322,7 +329,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
   const getCatConfig = (key: string) => CATEGORIES.find(c => c.key === key) || CATEGORIES[5];
 
   return (
-    <div className={cn('pb-40 min-h-screen', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
+    <div className={cn('pb-10 min-h-screen', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
 
       <Header title="Expense Report" showBack rightElement={
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate('/daily-expense')}
@@ -332,10 +339,10 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
         </motion.button>
       } />
 
-      <div className="pt-20 px-4 max-w-[480px] mx-auto space-y-4">
+      <div className="pt-20 px-4 max-w-[420px] mx-auto space-y-4">
 
-        {/* ── Pond Filter Tabs ── */}
-        {ponds.length > 0 && (
+        {/* ── Pond Filter Tabs (non-harvested only) ── */}
+        {activePonds.length > 0 && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             <button
               onClick={() => setSelectedPondId('all')}
@@ -347,7 +354,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
               )}>
               All Ponds
             </button>
-            {ponds.map(p => (
+            {activePonds.map(p => (
               <button key={p.id}
                 onClick={() => setSelectedPondId(p.id)}
                 className={cn(
@@ -357,7 +364,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
                     : isDark ? 'bg-white/5 text-white/40 border-white/8' : 'bg-white text-slate-500 border-slate-200 shadow-sm'
                 )}>
                 <Fish size={9} className="opacity-70" />
-                {p.name}
+                {p.name} <span className="opacity-50">{p.status === 'active' ? '🟢' : '📋'}</span>
               </button>
             ))}
           </div>
@@ -536,8 +543,8 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
           </motion.div>
         )}
 
-        {/* ── Pond-wise Breakdown ── */}
-        {pondBreakdown.length > 0 && (
+        {/* ── Pond-wise Breakdown — only when viewing ALL ponds ── */}
+        {selectedPondId === 'all' && pondBreakdown.length > 0 && (
           <div>
             <p className={cn('text-[9px] font-black uppercase tracking-widest mb-2.5 px-1', isDark ? 'text-white/30' : 'text-slate-400')}>
               Pond-wise Cost
@@ -603,70 +610,131 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
         )}
 
         {/* ── Recent Expense Timeline ── */}
-        <div>
-          <div className="flex items-center justify-between mb-2.5 px-1">
-            <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
-              {selectedCat ? `${CATEGORIES.find(c => c.key === selectedCat)?.label} Entries` : 'Recent Expenses'}
-            </p>
-            <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
-              isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400')}>
-              {displayItems.length} items
-            </span>
-          </div>
-          <div className={cn('rounded-[2rem] border overflow-hidden', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-            <AnimatePresence>
-              {displayItems.length > 0 ? displayItems.map((item, i) => {
-                const cc = getCatConfig(item.cat);
-                return (
-                  <motion.div key={i}
-                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className={cn('flex items-center gap-3 px-4 py-3.5 border-b last:border-0',
-                      isDark ? 'border-white/5' : 'border-slate-50')}>
-                    <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', cc.bg)}>
-                      <cc.icon size={13} style={{ color: cc.fill }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={cn('text-[10px] font-black tracking-tight truncate', isDark ? 'text-white/80' : 'text-slate-800')}>
-                        {item.label}
-                      </p>
-                      <p className={cn('text-[7px] font-bold mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
-                        {item.notes || ''} &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-black" style={{ color: cc.fill }}>
-                        ₹{item.amount.toLocaleString('en-IN')}
-                      </p>
-                      <span className={cn('text-[6.5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full', cc.bg)}
-                        style={{ color: cc.fill }}>
-                        {item.cat}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              }) : (
-                <div className="py-10 text-center">
-                  <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-300')}>
-                    No entries found
-                  </p>
+        {(() => {
+          // Type filter chips
+          const typeFiltered = recentTypeFilter
+            ? recentItems.filter(i => i.cat === recentTypeFilter)
+            : displayItems;
+          // Group by date
+          const grouped: Record<string, typeof recentItems> = {};
+          typeFiltered.forEach(item => {
+            const d = new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            if (!grouped[d]) grouped[d] = [];
+            grouped[d].push(item);
+          });
+          const dates = Object.keys(grouped);
+          // Unique cats present
+          const presentCats = [...new Set(recentItems.map(i => i.cat))];
+          return (
+            <div>
+              <div className="flex items-center justify-between mb-2.5 px-1">
+                <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+                  {recentTypeFilter
+                    ? `${CATEGORIES.find(c => c.key === recentTypeFilter)?.label} Entries`
+                    : selectedCat
+                      ? `${CATEGORIES.find(c => c.key === selectedCat)?.label} Entries`
+                      : 'Recent Expenses'}
+                </p>
+                <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
+                  isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400')}>
+                  {typeFiltered.length} items
+                </span>
+              </div>
+
+              {/* Type filter chips */}
+              {presentCats.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                  <button
+                    onClick={() => setRecentTypeFilter(null)}
+                    className={cn('px-3 py-1.5 rounded-xl text-[7.5px] font-black uppercase tracking-widest whitespace-nowrap border flex-shrink-0 transition-all',
+                      recentTypeFilter === null
+                        ? isDark ? 'bg-amber-500/20 border-amber-500/30 text-amber-300' : 'bg-amber-100 border-amber-200 text-amber-700'
+                        : isDark ? 'bg-white/5 border-white/8 text-white/35' : 'bg-white border-slate-100 text-slate-400 shadow-sm'
+                    )}>
+                    All Types
+                  </button>
+                  {presentCats.map(cat => {
+                    const cc = getCatConfig(cat);
+                    return (
+                      <button key={cat}
+                        onClick={() => setRecentTypeFilter(recentTypeFilter === cat ? null : cat)}
+                        className={cn('px-3 py-1.5 rounded-xl text-[7.5px] font-black uppercase tracking-widest whitespace-nowrap border flex-shrink-0 transition-all flex items-center gap-1',
+                          recentTypeFilter === cat
+                            ? isDark ? 'border-white/20 text-white' : 'border-slate-200 text-slate-800 shadow-sm'
+                            : isDark ? 'bg-white/5 border-white/8 text-white/35' : 'bg-white border-slate-100 text-slate-400 shadow-sm'
+                        )}
+                        style={recentTypeFilter === cat ? { borderColor: cc.fill + '55', background: cc.fill + '18', color: cc.fill } : {}}>
+                        <cc.icon size={8} style={{ color: cc.fill }} />
+                        {cc.label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
 
-      {/* FIXED BOTTOM LOG BUTTON */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto p-4 z-40"
-        style={{ background: isDark ? 'linear-gradient(to top, #010C14 60%, transparent)' : 'linear-gradient(to top, #EEF4F0 60%, transparent)' }}>
-        <button
-          onClick={() => navigate('/daily-expense')}
-          className="w-full py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
-          style={{ background: 'linear-gradient(135deg, #c05a00, #c78200)', color: 'white', boxShadow: '0 8px 32px #c7820030' }}>
-          <Plus size={16} />
-          Log Daily Expense
-        </button>
+              <div className={cn('rounded-[2rem] border overflow-hidden', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+                <AnimatePresence>
+                  {dates.length > 0 ? dates.map((date, di) => (
+                    <div key={date}>
+                      {/* Date header */}
+                      <div className={cn('flex items-center gap-2 px-4 py-2 border-b',
+                        isDark ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100')}>
+                        <Calendar size={9} className={isDark ? 'text-white/20' : 'text-slate-300'} />
+                        <span className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                          {date}
+                        </span>
+                        <span className={cn('text-[6.5px] font-black px-1.5 py-0.5 rounded-full ml-auto',
+                          isDark ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-400')}>
+                          ₹{grouped[date].reduce((a, i) => a + i.amount, 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      {/* Items for this date */}
+                      {grouped[date].map((item, i) => {
+                        const cc = getCatConfig(item.cat);
+                        return (
+                          <motion.div key={`${di}-${i}`}
+                            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.04 }}
+                            className={cn('flex items-center gap-3 px-4 py-3 border-b last:border-0',
+                              isDark ? 'border-white/5' : 'border-slate-50')}>
+                            <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', cc.bg)}>
+                              <cc.icon size={13} style={{ color: cc.fill }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn('text-[10px] font-black tracking-tight truncate', isDark ? 'text-white/80' : 'text-slate-800')}>
+                                {item.label}
+                              </p>
+                              {item.notes && (
+                                <p className={cn('text-[7px] font-medium mt-0.5 truncate', isDark ? 'text-white/25' : 'text-slate-400')}>
+                                  {item.notes}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-sm font-black" style={{ color: cc.fill }}>
+                                ₹{item.amount.toLocaleString('en-IN')}
+                              </p>
+                              <span className={cn('text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full', cc.bg)}
+                                style={{ color: cc.fill }}>
+                                {cc.label}
+                              </span>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )) : (
+                    <div className="py-10 text-center">
+                      <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-300')}>
+                        No entries found
+                      </p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
