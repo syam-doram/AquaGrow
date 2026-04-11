@@ -50,9 +50,8 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-
-
-
+  const navigate = useNavigate();
+  const isDark = theme === 'dark';
 
   // Helper: navigate to the correct home based on user role from server
   const goHome = (userObj?: any) => {
