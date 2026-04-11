@@ -121,11 +121,9 @@ const Ring = ({ pct, fill, size = 44 }: { pct: number; fill: string; size?: numb
 };
 
 // ─── Category Card ─────────────────────────────────────────────────────────────
-const CategoryCard = ({
-  cat, value, pct, isDark, isSelected, onClick,
-}: {
+const CategoryCard: React.FC<{
   cat: CategoryDef; value: number; pct: number; isDark: boolean; isSelected: boolean; onClick: () => void;
-}) => (
+}> = ({ cat, value, pct, isDark, isSelected, onClick }) => (
   <motion.button
     whileTap={{ scale: 0.96 }}
     onClick={onClick}
@@ -624,7 +622,7 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
           });
           const dates = Object.keys(grouped);
           // Unique cats present
-          const presentCats = [...new Set(recentItems.map(i => i.cat))];
+          const presentCats = [...new Set<string>(recentItems.map(i => i.cat))];
           return (
             <div>
               <div className="flex items-center justify-between mb-2.5 px-1">

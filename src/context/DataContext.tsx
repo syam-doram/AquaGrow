@@ -12,6 +12,7 @@ interface DataContextType {
   loading: boolean;
   isSyncing: boolean;
   isOffline: boolean;
+  serverError: boolean;
   theme: 'light' | 'dark';
   setAppTheme: (theme: 'light' | 'dark') => void;
   ponds: Pond[];
@@ -60,6 +61,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [serverError, setServerError] = useState(false);
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem('aqua_theme');
     if (stored === 'midnight' || stored === 'dark') return 'dark';
@@ -191,9 +193,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.ok) {
         const data = await response.json();
         setPonds(data.map((p: any) => ({ ...p, id: p._id || p.id })));
+        setServerError(false);
       }
     } catch (error) {
       console.error("Error fetching ponds:", error);
+      // Network failure (TypeError: Failed to fetch, AbortError timeout, etc.)
+      setServerError(true);
     }
   };
 
@@ -871,6 +876,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       loading, 
       isSyncing,
       isOffline,
+      serverError,
       theme,
       setAppTheme,
       ponds, 

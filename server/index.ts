@@ -416,61 +416,8 @@ app.put('/api/harvest-requests/:id', authenticate, async (req: AuthenticatedRequ
 
     const updated = await HarvestRequest.findByIdAndUpdate(id, updates, { new: true });
     res.json(updated);
-
-    // ── Auto-push to farmer when status changes (provider action) ──────────
-    if (updates.status && updated) {
-      try {
-        const farmerUserId = updated.userId?.toString();
-        if (!farmerUserId) return;
-
-        const farmer = await UserMongo.findById(farmerUserId);
-        if (!farmer?.fcmToken) return;
-
-        // Fetch pond name
-        const pond = await PondMongo.findById(updated.pondId);
-        const pondName = pond?.name || 'Your Pond';
-
-        const STAGE: Record<string, { emoji: string; title: string; body: string }> = {
-          accepted:        { emoji: '🤝', title: 'Buyer Accepted Your Order!',         body: `${pondName}: A buyer accepted. Prepare for quality inspection.` },
-          quality_checked: { emoji: '🔬', title: 'Quality Check Done ✓',              body: `${pondName}: Quality passed! Weighing is next.` },
-          weighed:         { emoji: '⚖️', title: 'Weighing Complete',                  body: `${pondName}: Harvest weighed. Rate confirmation in progress.` },
-          rate_confirmed:  { emoji: '💰', title: 'Rate Confirmed — Harvest Starting!', body: `${pondName}: Final rate agreed. Harvest is starting now!` },
-          harvested:       { emoji: '🎣', title: 'Harvest Done! Payment Pending',      body: `${pondName}: Harvest is complete! Your payment is being processed.` },
-          paid:            { emoji: '💸', title: '💸 Payment Released!',               body: `${pondName}: Payment has been released to your account!` },
-          completed:       { emoji: '🏆', title: 'Harvest Cycle Archived',             body: `${pondName}: Cycle complete. Well done this season!` },
-          cancelled:       { emoji: '❌', title: 'Order Cancelled by Buyer',           body: `${pondName}: Your harvest order was cancelled. You may relist.` },
-        };
-
-        const meta = STAGE[updates.status];
-        if (meta) {
-          await sendFCM(farmer.fcmToken, {
-            token: farmer.fcmToken,
-            notification: { title: `${meta.emoji} ${meta.title}`, body: meta.body },
-            data: {
-              type: 'harvest_update',
-              pondId: String(updated.pondId || ''),
-              pondName,
-              requestId: String(updated._id || id),
-              status: updates.status,
-              deepLink: `/ponds/${updated.pondId}/tracking`,
-            },
-            android: {
-              priority: 'high',
-              notification: {
-                channelId: 'aquagrow-harvest',
-                color: '#10B981',
-                icon: 'ic_launcher',
-                tag: `harvest-${id}`,
-                clickAction: 'OPEN_HARVEST_TRACKING',
-              },
-            },
-          });
-          console.log(`[HARVEST-PUSH] Auto-sent → ${farmer.name || farmerUserId} | ${pondName} | ${updates.status}`);
-        }
-      } catch (pushErr: any) {
-        console.warn('[HARVEST-PUSH] Auto-push failed:', pushErr.message);
-      }
-    }
+    // NOTE: FCM push is sent by the client via POST /api/push/harvest-update
+    // Do NOT send FCM here — that would cause every status change to notify twice.
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -824,10 +771,11 @@ app.post('/api/push/aerator-check', authenticate, async (req: AuthenticatedReque
         notification: {
           channelId: 'aquagrow-aerator',
           color: '#3B82F6',
-          icon: 'ic_launcher',
+          icon: 'ic_stat_aquagrow',
           tag: `aerator-${pondId}`,
-          // Android 13+ action buttons
           clickAction: 'OPEN_AERATOR',
+          sound: 'default',
+          visibility: 'public' as any,
         },
       },
       apns: {
@@ -967,9 +915,11 @@ app.post('/api/push/harvest-update', authenticate, async (req: AuthenticatedRequ
         notification: {
           channelId: 'aquagrow-harvest',
           color: '#10B981',
-          icon: 'ic_launcher',
+          icon: 'ic_stat_aquagrow',
           tag: `harvest-${requestId}`,
           clickAction: 'OPEN_HARVEST_TRACKING',
+          sound: 'default',
+          visibility: 'public' as any,
         },
       },
       apns: {
@@ -984,6 +934,7 @@ app.post('/api/push/harvest-update', authenticate, async (req: AuthenticatedRequ
     res.status(500).json({ error: e.message });
   }
 });
+
 
 import admin from 'firebase-admin';
 
@@ -1065,9 +1016,11 @@ const runPushEngine = async () => {
               notification: {
                 channelId: 'aquagrow-aerator',
                 color: '#3B82F6',
-                icon: 'ic_launcher',
+                icon: 'ic_stat_aquagrow',
                 tag: `aerator-${(p as any)._id || (p as any).id}`,
                 clickAction: 'OPEN_AERATOR',
+                sound: 'default',
+                visibility: 'public' as any,
               },
             },
           };
@@ -1105,10 +1058,12 @@ const runPushEngine = async () => {
                 priority: 'high' as any,
                 notification: {
                   channelId: 'aquagrow-premium',
-                  icon: 'ic_launcher',
+                  icon: 'ic_stat_aquagrow',
                   color: '#10B981',
+                  tag: `engine-${u._id}-${now.toDateString().replace(/ /g,'_')}`,
+                  sound: 'default',
+                  visibility: 'public' as any,
                   clickAction: 'FCM_PLUGIN_ACTIVITY',
-                  visibility: 'public' as any
                 }
               }
             };
@@ -1145,7 +1100,8 @@ if (process.env.NODE_ENV !== 'test') {
         // Non-fatal: provider routes will return 503 if DB is down
       });
 
-      setInterval(runPushEngine, 120000);
+      // ── Push engine: every 15 min is sufficient — 2 min caused duplicate engine-alerts
+      setInterval(runPushEngine, 15 * 60 * 1000);
     }).catch(err => {
       // connectDB already calls process.exit(1) on failure — this catch won't be reached
       console.error('[Aqua Server] Startup DB error:', err.message);

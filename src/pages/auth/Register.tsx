@@ -13,7 +13,10 @@ import {
   CheckCircle2,
   FileText,
   AlertTriangle,
-  Scale
+  Scale,
+  MapPin,
+  Navigation,
+  Loader2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -28,7 +31,8 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const [step, setStep] = useState<'form' | 'terms' | 'otp'>('form');
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
-  const [farmArea, setFarmArea] = useState('');
+  const [location, setLocation] = useState('');
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'detecting' | 'done' | 'denied'>('idle');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,9 +96,9 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         phoneNumber: `+91 ${phoneClean}`,
         email: `${phoneClean}@aquagrow.com`,
         password: 'aquagrow123',
-        location: 'Unknown',
+        location: location || 'Unknown',
         role,
-        farmSize: parseFloat(farmArea) || 0,
+        farmSize: 0,
         pondCount: 0,
         language: currentLang,
         termsAccepted: true,
@@ -254,30 +258,72 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
                   </div>
                 </div>
 
-                {/* Farm Area Input */}
+                {/* Location Picker */}
                 <div className="space-y-1.5">
                   <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
-                    {role === 'farmer' ? 'Total Farm Area (optional)' : 'Coverage Area (optional)'}
+                    {role === 'farmer' ? 'Farm Location' : 'Service Area'}
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
-                      <Scale size={16} />
+                      <MapPin size={16} />
                     </div>
                     <input
                       className={cn(
-                        "w-full pl-11 pr-16 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
+                        "w-full pl-11 pr-[4.5rem] py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
                         isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
                       )}
-                      placeholder="e.g. 2.5"
-                      type="number"
-                      inputMode="decimal"
-                      value={farmArea}
-                      onChange={(e) => setFarmArea(e.target.value)}
+                      placeholder={locationStatus === 'detecting' ? 'Detecting GPS...' : 'e.g. Nellore, AP'}
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      maxLength={80}
                     />
-                    <span className={cn("absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-widest pointer-events-none", isDark ? "text-white/20" : "text-slate-400")}>
-                      Acres
-                    </span>
+                    <button
+                      type="button"
+                      disabled={locationStatus === 'detecting'}
+                      onClick={async () => {
+                        setLocationStatus('detecting');
+                        try {
+                          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+                            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+                          );
+                          const { latitude, longitude } = pos.coords;
+                          // Reverse-geocode via open nominatim (no key required)
+                          const resp = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+                          );
+                          const geo = await resp.json();
+                          const addr = geo.address;
+                          const label = [
+                            addr.village || addr.town || addr.suburb || addr.city_district || addr.city,
+                            addr.county || addr.state_district,
+                            addr.state,
+                          ].filter(Boolean).join(', ');
+                          setLocation(label || `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+                          setLocationStatus('done');
+                        } catch {
+                          setLocationStatus('denied');
+                        }
+                      }}
+                      className={cn(
+                        "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest transition-all",
+                        locationStatus === 'detecting'
+                          ? 'opacity-50 cursor-not-allowed'
+                          : locationStatus === 'done'
+                            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'
+                            : isDark ? 'bg-white/10 text-white/40' : 'bg-slate-100 text-slate-500'
+                      )}
+                    >
+                      {locationStatus === 'detecting'
+                        ? <><Loader2 size={9} className="animate-spin" />...</>
+                        : locationStatus === 'done'
+                          ? <><CheckCircle2 size={9} />GPS</>  
+                          : <><Navigation size={9} />GPS</>}
+                    </button>
                   </div>
+                  {locationStatus === 'denied' && (
+                    <p className="ml-4 text-[8px] text-red-400 font-bold">GPS denied — type location manually above</p>
+                  )}
                 </div>
 
                 {/* Phone Input */}

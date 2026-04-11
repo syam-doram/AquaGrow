@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken } from '../db.js';
 import { signAccess, signRefresh, saveRefreshToken, REFRESH_SECRET } from '../utils/auth.js';
+import { isProviderDbReady, ProviderProfile } from '../providerDb.js';
 
 const normalizePhone = (p: string) => p ? p.replace(/\D/g, '').slice(-10) : '';
 
@@ -52,6 +53,26 @@ export const register = async (req: any, res: any) => {
       userId: user._id, planName: 'free', status: 'active',
       features: ['basic_dashboard', 'pond_management'],
     }).save();
+
+    // ── Auto-create ProviderProfile in aquagrow_providers DB ──────────────────
+    // Without this, providers register but never appear in the provider system.
+    if ((role || 'farmer') === 'provider' && isProviderDbReady()) {
+      try {
+        await new ProviderProfile({
+          userId:      user._id.toString(),
+          companyName: name,
+          ownerName:   name,
+          phone:       normMobile,
+          email:       email,
+          location:    location || '',
+          isVerified:  false,
+        }).save();
+        console.log(`[REGISTER] Provider profile auto-created for ${name} (${normMobile})`);
+      } catch (provErr: any) {
+        // Non-fatal: log but don't block registration
+        console.warn('[REGISTER] Provider profile creation failed:', provErr.message);
+      }
+    }
 
     const access = signAccess({ id: user._id.toString(), role: user.role, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id: user._id.toString() });

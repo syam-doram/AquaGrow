@@ -36,11 +36,22 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <!-- ── Core app permissions ── -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- ── Push Notification permissions ── -->
+    <!-- Required on Android 13+ (API 33) — without this notifications are silently blocked -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Keeps Firebase subscription alive across device reboots -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Allows notification vibration on lock screen -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Prevents CPU from sleeping when a high-priority FCM message arrives -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
 </manifest>

@@ -260,6 +260,46 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   });
   const { requestNotificationPermission, fcmToken, deepLinkUrl, clearDeepLink, incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
 
+  // ── On-enter: notification permission banner + sync progress ──────────────────
+  const [showPermBanner, setShowPermBanner]     = useState(false);
+  const [showSyncBanner, setShowSyncBanner]     = useState(true);
+  const [syncStep,       setSyncStep]           = useState(0);  // 0-100%
+  const [serverPingMs,   setServerPingMs]       = useState<number | null>(null);
+
+  useEffect(() => {
+    // ── 1. Sync progress (show every time dashboard mounts) ─────────────────────
+    let frame: ReturnType<typeof setTimeout>;
+    const pingStart = Date.now();
+    // Kick a lightweight health ping to measure server latency
+    fetch(`${API_BASE_URL}/health`)
+      .then(() => setServerPingMs(Date.now() - pingStart))
+      .catch(() => setServerPingMs(null));
+
+    // Animate progress 0 → 100 over ~2s
+    let pct = 0;
+    const tick = () => {
+      pct = Math.min(100, pct + (pct < 60 ? 4 : pct < 90 ? 2 : 1));
+      setSyncStep(pct);
+      if (pct < 100) frame = setTimeout(tick, 40);
+      else setTimeout(() => setShowSyncBanner(false), 600);
+    };
+    frame = setTimeout(tick, 80);
+
+    // ── 2. Permission check (once per session) ───────────────────────────────────
+    const permKey = 'aqua_notif_perm_asked';
+    if (!sessionStorage.getItem(permKey) && Capacitor.isNativePlatform()) {
+      // Check if already granted — show banner only if not
+      import('@capacitor/push-notifications').then(({ PushNotifications }) => {
+        PushNotifications.checkPermissions().then(s => {
+          if (s.receive !== 'granted') setShowPermBanner(true);
+          sessionStorage.setItem(permKey, '1');
+        }).catch(() => setShowPermBanner(true));
+      });
+    }
+
+    return () => clearTimeout(frame);
+  }, []); // run once on mount
+
   // ── Foreground harvest notification toast (when app is open) ──
   const [harvestToast, setHarvestToast] = useState<{
     pondId: string; requestId: string; pondName: string; status: string;
@@ -609,6 +649,97 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
       </div>
 
       <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo />
+
+      {/* ── SYNC PROGRESS BAR (shows on every dashboard entry ~2s) ── */}
+      <AnimatePresence>
+        {showSyncBanner && (
+          <motion.div
+            key="sync-bar"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="fixed top-[calc(env(safe-area-inset-top)+3.5rem)] left-0 right-0 z-[190] px-4"
+          >
+            <div className={cn(
+              "rounded-2xl overflow-hidden border shadow-lg backdrop-blur-md",
+              isDark ? "bg-slate-900/90 border-white/8" : "bg-white/95 border-slate-100"
+            )}>
+              {/* Progress track */}
+              <div className="h-[2px] w-full bg-slate-200/20">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ width: `${syncStep}%`, background: 'linear-gradient(90deg, #10B981, #3B82F6)' }}
+                  transition={{ ease: 'linear' }}
+                />
+              </div>
+              <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-1.5 h-1.5 rounded-full", syncStep < 100 ? "bg-emerald-500 animate-pulse" : "bg-emerald-500")} />
+                  <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/40" : "text-slate-500")}>
+                    {syncStep < 100 ? `Syncing data… ${syncStep}%` : '✓ Sync complete'}
+                  </p>
+                </div>
+                {serverPingMs !== null && (
+                  <p className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>
+                    Server {serverPingMs}ms
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── NOTIFICATION PERMISSION BANNER (Android only, once per session) ── */}
+      <AnimatePresence>
+        {showPermBanner && (
+          <motion.div
+            key="perm-banner"
+            initial={{ opacity: 0, y: 60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 60 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+            className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-4 right-4 z-[190]"
+          >
+            <div className={cn(
+              "rounded-3xl p-4 border shadow-2xl backdrop-blur-xl overflow-hidden",
+              isDark ? "bg-slate-900/95 border-white/10" : "bg-white/95 border-slate-100"
+            )}>
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-500" />
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <Bell size={20} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className={cn("text-[10px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-white" : "text-slate-900")}>
+                    Enable Push Alerts
+                  </p>
+                  <p className={cn("text-[8px] font-medium leading-snug", isDark ? "text-white/40" : "text-slate-500")}>
+                    Get critical DO drops, harvest updates & feeding reminders — even when the app is closed.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={async () => {
+                        setShowPermBanner(false);
+                        await requestNotificationPermission();
+                      }}
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[8px] font-black uppercase tracking-widest shadow-lg"
+                    >
+                      🔔 Allow Alerts
+                    </button>
+                    <button
+                      onClick={() => setShowPermBanner(false)}
+                      className={cn("px-4 py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "border-white/10 text-white/30" : "border-slate-200 text-slate-400")}
+                    >
+                      Later
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── HARVEST STAGE TOAST (foreground in-app alert) ── */}
       <AnimatePresence>

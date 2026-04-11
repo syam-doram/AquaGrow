@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
+import { getFunctions } from 'firebase/functions';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD_iW71nzdyxqLi0RjYlg6lKYHdyvPAgOw",
@@ -17,54 +16,56 @@ const firebaseConfig = {
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
 
-
-
 // Initialize Firestore
 export const db = getFirestore(app);
 
 // Initialize Firebase Functions
 export const functions = getFunctions(app);
 
-// Use local emulator in development
-// if (typeof window !== 'undefined' && 
-//    (window.location.hostname === 'localhost' || 
-//     window.location.hostname === '127.0.0.1' || 
-//     window.location.hostname.startsWith('172.20.'))
-// ) {
-//   const host = window.location.hostname;
-//   connectFunctionsEmulator(functions, host, 5001);
-//   connectAuthEmulator(auth, `http://${host}:9099`);
-//   connectFirestoreEmulator(db, host, 8080);
-// }
+// ── Firebase Cloud Messaging ────────────────────────────────────────────────
+// Firebase Messaging requires Service Workers, which are NOT available in:
+//   • Capacitor Android/iOS WebViews
+//   • Non-HTTPS origins
+// We use isSupported() — Firebase's own async check — instead of a naive
+// `typeof window` guard which only protects against SSR, not WebViews.
 
-// Initialize Firebase Cloud Messaging
-// Only initialized on client-side
-export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+let _messaging: ReturnType<typeof getMessaging> | null = null;
 
-// Helper function to easily request tokens
-export const requestFcmToken = async (vapidKey: string) => {
-  if (!messaging) return null;
+const getMessagingInstance = async () => {
+  if (_messaging) return _messaging;
+  const supported = await isSupported().catch(() => false);
+  if (!supported) return null;
+  _messaging = getMessaging(app);
+  return _messaging;
+};
+
+// Helper to request FCM push tokens
+export const requestFcmToken = async (vapidKey: string): Promise<string | null> => {
   try {
-    const currentToken = await getToken(messaging, { vapidKey });
+    const m = await getMessagingInstance();
+    if (!m) return null;
+    const currentToken = await getToken(m, { vapidKey });
     if (currentToken) {
-      console.log('Firebase Registration Token successfully generated:', currentToken);
+      console.log('Firebase FCM token generated:', currentToken);
       return currentToken;
-    } else {
-      console.log("No registration token available. Request permission to generate one.");
-      return null;
     }
+    console.log('No FCM registration token available. Request permission first.');
+    return null;
   } catch (err) {
-    console.error("An error occurred while retrieving token. ", err);
+    console.error('Error retrieving FCM token:', err);
     return null;
   }
 };
 
-// Listener Wrapper
-export const onMessageListener = () => {
-  if (!messaging) return new Promise((resolve) => {});
+// Foreground message listener
+export const onMessageListener = async (): Promise<unknown> => {
+  const m = await getMessagingInstance();
+  if (!m) return new Promise(() => {});
   return new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
+    onMessage(m, (payload) => resolve(payload));
   });
 };
+
+// Legacy sync export — kept for any imports that reference `messaging` directly.
+// Always null because initialization is now async; use requestFcmToken instead.
+export const messaging = null;

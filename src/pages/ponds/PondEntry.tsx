@@ -299,8 +299,8 @@ export const PondEntry = ({ t }: { t: Translations }) => {
           {/* ── STOCKING ANALYTICS ── */}
           <SectionCard title={t.stockingAnalytics} subtitle="Growth markers" icon={Zap} iconBg={isDark ? "bg-orange-500/15 text-orange-400" : "bg-orange-100 text-orange-600"} isDark={isDark}>
             <div className="grid grid-cols-2 gap-3">
-              <FieldInput label={t.seedCount} icon={Fish} value={form.seedCount} onChange={set('seedCount')} placeholder="e.g. 50,000" isDark={isDark} />
-              <FieldInput label="Seed Cost" icon={IndianRupee} value={form.seedCost} onChange={set('seedCost')} placeholder="e.g. 4500" suffix="₹" type="number" isDark={isDark} />
+              <FieldInput label="Seed Count" icon={Fish} value={form.seedCount} onChange={set('seedCount')} placeholder="e.g. 50,000" isDark={isDark} />
+              <FieldInput label="1 Seed Cost (per PL)" icon={IndianRupee} value={form.seedCost} onChange={set('seedCost')} placeholder="e.g. 0.85" suffix="₹" type="number" isDark={isDark} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

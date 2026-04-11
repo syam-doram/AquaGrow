@@ -344,8 +344,66 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const [selectedPondId, setSelectedPondId] = useState(activePonds[0]?.id || ponds[0]?.id || '');
   const [completedMeds, setCompletedMeds] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'today' | 'diseases' | 'cycle' | 'lunar'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'diseases' | 'cycle' | 'lunar' | 'my_sop'>('today');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // ── Custom farmer medicine SOPs (persisted per pond) ──────────────────────────
+  // Farmers enter their own medicine types + rates → shown as SOP cards
+  interface FarmerSOP {
+    id: string;
+    name: string;
+    type: 'probiotic' | 'mineral' | 'vitamin' | 'antibiotic' | 'feed_additive' | 'other';
+    rate: number;          // price per kg or litre
+    unit: 'kg' | 'L' | 'g' | 'ml' | 'packet';
+    dosePerAcre: string;   // e.g. "250g" or "1 packet"
+    docRange: string;      // e.g. "1-30" or "every 5 days"
+    notes: string;
+  }
+
+  const FARMER_SOP_KEY = `aqua_farmer_sops_${selectedPondId || 'global'}`;
+  const [farmerSOPs, setFarmerSOPs] = useState<FarmerSOP[]>(() => {
+    try { return JSON.parse(localStorage.getItem(FARMER_SOP_KEY) || '[]'); } catch { return []; }
+  });
+  const [showSOPForm, setShowSOPForm] = useState(false);
+  const [sopForm, setSOPForm] = useState({
+    name: '', type: 'probiotic' as FarmerSOP['type'],
+    rate: '', unit: 'kg' as FarmerSOP['unit'],
+    dosePerAcre: '', docRange: '', notes: '',
+  });
+
+  const saveSOPs = (list: FarmerSOP[]) => {
+    setFarmerSOPs(list);
+    localStorage.setItem(FARMER_SOP_KEY, JSON.stringify(list));
+  };
+
+  const addFarmerSOP = () => {
+    if (!sopForm.name.trim() || !sopForm.rate) return;
+    const entry: FarmerSOP = {
+      id: Date.now().toString(),
+      name: sopForm.name.trim(),
+      type: sopForm.type,
+      rate: parseFloat(sopForm.rate),
+      unit: sopForm.unit,
+      dosePerAcre: sopForm.dosePerAcre,
+      docRange: sopForm.docRange,
+      notes: sopForm.notes,
+    };
+    saveSOPs([...farmerSOPs, entry]);
+    setSOPForm({ name: '', type: 'probiotic', rate: '', unit: 'kg', dosePerAcre: '', docRange: '', notes: '' });
+    setShowSOPForm(false);
+  };
+
+  const deleteFarmerSOP = (id: string) => saveSOPs(farmerSOPs.filter(s => s.id !== id));
+
+  const TYPE_META: Record<FarmerSOP['type'], { emoji: string; color: string }> = {
+    probiotic:    { emoji: '🦠', color: '#10B981' },
+    mineral:      { emoji: '💎', color: '#3B82F6' },
+    vitamin:      { emoji: '💊', color: '#8B5CF6' },
+    antibiotic:   { emoji: '🔬', color: '#EF4444' },
+    feed_additive:{ emoji: '🌿', color: '#F59E0B' },
+    other:        { emoji: '📦', color: '#6B7280' },
+  };
+
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
   const currentDoc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
@@ -816,6 +874,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 { id: 'diseases', label: 'Disease Alerts', emoji: '🦠' },
                 { id: 'cycle',    label: 'Full Cycle',     emoji: '📅' },
                 { id: 'lunar',    label: 'Lunar',          emoji: '🌙' },
+                { id: 'my_sop',   label: 'My SOP',         emoji: '🧪' },
               ] as const).map(tab => (
                 <button
                   key={tab.id}
@@ -823,7 +882,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   className={cn(
                     'flex-shrink-0 flex items-center gap-1.5 py-3 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
                     (activeTab as string) === tab.id
-                      ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
+                      ? tab.id === 'my_sop'
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-lg'
+                        : 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
                       : 'bg-card text-ink/40 border-card-border'
                   )}
                 >
@@ -838,6 +899,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   )}
                   {tab.id === 'lunar' && lunar.phase !== 'NORMAL' && (
                     <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" />
+                  )}
+                  {tab.id === 'my_sop' && farmerSOPs.length > 0 && (
+                    <span className="bg-purple-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full">{farmerSOPs.length}</span>
                   )}
                 </button>
               ))}
@@ -1985,10 +2049,263 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
               </section>
             )}
 
+            {/* ─────────────── TAB 5: MY SOP ─────────────── */}
+            {(activeTab as string) === 'my_sop' && (
+              <motion.div
+                key="my_sop"
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 12 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[11px] font-black text-ink tracking-tight">My Custom SOPs</h3>
+                    <p className="text-[8px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">
+                      Your medicines · real rates · personal schedule
+                    </p>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowSOPForm(v => !v)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-purple-600 text-white text-[8px] font-black uppercase tracking-widest shadow-lg"
+                  >
+                    <Plus size={12} />
+                    Add Medicine
+                  </motion.button>
+                </div>
+
+                {/* Add medicine form */}
+                <AnimatePresence>
+                  {showSOPForm && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      className="rounded-[2rem] border border-purple-200 bg-purple-50/60 backdrop-blur-sm overflow-hidden"
+                    >
+                      <div className="p-5 space-y-3">
+                        <p className="text-[8px] font-black text-purple-700 uppercase tracking-widest">🧪 New Custom Medicine SOP</p>
+
+                        {/* Name */}
+                        <div>
+                          <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Medicine Name *</label>
+                          <input
+                            className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
+                            placeholder="e.g. Bioclean Aqua Plus"
+                            value={sopForm.name}
+                            onChange={e => setSOPForm(p => ({ ...p, name: e.target.value }))}
+                          />
+                        </div>
+
+                        {/* Type + Unit row */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Type</label>
+                            <select
+                              className="w-full px-3 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none"
+                              value={sopForm.type}
+                              onChange={e => setSOPForm(p => ({ ...p, type: e.target.value as any }))}
+                            >
+                              <option value="probiotic">🦠 Probiotic</option>
+                              <option value="mineral">💎 Mineral</option>
+                              <option value="vitamin">💊 Vitamin</option>
+                              <option value="antibiotic">🔬 Antibiotic</option>
+                              <option value="feed_additive">🌿 Feed Additive</option>
+                              <option value="other">📦 Other</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Unit</label>
+                            <select
+                              className="w-full px-3 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none"
+                              value={sopForm.unit}
+                              onChange={e => setSOPForm(p => ({ ...p, unit: e.target.value as any }))}
+                            >
+                              <option value="kg">per kg</option>
+                              <option value="L">per Litre</option>
+                              <option value="g">per 100g</option>
+                              <option value="ml">per 100ml</option>
+                              <option value="packet">per Packet</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Rate + Dose row */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Rate (₹) *</label>
+                            <input
+                              className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
+                              placeholder="e.g. 450"
+                              type="number"
+                              value={sopForm.rate}
+                              onChange={e => setSOPForm(p => ({ ...p, rate: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Dose / Acre</label>
+                            <input
+                              className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
+                              placeholder="e.g. 250g"
+                              value={sopForm.dosePerAcre}
+                              onChange={e => setSOPForm(p => ({ ...p, dosePerAcre: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+
+                        {/* DOC Range */}
+                        <div>
+                          <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">DOC Range / Frequency</label>
+                          <input
+                            className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
+                            placeholder="e.g. DOC 1–30 or Every 5 days"
+                            value={sopForm.docRange}
+                            onChange={e => setSOPForm(p => ({ ...p, docRange: e.target.value }))}
+                          />
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                          <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Notes (optional)</label>
+                          <input
+                            className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
+                            placeholder="e.g. Apply morning only, avoid rainy days"
+                            value={sopForm.notes}
+                            onChange={e => setSOPForm(p => ({ ...p, notes: e.target.value }))}
+                          />
+                        </div>
+
+                        {/* Submit */}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={addFarmerSOP}
+                            disabled={!sopForm.name.trim() || !sopForm.rate}
+                            className="flex-1 py-3 rounded-2xl bg-purple-600 text-white text-[8px] font-black uppercase tracking-widest disabled:opacity-40 shadow-lg"
+                          >
+                            ✓ Save to My SOP
+                          </button>
+                          <button onClick={() => setShowSOPForm(false)}
+                            className="px-4 py-3 rounded-2xl border border-purple-200 text-[8px] font-black text-purple-600 uppercase tracking-widest"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Empty state */}
+                {farmerSOPs.length === 0 && !showSOPForm && (
+                  <div className="rounded-[2rem] border border-dashed border-purple-300/50 bg-purple-50/30 p-8 text-center">
+                    <div className="text-4xl mb-3">🧪</div>
+                    <p className="text-[10px] font-black text-purple-700 mb-1">No Custom SOPs Yet</p>
+                    <p className="text-[8px] text-slate-400 font-medium leading-relaxed">
+                      Add your own medicines with exact rates.<br />They'll appear here as your personal SOP.
+                    </p>
+                  </div>
+                )}
+
+                {/* SOP cards list */}
+                {farmerSOPs.map((sop, i) => {
+                  const meta = TYPE_META[sop.type];
+                  const costPerAcre = sop.rate;
+                  const totalCost = Math.round(costPerAcre * Math.max(1, pondAcreage));
+                  const isSelected = completedMeds.includes(sop.name);
+                  return (
+                    <motion.div
+                      key={sop.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className={cn(
+                        'rounded-[1.8rem] border p-4 transition-all',
+                        isSelected
+                          ? 'border-purple-400 bg-purple-500/10'
+                          : 'border-purple-100 bg-white'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1">
+                          {/* Type icon */}
+                          <div
+                            className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
+                            style={{ backgroundColor: `${meta.color}18` }}
+                          >
+                            {meta.emoji}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <p className="text-[11px] font-black text-slate-900 tracking-tight">{sop.name}</p>
+                              <span
+                                className="text-[6px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest text-white"
+                                style={{ backgroundColor: meta.color }}
+                              >
+                                {sop.type.replace('_', ' ')}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                              {sop.dosePerAcre && (
+                                <p className="text-[8px] font-bold text-slate-500">📦 {sop.dosePerAcre}/acre</p>
+                              )}
+                              {sop.docRange && (
+                                <p className="text-[8px] font-bold text-slate-500">📅 {sop.docRange}</p>
+                              )}
+                              <p className="text-[8px] font-black" style={{ color: meta.color }}>
+                                ₹{sop.rate}/{sop.unit} · Est. ₹{totalCost} for {pondAcreage} acre
+                              </p>
+                            </div>
+                            {sop.notes && (
+                              <p className="text-[7px] font-medium text-slate-400 mt-1 italic">{sop.notes}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => toggleMed(sop.name)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest transition-all border',
+                              isSelected
+                                ? 'bg-purple-500 text-white border-purple-500'
+                                : 'border-purple-200 text-purple-600'
+                            )}
+                          >
+                            {isSelected ? '✓ Selected' : '+ Select'}
+                          </button>
+                          <button
+                            onClick={() => deleteFarmerSOP(sop.id)}
+                            className="px-3 py-1.5 rounded-xl text-[7px] font-black text-red-400 border border-red-100 uppercase tracking-widest"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {/* Log selected farmer SOPs */}
+                {completedMeds.filter(m => farmerSOPs.some(s => s.name === m)).length > 0 && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    onClick={handleLog}
+                    disabled={isLogging}
+                    className="w-full py-4 rounded-[1.8rem] bg-gradient-to-r from-purple-600 to-purple-800 text-white text-[9px] font-black uppercase tracking-widest shadow-xl disabled:opacity-50"
+                  >
+                    {isLogging ? '⌛ Saving...' : `📋 Log ${completedMeds.filter(m => farmerSOPs.some(s => s.name === m)).length} Medicine(s) Applied Today`}
+                  </motion.button>
+                )}
+              </motion.div>
+            )}
+
           </>
         )}
       </div>
     </div>
+
   );
 };
 
