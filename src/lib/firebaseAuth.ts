@@ -55,37 +55,71 @@ export const sendOtp = async (
     const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
 
     return new Promise<OtpSession>((resolve, reject) => {
-
-      // ✅ Success: SMS was sent, verificationId received
-      FirebaseAuthentication.addListener('phoneCodeSent', async (event: any) => {
+      let settled = false;
+      const settle = async (fn: () => void) => {
+        if (settled) return;
+        settled = true;
         await FirebaseAuthentication.removeAllListeners();
-        if (!event.verificationId) {
-          reject(Object.assign(
-            new Error('Firebase did not return a verificationId. Check Phone Auth is enabled in Firebase Console.'),
-            { code: 'auth/no-verification-id' }
-          ));
-          return;
-        }
-        console.log('[FirebaseAuth] ✅ SMS sent, verificationId ready');
-        resolve({ type: 'native', verificationId: event.verificationId });
+        fn();
+      };
+
+      // ✅ SMS code sent — user must enter it manually
+      FirebaseAuthentication.addListener('phoneCodeSent', async (event: any) => {
+        await settle(() => {
+          if (!event.verificationId) {
+            reject(Object.assign(
+              new Error('Firebase did not return a verificationId. Check Phone Auth is enabled in Firebase Console.'),
+              { code: 'auth/no-verification-id' }
+            ));
+            return;
+          }
+          console.log('[FirebaseAuth] ✅ SMS sent, verificationId ready');
+          resolve({ type: 'native', verificationId: event.verificationId });
+        });
       });
 
-      // ❌ Failure: Firebase rejected the phone number or throttled
+      // ✅ Auto-verified (reCAPTCHA fallback / SafetyNet auto-retrieval)
+      // Firebase completed verification automatically — get the ID token directly
+      FirebaseAuthentication.addListener('phoneVerificationCompleted', async (event: any) => {
+        console.log('[FirebaseAuth] ✅ Auto-verified (reCAPTCHA/SafetyNet)');
+        await settle(async () => {
+          try {
+            const tokenResult = await FirebaseAuthentication.getIdToken({ forceRefresh: true });
+            if (tokenResult.token) {
+              // Wrap as a "pre-verified" session — verifyOtp will just return the token
+              resolve({ type: 'native', verificationId: `__auto__${tokenResult.token}` });
+            } else {
+              reject(Object.assign(new Error('Auto-verification succeeded but no ID token.'), { code: 'auth/token-fetch-failed' }));
+            }
+          } catch (e: any) {
+            reject(e);
+          }
+        });
+      });
+
+      // ❌ Firebase rejected the phone number or throttled
       FirebaseAuthentication.addListener('phoneVerificationFailed', async (event: any) => {
-        await FirebaseAuthentication.removeAllListeners();
-        console.error('[FirebaseAuth] ❌ Verification failed:', event.message);
-        reject(Object.assign(
-          new Error(event.message || 'Phone verification failed'),
-          { code: 'auth/verification-failed' }
-        ));
+        await settle(() => {
+          console.error('[FirebaseAuth] ❌ Verification failed:', event.message);
+          reject(Object.assign(
+            new Error(event.message || 'Phone verification failed'),
+            { code: 'auth/verification-failed' }
+          ));
+        });
       });
 
       // Trigger SMS send — result comes via listeners above, not the return value
       FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: phoneE164 })
-        .catch((err: any) => {
-          FirebaseAuthentication.removeAllListeners();
-          reject(err);
+        .catch(async (err: any) => {
+          await settle(() => reject(err));
         });
+
+      // Safety timeout — if no listener fires in 90s, reject cleanly
+      setTimeout(async () => {
+        await settle(() =>
+          reject(Object.assign(new Error('OTP request timed out. Please try again.'), { code: 'auth/timeout' }))
+        );
+      }, 90_000);
     });
 
   } else {
@@ -119,13 +153,19 @@ export const verifyOtp = async (
   if (session.type === 'native') {
     const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
 
-    // Confirm code → signs user into Firebase on device
+    // Auto-verified path (phoneVerificationCompleted fired) — token is embedded in verificationId
+    if (session.verificationId.startsWith('__auto__')) {
+      const idToken = session.verificationId.replace('__auto__', '');
+      console.log('[FirebaseAuth] ✅ Auto-verified path — ID token extracted directly');
+      return idToken;
+    }
+
+    // Manual path — user entered the 6-digit code
     await FirebaseAuthentication.confirmVerificationCode({
       verificationId:   session.verificationId,
       verificationCode: code,
     });
 
-    // Get ID token for our server
     const tokenResult = await FirebaseAuthentication.getIdToken({ forceRefresh: true });
 
     if (!tokenResult.token)
