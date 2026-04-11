@@ -30,7 +30,7 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { Language } from '../../types';
 import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
-import type { ConfirmationResult } from 'firebase/auth';
+import type { OtpSession } from '../../lib/firebaseAuth';
 
 // ─────────────────────────────────────────────────────────────────────────────
 const FARMER_FEATURES = [
@@ -66,7 +66,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
   // Firebase OTP state
-  const confirmationRef = useRef<ConfirmationResult | null>(null);
+  const confirmationRef = useRef<OtpSession | null>(null);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -168,7 +168,8 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     setLoading(true);
     try {
       // Verify OTP with Firebase → get ID token
-      const idToken = await verifyOtp(confirmationRef.current, otp);
+      const idToken = await verifyOtp(confirmationRef.current!, otp);
+
 
       const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 

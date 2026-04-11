@@ -26,7 +26,7 @@ import type { Translations } from '../../translations';
 import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 import { Language } from '../../types';
 import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
-import type { ConfirmationResult } from 'firebase/auth';
+import type { OtpSession } from '../../lib/firebaseAuth';
 
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
   const { login, loginWithOtp, loginWithFirebaseToken, updateUser, user: ctxUser, theme } = useData();
@@ -45,7 +45,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [bioSuccess, setBioSuccess]   = useState(false);
 
   // Firebase OTP state
-  const confirmationRef               = useRef<ConfirmationResult | null>(null);
+  const confirmationRef               = useRef<OtpSession | null>(null);
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -152,7 +152,8 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
         if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
         try {
-          const idToken = await verifyOtp(confirmationRef.current, otp);
+          const idToken = await verifyOtp(confirmationRef.current!, otp);
+
           result = await (loginWithFirebaseToken as any)(idToken, role);
         } catch (fbErr: any) {
           if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
