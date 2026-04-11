@@ -1,15 +1,19 @@
 import express from 'express';
-import { checkIdentity, register, login, refreshToken, logout, loginWithOtp, resetPassword } from '../controllers/authController.js';
+import { checkIdentity, register, login, refreshToken, logout, loginWithOtp, resetPassword, firebaseLogin, firebaseRegister } from '../controllers/authController.js';
 import { authLimiter, authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/check', authLimiter, checkIdentity);
-router.post('/register', authLimiter, register);
-router.post('/login', authLimiter, login);
-router.post('/login-otp', authLimiter, loginWithOtp);
-router.post('/refresh', authLimiter, refreshToken);
-router.post('/logout', authenticate, logout);
-router.post('/reset-password', authLimiter, resetPassword);
+router.post('/check',               authLimiter, checkIdentity);
+router.post('/register',            authLimiter, register);
+router.post('/login',               authLimiter, login);
+router.post('/login-otp',           authLimiter, loginWithOtp);
+router.post('/refresh',             authLimiter, refreshToken);
+router.post('/logout',              authenticate, logout);
+router.post('/reset-password',      authLimiter, resetPassword);
+
+// ── Firebase Phone OTP (real SMS) ────────────────────────────────────────────
+router.post('/firebase-login',      authLimiter, firebaseLogin);
+router.post('/firebase-register',   authLimiter, firebaseRegister);
 
 export default router;

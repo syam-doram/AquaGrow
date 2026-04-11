@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import admin from 'firebase-admin';
 import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken } from '../db.js';
 import { signAccess, signRefresh, saveRefreshToken, REFRESH_SECRET } from '../utils/auth.js';
 import { isProviderDbReady, ProviderProfile } from '../providerDb.js';
@@ -229,5 +230,155 @@ export const resetPassword = async (req: any, res: any) => {
   } catch (e) {
     console.error('[Reset Error]', e.message);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  FIREBASE PHONE AUTH — Real SMS OTP via Firebase Authentication
+//
+//  Flow (client-initiated):
+//    1. Client uses Firebase JS SDK → signInWithPhoneNumber → SMS sent
+//    2. User enters OTP → Firebase verifies → returns idToken
+//    3. Client sends { idToken, role, name?, location? } to these endpoints
+//    4. Server verifies idToken via Firebase Admin SDK
+//    5. Server finds/creates the User record → issues JWT tokens
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /auth/firebase-login
+ * Logs in an EXISTING user whose phone was verified by Firebase OTP.
+ * The user must already have an account with that phone + role.
+ */
+export const firebaseLogin = async (req: any, res: any) => {
+  try {
+    const { idToken, role } = req.body;
+    if (!idToken) return res.status(400).json({ error: 'Firebase idToken is required' });
+
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    // Verify the token with Firebase Admin SDK
+    let decoded: admin.auth.DecodedIdToken;
+    try {
+      decoded = await admin.auth().verifyIdToken(idToken);
+    } catch (firebaseErr: any) {
+      console.error('[Firebase OTP] Token verification failed:', firebaseErr.message);
+      return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
+    }
+
+    // Firebase phone_number is in E.164 format e.g. "+919876543210"
+    const firebasePhone = decoded.phone_number;
+    if (!firebasePhone) return res.status(400).json({ error: 'No phone number in token' });
+
+    // Extract 10-digit number
+    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
+    const targetRole = role || 'farmer';
+
+    // Find the existing account for this role
+    const user = await UserMongo.findOne({ phoneNumber: normPhone, role: targetRole });
+    if (!user)
+      return res.status(404).json({
+        error: `No ${targetRole} account found for this number. Please register first.`
+      });
+
+    const sub = await SubscriptionMongo.findOne({ userId: user._id });
+    const id = user._id.toString();
+    const access = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    const refresh = signRefresh({ id });
+    await saveRefreshToken(id, refresh);
+
+    console.log(`[Firebase OTP Login] ${targetRole} ${normPhone} verified OK`);
+    res.json({ user, subscription: sub, access_token: access, refresh_token: refresh });
+  } catch (e: any) {
+    console.error('[Firebase Login Error]', e.message);
+    res.status(500).json({ error: 'Internal Server Error: ' + e.message });
+  }
+};
+
+/**
+ * POST /auth/firebase-register
+ * Registers a NEW user whose phone was verified by Firebase OTP.
+ * Creates User + Subscription + ProviderProfile (if role=provider).
+ */
+export const firebaseRegister = async (req: any, res: any) => {
+  try {
+    const { idToken, name, role, location, language } = req.body;
+    if (!idToken || !name)
+      return res.status(400).json({ error: 'idToken and name are required' });
+
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    // Verify the Firebase ID token
+    let decoded: admin.auth.DecodedIdToken;
+    try {
+      decoded = await admin.auth().verifyIdToken(idToken);
+    } catch (firebaseErr: any) {
+      console.error('[Firebase Register] Token verification failed:', firebaseErr.message);
+      return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
+    }
+
+    const firebasePhone = decoded.phone_number;
+    if (!firebasePhone) return res.status(400).json({ error: 'No phone number in token' });
+
+    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
+    const targetRole = role || 'farmer';
+
+    // Prevent duplicate registration for this role
+    const existing = await UserMongo.findOne({ phoneNumber: normPhone, role: targetRole });
+    if (existing)
+      return res.status(409).json({
+        error: `Phone already registered as a ${targetRole}. Please login instead.`
+      });
+
+    // Generate a stable password from the UID so re-auth works if needed
+    const hash = await bcrypt.hash(decoded.uid, 12);
+    const email = `${normPhone}_${targetRole}@aquagrow.app`;
+
+    const user = await new UserMongo({
+      name: name.trim(),
+      phoneNumber: normPhone,
+      email,
+      password: hash,
+      location: location || 'Unknown',
+      role: targetRole,
+      farmSize: 0,
+      language: language || 'English',
+      subscriptionStatus: 'free',
+    }).save();
+
+    const sub = await new SubscriptionMongo({
+      userId: user._id,
+      planName: 'free',
+      status: 'active',
+      features: ['basic_dashboard', 'pond_management'],
+    }).save();
+
+    // Auto-create ProviderProfile for provider role
+    if (targetRole === 'provider' && isProviderDbReady()) {
+      try {
+        await new ProviderProfile({
+          userId:      user._id.toString(),
+          companyName: name.trim(),
+          ownerName:   name.trim(),
+          phone:       normPhone,
+          email,
+          location:    location || '',
+          isVerified:  false,
+        }).save();
+        console.log(`[Firebase Register] Provider profile created for ${normPhone}`);
+      } catch (provErr: any) {
+        console.warn('[Firebase Register] Provider profile creation failed:', provErr.message);
+      }
+    }
+
+    const id = user._id.toString();
+    const access = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    const refresh = signRefresh({ id });
+    await saveRefreshToken(id, refresh);
+
+    console.log(`[Firebase OTP Register] ${targetRole} ${normPhone} registered OK`);
+    res.status(201).json({ user, subscription: sub, access_token: access, refresh_token: refresh });
+  } catch (e: any) {
+    console.error('[Firebase Register Error]', e.message);
+    res.status(400).json({ error: e.message });
   }
 };

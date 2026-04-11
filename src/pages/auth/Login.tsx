@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -16,6 +16,8 @@ import {
   ChevronRight,
   X,
   CheckCircle2,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -23,24 +25,30 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 import { Language } from '../../types';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import type { ConfirmationResult } from 'firebase/auth';
 
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
-  const { login, loginWithOtp, updateUser, user: ctxUser, theme } = useData();
-  const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const { login, loginWithOtp, loginWithFirebaseToken, updateUser, user: ctxUser, theme } = useData();
+  const [role, setRole]             = useState<'farmer' | 'provider'>('farmer');
+  const [phone, setPhone]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [otp, setOtp]               = useState('');
+  const [step, setStep]             = useState<'form' | 'otp'>('form');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]           = useState('');
+  const [loading, setLoading]       = useState(false);
   const [canBiometric, setCanBiometric] = useState(false);
-  const [hasSavedBio, setHasSavedBio] = useState(false);
-
-  // Setup prompt: shown after first successful login if biometric available
+  const [hasSavedBio, setHasSavedBio]   = useState(false);
   const [showBioSetup, setShowBioSetup] = useState(false);
   const [pendingLoginResult, setPendingLoginResult] = useState<any>(null);
-  const [bioSuccess, setBioSuccess] = useState(false);
+  const [bioSuccess, setBioSuccess]   = useState(false);
+
+  // Firebase OTP state
+  const confirmationRef               = useRef<ConfirmationResult | null>(null);
+  const [otpSending, setOtpSending]   = useState(false);
+  const [otpSent, setOtpSent]         = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const navigate = useNavigate();
   const isDark = theme === 'dark';
@@ -104,6 +112,34 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
     }
   };
 
+  // ── Start resend cooldown ───────────────────────────────────────────────────
+  const startCooldown = (s = 60) => {
+    setResendCooldown(s);
+    const iv = setInterval(() => {
+      setResendCooldown(prev => { if (prev <= 1) { clearInterval(iv); return 0; } return prev - 1; });
+    }, 1000);
+  };
+
+  // ── Send Firebase OTP ────────────────────────────────────────────────────────
+  const handleSendOtp = async () => {
+    setError('');
+    setOtpSending(true);
+    clearRecaptcha();
+    try {
+      const e164 = toE164India(phone);
+      const result = await sendOtp(e164, 'recaptcha-login-container');
+      confirmationRef.current = result;
+      setOtpSent(true);
+      startCooldown(60);
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-phone-number') setError('Invalid phone number.');
+      else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes.');
+      else setError('Failed to send OTP. Check your connection.');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
   // ── Password / OTP Login ──────────────────────────────────────────────────
   const handleLogin = async () => {
     setError('');
@@ -112,7 +148,19 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       const fullPhone = `+91 ${phone.replace(/\D/g, '')}`;
       let result;
       if (step === 'otp') {
-        result = await loginWithOtp(fullPhone, otp, role);
+        // Firebase OTP verification
+        if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
+        if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
+        try {
+          const idToken = await verifyOtp(confirmationRef.current, otp);
+          result = await (loginWithFirebaseToken as any)(idToken, role);
+        } catch (fbErr: any) {
+          if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
+          else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');
+          else setError(fbErr.message || 'OTP verification failed.');
+          setLoading(false);
+          return;
+        }
       } else {
         result = await login(fullPhone, password, role);
       }
@@ -509,7 +557,13 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
 
                 {/* OTP Button */}
                 <motion.button
-                  onClick={() => setStep('otp')}
+                  onClick={() => {
+                    setStep('otp');
+                    setOtp('');
+                    setOtpSent(false);
+                    clearRecaptcha();
+                    handleSendOtp();
+                  }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
                     'w-full py-4 rounded-[1.4rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 flex items-center justify-center gap-3 border',
@@ -532,40 +586,64 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
 
             {/* ── OTP STEP ── */}
             {step === 'otp' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-4"
-              >
-                <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 border"
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
+                {/* reCAPTCHA anchor */}
+                <div id="recaptcha-login-container" />
+
+                <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5 border"
                   style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
-                  <Smartphone style={{ color: accentColor }} size={26} />
+                  {otpSending
+                    ? <Waves style={{ color: accentColor }} size={26} className="animate-spin" />
+                    : <ShieldCheck style={{ color: accentColor }} size={26} />}
                 </div>
-                <h3 className={cn('text-xs font-black uppercase tracking-[0.3em] mb-2', isDark ? 'text-white' : 'text-slate-900')}>{t.enterOtp}</h3>
-                <p className={cn('text-[9px] font-bold uppercase tracking-wider mb-6', isDark ? 'text-white/30' : 'text-slate-400')}>
-                  Code sent to +91 {phone}
+
+                <h3 className={cn('text-xs font-black uppercase tracking-[0.3em] mb-1', isDark ? 'text-white' : 'text-slate-900')}>
+                  {otpSending ? 'Sending OTP...' : t.enterOtp}
+                </h3>
+                <p className={cn('text-[9px] font-bold uppercase tracking-wider mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
+                  {otpSent ? `6-digit code sent to +91 ${phone}` : 'Preparing OTP...'}
                 </p>
+                <div className="flex items-center justify-center gap-1.5 mb-6">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-600')}>Real SMS via Firebase · Google</span>
+                </div>
+
                 <input
                   autoFocus
-                  className={cn(
-                    'bg-transparent border-b-2 text-4xl text-center w-40 tracking-[0.5em] outline-none mb-8 transition-colors',
+                  className={cn('bg-transparent border-b-2 text-4xl text-center w-48 tracking-[0.5em] outline-none mb-6 transition-colors',
                     isDark ? 'text-white border-white/20 focus:border-white/60' : 'text-slate-900 border-slate-200 focus:border-emerald-500'
                   )}
-                  maxLength={4}
+                  maxLength={6}
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                  disabled={loading}
+                  placeholder="------"
+                  inputMode="numeric"
                 />
+
                 <div className="space-y-3">
                   <motion.button
                     onClick={handleLogin}
-                    disabled={loading || otp.length < 4}
+                    disabled={loading || otp.length < 6 || !otpSent}
                     whileTap={{ scale: 0.97 }}
-                    className="w-full py-4 rounded-[1.8rem] text-white text-[11px] font-black uppercase tracking-widest shadow-xl disabled:opacity-50 transition-all duration-500"
+                    className="w-full py-4 rounded-[1.8rem] text-white text-[11px] font-black uppercase tracking-widest shadow-xl disabled:opacity-50 transition-all"
                     style={{ background: activeGradient, boxShadow: `0 16px 36px ${shadowColor}` }}
                   >
                     {loading ? <Waves size={20} className="animate-spin mx-auto" /> : t.verifyOtp}
                   </motion.button>
-                  <button
-                    onClick={() => setStep('form')}
+
+                  {/* Resend */}
+                  <button onClick={handleSendOtp} disabled={otpSending || resendCooldown > 0}
+                    className={cn('flex items-center justify-center gap-1.5 mx-auto text-[9px] font-black uppercase tracking-widest',
+                      isDark ? 'text-white/30 disabled:text-white/15' : 'text-slate-400 disabled:text-slate-300'
+                    )}
+                  >
+                    {otpSending ? <><Loader2 size={11} className="animate-spin" /> Sending...</>
+                      : resendCooldown > 0 ? `Resend in ${resendCooldown}s`
+                      : <><RefreshCw size={11} /> Resend OTP</>}
+                  </button>
+
+                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); clearRecaptcha(); }}
                     className={cn('flex items-center justify-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest transition-colors', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}
                   >
                     <div className="rotate-180 inline-block"><ChevronRight size={14} /></div>

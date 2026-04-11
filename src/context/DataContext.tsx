@@ -499,6 +499,52 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  /** Login with a Firebase Phone Auth ID token (real OTP verified by Firebase) */
+  const loginWithFirebaseToken = async (idToken: string, role: string) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/firebase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, role }),
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error || 'Login failed' };
+      const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
+      setSubscription(data.subscription);
+      return { success: true, user: loggedUser };
+    } catch (e: any) {
+      return { success: false, error: 'Cannot connect to server.' };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  /** Register with a Firebase Phone Auth ID token (real OTP verified by Firebase) */
+  const registerWithFirebaseToken = async (idToken: string, payload: {
+    name: string; role: string; location?: string; language?: string;
+  }) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/firebase-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, ...payload }),
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error || 'Registration failed' };
+      const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
+      setSubscription(data.subscription);
+      return { success: true, user: loggedUser };
+    } catch (e: any) {
+      return { success: false, error: 'Cannot connect to server.' };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const resetPassword = async (phoneNumber: string, otp: string, newPassword: string) => {
     setIsSyncing(true);
     try {
@@ -918,6 +964,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       markNotificationsRead,
       unreadCount,
       resetPassword,
+      loginWithFirebaseToken: loginWithFirebaseToken as any,
+      registerWithFirebaseToken: registerWithFirebaseToken as any,
       addHarvestRequest,
       updateHarvestRequest,
       sendHarvestMessage: async (requestId: string, message: string, proposedPrice?: number) => {
