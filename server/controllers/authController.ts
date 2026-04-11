@@ -270,15 +270,17 @@ export const resetPassword = async (req: any, res: any) => {
  */
 export const firebaseLogin = async (req: any, res: any) => {
   try {
-    const { idToken, role } = req.body;
-    if (!idToken) return res.status(400).json({ error: 'Firebase idToken is required' });
+    // Accept both 'token' and 'idToken' field names for flexibility
+    const { idToken, token, role } = req.body;
+    const firebaseToken = idToken || token;
+    if (!firebaseToken) return res.status(400).json({ error: 'Firebase token is required (send as idToken or token)' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
     // Verify the token with Firebase Admin SDK
     let decoded: admin.auth.DecodedIdToken;
     try {
-      decoded = await admin.auth().verifyIdToken(idToken);
+      decoded = await admin.auth().verifyIdToken(firebaseToken);
     } catch (firebaseErr: any) {
       console.error('[Firebase OTP] Token verification failed:', firebaseErr.message);
       return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
@@ -334,16 +336,18 @@ export const firebaseLogin = async (req: any, res: any) => {
  */
 export const firebaseRegister = async (req: any, res: any) => {
   try {
-    const { idToken, name, role, location, language } = req.body;
-    if (!idToken || !name)
-      return res.status(400).json({ error: 'idToken and name are required' });
+    // Accept both 'token' and 'idToken' field names
+    const { idToken, token, name, role, location, language } = req.body;
+    const firebaseToken = idToken || token;
+    if (!firebaseToken || !name)
+      return res.status(400).json({ error: 'Firebase token and name are required' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
     // Verify the Firebase ID token
     let decoded: admin.auth.DecodedIdToken;
     try {
-      decoded = await admin.auth().verifyIdToken(idToken);
+      decoded = await admin.auth().verifyIdToken(firebaseToken);
     } catch (firebaseErr: any) {
       console.error('[Firebase Register] Token verification failed:', firebaseErr.message);
       return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });

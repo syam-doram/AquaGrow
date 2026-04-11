@@ -506,7 +506,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch(`${API_BASE_URL}/auth/firebase-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, role }),
+        body: JSON.stringify({ token: idToken, role }),
       });
       const data = await response.json();
       if (!response.ok) return { success: false, error: data.error || 'Login failed' };
@@ -528,7 +528,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch(`${API_BASE_URL}/auth/firebase-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, ...payload }),
+        body: JSON.stringify({ token: idToken, ...payload }),
       });
       const data = await response.json();
       if (!response.ok) return { success: false, error: data.error || 'Registration failed' };
