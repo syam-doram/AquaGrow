@@ -25,8 +25,7 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 import { Language } from '../../types';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
-import type { OtpSession } from '../../lib/firebaseAuth';
+
 
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
   const { login, loginWithOtp, loginWithFirebaseToken, otpLogin, updateUser, user: ctxUser, theme } = useData();
@@ -45,8 +44,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [pendingLoginResult, setPendingLoginResult] = useState<any>(null);
   const [bioSuccess, setBioSuccess]   = useState(false);
 
-  // Firebase OTP state
-  const confirmationRef               = useRef<OtpSession | null>(null);
+  // Fast2SMS OTP state
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -120,19 +118,22 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
     }, 1000);
   };
 
-  // ── Send Firebase OTP ────────────────────────────────────────────────────────
+  // ── Send OTP via Fast2SMS (server-side, no Firebase dependency) ───────────
   const handleSendOtp = async () => {
+    if (phone.replace(/\D/g, '').length < 10) { setError('Enter a valid 10-digit number.'); return; }
     setError('');
     setOtpSending(true);
-    clearRecaptcha();
     try {
-      const e164 = toE164India(phone);
-      const result = await sendOtp(e164, 'recaptcha-login-container');
-      confirmationRef.current = result;
+      const res = await fetch(`${(window as any).__API_BASE__ || 'https://aquagrow.onrender.com/api'}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, '') }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
-      if (err.code === 'auth/invalid-phone-number') setError('Invalid phone number.');
       else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes.');
       else setError('Failed to send OTP. Check your connection.');
     } finally {
@@ -148,20 +149,9 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       const fullPhone = `+91 ${phone.replace(/\D/g, '')}`;
       let result;
       if (step === 'otp') {
-        // Firebase OTP verification
+        // Fast2SMS OTP verification via server
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
-        if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
-        try {
-          // Firebase Phone Auth: verify code → get idToken → server login
-          const idToken = await verifyOtp(confirmationRef.current!, otp);
-          result = await (loginWithFirebaseToken as any)(idToken, role);
-        } catch (fbErr: any) {
-          if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
-          else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');
-          else setError(fbErr.message || 'OTP verification failed.');
-          setLoading(false);
-          return;
-        }
+        result = await otpLogin(phone.replace(/\D/g, ''), otp, role);
       } else {
         result = await login(fullPhone, password, role);
       }

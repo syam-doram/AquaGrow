@@ -585,16 +585,17 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
 
-  const resetPassword = async (phoneNumber: string, firebaseToken: string, newPassword: string, role = 'farmer') => {
+  const resetPassword = async (phoneNumber: string, otp: string, newPassword: string, role = 'farmer') => {
     setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token: firebaseToken,   // Firebase ID token — server verifies via Admin SDK
+          phone: phoneNumber.replace(/\D/g, '').slice(-10),
+          otp,
           newPassword,
-          role,                   // farmer | provider — for role-based account lookup
+          role,
         })
       });
       const data = await response.json();

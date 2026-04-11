@@ -29,8 +29,7 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { Language } from '../../types';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
-import type { OtpSession } from '../../lib/firebaseAuth';
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 const FARMER_FEATURES = [
@@ -47,7 +46,7 @@ const PROVIDER_FEATURES = [
 ];
 
 export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang: Language, onLanguageChange?: (l: Language) => void }) => {
-  const { registerWithFirebaseToken, otpRegister, theme } = useData();
+  const { otpRegister, theme } = useData();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<'farmer' | 'provider' | null>(null);
@@ -65,8 +64,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const [termsChecked, setTermsChecked]         = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
-  // Firebase OTP state
-  const confirmationRef = useRef<OtpSession | null>(null);
+  // Fast2SMS OTP state
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -113,27 +111,22 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     }, 1000);
   };
 
-  // ── Send OTP via Firebase ────────────────────────────────────────────────────
+  // ── Send OTP via Fast2SMS (server-side) ────────────────────────────────────
   const handleSendOtp = async () => {
     setError('');
     setOtpSending(true);
-    clearRecaptcha();
     try {
-      const e164 = toE164India(phone);
-      const result = await sendOtp(e164, 'recaptcha-container');
-      confirmationRef.current = result;
+      const res = await fetch(`https://aquagrow.onrender.com/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, '') }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
-      console.error('[Firebase OTP] sendOtp error:', err);
-      if (err.code === 'auth/invalid-phone-number')
-        setError('Invalid phone number. Please check and try again.');
-      else if (err.code === 'auth/too-many-requests')
-        setError('Too many OTP requests. Please wait a few minutes and try again.');
-      else if (err.code === 'auth/captcha-check-failed')
-        setError('Security check failed. Please refresh and try again.');
-      else
-        setError('Failed to send OTP. Check your connection and try again.');
+      setError(err.message || 'Failed to send OTP. Check your connection.');
     } finally {
       setOtpSending(false);
     }
@@ -161,18 +154,14 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
       return;
     }
 
-    // ── OTP step: verify via Firebase then register ──────────────────────────
+    // ── OTP step: verify via Fast2SMS then register ──────────────────────
     if (!otp || otp.length < 6) { setError('Please enter the 6-digit OTP'); return; }
-    if (!confirmationRef.current) { setError('OTP session expired. Please resend OTP.'); return; }
 
     setLoading(true);
     try {
-      // Firebase Phone Auth: verify code → get idToken → server register
-      const idToken = await verifyOtp(confirmationRef.current!, otp);
-
       const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 
-      const result = await (registerWithFirebaseToken as any)(idToken, {
+      const result = await otpRegister(phone.replace(/\D/g, ''), otp, {
         name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
         role:     role!,
         location: location || 'Unknown',
@@ -185,16 +174,14 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         setError(result.error || t.registrationFailed);
       }
     } catch (err: any) {
-      if (err.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please check and try again.');
-      else if (err.code === 'auth/code-expired')         setError('OTP expired. Please request a new one.');
-      else                                               setError(err.message || 'Verification failed. Please try again.');
+      setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const goBack = () => {
-    if (step === 'otp')   { setStep('terms'); setOtpSent(false); setOtp(''); clearRecaptcha(); return; }
+    if (step === 'otp')   { setStep('terms'); setOtpSent(false); setOtp(''); return; }
     if (step === 'terms') { setStep('form');  return; }
     setRole(null); setStep('form');
     setPhone(''); setName(''); setBusinessName(''); setLocation('');

@@ -225,34 +225,23 @@ export const loginWithOtp = async (req: any, res: any) => {
 
 export const resetPassword = async (req: any, res: any) => {
   try {
-    const { mobile, otp, token, firebaseToken, newPassword, role } = req.body;
+    const { mobile, phone, otp, newPassword, role } = req.body;
+    const rawPhone = (phone || mobile || '').replace(/\D/g, '').slice(-10);
 
-    // Accept Firebase ID token from 'otp', 'token', or 'firebaseToken' field
-    const fbToken = firebaseToken || token || otp;
-
-    if (!fbToken || !newPassword)
-      return res.status(400).json({ error: 'Firebase token and new password are required' });
+    if (!rawPhone || !otp || !newPassword)
+      return res.status(400).json({ error: 'Phone, OTP and new password are required' });
 
     if (newPassword.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    // Verify Firebase ID token to confirm phone ownership
-    let decoded: admin.auth.DecodedIdToken;
-    try {
-      decoded = await admin.auth().verifyIdToken(fbToken);
-    } catch (firebaseErr: any) {
-      console.error('[Reset Password] Token verification failed:', firebaseErr.message);
-      return res.status(401).json({ error: 'Invalid or expired session. Please verify OTP again.' });
-    }
+    // Verify OTP using Fast2SMS in-memory store
+    const otpResult = fast2smsVerify(rawPhone, otp);
+    if (!otpResult.valid)
+      return res.status(401).json({ error: otpResult.error || 'Invalid or expired OTP' });
 
-    const firebasePhone = decoded.phone_number;
-    if (!firebasePhone)
-      return res.status(400).json({ error: 'No phone number found in token' });
-
-    // Normalize to 10 digits
-    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
+    const normPhone = rawPhone;
     const targetRole = role || 'farmer';
 
     // Role-based lookup — find the correct account (farmer vs provider)
