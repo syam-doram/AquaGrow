@@ -27,6 +27,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
+
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 repositories {
@@ -45,6 +49,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // Firebase App Check — required for Phone Auth OTP to work
+    implementation 'com.google.firebase:firebase-appcheck-playintegrity:18.0.0'
+    implementation 'com.google.firebase:firebase-appcheck-debug:18.0.0'
 }
 
 apply from: 'capacitor.build.gradle'
