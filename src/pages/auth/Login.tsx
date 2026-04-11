@@ -553,10 +553,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                     setStep('otp');
                     setOtp('');
                     setOtpSent(false);
-                    clearRecaptcha();
-                    requestAnimationFrame(() => {
-                      requestAnimationFrame(() => { handleSendOtp(); });
-                    });
+                    handleSendOtp();
                   }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
@@ -581,7 +578,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
             {/* ── OTP STEP ── */}
             {/* reCAPTCHA anchor — always in DOM so RecaptchaVerifier can find it
                 even before the OTP step JSX block renders (web fallback only) */}
-            <div id="recaptcha-login-container" style={{ display: 'none' }} />
+
 
             {step === 'otp' && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
@@ -638,7 +635,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                       : <><RefreshCw size={11} /> Resend OTP</>}
                   </button>
 
-                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); clearRecaptcha(); }}
+                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); }}
                     className={cn('flex items-center justify-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest transition-colors', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}
                   >
                     <div className="rotate-180 inline-block"><ChevronRight size={14} /></div>
