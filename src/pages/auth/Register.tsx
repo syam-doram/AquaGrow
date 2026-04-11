@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -187,7 +187,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     setPhone(''); setName(''); setBusinessName(''); setLocation('');
     setLocationStatus('idle'); setOtp(''); setError('');
     setTermsChecked(false); setDisclaimerChecked(false);
-    setOtpSent(false); clearRecaptcha();
+    setOtpSent(false);
   };
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -321,8 +321,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   // ───────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center font-sans tracking-tight" style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}>
-      {/* Invisible reCAPTCHA anchor — Firebase requires a DOM element */}
-      <div id="recaptcha-container" />
+
 
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[80%] rounded-full blur-[140px] animate-pulse" style={{ background: `${accentColor}10` }} />
