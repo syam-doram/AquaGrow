@@ -134,8 +134,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
-      else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes.');
-      else setError('Failed to send OTP. Check your connection.');
+      setError(err.message || 'Failed to send OTP. Check your connection.');
     } finally {
       setOtpSending(false);
     }
