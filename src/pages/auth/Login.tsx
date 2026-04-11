@@ -50,23 +50,9 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  // Flag to trigger OTP send AFTER React re-renders the OTP step DOM
-  const [pendingOtpSend, setPendingOtpSend] = useState(false);
 
-  const navigate = useNavigate();
-  const isDark = theme === 'dark';
 
-  // ── Fire OTP after DOM has updated (step === 'otp' rendered) ─────────────────
-  // This fixes the timing bug: recaptcha-login-container only exists AFTER
-  // React re-renders with step='otp', so we can't call sendOtp() in the same
-  // click handler that sets the step.
-  useEffect(() => {
-    if (pendingOtpSend && step === 'otp') {
-      setPendingOtpSend(false);
-      handleSendOtp();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, pendingOtpSend]);
+
 
   // Helper: navigate to the correct home based on user role from server
   const goHome = (userObj?: any) => {
@@ -574,14 +560,15 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                 {/* OTP Button */}
                 <motion.button
                   onClick={() => {
+                    // Move to OTP step first so the reCAPTCHA div renders,
+                    // then fire sendOtp after the next browser paint.
                     setStep('otp');
                     setOtp('');
                     setOtpSent(false);
                     clearRecaptcha();
-                    // Don't call handleSendOtp() here — the recaptcha-login-container div
-                    // doesn't exist yet (it's inside the step==='otp' block).
-                    // Instead set a flag; useEffect fires after DOM re-renders.
-                    setPendingOtpSend(true);
+                    requestAnimationFrame(() => {
+                      requestAnimationFrame(() => { handleSendOtp(); });
+                    });
                   }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
