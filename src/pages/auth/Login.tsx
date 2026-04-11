@@ -85,7 +85,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
     try {
       const pass = await getBiometric(targetPhone);
       if (pass) {
-        const result = await login(`+91 ${targetPhone}`, pass);
+        const result = await login(`+91 ${targetPhone}`, pass, role);
         if (result.success) {
           setBioSuccess(true);
           setTimeout(() => goHome(result?.user), 800);
@@ -112,9 +112,9 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       const fullPhone = `+91 ${phone.replace(/\D/g, '')}`;
       let result;
       if (step === 'otp') {
-        result = await loginWithOtp(fullPhone, otp);
+        result = await loginWithOtp(fullPhone, otp, role);
       } else {
-        result = await login(fullPhone, password);
+        result = await login(fullPhone, password, role);
       }
 
       if (result.success) {

@@ -449,20 +449,20 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const login = async (phoneNumber: string, password?: string) => {
+  const login = async (phoneNumber: string, password?: string, role?: string) => {
     setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: phoneNumber, password })
+        body: JSON.stringify({ mobile: phoneNumber, password, role: role || 'farmer' })
       });
       const data = await response.json();
       if (!response.ok) {
         return { success: false, error: data.error || 'Login failed' };
       }
       const loggedUser = { ...data.user, id: data.user._id || data.user.id };
-      localStorage.setItem('aqua_phone', phoneNumber); // Store for automatic biometric lookup
+      localStorage.setItem('aqua_phone', phoneNumber);
       setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
       setSubscription(data.subscription);
       return { success: true, user: loggedUser };
@@ -474,13 +474,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const loginWithOtp = async (phoneNumber: string, otp: string) => {
+  const loginWithOtp = async (phoneNumber: string, otp: string, role?: string) => {
     setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: phoneNumber, otp })
+        body: JSON.stringify({ mobile: phoneNumber, otp, role: role || 'farmer' })
       });
       const data = await response.json();
       if (!response.ok) {

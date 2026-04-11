@@ -102,15 +102,25 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { mobile, password } = req.body;
+    const { mobile, password, role } = req.body;
     if (!mobile || !password)
       return res.status(400).json({ error: 'identifier and password are required' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    const user = await UserMongo.findOne({ $or: [{ phoneNumber: mobile }, { email: mobile }] });
+    const normMobile = normalizePhone(mobile);
+    const targetRole = role || 'farmer';
+
+    // Find EXACTLY the account for this portal (farmer vs provider)
+    // Without role scoping, findOne returns the first match which is always
+    // whichever account was created first — causing wrong portal access.
+    const user = await UserMongo.findOne({
+      $or: [{ phoneNumber: normMobile }, { email: mobile }],
+      role: targetRole,
+    });
+
     if (!user || !await bcrypt.compare(password, user.password))
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: `Invalid credentials for ${targetRole} account` });
 
     const sub = await SubscriptionMongo.findOne({ userId: user._id });
     const id = user._id.toString();
@@ -163,7 +173,7 @@ export const logout = async (req: any, res: any) => {
 
 export const loginWithOtp = async (req: any, res: any) => {
   try {
-    const { mobile, otp } = req.body;
+    const { mobile, otp, role } = req.body;
     if (!mobile || !otp)
       return res.status(400).json({ error: 'Mobile and OTP are required' });
 
@@ -173,9 +183,13 @@ export const loginWithOtp = async (req: any, res: any) => {
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    const user = await UserMongo.findOne({ phoneNumber: mobile });
+    const normMobile = normalizePhone(mobile);
+    const targetRole = role || 'farmer';
+
+    // Role-scoped lookup — OTP login must also land in the correct portal
+    const user = await UserMongo.findOne({ phoneNumber: normMobile, role: targetRole });
     if (!user)
-      return res.status(404).json({ error: 'Account not found. Please register first.' });
+      return res.status(404).json({ error: `No ${targetRole} account found for this number. Please register first.` });
 
     const sub = await SubscriptionMongo.findOne({ userId: user._id });
     const id = user._id.toString();
