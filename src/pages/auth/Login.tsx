@@ -25,7 +25,7 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 import { Language } from '../../types';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken } from '../../lib/firebaseAuth';
 import type { OtpSession } from '../../lib/firebaseAuth';
 
 
@@ -131,9 +131,24 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       const e164 = toE164India(phone);
       const session = await sendOtp(e164, 'recaptcha-login-container');
       confirmationRef.current = session;
+
+      // ✅ Android auto-verification: Firebase verified silently — skip OTP step
+      if (isAutoVerified(session)) {
+        const idToken = getAutoVerifiedToken(session)!;
+        const result = await loginWithFirebaseToken(idToken, role);
+        if (result.success) {
+          goHome(result.user);
+        } else {
+          setError(result.error || 'Auto-verified login failed.');
+          setStep('form');
+        }
+        return;
+      }
+
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
+      if (err.code === 'auth/request-in-progress') return; // silently ignore duplicate call
       if (err.code === 'auth/invalid-phone-number') setError('Invalid phone number.');
       else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes.');
       else setError(err.message || 'Failed to send OTP. Check your connection.');

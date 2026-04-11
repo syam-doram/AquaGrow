@@ -29,7 +29,7 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { Language } from '../../types';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken } from '../../lib/firebaseAuth';
 import type { OtpSession } from '../../lib/firebaseAuth';
 
 
@@ -114,7 +114,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     }, 1000);
   };
 
-  // ── Send OTP via Firebase ────────────────────────────────────────────
+  // ── Send OTP via Firebase ──────────────────────────────────────
   const handleSendOtp = async () => {
     setError('');
     setOtpSending(true);
@@ -123,10 +123,32 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
       const e164 = toE164India(phone);
       const result = await sendOtp(e164, 'recaptcha-container');
       confirmationRef.current = result;
+
+      // ✅ Android auto-verification — Firebase verified the code silently
+      // Complete registration immediately without requiring OTP input from user
+      if (isAutoVerified(result)) {
+        const idToken = getAutoVerifiedToken(result)!;
+        const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
+        const regResult = await registerWithFirebaseToken(idToken, {
+          name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
+          role:     role!,
+          location: location || 'Unknown',
+          language: currentLang,
+        });
+        if (regResult.success) {
+          navigate(role === 'provider' ? '/provider/dashboard' : '/dashboard');
+        } else {
+          setError(regResult.error || 'Registration failed after auto-verification.');
+          setStep('terms');
+        }
+        return;
+      }
+
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
       console.error('[Firebase OTP] sendOtp error:', err);
+      if (err.code === 'auth/request-in-progress') return; // silently ignore duplicate call
       if (err.code === 'auth/invalid-phone-number')
         setError('Invalid phone number. Please check and try again.');
       else if (err.code === 'auth/too-many-requests')
@@ -135,6 +157,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         setError('Security check failed. Please refresh and try again.');
       else
         setError('Failed to send OTP. Check your connection and try again.');
+      setStep('terms'); // revert on error so user can retry
     } finally {
       setOtpSending(false);
     }

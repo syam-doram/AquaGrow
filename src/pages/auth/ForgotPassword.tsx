@@ -21,7 +21,7 @@ import { useData } from '../../context/DataContext';
 import { Language } from '../../types';
 import { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken } from '../../lib/firebaseAuth';
 import type { OtpSession } from '../../lib/firebaseAuth';
 
 
@@ -75,7 +75,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][pwStrength];
   const strengthColor = ['', 'bg-red-500', 'bg-amber-500', 'bg-yellow-400', 'bg-emerald-500', 'bg-emerald-600'][pwStrength];
 
-  // ── Step 1: Send Firebase OTP ─────────────────────────────────────────────
+  // ── Step 1: Send Firebase OTP ──────────────────────────────────────────────────────
   const handleSendOtp = async () => {
     if (phone.length < 10) { setError('Enter a valid 10-digit number'); return; }
     setError(null);
@@ -84,12 +84,21 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
       clearRecaptcha();
       const session = await sendOtp(toE164India(phone), 'recaptcha-forgot-container');
       sessionRef.current = session;
+
+      // ✅ Android auto-verification — no OTP needed; proceed straight to reset step
+      if (isAutoVerified(session)) {
+        idTokenRef.current = getAutoVerifiedToken(session)!;
+        setStep('reset');
+        return;
+      }
+
       setStep('otp');
       setResendCooldown(60);
       const timer = setInterval(() => {
         setResendCooldown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
       }, 1000);
     } catch (err: any) {
+      if (err.code === 'auth/request-in-progress') return; // ignore double-tap
       if (err.code === 'auth/invalid-phone-number')  setError('Invalid phone number.');
       else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes and try again.');
       else setError(err.message || 'Failed to send OTP. Check your connection.');
@@ -129,8 +138,13 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
 
   return (
     <div className="min-h-[100dvh] relative overflow-hidden flex flex-col font-sans tracking-tight" style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}>
-      
-      {/* ── Mesh Background ── */}
+
+      {/* ── Invisible reCAPTCHA anchor — MUST be always in DOM so RecaptchaVerifier can
+           mount before the UI transitions to the OTP step. Placing it inside
+           step==='otp' JSX causes "container not found" because sendOtp() is called
+           BEFORE the step state updates and React re-renders. ── */}
+      <div id="recaptcha-forgot-container" style={{ display: 'none' }} />
+
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[80%] rounded-full blur-[140px] animate-pulse" style={{ background: `${accentColor}12` }} />
         <div className="absolute bottom-[-15%] right-[-10%] w-[90%] h-[70%] rounded-full blur-[120px]" style={{ background: `${accentColor}08` }} />
