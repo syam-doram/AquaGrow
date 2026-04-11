@@ -17,6 +17,13 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    FirebaseAuthentication: {
+      // List every sign-in provider you use.
+      // The plugin throws "Phone sign-in provider is not enabled" if 'phone'
+      // is missing from this array when signInWithPhoneNumber() is called.
+      skipNativeAuth: false,
+      providers: ['phone'],
+    },
   },
 };
 
