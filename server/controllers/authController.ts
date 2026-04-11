@@ -109,26 +109,44 @@ export const login = async (req: any, res: any) => {
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    const normMobile = normalizePhone(mobile);
+    const normMobile = normalizePhone(mobile);  // 10-digit e.g. "9876543210"
     const targetRole = role || 'farmer';
 
-    // Find EXACTLY the account for this portal (farmer vs provider)
-    // Without role scoping, findOne returns the first match which is always
-    // whichever account was created first — causing wrong portal access.
-    const user = await UserMongo.findOne({
-      $or: [{ phoneNumber: normMobile }, { email: mobile }],
-      role: targetRole,
+    // ── Phase 1: find the user by phone (try multiple stored formats for
+    // backward-compatibility with accounts created before normalization).
+    // We do NOT filter by role here — old accounts may not have the role
+    // field stored in the MongoDB document even if the schema has a default.
+    let user = await UserMongo.findOne({
+      $or: [
+        { phoneNumber: normMobile },           // stored as 10-digit
+        { phoneNumber: `+91${normMobile}` },   // stored as +91XXXXXXXXXX
+        { phoneNumber: `+91 ${normMobile}` },  // stored as +91 XXXXXXXXXX
+        { email: mobile },                      // email field match
+      ]
     });
 
-    if (!user || !await bcrypt.compare(password, user.password))
-      return res.status(401).json({ error: `Invalid credentials for ${targetRole} account` });
+    if (!user)
+      return res.status(401).json({ error: 'Invalid credentials. No account found for this number.' });
+
+    // ── Phase 2: verify password
+    const passwordValid = await bcrypt.compare(password, user.password);
+    if (!passwordValid)
+      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+
+    // ── Phase 3: role check — if the account exists but belongs to a DIFFERENT portal
+    const userRole = user.role || 'farmer';  // default for old accounts without role field
+    if (userRole !== targetRole) {
+      return res.status(403).json({
+        error: `This account is registered as a ${userRole}. Please switch to the ${userRole} portal and try again.`
+      });
+    }
 
     const sub = await SubscriptionMongo.findOne({ userId: user._id });
     const id = user._id.toString();
-    const access = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    const access = signAccess({ id, role: userRole, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id });
     await saveRefreshToken(id, refresh);
-    res.json({ user, subscription: sub, access_token: access, refresh_token: refresh });
+    res.json({ user: { ...user.toObject(), role: userRole }, subscription: sub, access_token: access, refresh_token: refresh });
   } catch (e) {
     console.error('[Login Error Detail]', e.message);
     res.status(500).json({ error: 'Internal Server Error: ' + e.message });
@@ -273,21 +291,35 @@ export const firebaseLogin = async (req: any, res: any) => {
     const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
     const targetRole = role || 'farmer';
 
-    // Find the existing account for this role
-    const user = await UserMongo.findOne({ phoneNumber: normPhone, role: targetRole });
+    // Find user by phone (multi-format, same backward-compat logic as password login)
+    let user = await UserMongo.findOne({
+      $or: [
+        { phoneNumber: normPhone },
+        { phoneNumber: `+91${normPhone}` },
+        { phoneNumber: `+91 ${normPhone}` },
+      ]
+    });
+
     if (!user)
       return res.status(404).json({
-        error: `No ${targetRole} account found for this number. Please register first.`
+        error: `No account found for this number. Please register first.`
+      });
+
+    // Role check — give a helpful error if user tries the wrong portal
+    const userRole = user.role || 'farmer';
+    if (userRole !== targetRole)
+      return res.status(403).json({
+        error: `This number is registered as a ${userRole}. Please switch to the ${userRole} portal.`
       });
 
     const sub = await SubscriptionMongo.findOne({ userId: user._id });
     const id = user._id.toString();
-    const access = signAccess({ id, role: user.role, subscriptionStatus: user.subscriptionStatus });
+    const access = signAccess({ id, role: userRole, subscriptionStatus: user.subscriptionStatus });
     const refresh = signRefresh({ id });
     await saveRefreshToken(id, refresh);
 
     console.log(`[Firebase OTP Login] ${targetRole} ${normPhone} verified OK`);
-    res.json({ user, subscription: sub, access_token: access, refresh_token: refresh });
+    res.json({ user: { ...user.toObject(), role: userRole }, subscription: sub, access_token: access, refresh_token: refresh });
   } catch (e: any) {
     console.error('[Firebase Login Error]', e.message);
     res.status(500).json({ error: 'Internal Server Error: ' + e.message });
