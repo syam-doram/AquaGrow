@@ -47,7 +47,7 @@ interface DataContextType {
   addNotification: (title: string, body: string, type?: string) => void;
   markNotificationsRead: () => void;
   unreadCount: number;
-  resetPassword: (phoneNumber: string, otp: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (phoneNumber: string, firebaseToken: string, newPassword: string, role?: string) => Promise<{ success: boolean; error?: string }>;
   updateHarvestRequest: (requestId: string, updates: any) => Promise<void>;
   sendHarvestMessage: (requestId: string, message: string, proposedPrice?: number) => Promise<any>;
   harvestRequests: any[];
@@ -585,13 +585,17 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
 
-  const resetPassword = async (phoneNumber: string, otp: string, newPassword: string) => {
+  const resetPassword = async (phoneNumber: string, firebaseToken: string, newPassword: string, role = 'farmer') => {
     setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: phoneNumber, otp, newPassword })
+        body: JSON.stringify({
+          token: firebaseToken,   // Firebase ID token — server verifies via Admin SDK
+          newPassword,
+          role,                   // farmer | provider — for role-based account lookup
+        })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -599,7 +603,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { success: true };
     } catch (error: any) {
-      console.error("Reset error:", error);
+      console.error('Reset error:', error);
       return { success: false, error: 'Cannot connect to server.' };
     } finally {
       setIsSyncing(false);

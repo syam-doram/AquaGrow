@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   KeyRound,
   RefreshCw,
+  Fish,
+  Wrench,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Language } from '../../types';
@@ -32,6 +34,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const { resetPassword, theme } = useData();
   
   const [step, setStep] = useState<'phone' | 'otp' | 'reset' | 'success'>('phone');
+  const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -44,9 +47,12 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const idTokenRef = useRef<string>('');                 // holds Firebase ID token for reset
 
   const isDark = theme === 'dark';
-  const accentColor = '#059669';
-  const shadowColor = 'rgba(5,150,105,0.25)';
-  const gradient = 'linear-gradient(135deg, #059669 0%, #0D523C 100%)';
+  // Dynamic colors based on role
+  const accentColor  = role === 'provider' ? '#4f46e5' : '#059669';
+  const shadowColor  = role === 'provider' ? 'rgba(99,102,241,0.25)' : 'rgba(5,150,105,0.25)';
+  const gradient     = role === 'provider'
+    ? 'linear-gradient(135deg, #1d4ed8 0%, #4f46e5 100%)'
+    : 'linear-gradient(135deg, #059669 0%, #0D523C 100%)';
 
   const stepInfo = [
     { label: 'Verify', icon: Smartphone },
@@ -111,12 +117,12 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
     }
   };
 
-  // ── Step 3: Reset password using ID token ────────────────────────────────
+  // ── Step 3: Reset password using ID token + role ─────────────────────────
   const handleReset = async () => {
     if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
-    // Pass the Firebase ID token so the server can verify identity
-    const result = await resetPassword(phone, idTokenRef.current, newPassword);
+    // Pass Firebase ID token + role → server verifies token and finds correct account
+    const result = await resetPassword(phone, idTokenRef.current, newPassword, role);
     setLoading(false);
     if (result.success) { setStep('success'); }
     else { setError(result.error || 'Reset failed'); }
@@ -211,6 +217,27 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
                   <h2 className={cn("text-xl font-black tracking-tighter mb-1", isDark ? "text-white" : "text-slate-900")}>{t.forgotPassword}</h2>
                   <p className={cn("text-[9px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/30" : "text-slate-400")}>Verify your identity to recover access</p>
                 </div>
+
+                {/* Role Selector */}
+                <div className={cn("flex rounded-2xl p-1 gap-1", isDark ? "bg-white/5" : "bg-slate-100")}>
+                  {(['farmer', 'provider'] as const).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRole(r)}
+                      className={cn(
+                        "flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-300",
+                        role === r
+                          ? "text-white shadow-lg"
+                          : isDark ? "text-white/40 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
+                      )}
+                      style={role === r ? { background: gradient, boxShadow: `0 4px 12px ${shadowColor}` } : {}}
+                    >
+                      {r === 'farmer' ? <Fish size={12} /> : <Wrench size={12} />}
+                      {r === 'farmer' ? 'Farmer' : 'Provider'}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="space-y-2">
                   <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>{t.phoneNumber}</label>
                   <div className="relative group">

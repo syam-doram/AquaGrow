@@ -225,32 +225,63 @@ export const loginWithOtp = async (req: any, res: any) => {
 
 export const resetPassword = async (req: any, res: any) => {
   try {
-    const { mobile, otp, newPassword } = req.body;
-    if (!mobile || !otp || !newPassword)
-      return res.status(400).json({ error: 'Mobile, OTP and new password are required' });
+    const { mobile, otp, token, firebaseToken, newPassword, role } = req.body;
 
-    // Stub OTP verification (replace with real SMS OTP service)
-    if (otp !== '1234')
-      return res.status(401).json({ error: 'Invalid OTP' });
+    // Accept Firebase ID token from 'otp', 'token', or 'firebaseToken' field
+    const fbToken = firebaseToken || token || otp;
+
+    if (!fbToken || !newPassword)
+      return res.status(400).json({ error: 'Firebase token and new password are required' });
 
     if (newPassword.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    const user = await UserMongo.findOne({ phoneNumber: mobile });
+    // Verify Firebase ID token to confirm phone ownership
+    let decoded: admin.auth.DecodedIdToken;
+    try {
+      decoded = await admin.auth().verifyIdToken(fbToken);
+    } catch (firebaseErr: any) {
+      console.error('[Reset Password] Token verification failed:', firebaseErr.message);
+      return res.status(401).json({ error: 'Invalid or expired session. Please verify OTP again.' });
+    }
+
+    const firebasePhone = decoded.phone_number;
+    if (!firebasePhone)
+      return res.status(400).json({ error: 'No phone number found in token' });
+
+    // Normalize to 10 digits
+    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
+    const targetRole = role || 'farmer';
+
+    // Role-based lookup — find the correct account (farmer vs provider)
+    const user = await UserMongo.findOne({
+      role: targetRole,
+      $or: [
+        { phoneNumber: normPhone },
+        { phoneNumber: `+91${normPhone}` },
+        { phoneNumber: `+91 ${normPhone}` },
+      ]
+    });
+
     if (!user)
-      return res.status(404).json({ error: 'Account not found' });
+      return res.status(404).json({
+        error: `No ${targetRole} account found for this number.`
+      });
 
     user.password = await bcrypt.hash(newPassword, 12);
     await user.save();
 
+    console.log(`[Reset Password] ✅ ${targetRole} ${normPhone} password updated`);
     res.json({ success: true, message: 'Password reset successfully' });
-  } catch (e) {
+
+  } catch (e: any) {
     console.error('[Reset Error]', e.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  FIREBASE PHONE AUTH — Real SMS OTP via Firebase Authentication
