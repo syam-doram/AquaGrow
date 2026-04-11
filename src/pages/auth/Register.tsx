@@ -121,7 +121,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         const res = await fetch(`${API_BASE_URL}/auth/check`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mobile: `+91 ${phoneClean}` })
+          body: JSON.stringify({ mobile: `+91 ${phoneClean}`, role: role! })
         });
         if (!res.ok) {
           const d = await res.json();

@@ -12,14 +12,29 @@ const dbOffline = (res: any) =>
 
 export const checkIdentity = async (req: any, res: any) => {
   try {
-    const { mobile, email } = req.body;
+    // role: 'farmer' | 'provider' — scopes the uniqueness check per portal
+    const { mobile, email, role } = req.body;
+    const targetRole = role || 'farmer';
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    if (mobile && await UserMongo.findOne({ phoneNumber: mobile }))
-      return res.status(409).json({ error: 'Phone number already registered' });
-    if (email && await UserMongo.findOne({ email }))
-      return res.status(409).json({ error: 'Email address already registered' });
+    // Check phone uniqueness within this specific role only
+    if (mobile) {
+      const normPhone = mobile.replace(/\D/g, '').slice(-10);
+      const existing = await UserMongo.findOne({ phoneNumber: normPhone, role: targetRole });
+      if (existing)
+        return res.status(409).json({
+          error: `Phone already registered as a ${targetRole}. Use a different number or login to your ${targetRole} account.`
+        });
+    }
+
+    // Email check is also role-scoped (optional field, skip if blank)
+    if (email) {
+      const existing = await UserMongo.findOne({ email, role: targetRole });
+      if (existing)
+        return res.status(409).json({ error: 'Email address already registered for this role' });
+    }
+
     res.json({ success: true });
   } catch (e) {
     console.error('[Check Error]', e.message);
@@ -40,8 +55,11 @@ export const register = async (req: any, res: any) => {
     const hash = await bcrypt.hash(password, 12);
 
     const normMobile = normalizePhone(mobile);
-    if (await UserMongo.findOne({ phoneNumber: normMobile }))
-      return res.status(409).json({ error: 'Phone number already registered' });
+    const targetRole = role || 'farmer';
+
+    // Role-scoped duplicate check — same phone OK across different roles
+    if (await UserMongo.findOne({ phoneNumber: normMobile, role: targetRole }))
+      return res.status(409).json({ error: `Phone already registered as a ${targetRole}. Login instead or use a different number.` });
 
     const user = await new UserMongo({
       name, phoneNumber: normMobile, email, password: hash,

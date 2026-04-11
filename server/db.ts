@@ -13,8 +13,11 @@ const SubscriptionSchema = new mongoose.Schema({
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  phoneNumber: { type: String, required: true, unique: true },
-  email: { type: String, unique: true },
+  // NOTE: phoneNumber is NOT globally unique — the compound index below
+  // enforces uniqueness per ROLE so the same phone can register as both
+  // a farmer AND a service provider independently.
+  phoneNumber: { type: String, required: true },
+  email: { type: String },
   password: { type: String, required: true },
   location: { type: String },
   farmSize: { type: Number, default: 0 },
@@ -43,6 +46,11 @@ const UserSchema = new mongoose.Schema({
     isRead: { type: Boolean, default: false }
   }]
 }, { timestamps: true });
+
+// Compound unique index: same phone can exist once per role
+// (a farmer can also be a provider with the same phone number)
+UserSchema.index({ phoneNumber: 1, role: 1 }, { unique: true });
+
 
 
 const PondSchema = new mongoose.Schema({
