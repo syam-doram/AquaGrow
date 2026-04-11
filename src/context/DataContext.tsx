@@ -499,14 +499,25 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  /** Login with a Firebase Phone Auth ID token (real OTP verified by Firebase) */
-  const loginWithFirebaseToken = async (idToken: string, role: string) => {
+  /** Login with Fast2SMS server-side OTP */
+  const loginWithFirebaseToken = async (phone: string, role: string) => {
     setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/firebase-login`, {
+      // For backward compat this function name is kept — it now calls /auth/otp-login
+      // callers pass the phone (from OtpSession.phone) and the OTP code separately
+      // via otpLogin below. This stub just satisfies old imports.
+      return { success: false, error: 'Use otpLogin instead.' };
+    } finally { setIsSyncing(false); }
+  };
+
+  /** NEW — Login with Fast2SMS OTP: phone + code + role → JWT */
+  const otpLogin = async (phone: string, code: string, role: string) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/otp-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, role }),
+        body: JSON.stringify({ phone, code, role }),
       });
       const data = await response.json();
       if (!response.ok) return { success: false, error: data.error || 'Login failed' };
@@ -516,21 +527,27 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: true, user: loggedUser };
     } catch (e: any) {
       return { success: false, error: 'Cannot connect to server.' };
-    } finally {
-      setIsSyncing(false);
-    }
+    } finally { setIsSyncing(false); }
   };
 
-  /** Register with a Firebase Phone Auth ID token (real OTP verified by Firebase) */
+  /** Register with a Firebase Phone Auth ID token (kept for compat) */
   const registerWithFirebaseToken = async (idToken: string, payload: {
     name: string; role: string; location?: string; language?: string;
   }) => {
+    return { success: false, error: 'Use otpRegister instead.' };
+  };
+
+  /** NEW — Register with Fast2SMS OTP: phone + code + user info → create account → JWT */
+  const otpRegister = async (phone: string, code: string, payload: {
+    name: string; role: string; location?: string; language?: string;
+    businessName?: string; farmSize?: number;
+  }) => {
     setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/firebase-register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/otp-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, ...payload }),
+        body: JSON.stringify({ phone, code, ...payload }),
       });
       const data = await response.json();
       if (!response.ok) return { success: false, error: data.error || 'Registration failed' };
@@ -540,9 +557,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: true, user: loggedUser };
     } catch (e: any) {
       return { success: false, error: 'Cannot connect to server.' };
-    } finally {
-      setIsSyncing(false);
-    }
+    } finally { setIsSyncing(false); }
   };
 
   const resetPassword = async (phoneNumber: string, otp: string, newPassword: string) => {
@@ -966,6 +981,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       resetPassword,
       loginWithFirebaseToken: loginWithFirebaseToken as any,
       registerWithFirebaseToken: registerWithFirebaseToken as any,
+      otpLogin: otpLogin as any,
+      otpRegister: otpRegister as any,
       addHarvestRequest,
       updateHarvestRequest,
       sendHarvestMessage: async (requestId: string, message: string, proposedPrice?: number) => {

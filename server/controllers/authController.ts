@@ -5,6 +5,7 @@ import admin from 'firebase-admin';
 import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken } from '../db.js';
 import { signAccess, signRefresh, saveRefreshToken, REFRESH_SECRET } from '../utils/auth.js';
 import { isProviderDbReady, ProviderProfile } from '../providerDb.js';
+import { sendOtp as fast2smsSend, verifyOtp as fast2smsVerify } from '../utils/fast2sms.js';
 
 const normalizePhone = (p: string) => p ? p.replace(/\D/g, '').slice(-10) : '';
 
@@ -411,6 +412,153 @@ export const firebaseRegister = async (req: any, res: any) => {
     res.status(201).json({ user, subscription: sub, access_token: access, refresh_token: refresh });
   } catch (e: any) {
     console.error('[Firebase Register Error]', e.message);
+    res.status(400).json({ error: e.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  FAST2SMS OTP AUTH — Server-side OTP via Indian SMS gateway
+//  POST /auth/send-otp       { phone }
+//  POST /auth/otp-login      { phone, code, role }
+//  POST /auth/otp-register   { phone, code, name, role, location, language }
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** POST /auth/send-otp */
+export const sendOtpController = async (req: any, res: any) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: 'Phone number is required.' });
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    const result = await fast2smsSend(phone);
+    if (result.success) {
+      console.log(`[OTP] Sent to ${phone.replace(/\D/g, '').slice(-10)}`);
+      return res.json({ success: true, message: 'OTP sent. Check your SMS.' });
+    }
+    return res.status(500).json({ error: result.error || 'Failed to send OTP.' });
+  } catch (e: any) {
+    console.error('[sendOtp Error]', e.message);
+    res.status(500).json({ error: 'Internal Server Error: ' + e.message });
+  }
+};
+
+/** POST /auth/otp-login */
+export const otpLogin = async (req: any, res: any) => {
+  try {
+    const { phone, code, role } = req.body;
+    if (!phone || !code)
+      return res.status(400).json({ error: 'Phone and OTP code are required.' });
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    // Step 1: Verify OTP
+    const otpResult = fast2smsVerify(phone, code);
+    if (!otpResult.valid) return res.status(401).json({ error: otpResult.error });
+
+    const normPhone  = phone.replace(/\D/g, '').slice(-10);
+    const targetRole = role || 'farmer';
+
+    // Step 2: Find user (multi-format for backward compat)
+    const user = await UserMongo.findOne({
+      $or: [
+        { phoneNumber: normPhone },
+        { phoneNumber: `+91${normPhone}` },
+        { phoneNumber: `+91 ${normPhone}` },
+      ]
+    });
+    if (!user)
+      return res.status(404).json({ error: 'No account found. Please register first.' });
+
+    // Step 3: Portal check
+    const userRole = user.role || 'farmer';
+    if (userRole !== targetRole)
+      return res.status(403).json({
+        error: `This number is a ${userRole} account. Please switch to the ${userRole} portal.`
+      });
+
+    // Step 4: Issue JWT
+    const sub    = await SubscriptionMongo.findOne({ userId: user._id });
+    const id     = user._id.toString();
+    const access = signAccess({ id, role: userRole, subscriptionStatus: user.subscriptionStatus });
+    const refresh = signRefresh({ id });
+    await saveRefreshToken(id, refresh);
+
+    console.log(`[OTP Login] ✅ ${userRole} ${normPhone}`);
+    res.json({ user: { ...user.toObject(), role: userRole }, subscription: sub, access_token: access, refresh_token: refresh });
+  } catch (e: any) {
+    console.error('[otpLogin Error]', e.message);
+    res.status(500).json({ error: 'Internal Server Error: ' + e.message });
+  }
+};
+
+/** POST /auth/otp-register */
+export const otpRegister = async (req: any, res: any) => {
+  try {
+    const { phone, code, name, role, location, language, businessName, farmSize } = req.body;
+    if (!phone || !code || !name)
+      return res.status(400).json({ error: 'Phone, OTP code and name are required.' });
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    // Step 1: Verify OTP
+    const otpResult = fast2smsVerify(phone, code);
+    if (!otpResult.valid) return res.status(401).json({ error: otpResult.error });
+
+    const normPhone   = phone.replace(/\D/g, '').slice(-10);
+    const targetRole  = role || 'farmer';
+    const displayName = (targetRole === 'provider' && businessName?.trim())
+      ? businessName.trim() : name.trim();
+
+    // Step 2: Duplicate check for this role
+    const existing = await UserMongo.findOne({
+      $or: [
+        { phoneNumber: normPhone },
+        { phoneNumber: `+91${normPhone}` },
+        { phoneNumber: `+91 ${normPhone}` },
+      ],
+      role: targetRole,
+    });
+    if (existing)
+      return res.status(409).json({ error: `A ${targetRole} account already exists. Please login.` });
+
+    // Step 3: Create user
+    const hash  = await bcrypt.hash(`${normPhone}_otp_${Date.now()}`, 12);
+    const email = `${normPhone}_${targetRole}@aquagrow.app`;
+
+    const user = await new UserMongo({
+      name:               displayName,
+      phoneNumber:        normPhone,
+      email,
+      password:           hash,
+      location:           location || 'Unknown',
+      role:               targetRole,
+      farmSize:           parseFloat(farmSize) || 0,
+      language:           language || 'English',
+      subscriptionStatus: 'free',
+    }).save();
+
+    const sub = await new SubscriptionMongo({
+      userId: user._id, planName: 'free', status: 'active',
+      features: ['basic_dashboard', 'pond_management'],
+    }).save();
+
+    if (targetRole === 'provider' && isProviderDbReady()) {
+      try {
+        await new ProviderProfile({
+          userId: user._id.toString(), companyName: displayName,
+          ownerName: name.trim(), phone: normPhone, email,
+          location: location || '', isVerified: false,
+        }).save();
+      } catch (pErr) { console.warn('[OTP Register] Provider profile error:', pErr); }
+    }
+
+    const id      = user._id.toString();
+    const access  = signAccess({ id, role: targetRole, subscriptionStatus: user.subscriptionStatus });
+    const refresh = signRefresh({ id });
+    await saveRefreshToken(id, refresh);
+
+    console.log(`[OTP Register] ✅ ${targetRole} ${normPhone} → ${displayName}`);
+    res.status(201).json({ user: { ...user.toObject(), role: targetRole }, subscription: sub, access_token: access, refresh_token: refresh });
+  } catch (e: any) {
+    console.error('[otpRegister Error]', e.message);
     res.status(400).json({ error: e.message });
   }
 };

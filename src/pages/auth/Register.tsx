@@ -47,7 +47,7 @@ const PROVIDER_FEATURES = [
 ];
 
 export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang: Language, onLanguageChange?: (l: Language) => void }) => {
-  const { registerWithFirebaseToken, theme } = useData();
+  const { registerWithFirebaseToken, otpRegister, theme } = useData();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<'farmer' | 'provider' | null>(null);
@@ -167,19 +167,20 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
 
     setLoading(true);
     try {
-      // Verify OTP with Firebase → get ID token
-      const idToken = await verifyOtp(confirmationRef.current!, otp);
-
-
+      // Fast2SMS server-side OTP — phone + code + user info verified together on server
       const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 
-      // Send ID token to server for registration
-      const result = await (registerWithFirebaseToken as any)(idToken, {
-        name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
-        role:     role!,
-        location: location || 'Unknown',
-        language: currentLang,
-      });
+      const result = await (otpRegister as any)(
+        confirmationRef.current!.phone,
+        otp,
+        {
+          name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
+          role:     role!,
+          location: location || 'Unknown',
+          language: currentLang,
+          businessName: businessName.trim(),
+        }
+      );
 
       if (result.success) {
         navigate(role === 'provider' ? '/provider/dashboard' : '/dashboard');
@@ -187,12 +188,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         setError(result.error || t.registrationFailed);
       }
     } catch (err: any) {
-      if (err.code === 'auth/invalid-verification-code')
-        setError('Wrong OTP. Please check and try again.');
-      else if (err.code === 'auth/code-expired')
-        setError('OTP expired. Please request a new one.');
-      else
-        setError(err.message || 'Verification failed. Please try again.');
+      setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
     }

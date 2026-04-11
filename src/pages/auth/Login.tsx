@@ -29,7 +29,8 @@ import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/fireb
 import type { OtpSession } from '../../lib/firebaseAuth';
 
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
-  const { login, loginWithOtp, loginWithFirebaseToken, updateUser, user: ctxUser, theme } = useData();
+  const { login, loginWithOtp, loginWithFirebaseToken, otpLogin, updateUser, user: ctxUser, theme } = useData();
+
   const [role, setRole]             = useState<'farmer' | 'provider'>('farmer');
   const [phone, setPhone]           = useState('');
   const [password, setPassword]     = useState('');
@@ -166,9 +167,9 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
         if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
         try {
-          const idToken = await verifyOtp(confirmationRef.current!, otp);
+          // Fast2SMS server-side OTP — phone + code verified together on server
+          result = await (otpLogin as any)(confirmationRef.current!.phone, otp, role);
 
-          result = await (loginWithFirebaseToken as any)(idToken, role);
         } catch (fbErr: any) {
           if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
           else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');
