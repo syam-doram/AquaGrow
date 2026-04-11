@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   User as UserIcon,
-  Smartphone, 
-  Waves, 
+  Smartphone,
+  Waves,
   AlertCircle,
   ShieldCheck,
   ArrowLeft,
-  Zap,
   ArrowRight,
   Droplets,
   CheckCircle2,
-  FileText,
-  AlertTriangle,
   Scale,
   MapPin,
   Navigation,
   Loader2,
+  Store,
+  Fish,
+  Package,
+  BarChart3,
+  MessageSquare,
+  ChevronRight,
+  Building2,
+  Tractor,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -25,12 +30,35 @@ import type { Translations } from '../../translations';
 import { API_BASE_URL } from '../../config';
 import { Language } from '../../types';
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  ROLE GATEWAY — shown before any form. User must pick a role first.
+// ─────────────────────────────────────────────────────────────────────────────
+const FARMER_FEATURES = [
+  { icon: Fish,       label: 'SOP-Driven Pond Intelligence',        sub: 'Daily culture guidance per DOC' },
+  { icon: Droplets,   label: 'Live Water Quality Monitoring',       sub: 'DO, pH, temp, ammonia alerts' },
+  { icon: BarChart3,  label: 'Harvest & ROI Tracking',             sub: 'Profit analysis per crop cycle' },
+  { icon: MessageSquare, label: 'Disease & Lunar Alerts',          sub: 'WSSV, molting, vibriosis warnings' },
+];
+
+const PROVIDER_FEATURES = [
+  { icon: Package,    label: 'Inventory Management',               sub: 'Seeds, feed, medicine, utility' },
+  { icon: BarChart3,  label: 'Rate Cards & Market Pricing',        sub: 'Publish rates to farmers instantly' },
+  { icon: Store,      label: 'Order & Delivery Tracking',          sub: 'Farmer order pipeline management' },
+  { icon: MessageSquare, label: 'Farmer CRM & Chat',              sub: 'Direct farmer relationship hub' },
+];
+
 export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang: Language, onLanguageChange?: (l: Language) => void }) => {
   const { register, theme } = useData();
-  const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
+  const navigate = useNavigate();
+
+  // ── Step 1: pick a role. Step 2+: role-specific registration form ──────────
+  const [role, setRole] = useState<'farmer' | 'provider' | null>(null);
   const [step, setStep] = useState<'form' | 'terms' | 'otp'>('form');
+
+  // Form fields
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [businessName, setBusinessName] = useState('');
   const [location, setLocation] = useState('');
   const [locationStatus, setLocationStatus] = useState<'idle' | 'detecting' | 'done' | 'denied'>('idle');
   const [otp, setOtp] = useState('');
@@ -38,35 +66,55 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const [loading, setLoading] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
-  const navigate = useNavigate();
 
-  const isDark = theme === 'dark';
+  const isDark = theme === 'dark' || theme === 'midnight';
   const currentLang = lang;
 
-  const farmerGradient = 'linear-gradient(135deg, #059669 0%, #0D523C 100%)';
-  const providerGradient = 'linear-gradient(135deg, #1d4ed8 0%, #4f46e5 100%)';
-  const activeGradient = role === 'farmer' ? farmerGradient : providerGradient;
-  const accentColor = role === 'farmer' ? '#059669' : '#4f46e5';
-  const shadowColor = role === 'farmer' ? 'rgba(5,150,105,0.25)' : 'rgba(79,70,229,0.25)';
+  // ── Branding per role ────────────────────────────────────────────────────────
+  const farmerGradient  = 'linear-gradient(135deg, #059669 0%, #0D523C 100%)';
+  const providerGradient = 'linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%)';
+  const accentColor     = role === 'provider' ? '#4f46e5' : '#059669';
+  const accentGradient  = role === 'provider' ? providerGradient : farmerGradient;
+  const shadowColor     = role === 'provider' ? 'rgba(79,70,229,0.25)' : 'rgba(5,150,105,0.25)';
 
+  // ── GPS location detector ───────────────────────────────────────────────────
+  const detectLocation = async () => {
+    setLocationStatus('detecting');
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      );
+      const { latitude, longitude } = pos.coords;
+      const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+      const geo = await resp.json();
+      const addr = geo.address;
+      const label = [
+        addr.village || addr.town || addr.suburb || addr.city_district || addr.city,
+        addr.county || addr.state_district,
+        addr.state,
+      ].filter(Boolean).join(', ');
+      setLocation(label || `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+      setLocationStatus('done');
+    } catch {
+      setLocationStatus('denied');
+    }
+  };
+
+  // ── Registration flow ───────────────────────────────────────────────────────
   const handleRegisterSteps = async () => {
     setError('');
     if (step === 'form') {
-      if (!name.trim()) { setError('Please enter your name'); return; }
-      if (!phone) { setError(t.fillAllFields || 'Please enter your phone number'); return; }
+      const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
+      if (!displayName) { setError(role === 'provider' ? 'Please enter your business name' : 'Please enter your name'); return; }
+      if (!phone) { setError('Please enter your phone number'); return; }
       const phoneClean = phone.replace(/\D/g, '');
       if (!/^[6789]\d{9}$/.test(phoneClean)) { setError('Invalid phone number (10 digits required)'); return; }
-      setError('');
       setStep('terms');
       return;
     }
 
     if (step === 'terms') {
-      if (!termsChecked || !disclaimerChecked) {
-        setError('Please accept both checkboxes to proceed.');
-        return;
-      }
-      setError('');
+      if (!termsChecked || !disclaimerChecked) { setError('Please accept both checkboxes to proceed.'); return; }
       setLoading(true);
       const phoneClean = phone.replace(/\D/g, '');
       try {
@@ -90,14 +138,15 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     if (otp !== '1234') { setError(t.invalidOtp || 'Invalid OTP'); return; }
     setLoading(true);
     const phoneClean = phone.replace(/\D/g, '');
+    const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
     try {
       const result = await register({
-        name: name.trim() || 'Farmer Member',
+        name: displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
         phoneNumber: `+91 ${phoneClean}`,
         email: `${phoneClean}@aquagrow.com`,
         password: 'aquagrow123',
         location: location || 'Unknown',
-        role,
+        role: role!,
         farmSize: 0,
         pondCount: 0,
         language: currentLang,
@@ -105,40 +154,227 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         notResponsibleAccepted: true,
         termsAcceptedAt: new Date().toISOString(),
       });
-      if ((result as any).success) navigate('/dashboard');
-      else setError((result as any).error || t.registrationFailed);
+      if ((result as any).success) {
+        // Route to respective portal — NO crossover
+        navigate(role === 'provider' ? '/provider/dashboard' : '/dashboard');
+      } else {
+        setError((result as any).error || t.registrationFailed);
+      }
     } catch { setError('Connection Error'); }
     finally { setLoading(false); }
   };
 
-  const features = [
-    { label: 'SOP-Driven Intelligence' },
-    { label: 'Live Water Monitoring' },
-    { label: 'Market-Linked Harvest' },
-  ];
+  const goBack = () => {
+    if (step === 'otp') { setStep('terms'); return; }
+    if (step === 'terms') { setStep('form'); return; }
+    // Back to role gateway
+    setRole(null);
+    setStep('form');
+    setPhone(''); setName(''); setBusinessName(''); setLocation('');
+    setLocationStatus('idle'); setOtp(''); setError('');
+    setTermsChecked(false); setDisclaimerChecked(false);
+  };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  STEP 0 — ROLE GATEWAY (shown when role === null)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (!role) {
+    return (
+      <div
+        className="min-h-[100dvh] relative overflow-hidden flex flex-col font-sans tracking-tight"
+        style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}
+      >
+        {/* Ambient blobs */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[70%] rounded-full blur-[140px] bg-emerald-500/5" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[60%] rounded-full blur-[120px] bg-indigo-500/5" />
+        </div>
+
+        {/* Language switcher */}
+        <div className="absolute top-6 right-6 z-50">
+          <div className={cn('flex p-1 rounded-2xl border shadow-lg', isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-100')}>
+            {(['English', 'Telugu'] as const).map((l) => (
+              <button key={l} onClick={() => { if (onLanguageChange) onLanguageChange(l); }}
+                className={cn('px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all', currentLang === l ? 'text-white shadow-lg bg-emerald-600' : isDark ? 'text-white/40' : 'text-slate-400')}
+              >
+                {l === 'English' ? 'EN' : 'తె'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 py-10">
+          {/* Brand header */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+            <div className="relative inline-flex mb-4">
+              <div className="w-[4.5rem] h-[4.5rem] rounded-[1.8rem] flex items-center justify-center shadow-2xl bg-gradient-to-br from-emerald-500 to-teal-700">
+                <Droplets size={30} className="text-white" />
+              </div>
+            </div>
+            <h1 className={cn('text-3xl font-black tracking-tighter mb-1', isDark ? 'text-white' : 'text-slate-900')}>AquaGrow</h1>
+            <p className={cn('text-[8px] font-black uppercase tracking-[0.4em]', isDark ? 'text-white/25' : 'text-slate-400')}>
+              Choose Your Portal
+            </p>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+            className={cn('text-center text-[9px] font-bold uppercase tracking-widest mb-7', isDark ? 'text-white/25' : 'text-slate-400')}
+          >
+            ← Select how you use AquaGrow →
+          </motion.p>
+
+          {/* Role Cards */}
+          <div className="w-full max-w-[380px] space-y-4">
+
+            {/* ── FARMER CARD ── */}
+            <motion.button
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 90 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setRole('farmer')}
+              className="w-full rounded-[2.2rem] overflow-hidden border-2 border-emerald-500/30 shadow-xl text-left group relative"
+              style={{ background: isDark ? 'rgba(13,82,60,0.25)' : 'rgba(240,253,244,0.95)' }}
+            >
+              {/* Top gradient bar */}
+              <div className="h-[3px] w-full bg-gradient-to-r from-emerald-400 to-teal-500" />
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: farmerGradient }}>
+                      <Tractor size={22} className="text-white" />
+                    </div>
+                    <div>
+                      <p className={cn('text-[9px] font-black uppercase tracking-[0.25em] mb-0.5', isDark ? 'text-emerald-400' : 'text-emerald-600')}>
+                        FARMER PORTAL
+                      </p>
+                      <h2 className={cn('text-xl font-black tracking-tight leading-none', isDark ? 'text-white' : 'text-slate-900')}>
+                        I'm a Farmer
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
+                    <ChevronRight size={16} className="text-emerald-500" />
+                  </div>
+                </div>
+                <p className={cn('text-[9px] font-medium mb-4 leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
+                  Managed ponds, SOP guidance, water quality tracking, harvest planning, and crop intelligence.
+                </p>
+                <div className="space-y-2">
+                  {FARMER_FEATURES.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                        <f.icon size={10} className="text-emerald-500" />
+                      </div>
+                      <span className={cn('text-[8px] font-black uppercase tracking-wider', isDark ? 'text-white/50' : 'text-slate-600')}>
+                        {f.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="flex-1 h-px bg-emerald-500/10" />
+                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400/50' : 'text-emerald-600/60')}>
+                    Free to join
+                  </span>
+                  <div className="flex-1 h-px bg-emerald-500/10" />
+                </div>
+              </div>
+            </motion.button>
+
+            {/* ── SERVICE PROVIDER CARD ── */}
+            <motion.button
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.22, type: 'spring', stiffness: 90 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setRole('provider')}
+              className="w-full rounded-[2.2rem] overflow-hidden border-2 border-indigo-500/30 shadow-xl text-left group relative"
+              style={{ background: isDark ? 'rgba(30,27,75,0.35)' : 'rgba(245,243,255,0.95)' }}
+            >
+              <div className="h-[3px] w-full bg-gradient-to-r from-indigo-500 to-purple-500" />
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: providerGradient }}>
+                      <Building2 size={22} className="text-white" />
+                    </div>
+                    <div>
+                      <p className={cn('text-[9px] font-black uppercase tracking-[0.25em] mb-0.5', isDark ? 'text-indigo-400' : 'text-indigo-600')}>
+                        SERVICE PROVIDER PORTAL
+                      </p>
+                      <h2 className={cn('text-xl font-black tracking-tight leading-none', isDark ? 'text-white' : 'text-slate-900')}>
+                        I'm a Supplier
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-all">
+                    <ChevronRight size={16} className="text-indigo-500" />
+                  </div>
+                </div>
+                <p className={cn('text-[9px] font-medium mb-4 leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
+                  Sell seeds, feed, medicine & utilities to farmers. Manage inventory, orders, rates and customer relationships.
+                </p>
+                <div className="space-y-2">
+                  {PROVIDER_FEATURES.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className="w-5 h-5 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                        <f.icon size={10} className="text-indigo-500" />
+                      </div>
+                      <span className={cn('text-[8px] font-black uppercase tracking-wider', isDark ? 'text-white/50' : 'text-slate-600')}>
+                        {f.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="flex-1 h-px bg-indigo-500/10" />
+                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-indigo-400/50' : 'text-indigo-600/60')}>
+                    Business verified
+                  </span>
+                  <div className="flex-1 h-px bg-indigo-500/10" />
+                </div>
+              </div>
+            </motion.button>
+          </div>
+
+          {/* Login link */}
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+            className={cn('mt-7 text-[9px] font-black uppercase tracking-[0.2em] text-center', isDark ? 'text-white/20' : 'text-slate-400')}
+          >
+            {t.alreadyHaveAccount}{' '}
+            <span onClick={() => navigate('/login')} className="cursor-pointer hover:underline underline-offset-4" style={{ color: '#059669' }}>
+              {t.login}
+            </span>
+          </motion.p>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  STEP 1–3 — ROLE-SPECIFIC REGISTRATION FORM
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center font-sans tracking-tight" style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}>
-      
-      {/* ── Mesh Background ── */}
+    <div
+      className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center font-sans tracking-tight"
+      style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}
+    >
+      {/* Ambient mesh */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[80%] rounded-full blur-[140px] animate-pulse" style={{ background: `${accentColor}12` }} />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[90%] h-[70%] rounded-full blur-[120px]" style={{ background: `${accentColor}08` }} />
-        {/* Wave decoration */}
-        <svg className="absolute bottom-0 left-0 w-full opacity-5" viewBox="0 0 1440 200" preserveAspectRatio="none">
-          <path d="M0,128L60,117.3C120,107,240,85,360,90.7C480,96,600,128,720,133.3C840,139,960,117,1080,101.3C1200,85,1320,75,1380,69.3L1440,64L1440,200L0,200Z" fill={accentColor} />
-        </svg>
+        <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[80%] rounded-full blur-[140px] animate-pulse" style={{ background: `${accentColor}10` }} />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[90%] h-[70%] rounded-full blur-[120px]" style={{ background: `${accentColor}07` }} />
       </div>
 
-      {/* ── Language Selector ── */}
+      {/* Language switcher */}
       <div className="absolute top-6 right-6 z-50">
-        <div className={cn("flex p-1 rounded-2xl border shadow-lg", isDark ? "bg-white/5 border-white/10" : "bg-white/80 border-gray-100 backdrop-blur-xl")}>
+        <div className={cn('flex p-1 rounded-2xl border shadow-lg', isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-100')}>
           {(['English', 'Telugu'] as const).map((l) => (
             <button key={l} onClick={() => { if (onLanguageChange) onLanguageChange(l); }}
-              className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
-                currentLang === l ? "text-white shadow-lg" : isDark ? "text-white/40" : "text-slate-400"
-              )}
-              style={currentLang === l ? { background: activeGradient } : {}}
+              className={cn('px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all', currentLang === l ? 'text-white shadow-lg' : isDark ? 'text-white/40' : 'text-slate-400')}
+              style={currentLang === l ? { background: accentGradient } : {}}
             >
               {l === 'English' ? 'EN' : 'తె'}
             </button>
@@ -147,79 +383,60 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
       </div>
 
       <div className="relative z-10 w-full px-5 flex-1 flex flex-col justify-center max-w-[360px] py-6">
-        
-        {/* ── Brand ── */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-7">
+
+        {/* Portal identity badge */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
           <div className="relative inline-flex mb-4">
-            <div className="w-18 h-18 w-[4.5rem] h-[4.5rem] rounded-[1.8rem] flex items-center justify-center shadow-2xl" style={{ background: activeGradient }}>
-              <Droplets size={32} className="text-white" />
+            <div className="w-[4.5rem] h-[4.5rem] rounded-[1.8rem] flex items-center justify-center shadow-2xl" style={{ background: accentGradient }}>
+              {role === 'farmer' ? <Tractor size={28} className="text-white" /> : <Building2 size={28} className="text-white" />}
             </div>
             <motion.div
-              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }}
+              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
               transition={{ duration: 2.5, repeat: Infinity }}
               className="absolute inset-0 rounded-[1.8rem] -z-10 blur-xl"
-              style={{ background: activeGradient }}
+              style={{ background: accentGradient }}
             />
           </div>
-          <h1 className={cn("text-2xl font-black tracking-tighter mb-0.5", isDark ? "text-white" : "text-slate-900")}>AquaGrow</h1>
-          <p className={cn("text-[8px] font-black uppercase tracking-[0.4em]", isDark ? "text-white/25" : "text-slate-400")}>{t.register}</p>
+          <h1 className={cn('text-xl font-black tracking-tighter mb-0.5', isDark ? 'text-white' : 'text-slate-900')}>
+            {role === 'farmer' ? 'Farmer Registration' : 'Provider Registration'}
+          </h1>
+          <p className={cn('text-[7px] font-black uppercase tracking-[0.35em]', isDark ? 'text-white/25' : 'text-slate-400')}>
+            {role === 'farmer' ? 'AquaGrow Farmer Portal' : 'AquaGrow Supplier Portal'}
+          </p>
         </motion.div>
 
-        {/* ── Feature Pills ── */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="flex gap-2 justify-center mb-5 flex-wrap">
-          {features.map((f, i) => (
-            <div key={i} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[8px] font-black uppercase tracking-wider",
-              isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-white/80 border-gray-100 text-slate-400"
-            )}>
-              <CheckCircle2 size={9} style={{ color: accentColor }} />
-              {f.label}
-            </div>
-          ))}
-        </motion.div>
-
-        {/* ── Role Switcher ── */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: 0.12 }}
-          className={cn("flex p-1.5 rounded-[1.6rem] mb-5 border", isDark ? "bg-white/5 border-white/10" : "bg-white/70 border-gray-100 backdrop-blur-xl")}
+        {/* Portal role badge */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+          className="flex items-center justify-center gap-2 mb-5"
         >
-          {['farmer', 'provider'].map((r) => (
-            <button 
-              key={r} 
-              onClick={() => setRole(r as any)} 
-              className={cn(
-                "flex-1 py-3 rounded-[1.2rem] flex items-center justify-center gap-2 transition-all duration-500 text-[10px] font-black uppercase tracking-wider",
-                role === r ? "text-white shadow-xl" : isDark ? "text-white/40" : "text-slate-400"
-              )}
-              style={role === r ? { background: activeGradient } : {}}
-            >
-              {r === 'farmer' ? <UserIcon size={13} /> : <Zap size={13} />}
-              <span>{t[r as keyof Translations] as string}</span>
-            </button>
-          ))}
+          <div
+            className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-[8px] font-black uppercase tracking-wider"
+            style={{ background: `${accentColor}12`, borderColor: `${accentColor}30`, color: accentColor }}
+          >
+            {role === 'farmer' ? <Tractor size={11} /> : <Building2 size={11} />}
+            {role === 'farmer' ? 'Farmer Portal · Pond & Crop Management' : 'Provider Portal · Inventory & Sales'}
+          </div>
         </motion.div>
 
-        {/* ── Auth Card ── */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ type: "spring", stiffness: 90, damping: 20, delay: 0.18 }}
-          className={cn(
-            "rounded-[2rem] p-6 border relative overflow-hidden",
-            isDark 
-              ? "bg-white/[0.04] border-white/10 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
-              : "bg-white/80 border-white/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.07)]"
+        {/* Auth Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 90, damping: 20, delay: 0.15 }}
+          className={cn('rounded-[2rem] p-6 border relative overflow-hidden',
+            isDark ? 'bg-white/[0.04] border-white/10 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)]'
+                   : 'bg-white/80 border-white/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.07)]'
           )}
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-          <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-10 blur-2xl" style={{ background: activeGradient }} />
+          <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-10 blur-2xl" style={{ background: accentGradient }} />
 
           <div className="space-y-5 relative z-10">
+
             {/* Error */}
             <AnimatePresence mode="wait">
               {error && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="p-3.5 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600"
                 >
@@ -229,50 +446,101 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
               )}
             </AnimatePresence>
 
+            {/* ── STEP: FORM ── */}
             {step === 'form' ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3.5">
-                <p className={cn("text-center text-[8px] font-black uppercase tracking-[0.25em]", isDark ? "text-white/20" : "text-slate-300")}>
-                  Empowering the Blue Revolution
+                <p className={cn('text-center text-[8px] font-black uppercase tracking-[0.25em]', isDark ? 'text-white/20' : 'text-slate-300')}>
+                  {role === 'farmer' ? 'Join the Aquaculture Revolution' : 'Grow Your Supply Business'}
                 </p>
 
-                {/* Name Input */}
-                <div className="space-y-1.5">
-                  <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
-                    Your Full Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
-                      <UserIcon size={16} />
+                {/* Name / Business Name */}
+                {role === 'provider' ? (
+                  <>
+                    {/* Business Name */}
+                    <div className="space-y-1.5">
+                      <label className={cn('ml-4 text-[8px] font-black uppercase tracking-[0.25em] block', isDark ? 'text-white/30' : 'text-slate-400')}>
+                        Business / Company Name
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
+                          <Building2 size={16} />
+                        </div>
+                        <input
+                          className={cn('w-full pl-11 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold',
+                            isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'
+                                   : 'bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-indigo-200 focus:bg-white'
+                          )}
+                          placeholder="e.g. Vijay Seeds & Agro"
+                          type="text"
+                          value={businessName}
+                          onChange={(e) => setBusinessName(e.target.value)}
+                          maxLength={80}
+                        />
+                      </div>
                     </div>
-                    <input
-                      className={cn(
-                        "w-full pl-11 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
-                        isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
-                      )}
-                      placeholder={role === 'farmer' ? 'e.g. Ravi Kumar' : 'e.g. Vijay Exports'}
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={60}
-                    />
+                    {/* Owner Name */}
+                    <div className="space-y-1.5">
+                      <label className={cn('ml-4 text-[8px] font-black uppercase tracking-[0.25em] block', isDark ? 'text-white/30' : 'text-slate-400')}>
+                        Owner / Contact Person
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
+                          <UserIcon size={16} />
+                        </div>
+                        <input
+                          className={cn('w-full pl-11 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold',
+                            isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'
+                                   : 'bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-indigo-200 focus:bg-white'
+                          )}
+                          placeholder="e.g. Vijay Kumar"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          maxLength={60}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Farmer: just name */
+                  <div className="space-y-1.5">
+                    <label className={cn('ml-4 text-[8px] font-black uppercase tracking-[0.25em] block', isDark ? 'text-white/30' : 'text-slate-400')}>
+                      Your Full Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
+                        <UserIcon size={16} />
+                      </div>
+                      <input
+                        className={cn('w-full pl-11 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold',
+                          isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'
+                                 : 'bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white'
+                        )}
+                        placeholder="e.g. Ravi Kumar"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={60}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Location Picker */}
                 <div className="space-y-1.5">
-                  <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
-                    {role === 'farmer' ? 'Farm Location' : 'Service Area'}
+                  <label className={cn('ml-4 text-[8px] font-black uppercase tracking-[0.25em] block', isDark ? 'text-white/30' : 'text-slate-400')}>
+                    {role === 'farmer' ? 'Farm Location' : 'Business / Service Area'}
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: accentColor }}>
                       <MapPin size={16} />
                     </div>
                     <input
-                      className={cn(
-                        "w-full pl-11 pr-[4.5rem] py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
-                        isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
+                      className={cn('w-full pl-11 pr-[4.5rem] py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold',
+                        isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'
+                               : 'bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300'
                       )}
-                      placeholder={locationStatus === 'detecting' ? 'Detecting GPS...' : 'e.g. Nellore, AP'}
+                      placeholder={locationStatus === 'detecting' ? 'Detecting GPS...' : role === 'farmer' ? 'e.g. Nellore, AP' : 'e.g. Nellore, Bhimavaram'}
                       type="text"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
@@ -281,44 +549,18 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
                     <button
                       type="button"
                       disabled={locationStatus === 'detecting'}
-                      onClick={async () => {
-                        setLocationStatus('detecting');
-                        try {
-                          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-                            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
-                          );
-                          const { latitude, longitude } = pos.coords;
-                          // Reverse-geocode via open nominatim (no key required)
-                          const resp = await fetch(
-                            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-                          );
-                          const geo = await resp.json();
-                          const addr = geo.address;
-                          const label = [
-                            addr.village || addr.town || addr.suburb || addr.city_district || addr.city,
-                            addr.county || addr.state_district,
-                            addr.state,
-                          ].filter(Boolean).join(', ');
-                          setLocation(label || `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
-                          setLocationStatus('done');
-                        } catch {
-                          setLocationStatus('denied');
-                        }
-                      }}
+                      onClick={detectLocation}
                       className={cn(
-                        "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest transition-all",
-                        locationStatus === 'detecting'
-                          ? 'opacity-50 cursor-not-allowed'
+                        'absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest transition-all',
+                        locationStatus === 'detecting' ? 'opacity-50 cursor-not-allowed'
                           : locationStatus === 'done'
                             ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'
                             : isDark ? 'bg-white/10 text-white/40' : 'bg-slate-100 text-slate-500'
                       )}
                     >
-                      {locationStatus === 'detecting'
-                        ? <><Loader2 size={9} className="animate-spin" />...</>
-                        : locationStatus === 'done'
-                          ? <><CheckCircle2 size={9} />GPS</>  
-                          : <><Navigation size={9} />GPS</>}
+                      {locationStatus === 'detecting' ? <><Loader2 size={9} className="animate-spin" />...</>
+                        : locationStatus === 'done' ? <><CheckCircle2 size={9} />GPS</>
+                        : <><Navigation size={9} />GPS</>}
                     </button>
                   </div>
                   {locationStatus === 'denied' && (
@@ -326,20 +568,20 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
                   )}
                 </div>
 
-                {/* Phone Input */}
+                {/* Phone */}
                 <div className="space-y-1.5">
-                  <label className={cn("ml-4 text-[8px] font-black uppercase tracking-[0.25em] block", isDark ? "text-white/30" : "text-slate-400")}>
+                  <label className={cn('ml-4 text-[8px] font-black uppercase tracking-[0.25em] block', isDark ? 'text-white/30' : 'text-slate-400')}>
                     {t.phoneNumber}
                   </label>
-                  <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-500" style={{ color: accentColor }}>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all" style={{ color: accentColor }}>
                       <Smartphone size={16} />
                     </div>
-                    <div className={cn("absolute left-12 top-1/2 -translate-y-1/2 text-[11px] font-black", isDark ? "text-white/30" : "text-slate-400")}>+91</div>
+                    <div className={cn('absolute left-12 top-1/2 -translate-y-1/2 text-[11px] font-black', isDark ? 'text-white/30' : 'text-slate-400')}>+91</div>
                     <input
-                      className={cn(
-                        "w-full pl-20 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold",
-                        isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30" : "bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,185,129,0.08)]"
+                      className={cn('w-full pl-20 pr-5 py-4 rounded-[1.3rem] border outline-none transition-all duration-300 text-[13px] font-semibold',
+                        isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'
+                               : 'bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-300 focus:bg-white'
                       )}
                       placeholder="00000 00000"
                       type="tel"
@@ -350,150 +592,141 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
                   </div>
                 </div>
 
+                {/* CTA */}
                 <motion.button
                   onClick={handleRegisterSteps}
-                  disabled={loading || phone.length < 10 || !name.trim()}
+                  disabled={loading || phone.length < 10 || (role === 'provider' ? !businessName.trim() : !name.trim())}
                   whileTap={{ scale: 0.97 }}
                   className="w-full py-4 rounded-[1.4rem] text-[10px] font-black uppercase tracking-[0.3em] text-white disabled:opacity-40 transition-all relative overflow-hidden"
-                  style={{ background: activeGradient, boxShadow: `0 12px 32px ${shadowColor}` }}
+                  style={{ background: accentGradient, boxShadow: `0 12px 32px ${shadowColor}` }}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {loading ? <Waves size={18} className="animate-spin" /> : (
-                      <>{t.getVerified} <ArrowRight size={14} /></>
-                    )}
+                    {loading ? <Waves size={18} className="animate-spin" /> : <>{t.getVerified} <ArrowRight size={14} /></>}
                   </span>
                 </motion.button>
 
-                {/* Security note */}
                 <div className="flex items-center justify-center gap-2">
                   <ShieldCheck size={11} className="text-emerald-500" />
-                  <p className={cn("text-[8px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/20" : "text-slate-300")}>Your data is encrypted &amp; safe</p>
+                  <p className={cn('text-[8px] font-black uppercase tracking-[0.2em]', isDark ? 'text-white/20' : 'text-slate-300')}>Your data is encrypted &amp; safe</p>
                 </div>
               </motion.div>
 
             ) : step === 'terms' ? (
-              /* ── TERMS & DISCLAIMER (compact) ── */
+              /* ── TERMS ── */
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-
-                {/* Header */}
                 <div className="flex items-center gap-2 mb-1">
                   <Scale size={13} style={{ color: accentColor }} />
-                  <p className={cn("text-[7px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/30" : "text-slate-400")}>
+                  <p className={cn('text-[7px] font-black uppercase tracking-[0.2em]', isDark ? 'text-white/30' : 'text-slate-400')}>
                     Terms &amp; Disclaimer — required to continue
                   </p>
                 </div>
 
-                {/* Disclaimer checkbox */}
-                <label className={cn("flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all",
+                {/* Disclaimer */}
+                <label className={cn('flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all',
                   disclaimerChecked
-                    ? isDark ? "bg-amber-500/10 border-amber-500/25" : "bg-amber-50 border-amber-300"
-                    : isDark ? "bg-white/3 border-white/8" : "bg-white border-slate-200"
+                    ? isDark ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50 border-amber-300'
+                    : isDark ? 'bg-white/3 border-white/8' : 'bg-white border-slate-200'
                 )} onClick={() => setDisclaimerChecked(v => !v)}>
-                  <div className={cn("w-4 h-4 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all",
-                    disclaimerChecked ? "bg-amber-500 border-amber-500" : isDark ? "border-white/20" : "border-slate-300"
+                  <div className={cn('w-4 h-4 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all',
+                    disclaimerChecked ? 'bg-amber-500 border-amber-500' : isDark ? 'border-white/20' : 'border-slate-300'
                   )}>
                     {disclaimerChecked && <CheckCircle2 size={10} className="text-white" />}
                   </div>
                   <div>
-                    <p className={cn("text-[8px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-amber-400" : "text-amber-700")}>
-                      ⚠ Risk Disclaimer
-                    </p>
-                    <p className={cn("text-[8px] leading-snug", isDark ? "text-white/40" : "text-slate-500")}>
+                    <p className={cn('text-[8px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-amber-400' : 'text-amber-700')}>⚠ Risk Disclaimer</p>
+                    <p className={cn('text-[8px] leading-snug', isDark ? 'text-white/40' : 'text-slate-500')}>
                       AquaGrow is <strong>not responsible</strong> for crop loss, mortality, or financial losses. Guidance is for informational use only.
                     </p>
                   </div>
                 </label>
 
-                {/* T&C checkbox */}
-                <label className={cn("flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all",
+                {/* T&C */}
+                <label className={cn('flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all',
                   termsChecked
-                    ? isDark ? "bg-emerald-500/10 border-emerald-500/25" : "bg-emerald-50 border-emerald-300"
-                    : isDark ? "bg-white/3 border-white/8" : "bg-white border-slate-200"
+                    ? isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-300'
+                    : isDark ? 'bg-white/3 border-white/8' : 'bg-white border-slate-200'
                 )} onClick={() => setTermsChecked(v => !v)}>
-                  <div className={cn("w-4 h-4 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all",
-                    termsChecked ? "bg-emerald-500 border-emerald-500" : isDark ? "border-white/20" : "border-slate-300"
+                  <div className={cn('w-4 h-4 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all',
+                    termsChecked ? 'bg-emerald-500 border-emerald-500' : isDark ? 'border-white/20' : 'border-slate-300'
                   )}>
                     {termsChecked && <CheckCircle2 size={10} className="text-white" />}
                   </div>
                   <div>
-                    <p className={cn("text-[8px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-white/50" : "text-slate-700")}>
-                      📄 Terms &amp; Privacy Policy
-                    </p>
-                    <p className={cn("text-[8px] leading-snug", isDark ? "text-white/40" : "text-slate-500")}>
+                    <p className={cn('text-[8px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/50' : 'text-slate-700')}>📄 Terms &amp; Privacy Policy</p>
+                    <p className={cn('text-[8px] leading-snug', isDark ? 'text-white/40' : 'text-slate-500')}>
                       I agree to AquaGrow's Terms of Service. Data is encrypted and never sold.
                     </p>
                   </div>
                 </label>
 
-                {/* CTA */}
                 <motion.button
                   onClick={handleRegisterSteps}
                   disabled={loading || !termsChecked || !disclaimerChecked}
                   whileTap={{ scale: 0.97 }}
                   className="w-full py-3.5 rounded-[1.4rem] text-[10px] font-black uppercase tracking-[0.3em] text-white disabled:opacity-40 transition-all"
-                  style={{ background: activeGradient, boxShadow: `0 10px 28px ${shadowColor}` }}
+                  style={{ background: accentGradient, boxShadow: `0 10px 28px ${shadowColor}` }}
                 >
                   <span className="flex items-center justify-center gap-2">
                     {loading ? <Waves size={16} className="animate-spin" /> : <>Continue <ArrowRight size={13} /></>}
                   </span>
                 </motion.button>
 
-                <button onClick={() => setStep('form')}
-                  className={cn("flex items-center justify-center gap-1.5 mx-auto text-[8px] font-bold uppercase tracking-widest", isDark ? "text-white/25" : "text-slate-400")}
-                ><ArrowLeft size={11} /> Change Number</button>
+                <button onClick={goBack} className={cn('flex items-center justify-center gap-1.5 mx-auto text-[8px] font-bold uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                  <ArrowLeft size={11} /> Change Number
+                </button>
               </motion.div>
 
             ) : (
+              /* ── OTP ── */
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4">
-                 <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 border" style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
-                    <ShieldCheck style={{ color: accentColor }} size={26} />
-                 </div>
-                 <h3 className={cn("text-xs font-black uppercase tracking-[0.3em] mb-2", isDark ? "text-white" : "text-slate-900")}>{t.enterOtp}</h3>
-                 <p className={cn("text-[9px] font-bold uppercase tracking-wider mb-6", isDark ? "text-white/30" : "text-slate-400")}>
-                   Verification code sent to +91 {phone}
-                 </p>
-                 <input 
-                   autoFocus 
-                   className={cn(
-                     "bg-transparent border-b-2 text-4xl text-center w-40 tracking-[0.5em] outline-none mb-8 transition-colors",
-                     isDark ? "text-white border-white/20 focus:border-white/60" : "text-slate-900 border-slate-200 focus:border-emerald-500"
-                   )}
-                   maxLength={4} 
-                   value={otp} 
-                   onChange={(e) => setOtp(e.target.value)} 
-                 />
-                 <div className="space-y-3">
-                   <motion.button 
-                     onClick={handleRegisterSteps} 
-                     disabled={loading || otp.length < 4} 
-                     whileTap={{ scale: 0.97 }}
-                     className="w-full py-4 rounded-[1.8rem] text-white font-black text-[11px] uppercase tracking-widest disabled:opacity-50 transition-all"
-                     style={{ background: activeGradient, boxShadow: `0 16px 36px ${shadowColor}` }}
-                   >
-                     {loading ? <Waves size={20} className="animate-spin mx-auto" /> : t.verifyAndJoin}
-                   </motion.button>
-                   <button 
-                    onClick={() => setStep('form')} 
-                    className={cn("flex items-center justify-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest transition-colors", isDark ? "text-white/30 hover:text-white/60" : "text-slate-400 hover:text-slate-600")}
+                <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 border" style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
+                  <ShieldCheck style={{ color: accentColor }} size={26} />
+                </div>
+                <h3 className={cn('text-xs font-black uppercase tracking-[0.3em] mb-2', isDark ? 'text-white' : 'text-slate-900')}>{t.enterOtp}</h3>
+                <p className={cn('text-[9px] font-bold uppercase tracking-wider mb-6', isDark ? 'text-white/30' : 'text-slate-400')}>
+                  Verification code sent to +91 {phone}
+                </p>
+                <input
+                  autoFocus
+                  className={cn('bg-transparent border-b-2 text-4xl text-center w-40 tracking-[0.5em] outline-none mb-8 transition-colors',
+                    isDark ? 'text-white border-white/20 focus:border-white/60' : 'text-slate-900 border-slate-200 focus:border-emerald-500'
+                  )}
+                  maxLength={4}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <div className="space-y-3">
+                  <motion.button
+                    onClick={handleRegisterSteps}
+                    disabled={loading || otp.length < 4}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full py-4 rounded-[1.8rem] text-white font-black text-[11px] uppercase tracking-widest disabled:opacity-50 transition-all"
+                    style={{ background: accentGradient, boxShadow: `0 16px 36px ${shadowColor}` }}
                   >
+                    {loading ? <Waves size={20} className="animate-spin mx-auto" /> : t.verifyAndJoin}
+                  </motion.button>
+                  <button onClick={goBack} className={cn('flex items-center justify-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest transition-colors', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}>
                     <ArrowLeft size={14} />
                     <span>Change Phone Number</span>
                   </button>
-                 </div>
+                </div>
               </motion.div>
             )}
           </div>
         </motion.div>
 
-        {/* Footer */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-5 text-center">
-          <p className={cn("text-[9px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/20" : "text-slate-400")}>
+        {/* Back to role selection */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-5 text-center space-y-2">
+          <button
+            onClick={goBack}
+            className={cn('flex items-center justify-center gap-1.5 mx-auto text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/20 hover:text-white/40' : 'text-slate-300 hover:text-slate-500')}
+          >
+            <ArrowLeft size={10} />
+            {step === 'form' ? `Switch to ${role === 'farmer' ? 'Provider' : 'Farmer'} Portal` : 'Back'}
+          </button>
+          <p className={cn('text-[9px] font-black uppercase tracking-[0.2em]', isDark ? 'text-white/20' : 'text-slate-400')}>
             {t.alreadyHaveAccount}{' '}
-            <span 
-              onClick={() => navigate('/login')} 
-              className="cursor-pointer hover:opacity-80 transition-all hover:underline underline-offset-4"
-              style={{ color: accentColor }}
-            >
+            <span onClick={() => navigate('/login')} className="cursor-pointer hover:underline underline-offset-4" style={{ color: accentColor }}>
               {t.login}
             </span>
           </p>
