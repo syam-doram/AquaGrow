@@ -56,6 +56,11 @@ function norm(phone: string): string {
 /**
  * Generate OTP, store it, and send via Fast2SMS.
  * Returns { success, error? }.
+ *
+ * Route priority:
+ *   otp  → dedicated OTP route, bypasses DND, 24/7 delivery (DEFAULT)
+ *   dlt  → TRAI DLT compliant, needs pre-approved template
+ *   q    → promotional/quick, BLOCKED for DND numbers — avoid for OTP
  */
 export async function sendOtp(phone: string): Promise<{ success: boolean; error?: string }> {
   const key = norm(phone);
@@ -65,7 +70,7 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; error?
   const otp = genOtp();
   _store.set(key, { otp, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
 
-  // Dev/test mode — no API key set, just log OTP
+  // Dev/test mode — no API key set, just log OTP to console
   if (!API_KEY) {
     console.log(`[OTP-DEV] Phone: ${key}  OTP: ${otp}`);
     return { success: true };
@@ -73,27 +78,40 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; error?
 
   try {
     let body: Record<string, any>;
+    const route = process.env.FAST2SMS_ROUTE || 'otp';  // default: otp route
 
-    if (ROUTE === 'dlt') {
-      // ── DLT route (TRAI compliant, requires pre-approved template) ──────────
+    if (route === 'dlt') {
+      // ── DLT route — TRAI compliant, requires DLT-approved sender_id + template ──
       body = {
         route:            'dlt',
         sender_id:        SENDER_ID,
-        message:          MESSAGE_ID,       // numeric template ID from Fast2SMS panel
+        message:          MESSAGE_ID,    // numeric DLT template ID from Fast2SMS panel
         variables_values: otp,
         flash:            0,
         numbers:          key,
       };
-    } else {
-      // ── Quick route (no DLT, good for testing) ──────────────────────────────
+    } else if (route === 'q') {
+      // ── Quick route — promotional, may be blocked by DND ──────────────────────
       body = {
         route:    'q',
-        message:  `Your AquaGrow OTP is ${otp}. Valid for 10 minutes. Do not share it with anyone. -AquaGrow`,
+        message:  `Your AquaGrow OTP is ${otp}. Valid for 10 minutes. Do not share. -AquaGrow`,
         language: 'english',
         flash:    0,
         numbers:  key,
       };
+    } else {
+      // ── OTP route (DEFAULT) — dedicated OTP delivery, bypasses DND, 24/7 ──────
+      // Fast2SMS sends its own template: "Your OTP for [App] is XXXXXX"
+      // No DLT registration needed. Works for ALL Indian numbers including DND.
+      body = {
+        route:            'otp',
+        variables_values: otp,   // just the OTP digits — Fast2SMS wraps in template
+        numbers:          key,
+        flash:            0,
+      };
     }
+
+    console.log(`[Fast2SMS] Sending OTP ${otp} to ${key} via route '${route}'`);
 
     const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
       method:  'POST',
@@ -105,13 +123,17 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; error?
     });
 
     const data = await res.json() as any;
-    console.log('[Fast2SMS]', data);
+    console.log('[Fast2SMS Response]', JSON.stringify(data));
 
-    if (data.return === true) return { success: true };
+    if (data.return === true) {
+      console.log(`[Fast2SMS] ✅ OTP delivered — request_id: ${data.request_id}`);
+      return { success: true };
+    }
 
     const errMsg = Array.isArray(data.message)
       ? data.message.join(', ')
-      : (data.message || 'SMS send failed');
+      : (data.message || JSON.stringify(data) || 'SMS send failed');
+    console.error('[Fast2SMS] ❌ Failed:', errMsg);
     return { success: false, error: errMsg };
 
   } catch (err: any) {
@@ -119,6 +141,7 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; error?
     return { success: false, error: 'SMS service unavailable. Please try again.' };
   }
 }
+
 
 /**
  * Verify the OTP code entered by the user.
