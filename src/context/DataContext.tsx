@@ -499,18 +499,49 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  /** Login with Fast2SMS server-side OTP */
-  const loginWithFirebaseToken = async (phone: string, role: string) => {
+  /** Login with Firebase Phone Auth ID token → POST /auth/firebase-login */
+  const loginWithFirebaseToken = async (idToken: string, role: string) => {
     setIsSyncing(true);
     try {
-      // For backward compat this function name is kept — it now calls /auth/otp-login
-      // callers pass the phone (from OtpSession.phone) and the OTP code separately
-      // via otpLogin below. This stub just satisfies old imports.
-      return { success: false, error: 'Use otpLogin instead.' };
+      const response = await fetch(`${API_BASE_URL}/auth/firebase-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, role }),
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error || 'Login failed' };
+      const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
+      setSubscription(data.subscription);
+      return { success: true, user: loggedUser };
+    } catch (e: any) {
+      return { success: false, error: 'Cannot connect to server.' };
     } finally { setIsSyncing(false); }
   };
 
-  /** NEW — Login with Fast2SMS OTP: phone + code + role → JWT */
+  /** Register with Firebase Phone Auth ID token → POST /auth/firebase-register */
+  const registerWithFirebaseToken = async (idToken: string, payload: {
+    name: string; role: string; location?: string; language?: string;
+  }) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/firebase-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, ...payload }),
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error || 'Registration failed' };
+      const loggedUser = { ...data.user, id: data.user._id || data.user.id };
+      setUser(loggedUser, { access: data.access_token, refresh: data.refresh_token });
+      setSubscription(data.subscription);
+      return { success: true, user: loggedUser };
+    } catch (e: any) {
+      return { success: false, error: 'Cannot connect to server.' };
+    } finally { setIsSyncing(false); }
+  };
+
+  /** Fast2SMS OTP login (kept as fallback) */
   const otpLogin = async (phone: string, code: string, role: string) => {
     setIsSyncing(true);
     try {
@@ -530,14 +561,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } finally { setIsSyncing(false); }
   };
 
-  /** Register with a Firebase Phone Auth ID token (kept for compat) */
-  const registerWithFirebaseToken = async (idToken: string, payload: {
-    name: string; role: string; location?: string; language?: string;
-  }) => {
-    return { success: false, error: 'Use otpRegister instead.' };
-  };
-
-  /** NEW — Register with Fast2SMS OTP: phone + code + user info → create account → JWT */
+  /** Fast2SMS OTP register (kept as fallback) */
   const otpRegister = async (phone: string, code: string, payload: {
     name: string; role: string; location?: string; language?: string;
     businessName?: string; farmSize?: number;
@@ -559,6 +583,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: false, error: 'Cannot connect to server.' };
     } finally { setIsSyncing(false); }
   };
+
 
   const resetPassword = async (phoneNumber: string, otp: string, newPassword: string) => {
     setIsSyncing(true);

@@ -167,9 +167,9 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
         if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
         try {
-          // Fast2SMS server-side OTP — phone + code verified together on server
-          result = await (otpLogin as any)(confirmationRef.current!.phone, otp, role);
-
+          // Firebase Phone Auth: verify code → get idToken → server login
+          const idToken = await verifyOtp(confirmationRef.current!, otp);
+          result = await (loginWithFirebaseToken as any)(idToken, role);
         } catch (fbErr: any) {
           if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
           else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');

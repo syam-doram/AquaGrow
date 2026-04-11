@@ -167,20 +167,17 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
 
     setLoading(true);
     try {
-      // Fast2SMS server-side OTP — phone + code + user info verified together on server
+      // Firebase Phone Auth: verify code → get idToken → server register
+      const idToken = await verifyOtp(confirmationRef.current!, otp);
+
       const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 
-      const result = await (otpRegister as any)(
-        confirmationRef.current!.phone,
-        otp,
-        {
-          name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
-          role:     role!,
-          location: location || 'Unknown',
-          language: currentLang,
-          businessName: businessName.trim(),
-        }
-      );
+      const result = await (registerWithFirebaseToken as any)(idToken, {
+        name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
+        role:     role!,
+        location: location || 'Unknown',
+        language: currentLang,
+      });
 
       if (result.success) {
         navigate(role === 'provider' ? '/provider/dashboard' : '/dashboard');
@@ -188,7 +185,9 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
         setError(result.error || t.registrationFailed);
       }
     } catch (err: any) {
-      setError(err.message || 'Verification failed. Please try again.');
+      if (err.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please check and try again.');
+      else if (err.code === 'auth/code-expired')         setError('OTP expired. Please request a new one.');
+      else                                               setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
     }

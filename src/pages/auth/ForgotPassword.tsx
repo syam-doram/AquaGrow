@@ -1,23 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Waves, 
-  Smartphone, 
-  AlertCircle, 
-  ChevronRight, 
-  Lock, 
-  Eye, 
+import {
+  Waves,
+  Smartphone,
+  AlertCircle,
+  ChevronRight,
+  Lock,
+  Eye,
   EyeOff,
   ArrowLeft,
   CheckCircle2,
   ShieldCheck,
-  KeyRound
+  KeyRound,
+  RefreshCw,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Language } from '../../types';
 import { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import type { OtpSession } from '../../lib/firebaseAuth';
 
 interface ForgotPasswordProps {
   t: Translations;
@@ -36,6 +39,9 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pwStrength, setPwStrength] = useState(0);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const sessionRef = useRef<OtpSession | null>(null);   // holds verificationId between steps
+  const idTokenRef = useRef<string>('');                 // holds Firebase ID token for reset
 
   const isDark = theme === 'dark';
   const accentColor = '#059669';
@@ -62,26 +68,58 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][pwStrength];
   const strengthColor = ['', 'bg-red-500', 'bg-amber-500', 'bg-yellow-400', 'bg-emerald-500', 'bg-emerald-600'][pwStrength];
 
-  const handleSendOtp = () => {
-    if (phone.length < 10) { setError("Enter a valid 10-digit number"); return; }
+  // ── Step 1: Send Firebase OTP ─────────────────────────────────────────────
+  const handleSendOtp = async () => {
+    if (phone.length < 10) { setError('Enter a valid 10-digit number'); return; }
     setError(null);
     setLoading(true);
-    setTimeout(() => { setLoading(false); setStep('otp'); }, 1000);
+    try {
+      clearRecaptcha();
+      const session = await sendOtp(toE164India(phone), 'recaptcha-forgot-container');
+      sessionRef.current = session;
+      setStep('otp');
+      // 60-second resend cooldown
+      setResendCooldown(60);
+      const timer = setInterval(() => {
+        setResendCooldown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
+      }, 1000);
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-phone-number')  setError('Invalid phone number.');
+      else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes and try again.');
+      else setError(err.message || 'Failed to send OTP. Check your connection.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp !== '1234') { setError("Invalid OTP (Enter 1234)"); return; }
+  // ── Step 2: Verify Firebase OTP → get ID token ────────────────────────────
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); return; }
+    if (!sessionRef.current) { setError('OTP session expired. Please resend.'); return; }
     setError(null);
-    setStep('reset');
+    setLoading(true);
+    try {
+      const idToken = await verifyOtp(sessionRef.current, otp);
+      idTokenRef.current = idToken;   // store for the reset step
+      setStep('reset');
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
+      else if (err.code === 'auth/code-expired')          setError('OTP expired. Please resend.');
+      else setError(err.message || 'Verification failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ── Step 3: Reset password using ID token ────────────────────────────────
   const handleReset = async () => {
-    if (newPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
-    const result = await resetPassword(phone, otp, newPassword);
+    // Pass the Firebase ID token so the server can verify identity
+    const result = await resetPassword(phone, idTokenRef.current, newPassword);
     setLoading(false);
-    if (result.success) { setStep('success'); } 
-    else { setError(result.error || "Reset failed"); }
+    if (result.success) { setStep('success'); }
+    else { setError(result.error || 'Reset failed'); }
   };
 
   return (
@@ -204,19 +242,46 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
                 </div>
                 <h3 className={cn("text-lg font-black tracking-tight mb-1", isDark ? "text-white" : "text-slate-900")}>{t.enterOtp}</h3>
                 <p className={cn("text-[9px] font-bold uppercase tracking-wider mb-6", isDark ? "text-white/30" : "text-slate-400")}>Code sent to +91 {phone}</p>
-                <input 
-                  autoFocus 
-                  className={cn("bg-transparent border-b-2 text-4xl text-center w-40 tracking-[0.5em] outline-none mb-8 transition-colors",
+
+                {/* 6-digit OTP input */}
+                <input
+                  autoFocus
+                  inputMode="numeric"
+                  className={cn(
+                    "bg-transparent border-b-2 text-4xl text-center w-48 tracking-[0.5em] outline-none mb-6 transition-colors",
                     isDark ? "text-white border-white/20 focus:border-white/60" : "text-slate-900 border-slate-200 focus:border-emerald-500"
                   )}
-                  maxLength={4} value={otp} onChange={(e) => setOtp(e.target.value)}
+                  maxLength={6} value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 />
-                <motion.button onClick={handleVerifyOtp} whileTap={{ scale: 0.97 }}
-                  className="w-full py-4 rounded-[1.8rem] text-white font-black text-[11px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2"
+
+                <motion.button
+                  onClick={handleVerifyOtp}
+                  disabled={loading || otp.length < 6}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full py-4 rounded-[1.8rem] text-white font-black text-[11px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-40 mb-4"
                   style={{ background: gradient, boxShadow: `0 16px 36px ${shadowColor}` }}
                 >
-                  <span>Verify Identity</span><ChevronRight size={16} />
+                  {loading
+                    ? <Waves size={18} className="animate-spin" />
+                    : <><span>Verify Identity</span><ChevronRight size={16} /></>}
                 </motion.button>
+
+                {/* Resend */}
+                <button
+                  onClick={handleSendOtp}
+                  disabled={resendCooldown > 0 || loading}
+                  className={cn(
+                    "text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 mx-auto transition-all",
+                    resendCooldown > 0 ? (isDark ? 'text-white/20' : 'text-slate-300') : (isDark ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-600 hover:text-emerald-700')
+                  )}
+                >
+                  <RefreshCw size={11} />
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+                </button>
+
+                {/* Hidden reCAPTCHA anchor for web fallback */}
+                <div id="recaptcha-forgot-container" />
               </motion.div>
             )}
 

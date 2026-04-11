@@ -1,74 +1,147 @@
 /**
- * firebaseAuth.ts  →  Fast2SMS server-side OTP adapter
+ * firebaseAuth.ts — Firebase Phone Authentication
  * ─────────────────────────────────────────────────────────────────────────────
- * Previously used Firebase Phone Auth (web reCAPTCHA / Capacitor native plugin).
- * Now replaced with server-side OTP via Fast2SMS — no reCAPTCHA, no Firebase
- * rate limits, no Capacitor plugin dependency for auth.
+ * Platform detection:
+ *   Android/iOS (Capacitor APK)  → @capacitor-firebase/authentication v8
+ *                                  Uses listener pattern (phoneCodeSent event)
+ *                                  No reCAPTCHA, native SafetyNet/Play Integrity
+ *   Browser (dev / web fallback) → Firebase web SDK + invisible RecaptchaVerifier
  *
- * Exported API is IDENTICAL to the old Firebase version so callers
- * (Login.tsx, Register.tsx) don't need major changes:
- *   sendOtp(phoneE164, buttonId?)  → OtpSession
- *   clearRecaptcha()               → no-op
- *   toE164India(digits)            → "+91XXXXXXXXXX"
- *
- * The only change in callers:
- *   OLD: verifyOtp(session, code) → idToken → loginWithFirebaseToken(idToken, role)
- *   NEW: session.phone + code passed directly to otpLogin/otpRegister (DataContext)
+ * Why listener pattern on native?
+ *   In @capacitor-firebase/authentication v8, signInWithPhoneNumber() returns
+ *   Promise<void> (not the verificationId). The verificationId is delivered
+ *   via the 'phoneCodeSent' listener event — so we wrap that in a Promise.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const API_BASE = (import.meta.env.VITE_API_URL as string) || 'https://aquagrow.onrender.com/api';
+import { Capacitor } from '@capacitor/core';
+
+// ── Platform flag ─────────────────────────────────────────────────────────────
+const IS_NATIVE = Capacitor.isNativePlatform();
 
 // ── Session type ──────────────────────────────────────────────────────────────
-export type OtpSession = {
-  type:  'server';
-  phone: string;   // 10-digit normalized phone stored for verification step
+export type OtpSession =
+  | { type: 'native'; verificationId: string }
+  | { type: 'web';    confirmation: any };
+
+// ── reCAPTCHA ref (web only) ──────────────────────────────────────────────────
+let _recaptchaVerifier: any = null;
+
+export const clearRecaptcha = (): void => {
+  try { _recaptchaVerifier?.clear(); } catch { /* ignore */ }
+  _recaptchaVerifier = null;
 };
 
-// ── no-op (was for Firebase reCAPTCHA cleanup) ────────────────────────────────
-export const clearRecaptcha = (): void => { /* Fast2SMS needs no cleanup */ };
-
-// ── Format helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 export const toE164India = (digits: string): string =>
   `+91${digits.replace(/\D/g, '').slice(-10)}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 1 — Request OTP
+// Step 1 — Send OTP
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Asks the server to generate + send an OTP via Fast2SMS.
- * @param phoneE164  E.164 phone e.g. "+919876543210" (we strip +91 and send 10-digit)
- * @param _buttonId  Ignored (was for reCAPTCHA DOM element)
- */
 export const sendOtp = async (
   phoneE164: string,
-  _buttonId?: string
+  buttonId = 'recaptcha-login-container'
 ): Promise<OtpSession> => {
-  const phone = phoneE164.replace(/\D/g, '').slice(-10);
 
-  const res = await fetch(`${API_BASE}/auth/send-otp`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ phone }),
-  });
+  if (IS_NATIVE) {
+    // ── Native Android path ────────────────────────────────────────────────
+    // @capacitor-firebase/authentication v8:
+    //   signInWithPhoneNumber() → Promise<void>  (NOT the verificationId)
+    //   verificationId arrives via 'phoneCodeSent' listener event
+    //
+    // We wrap the listener in a Promise so callers can just await sendOtp().
+    console.log('[FirebaseAuth] Native → signInWithPhoneNumber', phoneE164);
+    const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
 
-  const data = await res.json() as { success?: boolean; error?: string };
+    return new Promise<OtpSession>((resolve, reject) => {
 
-  if (!res.ok || !data.success)
-    throw Object.assign(new Error(data.error || 'Failed to send OTP.'), { code: 'otp/send-failed' });
+      // ✅ Success: SMS was sent, verificationId received
+      FirebaseAuthentication.addListener('phoneCodeSent', async (event: any) => {
+        await FirebaseAuthentication.removeAllListeners();
+        if (!event.verificationId) {
+          reject(Object.assign(
+            new Error('Firebase did not return a verificationId. Check Phone Auth is enabled in Firebase Console.'),
+            { code: 'auth/no-verification-id' }
+          ));
+          return;
+        }
+        console.log('[FirebaseAuth] ✅ SMS sent, verificationId ready');
+        resolve({ type: 'native', verificationId: event.verificationId });
+      });
 
-  console.log('[Fast2SMS OTP] Sent to', phone);
-  return { type: 'server', phone };
+      // ❌ Failure: Firebase rejected the phone number or throttled
+      FirebaseAuthentication.addListener('phoneVerificationFailed', async (event: any) => {
+        await FirebaseAuthentication.removeAllListeners();
+        console.error('[FirebaseAuth] ❌ Verification failed:', event.message);
+        reject(Object.assign(
+          new Error(event.message || 'Phone verification failed'),
+          { code: 'auth/verification-failed' }
+        ));
+      });
+
+      // Trigger SMS send — result comes via listeners above, not the return value
+      FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: phoneE164 })
+        .catch((err: any) => {
+          FirebaseAuthentication.removeAllListeners();
+          reject(err);
+        });
+    });
+
+  } else {
+    // ── Web / browser fallback ─────────────────────────────────────────────
+    console.log('[FirebaseAuth] Web → RecaptchaVerifier', phoneE164);
+
+    const { getAuth, signInWithPhoneNumber, RecaptchaVerifier } = await import('firebase/auth');
+    const { app } = await import('./firebase');
+    const auth = getAuth(app);
+
+    clearRecaptcha();
+    _recaptchaVerifier = new RecaptchaVerifier(auth, buttonId, {
+      size: 'invisible',
+      callback: () => {},
+    });
+
+    const confirmation = await signInWithPhoneNumber(auth, phoneE164, _recaptchaVerifier);
+    console.log('[FirebaseAuth] ✅ SMS sent (web)');
+    return { type: 'web', confirmation };
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 2 — (stub kept for API compatibility)
-// Login.tsx and Register.tsx now call otpLogin/otpRegister from DataContext
-// directly instead of verifyOtp().  This function exists only so TypeScript
-// doesn't break while callers are updated.
+// Step 2 — Verify OTP → Firebase ID token
 // ─────────────────────────────────────────────────────────────────────────────
-export const verifyOtp = async (session: OtpSession, _code: string): Promise<string> => {
-  // Returns the phone — the real verification happens inside otpLogin/otpRegister
-  return session.phone;
+export const verifyOtp = async (
+  session: OtpSession,
+  code: string
+): Promise<string> => {
+
+  if (session.type === 'native') {
+    const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+
+    // Confirm code → signs user into Firebase on device
+    await FirebaseAuthentication.confirmVerificationCode({
+      verificationId:   session.verificationId,
+      verificationCode: code,
+    });
+
+    // Get ID token for our server
+    const tokenResult = await FirebaseAuthentication.getIdToken({ forceRefresh: true });
+
+    if (!tokenResult.token)
+      throw Object.assign(
+        new Error('Failed to get ID token after phone verification.'),
+        { code: 'auth/token-fetch-failed' }
+      );
+
+    console.log('[FirebaseAuth] ✅ Native OTP verified, ID token obtained');
+    return tokenResult.token;
+
+  } else {
+    const credential = await session.confirmation.confirm(code);
+    const idToken    = await credential.user.getIdToken();
+    clearRecaptcha();
+    console.log('[FirebaseAuth] ✅ Web OTP verified, ID token obtained');
+    return idToken;
+  }
 };
