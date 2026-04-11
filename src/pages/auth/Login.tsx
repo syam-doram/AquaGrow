@@ -49,9 +49,23 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Flag to trigger OTP send AFTER React re-renders the OTP step DOM
+  const [pendingOtpSend, setPendingOtpSend] = useState(false);
 
   const navigate = useNavigate();
   const isDark = theme === 'dark';
+
+  // ── Fire OTP after DOM has updated (step === 'otp' rendered) ─────────────────
+  // This fixes the timing bug: recaptcha-login-container only exists AFTER
+  // React re-renders with step='otp', so we can't call sendOtp() in the same
+  // click handler that sets the step.
+  useEffect(() => {
+    if (pendingOtpSend && step === 'otp') {
+      setPendingOtpSend(false);
+      handleSendOtp();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pendingOtpSend]);
 
   // Helper: navigate to the correct home based on user role from server
   const goHome = (userObj?: any) => {
@@ -563,7 +577,10 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                     setOtp('');
                     setOtpSent(false);
                     clearRecaptcha();
-                    handleSendOtp();
+                    // Don't call handleSendOtp() here — the recaptcha-login-container div
+                    // doesn't exist yet (it's inside the step==='otp' block).
+                    // Instead set a flag; useEffect fires after DOM re-renders.
+                    setPendingOtpSend(true);
                   }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
@@ -586,11 +603,12 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
             )}
 
             {/* ── OTP STEP ── */}
+            {/* reCAPTCHA anchor — always in DOM so RecaptchaVerifier can find it
+                even before the OTP step JSX block renders (web fallback only) */}
+            <div id="recaptcha-login-container" style={{ display: 'none' }} />
+
             {step === 'otp' && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
-                {/* reCAPTCHA anchor */}
-                <div id="recaptcha-login-container" />
-
                 <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5 border"
                   style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
                   {otpSending
