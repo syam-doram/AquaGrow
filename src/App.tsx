@@ -169,6 +169,35 @@ const AppContent = () => {
         }
       });
 
+      // ── Firebase reCAPTCHA deep-link guard ─────────────────────────────────
+      // When browser-based reCAPTCHA completes, Chrome redirects back via the
+      // custom scheme:  com.aquagrow.app://__/auth/handler?...
+      // Capacitor fires appUrlOpen for every incoming URL.  Without an explicit
+      // handler, the bridge would dispatch this as a WebView navigation, which
+      // triggers React Router's catch-all → /login redirect — unmounting the
+      // Login/Register component and destroying the in-memory OTP session
+      // (confirmationRef.current = null).  That's why every code entered after
+      // reCAPTCHA shows "invalid or expired".
+      //
+      // Solution: Swallow all Firebase auth deep links silently here.
+      // The Firebase Capacitor plugin already processes the intent via
+      // onNewIntent() in MainActivity — we just block the React Router side.
+      const urlOpenListener = CapApp.addListener('appUrlOpen', (data: { url: string }) => {
+        const url = data?.url ?? '';
+        // Firebase Phone Auth reCAPTCHA callback URL pattern
+        if (
+          url.includes('/__/auth/') ||
+          url.startsWith('com.aquagrow.app://__/auth') ||
+          url.includes('firebaseapp.com/__/auth')
+        ) {
+          // Silently swallow — Firebase native plugin handles the token internally.
+          // DO NOT navigate or reload.
+          console.log('[AppUrlOpen] Firebase auth deep link intercepted — suppressed navigation:', url);
+          return;
+        }
+        // For any other deep links, handle normally (future use)
+      });
+
       // ――― Dynamic Status Bar Matching ―――
       const updateStatusBar = async () => {
         const isAuth = !user || location.pathname === '/' || location.pathname === '/onboarding';
@@ -187,6 +216,7 @@ const AppContent = () => {
 
       return () => {
         backListener.then(l => l.remove());
+        urlOpenListener.then(l => l.remove());
       };
     }
   }, [location.pathname, user]);

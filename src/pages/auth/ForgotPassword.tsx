@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -21,8 +21,10 @@ import { useData } from '../../context/DataContext';
 import { Language } from '../../types';
 import { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken } from '../../lib/firebaseAuth';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken, restoreOtpSession } from '../../lib/firebaseAuth';
 import type { OtpSession } from '../../lib/firebaseAuth';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 
 interface ForgotPasswordProps {
@@ -46,6 +48,23 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const sessionRef = useRef<OtpSession | null>(null);   // holds verificationId between steps
   const idTokenRef = useRef<string>('');                 // holds Firebase ID token for reset
+
+  // reCAPTCHA browser-flow phase tracker
+  const [recaptchaPhase, setRecaptchaPhase] = useState<'idle' | 'browser' | 'returning'>('idle');
+
+  useEffect(() => {
+    if (!loading || !Capacitor.isNativePlatform()) return;
+    let wentToBackground = false;
+    const lp = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) { wentToBackground = true; setRecaptchaPhase('browser'); }
+      else if (wentToBackground) { setRecaptchaPhase('returning'); }
+    });
+    return () => { lp.then(l => l.remove()); };
+  }, [loading]);
+
+  useEffect(() => {
+    if (step === 'otp') setRecaptchaPhase('idle');
+  }, [step]);
 
   const isDark = theme === 'dark';
   // Dynamic colors based on role
@@ -110,7 +129,17 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   // ── Step 2: Verify Firebase OTP → get ID token ────────────────────────────
   const handleVerifyOtp = async () => {
     if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); return; }
-    if (!sessionRef.current) { setError('OTP session expired. Please resend.'); return; }
+    // Try in-memory session first; fall back to sessionStorage backup in case
+    // the component was remounted by a deep-link navigation edge case.
+    if (!sessionRef.current) {
+      const restored = restoreOtpSession();
+      if (restored) {
+        sessionRef.current = restored;
+        console.log('[ForgotPassword] OTP session recovered from sessionStorage backup');
+      } else {
+        setError('OTP session expired. Please resend.'); return;
+      }
+    }
     setError(null);
     setLoading(true);
     try {
@@ -277,27 +306,94 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
 
             {step === 'otp' && (
               <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="text-center py-2">
-                <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5 border" style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
-                  <ShieldCheck style={{ color: accentColor }} size={26} />
-                </div>
-                <h3 className={cn("text-lg font-black tracking-tight mb-1", isDark ? "text-white" : "text-slate-900")}>{t.enterOtp}</h3>
-                <p className={cn("text-[9px] font-bold uppercase tracking-wider mb-6", isDark ? "text-white/30" : "text-slate-400")}>Code sent to +91 {phone}</p>
 
-                {/* 6-digit OTP input */}
-                <input
-                  autoFocus
-                  inputMode="numeric"
-                  className={cn(
-                    "bg-transparent border-b-2 text-4xl text-center w-48 tracking-[0.5em] outline-none mb-6 transition-colors",
-                    isDark ? "text-white border-white/20 focus:border-white/60" : "text-slate-900 border-slate-200 focus:border-emerald-500"
+                <AnimatePresence mode="wait">
+                  {/* BROWSER PHASE */}
+                  {recaptchaPhase === 'browser' && (
+                    <motion.div key="fp-cap-browser"
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className={cn('rounded-[1.8rem] p-5 border mb-4 text-left', isDark ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50 border-amber-200')}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <motion.div animate={{ scale: [1, 1.12, 1] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}
+                        >
+                          <ShieldCheck size={20} className="text-white" />
+                        </motion.div>
+                        <div>
+                          <p className={cn('text-[11px] font-black uppercase tracking-wider leading-tight', isDark ? 'text-amber-300' : 'text-amber-800')}>Security Check Required</p>
+                          <p className={cn('text-[9px] font-medium mt-0.5', isDark ? 'text-amber-400/70' : 'text-amber-700/80')}>A browser has opened to verify you</p>
+                        </div>
+                      </div>
+                      <div className={cn('rounded-2xl p-3 space-y-2', isDark ? 'bg-black/20' : 'bg-white/60')}>
+                        {[
+                          { n: '1', text: 'Complete the security check in the browser' },
+                          { n: '2', text: 'Tap "Allow" or close the browser when done' },
+                          { n: '3', text: 'Return to AquaGrow — your OTP will be sent' },
+                        ].map(s => (
+                          <div key={s.n} className="flex items-center gap-2.5">
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                              style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', fontSize: 9, fontWeight: 900 }}>{s.n}</div>
+                            <p className={cn('text-[9px] font-semibold leading-snug', isDark ? 'text-white/70' : 'text-slate-700')}>{s.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-3 justify-center">
+                        <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-amber-400' : 'text-amber-700')}>Waiting for verification...</p>
+                      </div>
+                    </motion.div>
                   )}
-                  maxLength={6} value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                />
+
+                  {/* RETURNING PHASE */}
+                  {recaptchaPhase === 'returning' && (
+                    <motion.div key="fp-cap-returning"
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className={cn('rounded-[1.8rem] p-5 border mb-4 flex items-center gap-3', isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200')}
+                    >
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'linear-gradient(135deg,#059669,#0D523C)' }}
+                      >
+                        <Waves size={20} className="text-white" />
+                      </motion.div>
+                      <div>
+                        <p className={cn('text-[11px] font-black uppercase tracking-wider', isDark ? 'text-emerald-300' : 'text-emerald-800')}>Verified! Sending OTP...</p>
+                        <p className={cn('text-[9px] font-medium mt-0.5', isDark ? 'text-emerald-400/70' : 'text-emerald-700/70')}>Security check passed · SMS on its way</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* IDLE / NORMAL */}
+                  {recaptchaPhase === 'idle' && (
+                    <motion.div key="fp-cap-idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5 border" style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
+                        <ShieldCheck style={{ color: accentColor }} size={26} />
+                      </div>
+                      <h3 className={cn("text-lg font-black tracking-tight mb-1", isDark ? "text-white" : "text-slate-900")}>{t.enterOtp}</h3>
+                      <p className={cn("text-[9px] font-bold uppercase tracking-wider mb-6", isDark ? "text-white/30" : "text-slate-400")}>Code sent to +91 {phone}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* 6-digit OTP input — only when idle */}
+                {recaptchaPhase === 'idle' && (
+                  <input
+                    autoFocus
+                    inputMode="numeric"
+                    className={cn(
+                      "bg-transparent border-b-2 text-4xl text-center w-48 tracking-[0.5em] outline-none mb-6 transition-colors",
+                      isDark ? "text-white border-white/20 focus:border-white/60" : "text-slate-900 border-slate-200 focus:border-emerald-500"
+                    )}
+                    maxLength={6} value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  />
+                )}
 
                 <motion.button
                   onClick={handleVerifyOtp}
-                  disabled={loading || otp.length < 6}
+                  disabled={loading || otp.length < 6 || recaptchaPhase !== 'idle'}
                   whileTap={{ scale: 0.97 }}
                   className="w-full py-4 rounded-[1.8rem] text-white font-black text-[11px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-40 mb-4"
                   style={{ background: gradient, boxShadow: `0 16px 36px ${shadowColor}` }}
@@ -310,7 +406,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
                 {/* Resend */}
                 <button
                   onClick={handleSendOtp}
-                  disabled={resendCooldown > 0 || loading}
+                  disabled={resendCooldown > 0 || loading || recaptchaPhase !== 'idle'}
                   className={cn(
                     "text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 mx-auto transition-all",
                     resendCooldown > 0 ? (isDark ? 'text-white/20' : 'text-slate-300') : (isDark ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-600 hover:text-emerald-700')

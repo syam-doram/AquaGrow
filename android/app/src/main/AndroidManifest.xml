@@ -24,6 +24,23 @@ package="com.aquagrow.app">
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- ── Firebase Phone Auth reCAPTCHA redirect ────────────────────
+                 When SafetyNet / Play Integrity cannot silently verify the
+                 device (e.g. debug APK, sideloaded, emulator), Firebase falls
+                 back to browser-based reCAPTCHA. After the user completes the
+                 challenge the browser redirects back to the app via the custom
+                 scheme:  com.aquagrow.app://__/auth/handler
+                 Without this filter Android shows a "Open with browser" picker
+                 and the deep-link never reaches the app — the OTP flow hangs.
+            ─────────────────────────────────────────────────────────────── -->
+            <intent-filter android:label="firebase_auth_redirect">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Scheme must match the applicationId exactly -->
+                <data android:scheme="com.aquagrow.app" />
+            </intent-filter>
+
         </activity>
 
         <provider

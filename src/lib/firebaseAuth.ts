@@ -52,6 +52,30 @@ export const clearRecaptcha = (): void => {
   _recaptchaVerifier = null;
 };
 
+// ── Session persistence (native only) ────────────────────────────────────────
+// The reCAPTCHA browser flow briefly routes a deep link back through the app.
+// In rare cases this can cause a React component remount, destroying the
+// in-memory OTP session.  We back it up in sessionStorage so it can be
+// recovered — sessionStorage is cleared when the tab/app session ends.
+const SESSION_KEY = '__aqua_otp_session__';
+
+const _saveNativeSession = (verificationId: string): void => {
+  try { sessionStorage.setItem(SESSION_KEY, verificationId); } catch { /* ignore */ }
+};
+
+/** Recover a native verificationId if the component was remounted mid-flow. */
+export const restoreOtpSession = (): OtpSession | null => {
+  try {
+    const vid = sessionStorage.getItem(SESSION_KEY);
+    if (vid) return { type: 'native', verificationId: vid };
+  } catch { /* ignore */ }
+  return null;
+};
+
+const _clearNativeSession = (): void => {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+};
+
 // ── In-flight lock — prevents concurrent sendOtp() race on double-tap ─────────
 let _sendOtpInFlight = false;
 
@@ -117,6 +141,9 @@ export const sendOtp = async (
             return;
           }
           console.log('[FirebaseAuth] ✅ SMS sent, verificationId ready');
+          // Persist to sessionStorage so a component remount (deep-link edge case)
+          // can restore the session instead of showing "invalid/expired".
+          _saveNativeSession(event.verificationId);
           resolve({ type: 'native', verificationId: event.verificationId });
         });
       });
@@ -240,6 +267,7 @@ export const verifyOtp = async (
       );
 
     console.log('[FirebaseAuth] ✅ Native OTP verified, ID token obtained');
+    _clearNativeSession(); // session consumed — remove backup
     return tokenResult.token;
 
   } else {

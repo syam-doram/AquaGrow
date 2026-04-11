@@ -25,7 +25,9 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 import { Language } from '../../types';
-import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken } from '../../lib/firebaseAuth';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken, restoreOtpSession } from '../../lib/firebaseAuth';
 import type { OtpSession } from '../../lib/firebaseAuth';
 
 
@@ -51,6 +53,11 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // reCAPTCHA browser-flow awareness
+  // 'idle'      → normal sending state
+  // 'browser'   → Chrome/browser opened for reCAPTCHA challenge
+  // 'returning' → user tapped back / Chrome closed, Firebase processing token
+  const [recaptchaPhase, setRecaptchaPhase] = useState<'idle' | 'browser' | 'returning'>('idle');
   const navigate = useNavigate();
   const isDark = theme === 'dark';
 
@@ -84,6 +91,32 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
     };
     init();
   }, []);
+
+  // ── Detect reCAPTCHA browser flow phases ───────────────────────────────────
+  // When Firebase can't use SafetyNet/Play Integrity, it opens Chrome for a
+  // reCAPTCHA challenge.  The farmer sees Chrome pop up with no explanation —
+  // very confusing.  We track app foreground/background to show clear guidance.
+  useEffect(() => {
+    if (!otpSending || !Capacitor.isNativePlatform()) return;
+    let wentToBackground = false;
+    const listenerPromise = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        // App went background → Chrome/browser opened for reCAPTCHA
+        wentToBackground = true;
+        setRecaptchaPhase('browser');
+      } else if (wentToBackground) {
+        // App came back to foreground → user completed reCAPTCHA
+        setRecaptchaPhase('returning');
+        // Reset to idle after OTP arrives (handled by otpSent state change)
+      }
+    });
+    return () => { listenerPromise.then(l => l.remove()); };
+  }, [otpSending]);
+
+  // Reset recaptchaPhase once OTP is sent successfully
+  useEffect(() => {
+    if (otpSent) setRecaptchaPhase('idle');
+  }, [otpSent]);
 
   // ── Biometric Login ───────────────────────────────────────────────────────
   const handleBiometricLogin = async (providedPhone?: string) => {
@@ -167,7 +200,17 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       if (step === 'otp') {
         // Firebase OTP: verify code → ID token → server login
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
-        if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
+        // Try in-memory session first; fall back to sessionStorage backup in case
+        // the component was remounted by a deep-link navigation edge case.
+        if (!confirmationRef.current) {
+          const restored = restoreOtpSession();
+          if (restored) {
+            confirmationRef.current = restored;
+            console.log('[Login] OTP session recovered from sessionStorage backup');
+          } else {
+            setError('OTP session expired. Please resend.'); setLoading(false); return;
+          }
+        }
         try {
           const idToken = await verifyOtp(confirmationRef.current, otp);
           result = await loginWithFirebaseToken(idToken, role);
@@ -611,41 +654,148 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
 
             {step === 'otp' && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
-                <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5 border"
-                  style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
-                  {otpSending
-                    ? <Waves style={{ color: accentColor }} size={26} className="animate-spin" />
-                    : <ShieldCheck style={{ color: accentColor }} size={26} />}
-                </div>
 
-                <h3 className={cn('text-xs font-black uppercase tracking-[0.3em] mb-1', isDark ? 'text-white' : 'text-slate-900')}>
-                  {otpSending ? 'Sending OTP...' : t.enterOtp}
-                </h3>
-                <p className={cn('text-[9px] font-bold uppercase tracking-wider mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
-                  {otpSent ? `6-digit code sent to +91 ${phone}` : 'Preparing OTP...'}
-                </p>
-                <div className="flex items-center justify-center gap-1.5 mb-6">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-600')}>Real SMS via Firebase · Google</span>
-                </div>
-
-                <input
-                  autoFocus
-                  className={cn('bg-transparent border-b-2 text-4xl text-center w-48 tracking-[0.5em] outline-none mb-6 transition-colors',
-                    isDark ? 'text-white border-white/20 focus:border-white/60' : 'text-slate-900 border-slate-200 focus:border-emerald-500'
+                {/* ── reCAPTCHA BROWSER PHASE — Chrome opened ── */}
+                <AnimatePresence mode="wait">
+                  {recaptchaPhase === 'browser' && (
+                    <motion.div
+                      key="captcha-browser"
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className={cn(
+                        'rounded-[1.8rem] p-5 border mb-2 text-left',
+                        isDark
+                          ? 'bg-amber-500/10 border-amber-500/25'
+                          : 'bg-amber-50 border-amber-200'
+                      )}
+                    >
+                      {/* Animated shield icon */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <motion.div
+                          animate={{ scale: [1, 1.12, 1] }}
+                          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}
+                        >
+                          <ShieldCheck size={20} className="text-white" />
+                        </motion.div>
+                        <div>
+                          <p className={cn('text-[11px] font-black uppercase tracking-wider leading-tight', isDark ? 'text-amber-300' : 'text-amber-800')}>
+                            Security Check Required
+                          </p>
+                          <p className={cn('text-[9px] font-medium mt-0.5', isDark ? 'text-amber-400/70' : 'text-amber-700/80')}>
+                            A browser has opened to verify you
+                          </p>
+                        </div>
+                      </div>
+                      <div className={cn('rounded-2xl p-3 space-y-2', isDark ? 'bg-black/20' : 'bg-white/60')}>
+                        {[
+                          { n: '1', text: 'Complete the security check in the browser' },
+                          { n: '2', text: 'Tap "Allow" or close the browser when done' },
+                          { n: '3', text: 'Return to AquaGrow — your OTP will be sent' },
+                        ].map(s => (
+                          <div key={s.n} className="flex items-center gap-2.5">
+                            <div
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                              style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', fontSize: 9, fontWeight: 900 }}
+                            >
+                              {s.n}
+                            </div>
+                            <p className={cn('text-[9px] font-semibold leading-snug', isDark ? 'text-white/70' : 'text-slate-700')}>
+                              {s.text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-3 justify-center">
+                        <motion.div
+                          animate={{ opacity: [1, 0.3, 1] }}
+                          transition={{ duration: 1.2, repeat: Infinity }}
+                          className="w-1.5 h-1.5 rounded-full bg-amber-500"
+                        />
+                        <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-amber-400' : 'text-amber-700')}>
+                          Waiting for verification...
+                        </p>
+                      </div>
+                    </motion.div>
                   )}
-                  maxLength={6}
-                  value={otp}
-                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                  disabled={loading}
-                  placeholder="------"
-                  inputMode="numeric"
-                />
+
+                  {/* ── RETURNING PHASE — user came back from browser ── */}
+                  {recaptchaPhase === 'returning' && (
+                    <motion.div
+                      key="captcha-returning"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className={cn(
+                        'rounded-[1.8rem] p-5 border mb-4 flex items-center gap-3',
+                        isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'
+                      )}
+                    >
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'linear-gradient(135deg,#059669,#0D523C)' }}
+                      >
+                        <Waves size={20} className="text-white" />
+                      </motion.div>
+                      <div>
+                        <p className={cn('text-[11px] font-black uppercase tracking-wider', isDark ? 'text-emerald-300' : 'text-emerald-800')}>
+                          Verified! Sending OTP...
+                        </p>
+                        <p className={cn('text-[9px] font-medium mt-0.5', isDark ? 'text-emerald-400/70' : 'text-emerald-700/70')}>
+                          Security check passed · SMS on its way
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ── IDLE / NORMAL OTP STATE ── */}
+                  {recaptchaPhase === 'idle' && (
+                    <motion.div key="captcha-idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5 border"
+                        style={{ background: `${accentColor}15`, borderColor: `${accentColor}30` }}>
+                        {otpSending
+                          ? <Waves style={{ color: accentColor }} size={26} className="animate-spin" />
+                          : <ShieldCheck style={{ color: accentColor }} size={26} />}
+                      </div>
+
+                      <h3 className={cn('text-xs font-black uppercase tracking-[0.3em] mb-1', isDark ? 'text-white' : 'text-slate-900')}>
+                        {otpSending ? 'Sending OTP...' : t.enterOtp}
+                      </h3>
+                      <p className={cn('text-[9px] font-bold uppercase tracking-wider mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
+                        {otpSent ? `6-digit code sent to +91 ${phone}` : 'Preparing OTP...'}
+                      </p>
+                      <div className="flex items-center justify-center gap-1.5 mb-6">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-600')}>Real SMS via Firebase · Google</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* OTP input — only show when idle and OTP has been sent */}
+                {recaptchaPhase === 'idle' && (
+                  <input
+                    autoFocus
+                    className={cn('bg-transparent border-b-2 text-4xl text-center w-48 tracking-[0.5em] outline-none mb-6 transition-colors',
+                      isDark ? 'text-white border-white/20 focus:border-white/60' : 'text-slate-900 border-slate-200 focus:border-emerald-500'
+                    )}
+                    maxLength={6}
+                    value={otp}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                    disabled={loading}
+                    placeholder="------"
+                    inputMode="numeric"
+                  />
+                )}
 
                 <div className="space-y-3">
                   <motion.button
                     onClick={handleLogin}
-                    disabled={loading || otp.length < 6 || !otpSent}
+                    disabled={loading || otp.length < 6 || !otpSent || recaptchaPhase !== 'idle'}
                     whileTap={{ scale: 0.97 }}
                     className="w-full py-4 rounded-[1.8rem] text-white text-[11px] font-black uppercase tracking-widest shadow-xl disabled:opacity-50 transition-all"
                     style={{ background: activeGradient, boxShadow: `0 16px 36px ${shadowColor}` }}
@@ -654,7 +804,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                   </motion.button>
 
                   {/* Resend */}
-                  <button onClick={handleSendOtp} disabled={otpSending || resendCooldown > 0}
+                  <button onClick={handleSendOtp} disabled={otpSending || resendCooldown > 0 || recaptchaPhase !== 'idle'}
                     className={cn('flex items-center justify-center gap-1.5 mx-auto text-[9px] font-black uppercase tracking-widest',
                       isDark ? 'text-white/30 disabled:text-white/15' : 'text-slate-400 disabled:text-slate-300'
                     )}
@@ -664,7 +814,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                       : <><RefreshCw size={11} /> Resend OTP</>}
                   </button>
 
-                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); clearRecaptcha(); }}
+                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); clearRecaptcha(); setRecaptchaPhase('idle'); }}
                     className={cn('flex items-center justify-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest transition-colors', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}
                   >
                     <div className="rotate-180 inline-block"><ChevronRight size={14} /></div>

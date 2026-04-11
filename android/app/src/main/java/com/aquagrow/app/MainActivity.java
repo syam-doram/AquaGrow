@@ -1,5 +1,6 @@
 package com.aquagrow.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 import com.google.firebase.appcheck.FirebaseAppCheck;
@@ -24,6 +25,32 @@ public class MainActivity extends BridgeActivity {
             firebaseAppCheck.installAppCheckProviderFactory(
                 PlayIntegrityAppCheckProviderFactory.getInstance()
             );
+        }
+    }
+
+    /**
+     * Forward deep-link intents to the Capacitor bridge.
+     *
+     * When Firebase phone auth uses browser-based reCAPTCHA as a fallback
+     * (SafetyNet / Play Integrity not available), it opens Chrome and after
+     * the challenge redirects back via:
+     *   com.aquagrow.app://__/auth/handler?...
+     *
+     * Because the activity is singleTask, Android calls onNewIntent() on the
+     * existing instance.  Without calling setIntent() + bridge.onNewIntent()
+     * the Capacitor/Firebase plugin never sees the deep-link URL, the reCAPTCHA
+     * token is lost, and every subsequent OTP entry fails with
+     * "auth/invalid-verification-code" or "auth/session-expired".
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // Update the activity's intent so getIntent() returns the latest one
+        setIntent(intent);
+        // Notify the Capacitor bridge — this re-broadcasts the URL open event
+        // to all plugins including @capacitor-firebase/authentication
+        if (getBridge() != null) {
+            getBridge().onNewIntent(intent);
         }
     }
 }
