@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -29,6 +29,8 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { Language } from '../../types';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import type { OtpSession } from '../../lib/firebaseAuth';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,7 +48,7 @@ const PROVIDER_FEATURES = [
 ];
 
 export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang: Language, onLanguageChange?: (l: Language) => void }) => {
-  const { otpRegister, theme } = useData();
+  const { registerWithFirebaseToken, otpRegister, theme } = useData();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<'farmer' | 'provider' | null>(null);
@@ -64,7 +66,8 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   const [termsChecked, setTermsChecked]         = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
-  // Fast2SMS OTP state
+  // Firebase OTP state
+  const confirmationRef = useRef<OtpSession | null>(null);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -111,22 +114,27 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     }, 1000);
   };
 
-  // ── Send OTP via Fast2SMS (server-side) ────────────────────────────────────
+  // ── Send OTP via Firebase ────────────────────────────────────────────
   const handleSendOtp = async () => {
     setError('');
     setOtpSending(true);
+    clearRecaptcha();
     try {
-      const res = await fetch(`https://aquagrow.onrender.com/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.replace(/\D/g, '') }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      const e164 = toE164India(phone);
+      const result = await sendOtp(e164, 'recaptcha-container');
+      confirmationRef.current = result;
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
-      setError(err.message || 'Failed to send OTP. Check your connection.');
+      console.error('[Firebase OTP] sendOtp error:', err);
+      if (err.code === 'auth/invalid-phone-number')
+        setError('Invalid phone number. Please check and try again.');
+      else if (err.code === 'auth/too-many-requests')
+        setError('Too many OTP requests. Please wait a few minutes and try again.');
+      else if (err.code === 'auth/captcha-check-failed')
+        setError('Security check failed. Please refresh and try again.');
+      else
+        setError('Failed to send OTP. Check your connection and try again.');
     } finally {
       setOtpSending(false);
     }
@@ -154,14 +162,18 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
       return;
     }
 
-    // ── OTP step: verify via Fast2SMS then register ──────────────────────
+    // ── OTP step: verify via Firebase then register ──────────────────────
     if (!otp || otp.length < 6) { setError('Please enter the 6-digit OTP'); return; }
+    if (!confirmationRef.current) { setError('OTP session expired. Please resend OTP.'); return; }
 
     setLoading(true);
     try {
+      // Firebase Phone Auth: verify code → get idToken → server register
+      const idToken = await verifyOtp(confirmationRef.current!, otp);
+
       const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 
-      const result = await otpRegister(phone.replace(/\D/g, ''), otp, {
+      const result = await registerWithFirebaseToken(idToken, {
         name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
         role:     role!,
         location: location || 'Unknown',
@@ -181,7 +193,7 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   };
 
   const goBack = () => {
-    if (step === 'otp')   { setStep('terms'); setOtpSent(false); setOtp(''); return; }
+    if (step === 'otp')   { setStep('terms'); setOtpSent(false); setOtp(''); clearRecaptcha(); return; }
     if (step === 'terms') { setStep('form');  return; }
     setRole(null); setStep('form');
     setPhone(''); setName(''); setBusinessName(''); setLocation('');
@@ -322,6 +334,9 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
   return (
     <div className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center font-sans tracking-tight" style={{ background: isDark ? '#030E1B' : '#F8FAFC' }}>
 
+
+      {/* Invisible reCAPTCHA anchor — Firebase requires a DOM element */}
+      <div id="recaptcha-container" />
 
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[80%] rounded-full blur-[140px] animate-pulse" style={{ background: `${accentColor}10` }} />

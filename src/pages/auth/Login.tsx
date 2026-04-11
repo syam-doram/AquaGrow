@@ -25,6 +25,8 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { checkBiometric, getBiometric, setBiometric } from '../../utils/biometric';
 import { Language } from '../../types';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import type { OtpSession } from '../../lib/firebaseAuth';
 
 
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
@@ -44,7 +46,8 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
   const [pendingLoginResult, setPendingLoginResult] = useState<any>(null);
   const [bioSuccess, setBioSuccess]   = useState(false);
 
-  // Fast2SMS OTP state
+  // Firebase OTP state
+  const confirmationRef               = useRef<OtpSession | null>(null);
   const [otpSending, setOtpSending]   = useState(false);
   const [otpSent, setOtpSent]         = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -118,23 +121,22 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
     }, 1000);
   };
 
-  // ── Send OTP via Fast2SMS (server-side, no Firebase dependency) ───────────
+  // ── Send Firebase OTP ────────────────────────────────────────────────────────
   const handleSendOtp = async () => {
     if (phone.replace(/\D/g, '').length < 10) { setError('Enter a valid 10-digit number.'); return; }
     setError('');
     setOtpSending(true);
+    clearRecaptcha();
     try {
-      const res = await fetch(`${(window as any).__API_BASE__ || 'https://aquagrow.onrender.com/api'}/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.replace(/\D/g, '') }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      const e164 = toE164India(phone);
+      const session = await sendOtp(e164, 'recaptcha-login-container');
+      confirmationRef.current = session;
       setOtpSent(true);
       startCooldown(60);
     } catch (err: any) {
-      setError(err.message || 'Failed to send OTP. Check your connection.');
+      if (err.code === 'auth/invalid-phone-number') setError('Invalid phone number.');
+      else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes.');
+      else setError(err.message || 'Failed to send OTP. Check your connection.');
     } finally {
       setOtpSending(false);
     }
@@ -148,9 +150,19 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       const fullPhone = `+91 ${phone.replace(/\D/g, '')}`;
       let result;
       if (step === 'otp') {
-        // Fast2SMS OTP verification via server
+        // Firebase OTP: verify code → ID token → server login
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
-        result = await otpLogin(phone.replace(/\D/g, ''), otp, role);
+        if (!confirmationRef.current) { setError('OTP session expired. Please resend.'); setLoading(false); return; }
+        try {
+          const idToken = await verifyOtp(confirmationRef.current, otp);
+          result = await loginWithFirebaseToken(idToken, role);
+        } catch (fbErr: any) {
+          if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
+          else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');
+          else setError(fbErr.message || 'OTP verification failed.');
+          setLoading(false);
+          return;
+        }
       } else {
         result = await login(fullPhone, password, role);
       }
@@ -548,12 +560,14 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                 {/* OTP Button */}
                 <motion.button
                   onClick={() => {
-                    // Move to OTP step first so the reCAPTCHA div renders,
-                    // then fire sendOtp after the next browser paint.
+                    // Move to OTP step first so the reCAPTCHA div is in the DOM,
+                    // then fire sendOtp after two paint frames (web RecaptchaVerifier needs the element).
                     setStep('otp');
                     setOtp('');
                     setOtpSent(false);
-                    handleSendOtp();
+                    requestAnimationFrame(() => {
+                      requestAnimationFrame(() => { handleSendOtp(); });
+                    });
                   }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
@@ -578,7 +592,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
             {/* ── OTP STEP ── */}
             {/* reCAPTCHA anchor — always in DOM so RecaptchaVerifier can find it
                 even before the OTP step JSX block renders (web fallback only) */}
-
+            <div id="recaptcha-login-container" style={{ display: 'none' }} />
 
             {step === 'otp' && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
@@ -635,7 +649,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                       : <><RefreshCw size={11} /> Resend OTP</>}
                   </button>
 
-                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); }}
+                  <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); clearRecaptcha(); }}
                     className={cn('flex items-center justify-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest transition-colors', isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}
                   >
                     <div className="rotate-180 inline-block"><ChevronRight size={14} /></div>

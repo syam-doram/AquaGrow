@@ -21,6 +21,8 @@ import { useData } from '../../context/DataContext';
 import { Language } from '../../types';
 import { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
+import { sendOtp, verifyOtp, toE164India, clearRecaptcha } from '../../lib/firebaseAuth';
+import type { OtpSession } from '../../lib/firebaseAuth';
 
 
 interface ForgotPasswordProps {
@@ -42,6 +44,8 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const [error, setError] = useState<string | null>(null);
   const [pwStrength, setPwStrength] = useState(0);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const sessionRef = useRef<OtpSession | null>(null);   // holds verificationId between steps
+  const idTokenRef = useRef<string>('');                 // holds Firebase ID token for reset
 
   const isDark = theme === 'dark';
   // Dynamic colors based on role
@@ -71,45 +75,53 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][pwStrength];
   const strengthColor = ['', 'bg-red-500', 'bg-amber-500', 'bg-yellow-400', 'bg-emerald-500', 'bg-emerald-600'][pwStrength];
 
-  // ── Step 1: Send OTP via Fast2SMS ─────────────────────────────────────────────────
+  // ── Step 1: Send Firebase OTP ─────────────────────────────────────────────
   const handleSendOtp = async () => {
     if (phone.length < 10) { setError('Enter a valid 10-digit number'); return; }
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('https://aquagrow.onrender.com/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.replace(/\D/g, '') }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      clearRecaptcha();
+      const session = await sendOtp(toE164India(phone), 'recaptcha-forgot-container');
+      sessionRef.current = session;
       setStep('otp');
       setResendCooldown(60);
       const timer = setInterval(() => {
         setResendCooldown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
       }, 1000);
     } catch (err: any) {
-      setError(err.message || 'Failed to send OTP. Check your connection.');
+      if (err.code === 'auth/invalid-phone-number')  setError('Invalid phone number.');
+      else if (err.code === 'auth/too-many-requests') setError('Too many requests. Wait a few minutes and try again.');
+      else setError(err.message || 'Failed to send OTP. Check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Step 2: Verify OTP ───────────────────────────────────────────────────────
+  // ── Step 2: Verify Firebase OTP → get ID token ────────────────────────────
   const handleVerifyOtp = async () => {
     if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); return; }
+    if (!sessionRef.current) { setError('OTP session expired. Please resend.'); return; }
     setError(null);
-    // OTP is verified by the server in the reset step — just advance the step
-    setStep('reset');
+    setLoading(true);
+    try {
+      const idToken = await verifyOtp(sessionRef.current, otp);
+      idTokenRef.current = idToken;
+      setStep('reset');
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
+      else if (err.code === 'auth/code-expired')          setError('OTP expired. Please resend.');
+      else setError(err.message || 'Verification failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ── Step 3: Reset password using verified OTP ──────────────────────────────
+  // ── Step 3: Reset password using ID token + role ────────────────────────────
   const handleReset = async () => {
     if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
-    // Server verifies OTP + role, then resets the password
-    const result = await resetPassword(phone, otp, newPassword, role);
+    const result = await resetPassword(phone, idTokenRef.current, newPassword, role);
     setLoading(false);
     if (result.success) { setStep('success'); }
     else { setError(result.error || 'Reset failed'); }

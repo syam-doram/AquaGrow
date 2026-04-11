@@ -225,26 +225,35 @@ export const loginWithOtp = async (req: any, res: any) => {
 
 export const resetPassword = async (req: any, res: any) => {
   try {
-    const { mobile, phone, otp, newPassword, role } = req.body;
-    const rawPhone = (phone || mobile || '').replace(/\D/g, '').slice(-10);
+    const { mobile, phone, otp, token, firebaseToken, newPassword, role } = req.body;
 
-    if (!rawPhone || !otp || !newPassword)
-      return res.status(400).json({ error: 'Phone, OTP and new password are required' });
+    // Accept Firebase ID token from 'token', 'firebaseToken', or legacy 'otp' field
+    const fbToken = firebaseToken || token || otp;
+    if (!fbToken || !newPassword)
+      return res.status(400).json({ error: 'Firebase token and new password are required' });
 
     if (newPassword.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    // Verify OTP using Fast2SMS in-memory store
-    const otpResult = fast2smsVerify(rawPhone, otp);
-    if (!otpResult.valid)
-      return res.status(401).json({ error: otpResult.error || 'Invalid or expired OTP' });
+    // Verify Firebase ID token — confirms the user passed phone OTP
+    let decoded: admin.auth.DecodedIdToken;
+    try {
+      decoded = await admin.auth().verifyIdToken(fbToken);
+    } catch (firebaseErr: any) {
+      console.error('[Reset Password] Token verification failed:', firebaseErr.message);
+      return res.status(401).json({ error: 'Invalid or expired session. Please verify OTP again.' });
+    }
 
-    const normPhone = rawPhone;
+    const firebasePhone = decoded.phone_number;
+    if (!firebasePhone)
+      return res.status(400).json({ error: 'No phone number found in token' });
+
+    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
     const targetRole = role || 'farmer';
 
-    // Role-based lookup — find the correct account (farmer vs provider)
+    // Role-based lookup — farmer vs provider
     const user = await UserMongo.findOne({
       role: targetRole,
       $or: [
