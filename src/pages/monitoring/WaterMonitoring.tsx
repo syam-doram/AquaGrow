@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import {
   History, AlertTriangle, TrendingUp, Calendar,
   Bluetooth, Wifi, RefreshCcw, X, ShieldCheck,
@@ -44,7 +45,7 @@ const pondPalette = (score: number) =>
 
 export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, waterRecords, isPro, addWaterRecord } = useData();
+  const { ponds, waterRecords, isPro, addWaterRecord, serverError } = useData();
   const activePonds = ponds.filter(p => p.status !== 'harvested');
   const [selectedPondId, setSelectedPondId] = useState<string>(activePonds[0]?.id || '');
   const [selectedDate,   setSelectedDate]   = useState<Date>(startOfToday());
@@ -107,10 +108,14 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
     <div className="min-h-screen bg-paper flex flex-col">
       <Header title={t.monitor} showBack onMenuClick={onMenuClick} />
       <div className="pt-28 flex-1 flex items-center justify-center">
-        <NoPondState
-          isDark={false}
-          subtitle="Add a pond to start monitoring water quality parameters daily."
-        />
+        {serverError ? (
+          <ServerErrorState isDark={false} />
+        ) : (
+          <NoPondState
+            isDark={false}
+            subtitle="Add a pond to start monitoring water quality parameters daily."
+          />
+        )}
       </div>
     </div>
   );

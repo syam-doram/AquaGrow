@@ -10,6 +10,7 @@ import {
 import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
 import { cn } from '../../utils/cn';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import type { Translations } from '../../translations';
 
 // ─── Subscription Gate Banner ─────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const SubGateBanner = ({ isDark, navigate }: { isDark: boolean; navigate: Return
 // ─── ROI Hub Page ──────────────────────────────────────────────────────────────
 export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: () => void }) => {
   const navigate = useNavigate();
-  const { theme, roiEntries, ponds, isPro } = useData();
+  const { theme, roiEntries, ponds, isPro, serverError } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
   // ── Derived data from live context ──────────────────────────────────────────
@@ -196,8 +197,13 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
         </motion.div>
 
 
-        {/* ── SCENARIO: No ponds added — show empty state only, hide everything else ── */}
+        {/* ── SCENARIO: No ponds added — show empty/server error state, hide everything else ── */}
         {noPonds ? (
+          serverError ? (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <ServerErrorState isDark={isDark} />
+            </motion.div>
+          ) : (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className={cn('rounded-2xl border p-6 text-center', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}
@@ -218,6 +224,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
               <Plus size={11} /> Add First Pond
             </button>
           </motion.div>
+          )
         ) : (
           <>
             {/* ── SUBSCRIPTION BANNER (free plan) ── */}

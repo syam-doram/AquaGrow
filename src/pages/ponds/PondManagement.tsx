@@ -12,6 +12,7 @@ import { cn } from '../../utils/cn';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { AlertModal } from '../../components/AlertModal';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import { NoSubscriptionState } from '../../components/NoSubscriptionState';
 import { calculateDOC, getGrowthPercentage, calculateWeight } from '../../utils/pondUtils';
 import type { Translations } from '../../translations';
@@ -63,7 +64,7 @@ const STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: strin
 
 export const PondManagement = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, deletePond, user, isPro, theme, waterRecords, feedLogs, medicineLogs, reminders, unreadCount, harvestRequests } = useData();
+  const { ponds, deletePond, user, isPro, theme, waterRecords, feedLogs, medicineLogs, reminders, unreadCount, harvestRequests, serverError } = useData();
   const [activeTab, setActiveTab] = useState<'active' | 'planned' | 'harvested' | 'archive'>('active');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -473,18 +474,22 @@ export const PondManagement = ({ t, onMenuClick }: { t: Translations, onMenuClic
                 animate={{ opacity: 1, scale: 1 }}
                 className="py-4"
               >
-                <NoPondState
-                  isDark={isDark}
-                  subtitle={
-                    activeTab === 'active'
-                      ? t.addFirstPondDesc
-                      : activeTab === 'planned'
-                      ? t.needToRelease
-                      : activeTab === 'harvested'
-                      ? t.harvestHistory
-                      : t.archive
-                  }
-                />
+                {serverError ? (
+                  <ServerErrorState isDark={isDark} />
+                ) : (
+                  <NoPondState
+                    isDark={isDark}
+                    subtitle={
+                      activeTab === 'active'
+                        ? t.addFirstPondDesc
+                        : activeTab === 'planned'
+                        ? t.needToRelease
+                        : activeTab === 'harvested'
+                        ? t.harvestHistory
+                        : t.archive
+                    }
+                  />
+                )}
               </motion.div>
             )}
           </motion.div>

@@ -11,6 +11,7 @@ import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
 import { Header } from '../../components/Header';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import type { Translations } from '../../translations';
 import { API_BASE_URL } from '../../config';
 
@@ -117,7 +118,7 @@ const SpendBar = ({ label, amount, total, color, isDark }: {
 export const ROIEntry = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { ponds, expenses, feedLogs, medicineLogs, apiFetch, theme } = useData();
+  const { ponds, expenses, feedLogs, medicineLogs, apiFetch, theme, serverError } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
   // ── Only active/planned ponds — NEVER harvested ──
@@ -235,11 +236,15 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
       <div className={cn('min-h-screen', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
         <Header title={t.postHarvestROI} showBack />
         <div className="pt-24 px-4">
-          <NoPondState
-            isDark={isDark}
-            fullScreen={false}
-            subtitle="Add an active pond and complete a harvest cycle before logging ROI."
-          />
+          {serverError ? (
+            <ServerErrorState isDark={isDark} />
+          ) : (
+            <NoPondState
+              isDark={isDark}
+              fullScreen={false}
+              subtitle="Add an active pond and complete a harvest cycle before logging ROI."
+            />
+          )}
         </div>
       </div>
     );

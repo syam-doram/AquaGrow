@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Header } from '../../components/Header';
 import { useData } from '../../context/DataContext';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import { cn } from '../../utils/cn';
 import { calculateDOC } from '../../utils/pondUtils';
 import { getLunarStatus } from '../../utils/lunarUtils';
@@ -166,7 +167,7 @@ const BRAND_LIST = [
 
 export const SOPLibrary = () => {
   const navigate = useNavigate();
-  const { theme, ponds, waterRecords, feedLogs, medicineLogs } = useData();
+  const { theme, ponds, waterRecords, feedLogs, medicineLogs, serverError } = useData();
   const [selectedPondId, setSelectedPondId] = React.useState(ponds[0]?.id || '');
   const [selectedCategory, setSelectedCategory] = React.useState<'ALL' | 'MEDICINE' | 'FEED' | 'WATER' | 'MOLTING'>('ALL');
   const [viewMode, setViewMode] = React.useState<'STAGES' | 'DAILY' | 'ALERTS'>('ALERTS');
@@ -254,10 +255,14 @@ export const SOPLibrary = () => {
         onBack={() => navigate('/dashboard')}
       />
       <div className="pt-28 flex-1 flex items-center justify-center">
-        <NoPondState
-          isDark={isDark}
-          subtitle="Add a pond to access your live SOP alerts, stage roadmap, and 100-day schedule."
-        />
+        {serverError ? (
+          <ServerErrorState isDark={isDark} />
+        ) : (
+          <NoPondState
+            isDark={isDark}
+            subtitle="Add a pond to access your live SOP alerts, stage roadmap, and 100-day schedule."
+          />
+        )}
       </div>
     </div>
   );

@@ -45,6 +45,7 @@ import { cn } from '../../utils/cn';
 import { getLunarStatus } from '../../utils/lunarUtils';
 import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import { API_BASE_URL } from '../../config';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
@@ -242,7 +243,8 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     feedLogs,
     medicineLogs,
     updatePond,
-    theme
+    theme,
+    serverError
   } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
   const [showWeatherAlert, setShowWeatherAlert] = useState(true);
@@ -1028,10 +1030,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           </div>
         ) : activePonds.length === 0 ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-6">
-            <NoPondState
-              isDark={isDark}
-              subtitle="Deploy your first pond to unlock real-time monitoring, SOP alerts, and AI-powered intelligence."
-            />
+            {serverError ? (
+              <ServerErrorState isDark={isDark} />
+            ) : (
+              <NoPondState
+                isDark={isDark}
+                subtitle="Deploy your first pond to unlock real-time monitoring, SOP alerts, and AI-powered intelligence."
+              />
+            )}
           </motion.div>
         ) : (
           <div className="space-y-6">

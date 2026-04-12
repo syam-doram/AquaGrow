@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Waves, Plus, Sun, CloudRain, Cloud, Snowflake, TrendingDown, Flame } from 'lucide-react';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -337,7 +338,7 @@ const getMedicineImportance = (title: string, doc: number, priority: string): 'U
 
 export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, addMedicineLog, medicineLogs, waterRecords, theme } = useData();
+  const { ponds, addMedicineLog, medicineLogs, waterRecords, theme, serverError } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
   // Only show active / planned ponds — no SOPs for harvested/sold ponds
@@ -643,10 +644,14 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
         ) : (
           /* No Ponds Empty State */
           <div className="mt-8">
-            <NoPondState
-              isDark={false}
-              subtitle="Add a pond to start tracking your daily medicine and SOP schedule."
-            />
+            {serverError ? (
+              <ServerErrorState isDark={false} />
+            ) : (
+              <NoPondState
+                isDark={false}
+                subtitle="Add a pond to start tracking your daily medicine and SOP schedule."
+              />
+            )}
           </div>
         )}
 

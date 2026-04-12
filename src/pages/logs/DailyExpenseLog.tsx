@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NoPondState } from '../../components/NoPondState';
+import { ServerErrorState } from '../../components/ServerErrorState';
 import { 
   ChevronLeft, 
   Calendar, 
@@ -24,7 +25,7 @@ import type { Translations } from '../../translations';
 
 export const DailyExpenseLog = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { ponds, addExpense } = useData();
+  const { ponds, addExpense, serverError } = useData();
 
   const activePonds = ponds.filter(p => p.status === 'active');
   
@@ -81,10 +82,14 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
         <div className="w-10" />
       </header>
       <div className="pt-28 flex-1 flex items-center justify-center">
-        <NoPondState
-          isDark={false}
-          subtitle="Add a pond to start tracking and logging your daily operational expenses."
-        />
+        {serverError ? (
+          <ServerErrorState isDark={false} />
+        ) : (
+          <NoPondState
+            isDark={false}
+            subtitle="Add a pond to start tracking and logging your daily operational expenses."
+          />
+        )}
       </div>
     </div>
   );
