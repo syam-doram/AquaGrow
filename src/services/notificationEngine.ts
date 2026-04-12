@@ -598,6 +598,216 @@ export function generateSmartAlerts(params: {
     }
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // 9. TREND ANALYSIS — Fires BEFORE thresholds are crossed (predictive)
+  // ──────────────────────────────────────────────────────────────────────────
+  for (const pond of ponds.filter(p => p.status === 'active')) {
+    const records = waterRecords
+      .filter((r: any) => r.pondId === pond.id)
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5); // last 5 readings
+
+    if (records.length >= 3) {
+      const [r0, r1, r2] = records;
+
+      // pH declining trend — warn before it hits 7.5
+      if (r0.ph != null && r1.ph != null && r2.ph != null) {
+        const phDrop = r2.ph - r0.ph; // how much pH dropped over 3 readings
+        if (phDrop > 0.3 && r0.ph >= 7.5 && r0.ph < 7.9) {
+          alerts.push({
+            id: uid(), category: 'pond_danger', priority: 'high',
+            title: `📉 pH Declining Trend — ${pond.name}`,
+            body: `pH dropped from ${r2.ph.toFixed(1)} → ${r1.ph.toFixed(1)} → ${r0.ph.toFixed(1)} over ${records.length} readings. At this rate, pH will hit danger zone (<7.5) within 1–2 days. Apply Dolomite Lime (15 kg/acre) NOW before it crashes.`,
+            action: 'Apply Lime', actionRoute: `/pond/${pond.id}`,
+            pondId: pond.id, pondName: pond.name,
+            icon: '📉', timestamp: Date.now(), isRead: false,
+          });
+        }
+
+        // pH rising trend — warn before it hits 8.5
+        if (phDrop < -0.3 && r0.ph <= 8.5 && r0.ph > 8.1) {
+          alerts.push({
+            id: uid(), category: 'pond_danger', priority: 'medium',
+            title: `📈 pH Rising — Algal Bloom Risk — ${pond.name}`,
+            body: `pH rising: ${r2.ph.toFixed(1)} → ${r1.ph.toFixed(1)} → ${r0.ph.toFixed(1)}. Likely algal bloom intensifying. Apply Zeolite (20 kg/acre) and check Secchi depth. If <25cm, reduce feeding by 20%.`,
+            action: 'Log Water', actionRoute: `/logs/conditions`,
+            pondId: pond.id, pondName: pond.name,
+            icon: '📈', timestamp: Date.now(), isRead: false,
+          });
+        }
+      }
+
+      // DO declining trend — warn before 4.5
+      if (r0.do != null && r1.do != null && r2.do != null) {
+        const doDrop = r2.do - r0.do;
+        if (doDrop > 0.8 && r0.do >= 4.5 && r0.do < 5.5) {
+          alerts.push({
+            id: uid(), category: 'pond_danger', priority: 'high',
+            title: `📉 DO Dropping Fast — ${pond.name}`,
+            body: `Dissolved oxygen falling: ${r2.do.toFixed(1)} → ${r1.do.toFixed(1)} → ${r0.do.toFixed(1)} mg/L. If trend continues, DO will hit danger zone (<4.5) by next reading. Run extra paddlewheel aerators now, especially at night.`,
+            action: 'Check Pond', actionRoute: `/pond/${pond.id}`,
+            pondId: pond.id, pondName: pond.name,
+            icon: '⬇️', timestamp: Date.now(), isRead: false,
+          });
+        }
+      }
+
+      // Ammonia rising trend
+      if (r0.ammonia != null && r1.ammonia != null && r2.ammonia != null) {
+        const ammoniaRise = r0.ammonia - r2.ammonia;
+        if (ammoniaRise > 0.1 && r0.ammonia < 0.3) {
+          alerts.push({
+            id: uid(), category: 'pond_danger', priority: 'high',
+            title: `⬆️ Ammonia Rising — ${pond.name}`,
+            body: `Ammonia trend: ${r2.ammonia.toFixed(2)} → ${r1.ammonia.toFixed(2)} → ${r0.ammonia.toFixed(2)} mg/L. Reduce feed by 20% immediately. Apply Zeolite (15 kg/acre). Do NOT apply probiotics until ammonia stabilizes.`,
+            action: 'Apply Zeolite', actionRoute: `/logs/conditions`,
+            pondId: pond.id, pondName: pond.name,
+            icon: '⬆️', timestamp: Date.now(), isRead: false,
+          });
+        }
+      }
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 10. COMPOUND RISK — Multiple bad signals at once = escalated alert
+  // ──────────────────────────────────────────────────────────────────────────
+  for (const pond of ponds.filter(p => p.status === 'active')) {
+    const records = waterRecords
+      .filter((r: any) => r.pondId === pond.id)
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const latest = records[0];
+    if (!latest) continue;
+
+    const doc = pond.stockingDate
+      ? Math.floor((Date.now() - new Date(pond.stockingDate).getTime()) / 86400000) : 0;
+
+    const riskFactors: string[] = [];
+    if (latest.do != null && latest.do < 5.0) riskFactors.push(`Low DO (${latest.do} mg/L)`);
+    if (latest.ph != null && (latest.ph < 7.6 || latest.ph > 8.4)) riskFactors.push(`pH out of range (${latest.ph})`);
+    if (latest.ammonia != null && latest.ammonia > 0.2) riskFactors.push(`Rising ammonia (${latest.ammonia} mg/L)`);
+    if (latest.temperature != null && latest.temperature > 32) riskFactors.push(`High temp (${latest.temperature}°C)`);
+    if (doc >= 28 && doc <= 38) riskFactors.push(`Critical WSSV window (DOC ${doc})`);
+
+    if (riskFactors.length >= 2) {
+      alerts.push({
+        id: uid(), category: 'pond_danger', priority: riskFactors.length >= 3 ? 'critical' : 'high',
+        title: `⚠️ ${riskFactors.length} Risk Factors Active — ${pond.name}`,
+        body: `Compound risk detected: ${riskFactors.join(' + ')}. Multiple stress factors simultaneously increase disease susceptibility by 3–5×. Immediate action required: fix highest priority parameter first, then apply Vitamin C (5g/kg feed) for stress relief.`,
+        action: 'View Pond', actionRoute: `/pond/${pond.id}`,
+        pondId: pond.id, pondName: pond.name,
+        icon: riskFactors.length >= 3 ? '🆘' : '⚠️', timestamp: Date.now(), isRead: false,
+      });
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 11. MEDICINE GAP DETECTION — "Haven't applied X in N days"
+  //     Uses medicineLogs passed via feedRecords channel (same data source)
+  // ──────────────────────────────────────────────────────────────────────────
+  const medicineLogs = feedRecords; // feedRecords doubles as medicine log source
+  for (const pond of ponds.filter(p => p.status === 'active')) {
+    const doc = pond.stockingDate
+      ? Math.floor((Date.now() - new Date(pond.stockingDate).getTime()) / 86400000) : 0;
+    if (doc < 5) continue;
+
+    const pondMeds = medicineLogs.filter((m: any) => m.pondId === pond.id);
+
+    // Check Mineral Mix gap (should apply 2x weekly)
+    const lastMineral = pondMeds
+      .filter((m: any) => m.name?.toLowerCase().includes('mineral'))
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    const mineralDaysAgo = lastMineral
+      ? Math.floor((Date.now() - new Date(lastMineral.date).getTime()) / 86400000) : 99;
+    if (mineralDaysAgo >= 5 && doc >= 10) {
+      alerts.push({
+        id: uid(), category: 'pond_danger', priority: 'medium',
+        title: `💊 Mineral Mix Gap — ${pond.name}`,
+        body: `No Mineral Mix logged in ${mineralDaysAgo === 99 ? 'this crop' : `${mineralDaysAgo} days`} for ${pond.name} (DOC ${doc}). Without regular mineralization, soft-shell molting mortality risk increases. Apply 15–20 kg/acre today.`,
+        action: 'Log Medicine', actionRoute: `/medicine`,
+        pondId: pond.id, pondName: pond.name,
+        icon: '💊', timestamp: Date.now(), isRead: false,
+      });
+    }
+
+    // Check Probiotic gap (should apply 2x weekly)
+    const lastProbiotic = pondMeds
+      .filter((m: any) => m.name?.toLowerCase().includes('probiotic'))
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    const probioticDaysAgo = lastProbiotic
+      ? Math.floor((Date.now() - new Date(lastProbiotic.date).getTime()) / 86400000) : 99;
+    if (probioticDaysAgo >= 6 && doc >= 5) {
+      alerts.push({
+        id: uid(), category: 'disease', priority: 'medium',
+        title: `🧫 Probiotic Gap — ${pond.name}`,
+        body: `No probiotic logged in ${probioticDaysAgo === 99 ? 'this crop' : `${probioticDaysAgo} days`} for ${pond.name}. Water microbial balance is at risk. Pathogenic Vibrio colonies can double without regular probiotic competition. Apply today.`,
+        action: 'Log Medicine', actionRoute: `/medicine`,
+        pondId: pond.id, pondName: pond.name,
+        icon: '🧫', timestamp: Date.now(), isRead: false,
+      });
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 12. PREDICTIVE HARVEST — ABW trajectory → estimated harvest date
+  // ──────────────────────────────────────────────────────────────────────────
+  for (const pond of ponds.filter(p => p.status === 'active')) {
+    const doc = pond.stockingDate
+      ? Math.floor((Date.now() - new Date(pond.stockingDate).getTime()) / 86400000) : 0;
+    const abw = pond.currentWeight || 0; // grams
+
+    if (doc >= 50 && abw > 0 && abw < 20) {
+      // Growth rate estimate: typically 0.15–0.25g/day for vannamei
+      const growthRate = abw / doc; // g/day average
+      const targetAbw = 20; // typical harvest size
+      const daysToHarvest = Math.round((targetAbw - abw) / Math.max(growthRate, 0.1));
+      const harvestDate = new Date(Date.now() + daysToHarvest * 86400000);
+      const harvestStr = harvestDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+      if (daysToHarvest <= 20 && daysToHarvest > 0) {
+        alerts.push({
+          id: uid(), category: 'harvest', priority: 'medium',
+          title: `🎯 Harvest Window Approaching — ${pond.name}`,
+          body: `Based on current ABW (${abw}g at DOC ${doc}) and growth rate (~${growthRate.toFixed(2)}g/day), ${pond.name} is projected to reach 20g harvest size by ~${harvestStr} (${daysToHarvest} days). Begin buyer contact and logistics planning now.`,
+          action: 'View ROI', actionRoute: `/finance`,
+          pondId: pond.id, pondName: pond.name,
+          icon: '🎯', timestamp: Date.now(), isRead: false,
+        });
+      }
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 13. FCR INTELLIGENCE — Analyze feed efficiency vs industry benchmark
+  // ──────────────────────────────────────────────────────────────────────────
+  for (const pond of ponds.filter(p => p.status === 'active')) {
+    const doc = pond.stockingDate
+      ? Math.floor((Date.now() - new Date(pond.stockingDate).getTime()) / 86400000) : 0;
+    if (doc < 15) continue;
+
+    const totalFeed = feedRecords
+      .filter((f: any) => f.pondId === pond.id)
+      .reduce((s: number, f: any) => s + (f.quantity || 0), 0);
+    const biomass = (pond.seedCount || 0) * ((pond.currentWeight || 0) / 1000);
+
+    if (totalFeed > 0 && biomass > 0) {
+      const fcr = totalFeed / biomass;
+      const benchmarkFCR = 1.4;
+      const wastePercent = Math.round(((fcr - benchmarkFCR) / benchmarkFCR) * 100);
+
+      if (fcr > 1.7 && fcr <= 2.2) {
+        alerts.push({
+          id: uid(), category: 'feed', priority: 'high',
+          title: `📊 FCR ${fcr.toFixed(2)} — ${wastePercent}% Above Benchmark — ${pond.name}`,
+          body: `Your FCR (${fcr.toFixed(2)}) is ${wastePercent}% above the industry target (1.4). This means ~${Math.round((fcr - benchmarkFCR) * biomass)} kg of feed is being wasted. Check: (1) tray residue after each meal, (2) shrimp gut fill under light. Reduce daily feed by 15% for next 3 days.`,
+          action: 'Review Feed Log', actionRoute: `/logs/feed`,
+          pondId: pond.id, pondName: pond.name,
+          icon: '📊', timestamp: Date.now(), isRead: false,
+        });
+      }
+    }
+  }
+
   // Deduplicate and sort by priority
   const seen = new Set<string>();
   return alerts.filter(a => {
