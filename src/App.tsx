@@ -75,6 +75,7 @@ import { SOPLibrary } from './pages/management/SOPLibrary';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { AquaCalc } from './pages/tools/AquaCalc';
 import { AquaShop } from './pages/shop/AquaShop';
+import { FarmerOrders } from './pages/orders/FarmerOrders';
 
 // Provider Pages
 import { ProviderDashboard } from './pages/provider/ProviderDashboard';
@@ -532,6 +533,7 @@ const AppContent = () => {
                 <Route path="/daily-expense" element={<DailyExpenseLog t={t} />} />
                 <Route path="/aqua-calc" element={<AquaCalc />} />
                 <Route path="/shop" element={<AquaShop />} />
+                <Route path="/orders" element={<FarmerOrders />} />
                 <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
 
                 {/* Provider Routes */}

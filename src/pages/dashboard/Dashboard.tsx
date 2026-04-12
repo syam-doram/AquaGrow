@@ -36,7 +36,11 @@ import {
   Eye,
   FileText,
   ShoppingBag,
+  ShoppingCart,
   Tag,
+  BookOpen,
+  GraduationCap,
+  Package,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -654,7 +658,18 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           <div className={cn("absolute bottom-[-10%] left-[-10%] w-[60%] h-[40%] blur-[120px] rounded-full", isDark ? "bg-emerald-600/10" : "bg-emerald-500/5")} />
         </div>
 
-        <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo />
+        <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo
+          rightElement={
+            <button
+              onClick={() => navigate('/orders')}
+              className="relative w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: isDark ? 'rgba(199,130,0,0.12)' : 'rgba(199,130,0,0.10)' }}
+            >
+              <Package size={18} style={{ color: '#C78200' }} />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[6px] font-black rounded-full flex items-center justify-center">!</span>
+            </button>
+          }
+        />
 
         {/* ── SYNC PROGRESS BAR (shows on every dashboard entry ~2s) ── */}
         <AnimatePresence>
@@ -912,14 +927,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           {ponds.length > 0 && (
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: t.monitor,     icon: Activity,     path: '/monitor',               from: '#38bdf8', to: '#0284c7' },
-                { label: t.liveMonitor, icon: Eye,          path: '/live-monitor',          from: '#22d3ee', to: '#0891b2' },
-                { label: t.disease,     icon: HeartPulse,   path: '/disease-detection',     from: '#f87171', to: '#dc2626' },
-                { label: t.market,      icon: TrendingUp,   path: '/market',                from: '#34d399', to: '#059669' },
-                { label: t.weather,     icon: Wind,         path: '/weather',               from: '#818cf8', to: '#4f46e5' },
-                { label: 'AquaCalc',    icon: Calculator,   path: '/aqua-calc',             from: '#10b981', to: '#059669' },
-                { label: 'SOP Hub',     icon: FileText,     path: '/sop-library',           from: '#e879f9', to: '#c026d3' },
-                { label: '🛒 Shop',     icon: ShoppingBag,  path: '/shop',                  from: '#C78200', to: '#92400E' },
+                { label: t.monitor,     icon: Activity,       path: '/monitor',               from: '#38bdf8', to: '#0284c7' },
+                { label: t.liveMonitor, icon: Eye,            path: '/live-monitor',          from: '#22d3ee', to: '#0891b2' },
+                { label: t.disease,     icon: HeartPulse,     path: '/disease-detection',     from: '#f87171', to: '#dc2626' },
+                { label: t.market,      icon: TrendingUp,     path: '/market',                from: '#34d399', to: '#059669' },
+                { label: t.weather,     icon: Wind,           path: '/weather',               from: '#818cf8', to: '#4f46e5' },
+                { label: 'Learnings',   icon: GraduationCap,  path: '/learn',                 from: '#f59e0b', to: '#d97706' },
+                { label: 'Expert',      icon: BookOpen,       path: '/expert-consultations',  from: '#ec4899', to: '#db2777' },
+                { label: '🛒 Shop',     icon: ShoppingBag,    path: '/shop',                  from: '#C78200', to: '#92400E' },
               ].map((n, i) => (
                 <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-2 group outline-none">
                   <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 15px ${n.from}15` : `0 10px 25px ${n.from}20` }}>
