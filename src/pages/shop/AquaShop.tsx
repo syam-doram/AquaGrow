@@ -75,7 +75,7 @@ export const AquaShop = () => {
     if (ex) return prev.map(c => c.id === p.id ? { ...c, qty: c.qty + 1 } : c);
     return [...prev, { id: p.id, name: p.name, price: p.price, qty: 1, unit: p.unit, emoji: p.emoji }];
   });
-  const removeFromCart = (id: string) => setCart(prev => prev.reduce<CartItem[]>((acc, c) => {
+  const removeFromCart = (id: string) => setCart(prev => (prev as CartItem[]).reduce((acc: CartItem[], c: CartItem) => {
     if (c.id !== id) return [...acc, c];
     if (c.qty > 1) return [...acc, { ...c, qty: c.qty - 1 }];
     return acc;
