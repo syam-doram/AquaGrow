@@ -280,24 +280,107 @@ export const getSOPGuidance = (
 
   // ─── 1. WEEKLY MILESTONE MODEL ─────────────────────────────────────────────
   const preStockingWeeklyModel: Record<number, SOPSuggestion[]> = {
-    1: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Monday → Chlorine Pulse', description: 'Importance Day: Periodic sterilization during water preparation.', priority: 'HIGH' }],
-    2: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Tuesday → Soil Neutralizer', description: 'Importance Day: Maintaining soil pH stability.', priority: 'MEDIUM' }],
-    3: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Wednesday → Water Probiotic', description: 'Importance Day: Developing stable microbial flora.', priority: 'HIGH' }],
-    4: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Thursday → Mineral Prep', description: 'Importance Day: Building ionic balance (Ca, Mg, K).', priority: 'HIGH' }],
-    5: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Friday → Water Probiotic', description: 'Importance Day: Bio-floc support pulse.', priority: 'HIGH' }],
-    6: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Saturday → Algae Booster', description: 'Importance Day: Organic molasses pulse for water color.', priority: 'MEDIUM' }],
-    0: [{ type: 'TIP', category: 'WATER', title: 'Sunday → Quality Audit', description: 'Importance Day: Full water chemistry check (Before Stocking).', priority: 'MEDIUM' }],
+    1: [{ // Monday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Monday → Chlorine Pulse',
+      description: 'Weekly sterilization to kill residual bacteria and pathogens in pond water. Dissolve TCC (Trichloro Cyanuric Acid) or Calcium Hypochlorite in a bucket of water, then broadcast evenly across the pond surface early morning. Run aerators for 4 hours after application. Do NOT apply probiotics for 48 hours after chlorination. Test for chlorine residue before next step.',
+      dose: '10–30 ppm (2–5 kg/acre TCC)',
+      priority: 'HIGH'
+    }],
+    2: [{ // Tuesday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Tuesday → Soil Neutralizer',
+      description: 'Apply Dolomite (Ca-Mg Carbonate) or Agricultural Lime to stabilize soil and water pH during pond preparation. Broadcast dry powder evenly across pond bottom or dissolve in water and spray. Optimal soil pH target: 7.0–8.0. This prevents toxic H2S gas buildup from acidic bottom sediment. Check soil pH with a meter at 3 spots across the pond after 24 hours.',
+      dose: '100–200 kg/acre (Dolomite)',
+      priority: 'MEDIUM'
+    }],
+    3: [{ // Wednesday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Wednesday → Water Probiotic',
+      description: 'Develop a stable beneficial microbial community in pre-stocking water. Mix probiotic powder (Bacillus species) with jaggery water (1 kg jaggery in 20L water), activate for 4 hours, then broadcast across pond by boat or splashing. Apply in the morning so bacteria can establish during daylight. This builds competitive exclusion against Vibrio and pathogenic bacteria before shrimp arrive.',
+      dose: '250–500 g/acre',
+      priority: 'HIGH'
+    }],
+    4: [{ // Thursday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Thursday → Mineral Prep',
+      description: 'Build correct ionic balance (Ca, Mg, K) in water before seed stocking. Dissolve mineral mix in pond water and spread evenly. Target: Calcium >100 ppm, Magnesium >25 ppm, K+ >20 ppm. Correct mineral balance ensures proper shell hardening of seed on day 0 and prevents early molting death. Test water hardness with a kit after application.',
+      dose: '10–20 kg/acre (Mineral Mix)',
+      priority: 'HIGH'
+    }],
+    5: [{ // Friday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Friday → Water Probiotic',
+      description: 'Second probiotic pulse for bio-floc and green water support. Mix probiotic with molasses (500 ml/acre) and rice bran (1 kg/acre) in 20L water, activate 6 hours, broadcast in evening. This boosts plankton bloom density, which is critical for seed survival nutrition on stocking day. Check water color — target: olive green or brown-green (Secchi depth 25–40 cm).',
+      dose: '250 g/acre (Bacillus probiotic)',
+      priority: 'HIGH'
+    }],
+    6: [{ // Saturday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Saturday → Algae Booster',
+      description: 'Feed the developing green water bloom with organic nutrients. Mix molasses + rice bran + organic manure in water, ferment for 2 hours, broadcast across pond in morning. This develops stable zooplankton (Chaetoceros, Skeletonema) which acts as natural first food for PL seed on stocking day. Measure Secchi disk depth — target 35–45 cm. Avoid overfeeding (depth <25 cm = too dense).',
+      dose: 'Molasses 1 L/acre + Rice Bran 2 kg/acre',
+      priority: 'MEDIUM'
+    }],
+    0: [{ // Sunday
+      type: 'TIP', category: 'WATER',
+      title: 'Sunday → Quality Audit',
+      description: 'Full pre-stocking water quality check. Test and record: pH (target 7.8–8.2), Alkalinity (target 100–150 ppm), Salinity (target 15–25 ppt for vannamei), DO (target >5 mg/L at dawn), Ammonia (<0.1 ppm), Temperature (target 28–32°C), Turbidity (Secchi 30–45 cm). Fix any out-of-range values before stocking. If all parameters are within range, pond is READY for seed. Document results in your farm log.',
+      priority: 'MEDIUM'
+    }],
   };
 
   const activeWeeklyModel: Record<number, SOPSuggestion[]> = {
-    1: [{ type: 'MEDICINE', category: 'MOLTING', applicationType: 'WATER', title: 'Monday → Mineral Mix', description: 'Importance Day: Full mineralization pulse for lunar preparation.', priority: 'HIGH' }],
-    2: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Tuesday → Water Probiotic', description: 'Importance Day: Establishing water microbial balance.', priority: 'HIGH' }],
-    3: [{ type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED', title: 'Wednesday → Gut Probiotic', description: 'Importance Day: Intensive gut-health feed coating.', priority: 'HIGH' }],
-    4: [{ type: 'MEDICINE', category: 'WATER', applicationType: 'WATER', title: 'Thursday → Water Probiotic', description: 'Importance Day: Secondary water conditioning.', priority: 'HIGH' }],
-    5: [{ type: 'MEDICINE', category: 'MOLTING', applicationType: 'WATER', title: 'Friday → Mineral Mix', description: 'Importance Day: Final mineralization for molting cycle.', priority: 'HIGH' }],
-    6: [{ type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED', title: 'Saturday → Immunity Booster', description: 'Importance Day: Herbal/Vitamin tonics for crop defense.', priority: 'HIGH' }],
-    0: [{ type: 'TIP', category: 'WATER', title: 'Sunday → Water Audit', description: 'Weekly Audit: Full check (pH, Alk, Ca, Mg).', priority: 'MEDIUM' }],
+    1: [{ // Monday
+      type: 'MEDICINE', category: 'MOLTING', applicationType: 'WATER',
+      title: 'Monday → Mineral Mix',
+      description: 'Weekly mineralization pulse critical for shell hardening and molt recovery. Dissolve mineral mix (Ca, Mg, K) in a bucket of water, broadcast evenly in early morning across the entire pond. Shrimp require high calcium during weekly molting cycles — insufficient minerals cause soft-shell mortality. After applying, check tray for soft-shell shrimp by evening. Avoid mixing with probiotics on the same day.',
+      dose: '15–20 kg/acre (Mineral Mix)',
+      priority: 'HIGH'
+    }],
+    2: [{ // Tuesday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Tuesday → Water Probiotic',
+      description: 'Establish and maintain beneficial microbial balance in pond water. Activate probiotics (Bacillus, Lactobacillus) with jaggery water (1 kg/20L) for 4–6 hours before broadcasting. Apply in the morning for maximum daylight activation. This suppresses pathogenic Vibrio growth, reduces bottom sludge, and maintains stable water color (green/brown). Do NOT apply within 24 hours of any disinfectant or antibiotic.',
+      dose: '250–500 g/acre',
+      priority: 'HIGH'
+    }],
+    3: [{ // Wednesday
+      type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+      title: 'Wednesday → Gut Probiotic',
+      description: 'Intensive mid-week gut health treatment via feed coating. Mix probiotic with a small quantity of vegetable oil or fish oil first (as a carrier), then coat onto feed pellets 20 minutes before each feeding slot. Apply across all 4–5 daily meals. This colonizes the shrimp intestine with beneficial bacteria, improves FCR, increases nutrient absorption, and prevents hepatopancreas infections (EMS). Check tray for leftover feed — if residue is high, shrimp gut health may be compromised.',
+      dose: '5–10 g/kg feed',
+      priority: 'HIGH'
+    }],
+    4: [{ // Thursday
+      type: 'MEDICINE', category: 'WATER', applicationType: 'WATER',
+      title: 'Thursday → Water Probiotic',
+      description: 'Secondary water probiotic pulse for continuous microbial load management. Activate probiotic in jaggery water (500g jaggery per batch) for 4 hours. Apply in the evening, 2 hours after last feeding slot. Thursday application bridges the week — critical for ponds with moderate feeding rates where waste accumulation increases from Wednesday onward. Observe water color the next morning — fading green indicates need for algae booster.',
+      dose: '250 g/acre',
+      priority: 'HIGH'
+    }],
+    5: [{ // Friday
+      type: 'MEDICINE', category: 'MOLTING', applicationType: 'WATER',
+      title: 'Friday → Mineral Mix',
+      description: 'Pre-weekend mineralization to prepare shrimp for weekend molting peak (often linked to lunar cycle + reduced farm activity). Dissolve mineral mix in water and broadcast from boat in the morning. Ensure Ca:Mg ratio is 3:1. Friday application ensures minerals are bioavailable in the water column through the weekend when farm monitoring may be reduced. Check aerator function after applying — minerals can briefly reduce DO for 2–3 hours.',
+      dose: '15–20 kg/acre',
+      priority: 'HIGH'
+    }],
+    6: [{ // Saturday
+      type: 'MEDICINE', category: 'MEDICINE', applicationType: 'FEED',
+      title: 'Saturday → Immunity Booster',
+      description: 'Weekly immune priming to prevent viral and bacterial outbreaks. Mix herbal/vitamin supplement (Vitamin C + Vitamin E + Beta-glucan or turmeric extract) with feed oil as carrier, coat onto feed 15–20 minutes before feeding. Apply across all feeding slots. Beta-glucan activates the shrimp innate immune system within 4–6 hours. Vitamin C is water-soluble — feed immediately after coating. Do NOT store vitamin-coated feed for more than 30 minutes. Observe shrimp antennae and body surface for redness or white patches after afternoon feed.',
+      dose: 'Vit C: 3g/kg feed + Vit E: 1g/kg + Beta-glucan: 2g/kg',
+      priority: 'HIGH'
+    }],
+    0: [{ // Sunday
+      type: 'TIP', category: 'WATER',
+      title: 'Sunday → Water Audit',
+      description: 'Complete weekly water quality audit. Test and record ALL parameters: (1) pH — target 7.5–8.5, if low apply Dolomite, if high apply Zeolite. (2) Alkalinity — target 80–150 ppm, correct with sodium bicarbonate if below 80. (3) Calcium — target >80 ppm, apply mineral mix if low. (4) Magnesium — target >25 ppm. (5) DO at dawn — must be >4 mg/L, increase aerators if borderline. (6) Ammonia — must be <0.25 ppm, apply Zeolite + reduce feed if rising. (7) Secchi depth — target 25–40 cm. Record all values in your farm log and compare to last week. Rising trends must be acted on immediately, not waited upon.',
+      priority: 'MEDIUM'
+    }],
   };
+
   
   if (doc < 0) {
     if (preStockingWeeklyModel[dayOfWeek]) {

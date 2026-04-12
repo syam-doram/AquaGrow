@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Waves, Plus, Sun, CloudRain, Cloud, Snowflake, TrendingDown, Flame } from 'lucide-react';
 import { NoPondState } from '../../components/NoPondState';
 import { ServerErrorState } from '../../components/ServerErrorState';
@@ -1042,9 +1042,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           <h2 className={cn('font-black text-[13px] tracking-tight', isDark ? 'text-white' : 'text-ink')}>{t.dailySOP}</h2>
                           <p className="text-[#C78200] text-[7px] font-black uppercase tracking-widest mt-0.5">
                             {selectedDate.toDateString() === new Date().toDateString()
-                              ? `Today Â· DOC ${currentDoc}` 
+                              ? `Today · DOC ${currentDoc}` 
                               : `${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
-                            } Â· {selectedDate.toLocaleDateString('en-IN', { weekday: 'long' })}
+                            } · {selectedDate.toLocaleDateString('en-IN', { weekday: 'long' })}
                           </p>
                         </div>
                         <div className={cn(
@@ -1058,7 +1058,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       </div>
 
                       <div className="space-y-2">
-                        {todayGuidance.map((item, i) => {
+                        {todayGuidance.filter(item => item.type !== 'FEED').map((item, i) => {
                           const isAlreadyInHistory = medicineLogs.some(l =>
                             l.pondId === selectedPond.id &&
                             l.name === item.title &&
@@ -1157,7 +1157,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                               ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                                               : 'bg-orange-500/10 text-orange-500 border-orange-500/20'
                                           )}>
-                                            {item.applicationType === 'WATER' ? 'ðŸ’§ Water' : 'ðŸ½ Feed'}
+                                            {item.applicationType === 'WATER' ? '💧 Water' : '🍽 Feed'}
                                           </span>
                                         )}
 
@@ -1171,7 +1171,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
                                         {isAlreadyInHistory && (
                                           <span className="text-[6px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">
-                                            âœ“ Logged
+                                            ✓ Logged
                                           </span>
                                         )}
 
@@ -1180,12 +1180,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                             'text-[6px] font-black px-1.5 py-0.5 rounded-full border ml-auto',
                                             isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
                                           )}>
-                                            ~â‚¹{estimateMedicineCost(item.title, pondAcreage)}
+                                            ~₹{estimateMedicineCost(item.title, pondAcreage)}
                                           </span>
                                         )}
                                       </div>
 
-                                      {/* Description â€” inline, single line, dimmed */}
+                                      {/* Description — inline, single line, dimmed */}
                                       {item.description && !isAlreadyInHistory && (
                                         <p className={cn('text-[9px] font-medium mt-1 leading-snug',
                                           isDark ? 'text-white/35' : 'text-slate-400'
@@ -1224,7 +1224,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <p className="text-indigo-300/60 text-[7px] font-black uppercase tracking-widest">Estimated Cost</p>
-                              <p className="text-white text-lg font-black tracking-tight mt-0.5">&#x20B9;{totalEstimatedCost.toLocaleString()}</p>
+                              <p className="text-white text-lg font-black tracking-tight mt-0.5">₹{totalEstimatedCost.toLocaleString()}</p>
                             </div>
                             <div className="w-9 h-9 bg-indigo-800/40 rounded-xl flex items-center justify-center border border-indigo-700/30">
                               <Pill size={16} className="text-indigo-300" />
@@ -1234,7 +1234,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             {selectedCosts.map((sc, i) => (
                               <div key={i} className="flex items-center justify-between">
                                 <p className="text-indigo-200/60 text-[9px] font-bold truncate flex-1 mr-3">{sc.name}</p>
-                                <p className="text-indigo-200 text-[9px] font-black flex-shrink-0">&#x20B9;{sc.cost}</p>
+                                <p className="text-indigo-200 text-[9px] font-black flex-shrink-0">₹{sc.cost}</p>
                               </div>
                             ))}
                           </div>
