@@ -467,16 +467,21 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (isNewLogin) {
         const uid = newUser.id || (newUser as any)._id;
         const currentTokens = newTokens || tokens;
-        fetchUserPonds(uid, currentTokens);
-        fetchSubscription(uid, currentTokens);
-        fetchFeedLogs(uid, currentTokens);
-        fetchMedicineLogs(uid, currentTokens);
-        fetchWaterLogs(uid, currentTokens);
-        fetchSOPLogs(uid, currentTokens);
-        fetchROIEntries(uid, currentTokens);
-        fetchAeratorLogs(uid, currentTokens);
-        fetchExpenses(uid, currentTokens);
-        fetchHarvestRequests(currentTokens);
+        if ((newUser as any).role !== 'provider') {
+          fetchUserPonds(uid, currentTokens);
+          fetchSubscription(uid, currentTokens);
+          fetchFeedLogs(uid, currentTokens);
+          fetchMedicineLogs(uid, currentTokens);
+          fetchWaterLogs(uid, currentTokens);
+          fetchSOPLogs(uid, currentTokens);
+          fetchROIEntries(uid, currentTokens);
+          fetchAeratorLogs(uid, currentTokens);
+          fetchExpenses(uid, currentTokens);
+          fetchHarvestRequests(currentTokens);
+        } else {
+          // Providers only need subscription — skip all farmer-only endpoints
+          fetchSubscription(uid, currentTokens);
+        }
       }
     } else {
       localStorage.removeItem('aqua_user');

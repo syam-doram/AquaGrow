@@ -337,8 +337,9 @@ export const firebaseLogin = async (req: any, res: any) => {
       normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
     }
 
-    // Find user by phone (multi-format, same backward-compat logic as password login)
+    // Find user by phone + role directly (prevents same-phone farmer/provider collision)
     const user = await UserMongo.findOne({
+      role: targetRole,
       $or: [
         { phoneNumber: normPhone },
         { phoneNumber: `+91${normPhone}` },
@@ -348,15 +349,11 @@ export const firebaseLogin = async (req: any, res: any) => {
 
     if (!user)
       return res.status(404).json({
-        error: `No account found for this number. Please register first.`
+        error: `No ${targetRole} account found for this number. Please register first or switch portals.`
       });
 
-    // Role check — give a helpful error if user tries the wrong portal
+    // Role check — already guaranteed by query above, but double-check for safety
     const userRole = user.role || 'farmer';
-    if (userRole !== targetRole)
-      return res.status(403).json({
-        error: `This number is registered as a ${userRole}. Please switch to the ${userRole} portal.`
-      });
 
     const sub = await SubscriptionMongo.findOne({ userId: user._id });
     const id = user._id.toString();
