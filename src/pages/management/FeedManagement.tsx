@@ -168,7 +168,7 @@ const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPh
 
 export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, feedLogs, addFeedLog, theme, serverError } = useData();
+  const { ponds, feedLogs, addFeedLog, theme, serverError, isOffline } = useData();
 
   // Only show active / planned ponds — never harvested ones in Feed
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'planned');
@@ -283,6 +283,11 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   // ”€”€ Daily Sequence slot log handler (needs biomassKg, totalFeedConsumed, combinedFactor) ”€”€”€”€”€
   const toggleSlot = async (slotTime: string, kg: string, slotLabel: string) => {
     if (syncedSlots.includes(slotTime) || !selectedPond) return;
+    // Guard: can't log when offline — API call will fail silently
+    if (isOffline) {
+      alert('You are offline. Feed slot logging will be available once connected.');
+      return;
+    }
     const feedKg = Number(kg);
     const feedPricePerKg = currentDoc <= 15 ? 90 : currentDoc <= 30 ? 75 : currentDoc <= 60 ? 68 : 62;
     const slotCost = Math.round(feedKg * feedPricePerKg);
@@ -346,6 +351,23 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           <Fish size={14} className={isDark ? "text-emerald-400" : "text-emerald-600"} />
         </div>
       </header>
+
+      {/* ── Offline Banner ── */}
+      {isOffline && (
+        <div className={cn(
+          'fixed top-[calc(env(safe-area-inset-top)+3.8rem)] left-0 right-0 max-w-[420px] mx-auto z-40 px-4'
+        )}>
+          <div className={cn(
+            'flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[8px] font-black uppercase tracking-widest',
+            isDark
+              ? 'bg-amber-500/10 border-amber-500/25 text-amber-400'
+              : 'bg-amber-50 border-amber-300 text-amber-700'
+          )}>
+            <WifiOff size={11} className="flex-shrink-0" />
+            <span>Offline — Showing cached data. Feed logging disabled until connected.</span>
+          </div>
+        </div>
+      )}
 
       <div className="pt-[calc(env(safe-area-inset-top)+4.5rem)] px-4 max-w-[420px] mx-auto relative z-10 space-y-4">
 
@@ -420,12 +442,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           </div>
         )}
 
-        {!selectedPond && activePonds.length > 0 ? (
-          <div className="mt-8">
-            <NoPondState isDark={isDark} subtitle="Add a pond to start tracking daily feed schedules and FCR analytics." />
-          </div>
-
-        ) : selectedPond.status === 'planned' ? (
+        {!selectedPond ? null : selectedPond.status === 'planned' ? (
           /* ”€”€ Pre-Stocking ”€”€ */
           <div className={cn("rounded-[2rem] p-5 border space-y-4 relative overflow-hidden",
             isDark ? "bg-white/[0.03] border-white/8" : "bg-white border-slate-100 shadow-sm")}>

@@ -1102,6 +1102,17 @@ if (process.env.NODE_ENV !== 'test') {
 
       // ── Push engine: every 15 min is sufficient — 2 min caused duplicate engine-alerts
       setInterval(runPushEngine, 15 * 60 * 1000);
+
+      // ── Keep-alive ping: prevents Render free tier from sleeping ──────────
+      // Pings own /api/health every 14 minutes so the server never cold-starts
+      setInterval(async () => {
+        try {
+          await fetch(`http://localhost:${PORT}/api/health`);
+          console.log('[Keep-Alive] Self-ping OK');
+        } catch (e) {
+          console.warn('[Keep-Alive] Self-ping failed:', (e as Error).message);
+        }
+      }, 14 * 60 * 1000);
     }).catch(err => {
       // connectDB already calls process.exit(1) on failure — this catch won't be reached
       console.error('[Aqua Server] Startup DB error:', err.message);

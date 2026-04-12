@@ -195,52 +195,9 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
           </div>
         </motion.div>
 
-        {/* ── SUBSCRIPTION BANNER (free plan) ── */}
-        {!isPro && <SubGateBanner isDark={isDark} navigate={navigate} />}
 
-        {/* ── ROI Performance Badge (when data exists) ── */}
-        {hasROIData && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className={cn(
-              'rounded-2xl border px-4 py-3 flex items-center gap-3',
-              avgROI >= 30
-                ? (isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200')
-                : avgROI >= 0
-                ? (isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200')
-                : (isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200')
-            )}
-          >
-            <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center',
-              avgROI >= 30 ? 'bg-emerald-500' : avgROI >= 0 ? 'bg-amber-500' : 'bg-red-500'
-            )}>
-              {avgROI >= 0
-                ? <TrendingUp size={15} className="text-white" />
-                : <TrendingDown size={15} className="text-white" />}
-            </div>
-            <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-0.5">
-              <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
-                {avgROI >= 30 ? '🏆 Premium Performance!' : avgROI >= 15 ? '✅ Good Farm Returns' : avgROI >= 0 ? '📈 Low Returns — Check Input Costs' : '⚠️ Loss Cycle — Review All Expenses'}
-              </p>
-          </div>
-              <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>
-                {avgROI >= 30
-                  ? `Excellent ROI across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Keep it up!`
-                  : avgROI >= 15
-                  ? `Solid returns across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Room to improve.`
-                  : avgROI >= 0
-                  ? `Low profit margin. Review feed, medicine & operational costs.`
-                  : `Net loss detected. Check if all revenue was logged correctly.`}
-              </p>
-            </div>
-            <ArrowUpRight size={14} className={isDark ? 'text-white/20' : 'text-slate-300'} />
-          </motion.div>
-        )}
-
-        {/* ── SCENARIO: No ponds added ── */}
-        {noPonds && (
+        {/* ── SCENARIO: No ponds added — show empty state only, hide everything else ── */}
+        {noPonds ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className={cn('rounded-2xl border p-6 text-center', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}
@@ -261,165 +218,211 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
               <Plus size={11} /> Add First Pond
             </button>
           </motion.div>
-        )}
+        ) : (
+          <>
+            {/* ── SUBSCRIPTION BANNER (free plan) ── */}
+            {!isPro && <SubGateBanner isDark={isDark} navigate={navigate} />}
 
-        {/* ── SCENARIO: Has ponds but none harvested yet ── */}
-        {onlyActivePonds && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className={cn('rounded-2xl border p-5 flex items-start gap-4',
-              isDark ? 'bg-blue-500/8 border-blue-500/15' : 'bg-blue-50 border-blue-200'
-            )}
-          >
-            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-              isDark ? 'bg-blue-500/15 border border-blue-500/25' : 'bg-blue-100'
-            )}>
-              <AlertTriangle size={16} className="text-blue-500" />
-            </div>
-            <div>
-              <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>
-                Culture In Progress
-              </p>
-              <p className={cn('text-[8.5px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-                You have {activePonds.length} active pond{activePonds.length > 1 ? 's' : ''} in culture.
-                ROI data becomes available after your first harvest is completed and logged.
-              </p>
-              <button
-                onClick={() => navigate('/ponds')}
-                className="mt-3 text-blue-500 text-[8px] font-black uppercase tracking-widest flex items-center gap-1"
+            {/* ── ROI Performance Badge (when data exists) ── */}
+            {hasROIData && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className={cn(
+                  'rounded-2xl border px-4 py-3 flex items-center gap-3',
+                  avgROI >= 30
+                    ? (isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200')
+                    : avgROI >= 0
+                    ? (isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200')
+                    : (isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200')
+                )}
               >
-                View Ponds <ChevronRight size={10} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── SCENARIO: Harvested ponds but no ROI entry logged ── */}
-        {hasHarvestedButNoROI && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className={cn('rounded-2xl border p-5 flex items-start gap-4',
-              isDark ? 'bg-amber-500/8 border-amber-500/15' : 'bg-amber-50 border-amber-200'
-            )}
-          >
-            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-              isDark ? 'bg-amber-500/15 border border-amber-500/25' : 'bg-amber-100'
-            )}>
-              <FileText size={16} className="text-amber-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>
-                Harvest Complete — Log Your ROI
-              </p>
-              <p className={cn('text-[8.5px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-                {harvestedPonds.length} pond{harvestedPonds.length > 1 ? 's' : ''} harvested.
-                Add your income and expenses to calculate your true profit and ROI.
-              </p>
-              <button
-                onClick={() => navigate('/roi-entry')}
-                className="mt-3 px-3 py-1.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest rounded-xl flex items-center gap-1.5"
-              >
-                <Plus size={10} /> Add ROI Entry
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── Finance Module Navigation Cards ── */}
-        <div>
-          <p className={cn('text-[7px] font-black uppercase tracking-widest mb-3 px-1',
-            isDark ? 'text-white/20' : 'text-slate-400'
-          )}>
-            Finance Modules
-          </p>
-          <div className="space-y-2.5">
-            {sections.map((s, i) => {
-              const isLocked = s.proRequired && !isPro;
-              return (
-                <motion.button
-                  key={s.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * i }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => isLocked ? navigate('/subscription') : navigate(s.route)}
-                  className={cn(
-                    'w-full flex items-center gap-4 p-4 rounded-[1.8rem] border text-left transition-all',
-                    isDark
-                      ? 'bg-[#0D1520] border-white/5 hover:border-white/10'
-                      : 'bg-white border-slate-100 shadow-sm hover:border-slate-200'
-                  )}
-                >
-                  {/* Icon */}
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border"
-                    style={{ background: s.bg, borderColor: s.border }}
-                  >
-                    <s.icon size={18} style={{ color: isLocked ? (isDark ? '#ffffff25' : '#94a3b8') : s.color }} />
-                  </div>
-
-                  {/* Text */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className={cn('text-[12px] font-black tracking-tight',
-                        isLocked
-                          ? (isDark ? 'text-white/50' : 'text-slate-400')
-                          : (isDark ? 'text-white' : 'text-slate-900')
-                      )}>
-                        {s.label}
-                      </p>
-                      {s.badge && !isLocked && (
-                        <span
-                          className="text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border"
-                          style={{ background: s.bg, borderColor: s.border, color: s.color }}
-                        >
-                          {s.badge}
-                        </span>
-                      )}
-                      {isLocked && (
-                        <span className={cn(
-                          'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
-                          isDark ? 'bg-[#C78200]/10 border-[#C78200]/20 text-[#C78200]' : 'bg-amber-100 border-amber-300 text-amber-700'
-                        )}>
-                          Pro
-                        </span>
-                      )}
-                    </div>
-                    <p className={cn('text-[9px] font-medium',
-                      isLocked
-                        ? (isDark ? 'text-white/20' : 'text-slate-300')
-                        : (isDark ? 'text-white/30' : 'text-slate-500')
-                    )}>
-                      {s.sub}
+                <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center',
+                  avgROI >= 30 ? 'bg-emerald-500' : avgROI >= 0 ? 'bg-amber-500' : 'bg-red-500'
+                )}>
+                  {avgROI >= 0
+                    ? <TrendingUp size={15} className="text-white" />
+                    : <TrendingDown size={15} className="text-white" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-0.5">
+                    <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+                      {avgROI >= 30 ? '🏆 Premium Performance!' : avgROI >= 15 ? '✅ Good Farm Returns' : avgROI >= 0 ? '📈 Low Returns — Check Input Costs' : '⚠️ Loss Cycle — Review All Expenses'}
+                    </p>
+                </div>
+                    <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>
+                      {avgROI >= 30
+                        ? `Excellent ROI across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Keep it up!`
+                        : avgROI >= 15
+                        ? `Solid returns across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Room to improve.`
+                        : avgROI >= 0
+                        ? `Low profit margin. Review feed, medicine & operational costs.`
+                        : `Net loss detected. Check if all revenue was logged correctly.`}
                     </p>
                   </div>
+                <ArrowUpRight size={14} className={isDark ? 'text-white/20' : 'text-slate-300'} />
+              </motion.div>
+            )}
 
-                  {/* Arrow or Lock */}
-                  {isLocked
-                    ? <Lock size={14} className="text-[#C78200] flex-shrink-0 opacity-70" />
-                    : <ChevronRight size={16} className={isDark ? 'text-white/15 flex-shrink-0' : 'text-slate-300 flex-shrink-0'} />
-                  }
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
+            {/* ── SCENARIO: Has ponds but none harvested yet ── */}
+            {onlyActivePonds && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={cn('rounded-2xl border p-5 flex items-start gap-4',
+                  isDark ? 'bg-blue-500/8 border-blue-500/15' : 'bg-blue-50 border-blue-200'
+                )}
+              >
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                  isDark ? 'bg-blue-500/15 border border-blue-500/25' : 'bg-blue-100'
+                )}>
+                  <AlertTriangle size={16} className="text-blue-500" />
+                </div>
+                <div>
+                  <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>
+                    Culture In Progress
+                  </p>
+                  <p className={cn('text-[8.5px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
+                    You have {activePonds.length} active pond{activePonds.length > 1 ? 's' : ''} in culture.
+                    ROI data becomes available after your first harvest is completed and logged.
+                  </p>
+                  <button
+                    onClick={() => navigate('/ponds')}
+                    className="mt-3 text-blue-500 text-[8px] font-black uppercase tracking-widest flex items-center gap-1"
+                  >
+                    View Ponds <ChevronRight size={10} />
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
-        {/* ── CTA: Log new harvest when ROI data exists ── */}
-        {hasROIData && (
-          <motion.button
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            onClick={() => navigate('/roi-entry')}
-            className="w-full py-4 rounded-[1.5rem] border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-            style={{
-              background: isDark ? 'rgba(16,185,129,0.08)' : '#ecfdf5',
-              borderColor: isDark ? 'rgba(16,185,129,0.2)' : '#a7f3d0',
-              color: '#10b981',
-            }}
-          >
-            <Plus size={14} />
-            Log New Harvest Cycle
-          </motion.button>
+            {/* ── SCENARIO: Harvested ponds but no ROI entry logged ── */}
+            {hasHarvestedButNoROI && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={cn('rounded-2xl border p-5 flex items-start gap-4',
+                  isDark ? 'bg-amber-500/8 border-amber-500/15' : 'bg-amber-50 border-amber-200'
+                )}
+              >
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                  isDark ? 'bg-amber-500/15 border border-amber-500/25' : 'bg-amber-100'
+                )}>
+                  <FileText size={16} className="text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>
+                    Harvest Complete — Log Your ROI
+                  </p>
+                  <p className={cn('text-[8.5px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
+                    {harvestedPonds.length} pond{harvestedPonds.length > 1 ? 's' : ''} harvested.
+                    Add your income and expenses to calculate your true profit and ROI.
+                  </p>
+                  <button
+                    onClick={() => navigate('/roi-entry')}
+                    className="mt-3 px-3 py-1.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest rounded-xl flex items-center gap-1.5"
+                  >
+                    <Plus size={10} /> Add ROI Entry
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Finance Module Navigation Cards ── */}
+            <div>
+              <p className={cn('text-[7px] font-black uppercase tracking-widest mb-3 px-1',
+                isDark ? 'text-white/20' : 'text-slate-400'
+              )}>
+                Finance Modules
+              </p>
+              <div className="space-y-2.5">
+                {sections.map((s, i) => {
+                  const isLocked = s.proRequired && !isPro;
+                  return (
+                    <motion.button
+                      key={s.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 * i }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => isLocked ? navigate('/subscription') : navigate(s.route)}
+                      className={cn(
+                        'w-full flex items-center gap-4 p-4 rounded-[1.8rem] border text-left transition-all',
+                        isDark
+                          ? 'bg-[#0D1520] border-white/5 hover:border-white/10'
+                          : 'bg-white border-slate-100 shadow-sm hover:border-slate-200'
+                      )}
+                    >
+                      {/* Icon */}
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border"
+                        style={{ background: s.bg, borderColor: s.border }}
+                      >
+                        <s.icon size={18} style={{ color: isLocked ? (isDark ? '#ffffff25' : '#94a3b8') : s.color }} />
+                      </div>
+
+                      {/* Text */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className={cn('text-[12px] font-black tracking-tight',
+                            isLocked
+                              ? (isDark ? 'text-white/50' : 'text-slate-400')
+                              : (isDark ? 'text-white' : 'text-slate-900')
+                          )}>
+                            {s.label}
+                          </p>
+                          {s.badge && !isLocked && (
+                            <span
+                              className="text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border"
+                              style={{ background: s.bg, borderColor: s.border, color: s.color }}
+                            >
+                              {s.badge}
+                            </span>
+                          )}
+                          {isLocked && (
+                            <span className={cn(
+                              'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                              isDark ? 'bg-[#C78200]/10 border-[#C78200]/20 text-[#C78200]' : 'bg-amber-100 border-amber-300 text-amber-700'
+                            )}>
+                              Pro
+                            </span>
+                          )}
+                        </div>
+                        <p className={cn('text-[9px] font-medium',
+                          isLocked
+                            ? (isDark ? 'text-white/20' : 'text-slate-300')
+                            : (isDark ? 'text-white/30' : 'text-slate-500')
+                        )}>
+                          {s.sub}
+                        </p>
+                      </div>
+
+                      {/* Arrow or Lock */}
+                      {isLocked
+                        ? <Lock size={14} className="text-[#C78200] flex-shrink-0 opacity-70" />
+                        : <ChevronRight size={16} className={isDark ? 'text-white/15 flex-shrink-0' : 'text-slate-300 flex-shrink-0'} />
+                      }
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── CTA: Log new harvest when ROI data exists ── */}
+            {hasROIData && (
+              <motion.button
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                onClick={() => navigate('/roi-entry')}
+                className="w-full py-4 rounded-[1.5rem] border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                style={{
+                  background: isDark ? 'rgba(16,185,129,0.08)' : '#ecfdf5',
+                  borderColor: isDark ? 'rgba(16,185,129,0.2)' : '#a7f3d0',
+                  color: '#10b981',
+                }}
+              >
+                <Plus size={14} />
+                Log New Harvest Cycle
+              </motion.button>
+            )}
+          </>
         )}
 
       </div>

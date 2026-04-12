@@ -83,18 +83,29 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     };
     loadTheme();
   }, []);
-  const [ponds, setPonds] = useState<Pond[]>([]);
+  // ── Offline-first cache helpers ──────────────────────────────────────────
+  const readCache = (key: string, fallback: any): any => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch { return fallback; }
+  };
+  const writeCache = (key: string, data: any) => {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
+  };
+
+  const [ponds, setPonds] = useState<Pond[]>(() => readCache('aqua_cache_ponds', []));
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
-  const [waterRecords, setWaterRecords] = useState<WaterQualityRecord[]>([]);
-  const [feedLogs, setFeedLogs] = useState<FeedRecord[]>([]);
-  const [medicineLogs, setMedicineLogs] = useState<MedicineRecord[]>([]);
-  const [sopLogs, setSopLogs] = useState<any[]>([]);
-  const [roiEntries, setRoiEntries] = useState<any[]>([]);
-  const [aeratorLogs, setAeratorLogs] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [waterRecords, setWaterRecords] = useState<WaterQualityRecord[]>(() => readCache('aqua_cache_water', []));
+  const [feedLogs, setFeedLogs] = useState<FeedRecord[]>(() => readCache('aqua_cache_feed', []));
+  const [medicineLogs, setMedicineLogs] = useState<MedicineRecord[]>(() => readCache('aqua_cache_medicine', []));
+  const [sopLogs, setSopLogs] = useState<any[]>(() => readCache('aqua_cache_sop', []));
+  const [roiEntries, setRoiEntries] = useState<any[]>(() => readCache('aqua_cache_roi', []));
+  const [aeratorLogs, setAeratorLogs] = useState<any[]>(() => readCache('aqua_cache_aerator', []));
+  const [expenses, setExpenses] = useState<any[]>(() => readCache('aqua_cache_expenses', []));
   const [completedReminderIds, setCompletedReminderIds] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [harvestRequests, setHarvestRequests] = useState<any[]>([]);
+  const [harvestRequests, setHarvestRequests] = useState<any[]>(() => readCache('aqua_cache_harvest', []));
 
   const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(() => {
     const saved = localStorage.getItem('aqua_tokens');
@@ -188,21 +199,26 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchUserPonds = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return; // offline — handled by offline banner, not serverError
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/ponds`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setPonds(data.map((p: any) => ({ ...p, id: p._id || p.id })));
-        setServerError(false);
+        const mapped = data.map((p: any) => ({ ...p, id: p._id || p.id }));
+        setPonds(mapped);
+        writeCache('aqua_cache_ponds', mapped);
+        setServerError(false); // clear error on success
+      } else {
+        setServerError(true); // 4xx/5xx from server
       }
     } catch (error) {
       console.error("Error fetching ponds:", error);
-      // Network failure (TypeError: Failed to fetch, AbortError timeout, etc.)
-      setServerError(true);
+      setServerError(true); // network timeout or DNS failure while online
     }
   };
 
   const fetchSubscription = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/subscription`, { overrideTokens });
       if (response.ok) {
@@ -215,11 +231,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchFeedLogs = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/feed-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setFeedLogs(data.map((l: any) => ({ ...l, id: l._id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id }));
+        setFeedLogs(mapped);
+        writeCache('aqua_cache_feed', mapped);
       }
     } catch (error) {
       console.error("Error fetching feed logs:", error);
@@ -227,23 +246,29 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchMedicineLogs = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/medicine-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setMedicineLogs(data.map((l: any) => ({ ...l, id: l._id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id }));
+        setMedicineLogs(mapped);
+        writeCache('aqua_cache_medicine', mapped);
       }
     } catch (error) {
       console.error("Error fetching medicine logs:", error);
     }
   };
-  
+
   const fetchWaterLogs = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/water-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setWaterRecords(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id || l.id }));
+        setWaterRecords(mapped);
+        writeCache('aqua_cache_water', mapped);
       }
     } catch (error) {
       console.error("Error fetching water logs:", error);
@@ -251,11 +276,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchSOPLogs = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/sop-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setSopLogs(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id || l.id }));
+        setSopLogs(mapped);
+        writeCache('aqua_cache_sop', mapped);
       }
     } catch (error) {
       console.error("Error fetching SOP logs:", error);
@@ -263,11 +291,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchROIEntries = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/roi-entries`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setRoiEntries(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id || l.id }));
+        setRoiEntries(mapped);
+        writeCache('aqua_cache_roi', mapped);
       }
     } catch (error) {
       console.error('Error fetching ROI entries:', error);
@@ -275,11 +306,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchAeratorLogs = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/aerator-logs`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setAeratorLogs(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id || l.id }));
+        setAeratorLogs(mapped);
+        writeCache('aqua_cache_aerator', mapped);
       }
     } catch (error) {
       console.error('Error fetching aerator logs:', error);
@@ -287,11 +321,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchExpenses = async (userId: string, overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/expenses`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setExpenses(data.map((l: any) => ({ ...l, id: l._id || l.id })));
+        const mapped = data.map((l: any) => ({ ...l, id: l._id || l.id }));
+        setExpenses(mapped);
+        writeCache('aqua_cache_expenses', mapped);
       }
     } catch (error) {
       console.error("Error fetching expenses:", error);
@@ -299,11 +336,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchHarvestRequests = async (overrideTokens?: any) => {
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/harvest-requests`, { overrideTokens });
       if (response.ok) {
         const data = await response.json();
-        setHarvestRequests(data.map((r: any) => ({ ...r, id: r._id || r.id })));
+        const mapped = data.map((r: any) => ({ ...r, id: r._id || r.id }));
+        setHarvestRequests(mapped);
+        writeCache('aqua_cache_harvest', mapped);
       }
     } catch (error) {
       console.error("Error fetching harvest requests:", error);
@@ -311,8 +351,38 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      // ── Re-fetch all data as soon as connectivity is restored ──────────────
+      const savedUser = localStorage.getItem('aqua_user');
+      const savedTokens = localStorage.getItem('aqua_tokens');
+      if (!savedUser || savedUser === 'null') return;
+      try {
+        const u = JSON.parse(savedUser);
+        const t = savedTokens ? JSON.parse(savedTokens) : null;
+        const uid = u?.id || u?._id;
+        if (!uid) return;
+        console.log('[Network] Back online — refreshing all data...');
+        if (u.role !== 'provider') {
+          fetchUserPonds(uid, t);
+          fetchSubscription(uid, t);
+          fetchFeedLogs(uid, t);
+          fetchMedicineLogs(uid, t);
+          fetchWaterLogs(uid, t);
+          fetchSOPLogs(uid, t);
+          fetchROIEntries(uid, t);
+          fetchAeratorLogs(uid, t);
+          fetchExpenses(uid, t);
+          fetchHarvestRequests(t);
+        } else {
+          fetchSubscription(uid, t);
+        }
+      } catch (e) {
+        console.error('[Network] Failed to parse saved user on reconnect:', e);
+      }
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -321,6 +391,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -399,11 +470,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         fetchUserPonds(uid, currentTokens);
         fetchSubscription(uid, currentTokens);
         fetchFeedLogs(uid, currentTokens);
+        fetchMedicineLogs(uid, currentTokens);
         fetchWaterLogs(uid, currentTokens);
         fetchSOPLogs(uid, currentTokens);
         fetchROIEntries(uid, currentTokens);
         fetchAeratorLogs(uid, currentTokens);
         fetchExpenses(uid, currentTokens);
+        fetchHarvestRequests(currentTokens);
       }
     } else {
       localStorage.removeItem('aqua_user');
@@ -412,6 +485,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       setTokens(null);
       setSubscription(null);
       setPonds([]);
+      setFeedLogs([]);
+      setMedicineLogs([]);
+      setWaterRecords([]);
+      setSopLogs([]);
+      setRoiEntries([]);
+      setAeratorLogs([]);
+      setExpenses([]);
+      setHarvestRequests([]);
+      // Clear offline caches so next user doesn't see previous user's data
+      ['aqua_cache_ponds','aqua_cache_feed','aqua_cache_medicine',
+       'aqua_cache_water','aqua_cache_sop','aqua_cache_roi',
+       'aqua_cache_aerator','aqua_cache_expenses','aqua_cache_harvest'
+      ].forEach(k => localStorage.removeItem(k));
     }
   };
 
@@ -988,8 +1074,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       deletePond,
       refreshData: () => {
         const uid = user?.id || (user as any)?._id;
+        if (!uid) return;
         fetchUserPonds(uid);
+        fetchFeedLogs(uid);
+        fetchMedicineLogs(uid);
         fetchWaterLogs(uid);
+        fetchSOPLogs(uid);
+        fetchROIEntries(uid);
+        fetchAeratorLogs(uid);
+        fetchExpenses(uid);
+        fetchHarvestRequests();
       },
       subscription,
       isPro,

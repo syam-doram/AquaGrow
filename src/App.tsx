@@ -94,7 +94,7 @@ export default function App() {
 }
 
 const AppContent = () => {
-  const { user, loading, isSyncing, isOffline, theme } = useData();
+  const { user, loading, isSyncing, isOffline, serverError, refreshData, theme } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   const [lang, setLang] = useState<Language>(() => {
@@ -102,12 +102,25 @@ const AppContent = () => {
   });
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showReconnectToast, setShowReconnectToast] = useState(false);
+  const prevOfflineRef = React.useRef(isOffline);
   const t = translations[lang];
 
   const handleLanguageChange = (l: Language) => {
     setLang(l);
     localStorage.setItem('aqua_lang', l);
   };
+
+  // Show a "Back Online" toast when transitioning from offline → online
+  useEffect(() => {
+    if (prevOfflineRef.current && !isOffline) {
+      // Was offline, now online
+      setShowReconnectToast(true);
+      const t = setTimeout(() => setShowReconnectToast(false), 3500);
+      return () => clearTimeout(t);
+    }
+    prevOfflineRef.current = isOffline;
+  }, [isOffline]);
 
   useEffect(() => {
     if (user?.language) {
@@ -358,6 +371,68 @@ const AppContent = () => {
                     <h3 className="text-white text-[11px] font-black uppercase tracking-wider leading-none">Offline Mode</h3>
                     <p className="text-white/70 text-[10px] mt-0.5">Please check your internet connection</p>
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── BACK ONLINE TOAST ── */}
+            {showReconnectToast && !isOffline && (
+              <motion.div
+                key="reconnect-toast"
+                initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                className="fixed bottom-24 left-4 right-4 z-[1000] pointer-events-none flex justify-center"
+              >
+                <div className="bg-emerald-600/95 backdrop-blur-xl border border-emerald-400/30 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-[0_20px_40px_rgba(16,185,129,0.3)]">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Wifi className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white text-[11px] font-black uppercase tracking-wider leading-none">Back Online</h3>
+                    <p className="text-white/80 text-[9.5px] mt-0.5">Syncing latest data from server…</p>
+                  </div>
+                  <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── SERVER ERROR BANNER ── */}
+            {serverError && !isOffline && !showReconnectToast && (
+              <motion.div
+                key="server-error-banner"
+                initial={{ opacity: 0, y: -24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -24 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                className="fixed top-[calc(env(safe-area-inset-top)+0.3rem)] left-3 right-3 z-[990] max-w-[420px] mx-auto"
+              >
+                <div className="bg-[#7f1d1d]/95 backdrop-blur-xl border border-red-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-[0_8px_32px_rgba(239,68,68,0.30)]">
+                  {/* Warning icon */}
+                  <div className="w-9 h-9 rounded-xl bg-red-500/25 flex items-center justify-center flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                  </div>
+                  {/* Message */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-[10px] font-black uppercase tracking-wider leading-none">Server Unreachable</p>
+                    <p className="text-red-200/80 text-[8.5px] mt-0.5 leading-snug">Could not reach AquaGrow server. Showing cached data.</p>
+                  </div>
+                  {/* Retry */}
+                  <button
+                    onClick={() => refreshData()}
+                    className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white/15 active:bg-white/25 active:scale-95 transition-all rounded-xl text-white text-[8px] font-black uppercase tracking-widest border border-white/15"
+                  >
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10"/>
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    Retry
+                  </button>
                 </div>
               </motion.div>
             )}
