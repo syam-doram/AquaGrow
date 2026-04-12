@@ -142,7 +142,8 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
 
       <div className="pt-20 px-4 space-y-4">
 
-        {/* ── Hero Summary Card ── */}
+        {/* ── Hero Summary Card ── Only shown when ponds exist ── */}
+        {!noPonds && (
         <motion.div
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-br from-[#012B1D] via-[#02180F] to-[#051015] rounded-[2.5rem] p-6 border border-white/5 shadow-2xl relative overflow-hidden"
@@ -195,7 +196,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
             </div>
           </div>
         </motion.div>
-
+        )}
 
         {/* ── SCENARIO: No ponds added — show empty/server error state, hide everything else ── */}
         {noPonds ? (

@@ -200,8 +200,26 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
   // ABW guard — shrimp body weight inferred from count/kg
   // 1000g / count_per_kg = avg body weight (g). Minimum allowed = 10g → countPerKg ≤ 100
-  const abwGrams      = n(form.countPerKg) > 0 ? (1000 / n(form.countPerKg)) : null;
-  const abwTooSmall   = abwGrams !== null && abwGrams < 10;
+  const abwGrams    = n(form.countPerKg) > 0 ? (1000 / n(form.countPerKg)) : null;
+  const abwTooSmall = abwGrams !== null && abwGrams < 10;
+
+  // ── Step 1 validation ──
+  const step1Errors: string[] = [];
+  if (!form.pondId)                              step1Errors.push('Select a pond');
+  if (!form.harvestWeightKg || n(form.harvestWeightKg) <= 0) step1Errors.push('Enter harvest weight');
+  if (!form.countPerKg || n(form.countPerKg) <= 0)           step1Errors.push('Enter count/kg (shrimp size)');
+  if (!form.survivalRate || n(form.survivalRate) <= 0)        step1Errors.push('Enter survival rate');
+  if (!form.cultureDays || n(form.cultureDays) <= 0)          step1Errors.push('Enter culture duration (days)');
+  if (abwTooSmall) step1Errors.push(`Body weight ${abwGrams!.toFixed(1)}g is below minimum 10g`);
+  const step1Valid = step1Errors.length === 0;
+
+  // ── Step 3 validation ──
+  const step3Errors: string[] = [];
+  if (!form.saleAmountTotal || n(form.saleAmountTotal) <= 0) step3Errors.push('Enter total sale amount');
+  if (!form.pricePerKg || n(form.pricePerKg) <= 0)           step3Errors.push('Enter price per kg');
+  const step3Valid = step3Errors.length === 0;
+
+  const [showStepErrors, setShowStepErrors] = useState(false);
 
   const handleSave = async () => {
     setSaved(true);
@@ -697,26 +715,54 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
             {/* ── NAVIGATION BUTTONS (steps 1–3) ── */}
             {step < 4 && (
-              <div className="flex gap-3 pt-2 pb-6">
-                {step > 1 && (
-                  <button
-                    onClick={() => setStep(s => s - 1)}
-                    className={cn(
-                      'flex-1 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest border transition-all active:scale-95',
-                      isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+              <div className="space-y-3 pt-2 pb-6">
+                {/* Step validation error summary */}
+                {showStepErrors && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                    className={cn('rounded-2xl p-4 border flex items-start gap-3',
+                      isDark ? 'bg-red-500/10 border-red-500/25' : 'bg-red-50 border-red-200'
                     )}
                   >
-                    <ChevronLeft size={14} className="inline -mt-0.5 mr-1" />
-                    {t.back}
-                  </button>
+                    <AlertTriangle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest mb-1',
+                        isDark ? 'text-red-400' : 'text-red-700'
+                      )}>Please fill in the required fields</p>
+                      {(step === 1 ? step1Errors : step3Errors).map((err, i) => (
+                        <p key={i} className={cn('text-[9px] font-medium', isDark ? 'text-red-300/70' : 'text-red-700/80')}>
+                          • {err}
+                        </p>
+                      ))}
+                    </div>
+                  </motion.div>
                 )}
-                <button
-                  onClick={() => setStep(s => s + 1)}
-                  disabled={(step === 1 && !form.pondId) || (step === 1 && abwTooSmall)}
-                  className="flex-1 py-4 bg-gradient-to-r from-[#C78200] to-[#a06600] text-white rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
-                >
-                  {t.continue} <ChevronRight size={14} />
-                </button>
+
+                <div className="flex gap-3">
+                  {step > 1 && (
+                    <button
+                      onClick={() => { setStep(s => s - 1); setShowStepErrors(false); }}
+                      className={cn(
+                        'flex-1 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest border transition-all active:scale-95',
+                        isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+                      )}
+                    >
+                      <ChevronLeft size={14} className="inline -mt-0.5 mr-1" />
+                      {t.back}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (step === 1 && !step1Valid) { setShowStepErrors(true); return; }
+                      if (step === 3 && !step3Valid) { setShowStepErrors(true); return; }
+                      setShowStepErrors(false);
+                      setStep(s => s + 1);
+                    }}
+                    className="flex-1 py-4 bg-gradient-to-r from-[#C78200] to-[#a06600] text-white rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    {t.continue} <ChevronRight size={14} />
+                  </button>
+                </div>
               </div>
             )}
           </motion.div>
