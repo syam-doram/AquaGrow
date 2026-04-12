@@ -315,7 +315,10 @@ export const PondEntry = ({ t }: { t: Translations }) => {
                     ? new Date().toISOString().split('T')[0]
                     : (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0]; })()
                   }
-                  max={new Date().toISOString().split('T')[0]}
+                  max={form.stockingMode === 'planned'
+                    ? (() => { const d = new Date(); d.setDate(d.getDate() + 5); return d.toISOString().split('T')[0]; })()
+                    : new Date().toISOString().split('T')[0]
+                  }
                   className={cn(
                     "w-full pl-4 pr-3 py-3 rounded-2xl border outline-none transition-all text-xs font-bold",
                     isDark
@@ -323,9 +326,13 @@ export const PondEntry = ({ t }: { t: Translations }) => {
                       : "bg-slate-50 border-slate-200 text-slate-800 focus:border-[#C78200] focus:bg-white shadow-inner"
                   )}
                 />
-                {isStocked && (
+                {isStocked ? (
                   <p className={cn("text-[7px] font-bold ml-1", isDark ? "text-emerald-500/60" : "text-emerald-600/70")}>
                     ↩ Up to 7 days back allowed
+                  </p>
+                ) : (
+                  <p className={cn("text-[7px] font-bold ml-1", isDark ? "text-blue-400/60" : "text-blue-600/70")}>
+                    ↑ Planned: select up to 5 days ahead
                   </p>
                 )}
               </div>

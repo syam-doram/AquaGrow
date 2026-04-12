@@ -92,7 +92,7 @@ const Field = ({
 
 // ─── Spend Bar ────────────────────────────────────────────────────────────────
 const SpendBar = ({ label, amount, total, color, isDark }: {
-  label: string; amount: number; total: number; color: string; isDark: boolean;
+  label: string; amount: number; total: number; color: string; isDark: boolean; key?: React.Key;
 }) => {
   const pct = total > 0 ? (amount / total) * 100 : 0;
   return (
@@ -196,6 +196,11 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   const costPerKg     = n(form.harvestWeightKg) > 0 ? totalInvested / n(form.harvestWeightKg) : 0;
   const revenuePerKg  = n(form.harvestWeightKg) > 0 ? totalRevenue / n(form.harvestWeightKg) : 0;
   const profitPerKg   = revenuePerKg - costPerKg;
+
+  // ABW guard — shrimp body weight inferred from count/kg
+  // 1000g / count_per_kg = avg body weight (g). Minimum allowed = 10g → countPerKg ≤ 100
+  const abwGrams      = n(form.countPerKg) > 0 ? (1000 / n(form.countPerKg)) : null;
+  const abwTooSmall   = abwGrams !== null && abwGrams < 10;
 
   const handleSave = async () => {
     setSaved(true);
@@ -426,6 +431,26 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                     <Field label={t.gradeBYield} value={form.gradeB} onChange={set('gradeB')} type="number" placeholder="15" unit="%" isDark={isDark} />
                   </div>
                 </div>
+
+                {/* ABW < 10g warning */}
+                {abwTooSmall && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className={cn('rounded-2xl p-4 border flex items-start gap-3', isDark ? 'bg-red-500/10 border-red-500/25' : 'bg-red-50 border-red-200')}
+                  >
+                    <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-red-400' : 'text-red-700')}>
+                        🔴 Harvest Not Allowed — Body Weight &lt; 10g
+                      </p>
+                      <p className={cn('text-[9px] font-medium leading-snug', isDark ? 'text-red-300/70' : 'text-red-700/80')}>
+                        Current ABW: <strong>{abwGrams!.toFixed(1)}g</strong> ({form.countPerKg}/kg).
+                        Minimum harvestable size is <strong>10g</strong> (≤100 count/kg).
+                        Wait until shrimp reach 10g+ before harvesting.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Preview chip */}
                 {n(form.harvestWeightKg) > 0 && (
@@ -682,7 +707,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                 )}
                 <button
                   onClick={() => setStep(s => s + 1)}
-                  disabled={step === 1 && !form.pondId}
+                  disabled={(step === 1 && !form.pondId) || (step === 1 && abwTooSmall)}
                   className="flex-1 py-4 bg-gradient-to-r from-[#C78200] to-[#a06600] text-white rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
                 >
                   {t.continue} <ChevronRight size={14} />

@@ -545,11 +545,11 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
           <AnimatePresence mode="wait">
             <motion.div key={selectedPond.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
 
-              {/* ••••••••••••••••••••••••••••••••••
+              {/* • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • 
                   HERO COMMAND CARD
-              •••••••••••••••••••••••••••••••••• */}
+              • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •  */}
               <div className="rounded-[2rem] overflow-hidden shadow-2xl relative"
-                style={{ background: 'linear-gradient(135deg, #022C1E 0%, #064E3B 40%, #047857 80%, #059669 100%)' }}>
+                style={{ background: 'linear-gradient(150deg, #011c15 0%, #023d2b 25%, #047857 55%, #059669 78%, #10b981 100%)' }}>
                 {/* Mesh pattern */}
                 <div className="absolute inset-0 opacity-[0.05]"
                   style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
@@ -695,18 +695,40 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               )}
 
               {/* •• TABS •• */}
-              <div className={cn("flex p-1 rounded-2xl border gap-1",
-                isDark ? "bg-white/5 border-white/8" : "bg-slate-100/80 border-slate-200")}>
-                {(['schedule', 'tray', 'sow', 'fcr', 'chat'] as const).map(tab => (
-                  <button key={tab} onClick={() => tab === 'tray' ? handleTrayTabClick() : setActiveTab(tab)}
-                    className={cn("flex-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-widest transition-all relative",
-                      activeTab === tab
-                        ? isDark ? "bg-white/12 text-white shadow-sm" : "bg-white text-emerald-700 shadow-md"
-                        : isDark ? "text-white/35 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
-                    )}>
-                    {tab === 'schedule' ? (<><Clock size={8} strokeWidth={3} className="mr-0.5"/>Plan</>) : tab === 'tray' ? (<><Eye size={8} strokeWidth={3} className="mr-0.5"/>Tray{currentDoc >= 20 && !trayEnabled && <span className="ml-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full inline-block animate-pulse" />}</>) : tab === 'sow' ? (<><Scale size={8} strokeWidth={3} className="mr-0.5"/>SOP</>) : tab === 'fcr' ? (<><Activity size={8} strokeWidth={3} className="mr-0.5"/>FCR</>) : (<><MessageSquare size={8} strokeWidth={3} className="mr-0.5"/>Chat</>)}
-                  </button>
-                ))}
+              <div className={cn("flex rounded-[1.6rem] border gap-1 p-1.5",
+                isDark ? "bg-black/30 border-white/8" : "bg-slate-100 border-slate-200 shadow-inner")}>
+                {([
+                  { id: 'schedule', icon: Clock,         label: 'Plan'  },
+                  { id: 'tray',     icon: Eye,           label: 'Tray'  },
+                  { id: 'sow',      icon: Scale,         label: 'SOP'   },
+                  { id: 'fcr',      icon: Activity,      label: 'FCR'   },
+                  { id: 'chat',     icon: MessageSquare, label: 'Chat'  },
+                ] as const).map(tab => {
+                  const isActive = activeTab === tab.id;
+                  const hasDot   = tab.id === 'tray' && currentDoc >= 20 && !trayEnabled;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => tab.id === 'tray' ? handleTrayTabClick() : setActiveTab(tab.id)}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 rounded-[1.2rem] transition-all duration-200 relative",
+                        isActive
+                          ? isDark
+                            ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-900/40"
+                            : "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-md shadow-emerald-300/40"
+                          : isDark
+                            ? "text-white/35 hover:text-white/65 hover:bg-white/8"
+                            : "text-slate-400 hover:text-slate-700 hover:bg-white/60"
+                      )}
+                    >
+                      <tab.icon size={11} strokeWidth={isActive ? 3 : 2} />
+                      <span className="text-[6.5px] font-black uppercase tracking-widest leading-none">{tab.label}</span>
+                      {hasDot && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full border border-black/20 animate-pulse" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* ••••••••••••••••••••••••••••••••••
