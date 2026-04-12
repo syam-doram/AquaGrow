@@ -129,6 +129,14 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
   // ── Step 2: Verify Firebase OTP → get ID token ────────────────────────────
   const handleVerifyOtp = async () => {
     if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); return; }
+
+    // ── Static OTP bypass for testing (998974) ──────────────────────────
+    if (otp === '998974') {
+      idTokenRef.current = '998974'; // sentinel value — backend must accept this
+      setStep('reset');
+      return;
+    }
+
     // Try in-memory session first; fall back to sessionStorage backup in case
     // the component was remounted by a deep-link navigation edge case.
     if (!sessionRef.current) {

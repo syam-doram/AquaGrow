@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import { getFunctions } from 'firebase/functions';
 import { getFirestore } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaV3Provider, CustomProvider } from 'firebase/app-check';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD_iW71nzdyxqLi0RjYlg6lKYHdyvPAgOw",
@@ -15,6 +16,38 @@ const firebaseConfig = {
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
+
+// ── App Check (web/browser path only) ──────────────────────────────────────
+// On native Android/iOS, App Check is handled automatically by the
+// @capacitor-firebase/authentication plugin via Play Integrity / SafetyNet.
+// This block only activates for the web/browser OTP fallback path.
+//
+// DEBUG MODE: When running on localhost or in a Capacitor WebView during dev,
+// App Check generates a debug token you can whitelist in Firebase Console:
+//   Firebase Console → App Check → Apps → overflow menu → "Manage debug tokens"
+//
+const IS_WEB = !('Capacitor' in window && (window as any).Capacitor?.isNativePlatform?.());
+if (IS_WEB) {
+  try {
+    const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (isDev) {
+      // Enable debug mode — prints a debug token in the browser console.
+      // Copy that token and add it in Firebase Console > App Check > Debug tokens.
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+    initializeAppCheck(app, {
+      provider: isDev
+        ? new CustomProvider({ getToken: async () => ({ token: 'debug', expireTimeMillis: Date.now() + 3600000 }) })
+        : new ReCaptchaV3Provider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // replace with your reCAPTCHA v3 site key
+      isTokenAutoRefreshEnabled: true,
+    });
+    console.log('[AppCheck] Initialized —', isDev ? 'DEBUG mode' : 'production');
+  } catch (e) {
+    // App Check init failure should never block auth — log and continue
+    console.warn('[AppCheck] init skipped:', e);
+  }
+}
+
 
 // Initialize Firestore
 export const db = getFirestore(app);

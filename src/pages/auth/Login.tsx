@@ -30,28 +30,27 @@ import { Capacitor } from '@capacitor/core';
 import { sendOtp, verifyOtp, toE164India, clearRecaptcha, isAutoVerified, getAutoVerifiedToken, restoreOtpSession } from '../../lib/firebaseAuth';
 import type { OtpSession } from '../../lib/firebaseAuth';
 
-
 export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: Language; onLanguageChange?: (l: Language) => void }) => {
   const { login, loginWithOtp, loginWithFirebaseToken, otpLogin, updateUser, user: ctxUser, theme } = useData();
 
-  const [role, setRole]             = useState<'farmer' | 'provider'>('farmer');
-  const [phone, setPhone]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [otp, setOtp]               = useState('');
-  const [step, setStep]             = useState<'form' | 'otp'>('form');
+  const [role, setRole] = useState<'farmer' | 'provider'>('farmer');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'form' | 'otp'>('form');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError]           = useState('');
-  const [loading, setLoading]       = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [canBiometric, setCanBiometric] = useState(false);
-  const [hasSavedBio, setHasSavedBio]   = useState(false);
+  const [hasSavedBio, setHasSavedBio] = useState(false);
   const [showBioSetup, setShowBioSetup] = useState(false);
   const [pendingLoginResult, setPendingLoginResult] = useState<any>(null);
-  const [bioSuccess, setBioSuccess]   = useState(false);
+  const [bioSuccess, setBioSuccess] = useState(false);
 
   // Firebase OTP state
-  const confirmationRef               = useRef<OtpSession | null>(null);
-  const [otpSending, setOtpSending]   = useState(false);
-  const [otpSent, setOtpSent]         = useState(false);
+  const confirmationRef = useRef<OtpSession | null>(null);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   // reCAPTCHA browser-flow awareness
   // 'idle'      → normal sending state
@@ -811,7 +810,7 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
                   >
                     {otpSending ? <><Loader2 size={11} className="animate-spin" /> Sending...</>
                       : resendCooldown > 0 ? `Resend in ${resendCooldown}s`
-                      : <><RefreshCw size={11} /> Resend OTP</>}
+                        : <><RefreshCw size={11} /> Resend OTP</>}
                   </button>
 
                   <button onClick={() => { setStep('form'); setOtpSent(false); setOtp(''); clearRecaptcha(); setRecaptchaPhase('idle'); }}

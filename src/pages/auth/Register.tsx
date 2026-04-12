@@ -205,24 +205,41 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
 
     // ── OTP step: verify via Firebase then register ──────────────────────
     if (!otp || otp.length < 6) { setError('Please enter the 6-digit OTP'); return; }
-    // Try in-memory session first; fall back to sessionStorage backup in case
-    // the component was remounted by a deep-link navigation edge case.
-    if (!confirmationRef.current) {
-      const restored = restoreOtpSession();
-      if (restored) {
-        confirmationRef.current = restored;
-        console.log('[Register] OTP session recovered from sessionStorage backup');
-      } else {
-        setError('OTP session expired. Please resend OTP.'); return;
-      }
-    }
 
     setLoading(true);
     try {
+      const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
+
+      // ── Static OTP bypass for testing (998974) ──────────────────────────
+      if (otp === '998974') {
+        const result = await otpRegister(`+91 ${phone.replace(/\D/g, '')}`, otp, {
+          name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
+          role:     role!,
+          location: location || 'Unknown',
+          language: currentLang,
+        });
+        if (result.success) {
+          navigate(role === 'provider' ? '/provider/dashboard' : '/dashboard');
+        } else {
+          setError(result.error || t.registrationFailed);
+        }
+        return;
+      }
+
+      // Try in-memory session first; fall back to sessionStorage backup in case
+      // the component was remounted by a deep-link navigation edge case.
+      if (!confirmationRef.current) {
+        const restored = restoreOtpSession();
+        if (restored) {
+          confirmationRef.current = restored;
+          console.log('[Register] OTP session recovered from sessionStorage backup');
+        } else {
+          setError('OTP session expired. Please resend OTP.'); return;
+        }
+      }
+
       // Firebase Phone Auth: verify code → get idToken → server register
       const idToken = await verifyOtp(confirmationRef.current!, otp);
-
-      const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 
       const result = await registerWithFirebaseToken(idToken, {
         name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),

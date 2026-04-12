@@ -25,18 +25,21 @@
  */
 
 import { Capacitor } from '@capacitor/core';
-
 // ── Platform flag ─────────────────────────────────────────────────────────────
 const IS_NATIVE = Capacitor.isNativePlatform();
 
 // ── Session type ──────────────────────────────────────────────────────────────
 export type OtpSession =
   | { type: 'native'; verificationId: string }
-  | { type: 'web';    confirmation: any };
+  | { type: 'web'; confirmation: any };
 
 /** Returns true when Firebase auto-verified the number without user code entry. */
-export const isAutoVerified = (session: OtpSession): boolean =>
-  session.type === 'native' && session.verificationId.startsWith('__auto__');
+export const isAutoVerified = (
+  session: OtpSession
+): session is { type: 'native'; verificationId: string } => {
+  if (session.type !== 'native') return false;
+  return session.verificationId.startsWith('__auto__');
+};
 
 /** Extracts the ID token from an auto-verified session — skips OTP step entirely. */
 export const getAutoVerifiedToken = (session: OtpSession): string | null => {
@@ -219,7 +222,7 @@ export const sendOtp = async (
 
       _recaptchaVerifier = new RecaptchaVerifier(auth, buttonId, {
         size: 'invisible',
-        callback: () => {},
+        callback: () => { },
       });
 
       const confirmation = await signInWithPhoneNumber(auth, phoneE164, _recaptchaVerifier);
@@ -254,7 +257,7 @@ export const verifyOtp = async (
 
     // Manual path — user entered the 6-digit code
     await FirebaseAuthentication.confirmVerificationCode({
-      verificationId:   session.verificationId,
+      verificationId: session.verificationId,
       verificationCode: code,
     });
 
@@ -272,7 +275,7 @@ export const verifyOtp = async (
 
   } else {
     const credential = await session.confirmation.confirm(code);
-    const idToken    = await credential.user.getIdToken();
+    const idToken = await credential.user.getIdToken();
     clearRecaptcha();
     console.log('[FirebaseAuth] ✅ Web OTP verified, ID token obtained');
     return idToken;
