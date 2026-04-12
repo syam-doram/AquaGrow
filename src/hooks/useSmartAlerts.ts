@@ -248,11 +248,26 @@ export const useSmartAlerts = (params: {
 
   // ── Actions ──
   const markRead = useCallback((id: string) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
+    setAlerts(prev => {
+      const alert = prev.find(a => a.id === id);
+      // Suppress this alert title from re-appearing as a banner
+      if (alert && !suppressedIds.current.has(alert.title)) {
+        suppressedIds.current.add(alert.title);
+        saveSuppressed(suppressedIds.current);
+      }
+      return prev.map(a => a.id === id ? { ...a, isRead: true } : a);
+    });
   }, []);
 
   const markAllRead = useCallback(() => {
-    setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
+    setAlerts(prev => {
+      // Suppress ALL alert titles so none re-appear as banners
+      prev.forEach(a => {
+        if (!suppressedIds.current.has(a.title)) suppressedIds.current.add(a.title);
+      });
+      saveSuppressed(suppressedIds.current);
+      return prev.map(a => ({ ...a, isRead: true }));
+    });
   }, []);
 
   const dismissAlert = useCallback((id: string) => {

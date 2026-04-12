@@ -427,16 +427,18 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations; onMenuClick
             </motion.div>
           ) : (
             <div className="space-y-3">
-              {filtered.map(alert => (
-                <AlertCard
-                  key={alert.id}
-                  alert={alert}
-                  isDark={isDark}
-                  onRead={markRead}
-                  onDismiss={dismissAlert}
-                  navigate={navigate}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {filtered.map(alert => (
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    isDark={isDark}
+                    onRead={markRead}
+                    onDismiss={dismissAlert}
+                    navigate={navigate}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </AnimatePresence>

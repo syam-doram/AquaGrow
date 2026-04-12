@@ -6,14 +6,28 @@ import { useData } from '../context/DataContext';
 import { Translations } from '../translations';
 import { cn } from '../utils/cn';
 
+const SUPPRESSED_KEY = 'aquagrow_suppressed_alerts_v1';
+
+const isAlertSuppressed = (title: string): boolean => {
+  try {
+    const raw = localStorage.getItem(SUPPRESSED_KEY);
+    if (!raw) return false;
+    const suppressed: string[] = JSON.parse(raw);
+    return suppressed.includes(title);
+  } catch { return false; }
+};
+
 export const GlobalAlertCenter = ({ t }: { t: Translations }) => {
   const { user } = useData();
   const { incomingAlert, clearAlert } = useFirebaseAlerts(user?.language || 'English');
 
+  // Don't show the banner if the user already read/dismissed this alert title
+  const shouldShow = incomingAlert && !isAlertSuppressed(incomingAlert.title);
+
   return (
     <div className="fixed top-20 left-4 right-4 z-[100] pointer-events-none space-y-3">
       <AnimatePresence mode="popLayout">
-        {incomingAlert && (
+        {shouldShow && (
           <motion.div
             key="global-firebase-alert"
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
