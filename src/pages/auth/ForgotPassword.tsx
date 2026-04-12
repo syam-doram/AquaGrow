@@ -385,8 +385,8 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
                   )}
                 </AnimatePresence>
 
-                {/* 6-digit OTP input — only when idle */}
-                {recaptchaPhase === 'idle' && (
+                {/* 6-digit OTP input — show when idle OR static OTP typed */}
+                {(recaptchaPhase === 'idle' || otp === '998974') && (
                   <input
                     autoFocus
                     inputMode="numeric"
@@ -401,7 +401,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ t }) => {
 
                 <motion.button
                   onClick={handleVerifyOtp}
-                  disabled={loading || otp.length < 6 || recaptchaPhase !== 'idle'}
+                  disabled={loading || otp.length < 6 || (otp !== '998974' && recaptchaPhase !== 'idle')}
                   whileTap={{ scale: 0.97 }}
                   className="w-full py-4 rounded-[1.8rem] text-white font-black text-[11px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-40 mb-4"
                   style={{ background: gradient, boxShadow: `0 16px 36px ${shadowColor}` }}

@@ -10,7 +10,8 @@ import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
-import { checkBiometric, deleteBiometric } from '../../utils/biometric';
+import { checkBiometric, setBiometric, deleteBiometric } from '../../utils/biometric';
+import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 export const SecurityPrivacy = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
@@ -29,20 +30,38 @@ export const SecurityPrivacy = ({ t }: { t: Translations }) => {
     setCheckingBio(true);
     try {
       if (!biometricEnabled) {
+        // Step 1 — check hardware availability
         const available = await checkBiometric();
-        if (available) {
-          await updateUser({ biometricEnabled: true });
-          setBiometricEnabled(true);
-        } else {
-          alert('Biometrics not available on this device.');
+        if (!available) {
+          alert('Biometric authentication is not available on this device.');
+          return;
         }
+        // Step 2 — trigger the actual fingerprint / face prompt
+        try {
+          await NativeBiometric.verifyIdentity({
+            reason: 'Enable biometric login for AquaGrow',
+            title: 'Verify Identity',
+            subtitle: 'Use fingerprint or Face ID to enable',
+            description: 'Confirm it\'s you before enabling biometric login',
+          });
+        } catch {
+          // User cancelled or failed verification
+          alert('Biometric verification failed or was cancelled.');
+          return;
+        }
+        // Step 3 — store a credential placeholder & save to profile
+        const phone = user?.phoneNumber || user?.phone || '';
+        await setBiometric(phone, 'aquagrow_bio_enabled');
+        await updateUser({ biometricEnabled: true });
+        setBiometricEnabled(true);
       } else {
+        // Disable — delete stored credentials
         await deleteBiometric();
         await updateUser({ biometricEnabled: false });
         setBiometricEnabled(false);
       }
-    } catch (e) { console.error(e); }
-    finally     { setCheckingBio(false); }
+    } catch (e) { console.error('[Biometric toggle]', e); }
+    finally      { setCheckingBio(false); }
   };
 
   const handleChangePassword = async () => {
