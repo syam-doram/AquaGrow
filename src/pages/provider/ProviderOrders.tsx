@@ -91,7 +91,8 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
     return c;
   }, [orders]);
 
-  return <div className={cn('min-h-screen pb-40', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
+  return (
+    <div className={cn('min-h-screen pb-40', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
       <Header title="Orders" showBack />
 
       <div className="pt-20 px-4 max-w-[420px] mx-auto space-y-4">
