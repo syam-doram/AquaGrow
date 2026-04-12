@@ -934,42 +934,52 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 >
                   {/* Moon Phase Alert Strip — compact, only if active phase */}
                   {isHighRiskMoon && (
-                    <div className={cn('rounded-2xl px-4 py-3 flex items-center gap-3 border', moonMeta.bg, moonMeta.border)}>
-                      <span className="text-2xl flex-shrink-0">{moonMeta.emoji}</span>
-                      <div className="flex-1">
-                        <p className={cn('text-[9px] font-black tracking-tight', moonMeta.textColor)}>
-                          {moonMeta.label} — {moonMeta.sublabel}
-                        </p>
-                        <p className="text-white/50 text-[8px] font-medium mt-0.5">
-                          {moonMeta.rules[0]}
-                        </p>
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                      className={cn('rounded-[2rem] p-4 border', moonMeta.bg, moonMeta.border)}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-3xl flex-shrink-0">{moonMeta.emoji}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className={cn('text-[10px] font-black tracking-tight', moonMeta.textColor)}>{moonMeta.label}</p>
+                            <span className={cn('text-[7px] font-black px-2 py-0.5 rounded-full border', moonMeta.badge)}>{moonMeta.sublabel}</span>
+                          </div>
+                        </div>
+                        <span className={cn('text-[8px] font-black px-2.5 py-1 rounded-xl border whitespace-nowrap', moonMeta.badge)}>
+                          {lunar.daysToAmavasya <= 1 ? 'Tonight' : `${lunar.daysToAmavasya}d`}
+                        </span>
                       </div>
-                      <span className={cn('text-[7px] font-black px-2 py-1 rounded-xl border whitespace-nowrap', moonMeta.badge)}>
-                        {lunar.daysToAmavasya <= 1 ? 'Tonight' : `${lunar.daysToAmavasya}d`}
-                      </span>
-                    </div>
+                      <div className="space-y-1">
+                        {moonMeta.rules.slice(0, 3).map((rule, ri) => (
+                          <p key={ri} className="text-white/60 text-[9px] font-medium leading-relaxed">{rule}</p>
+                        ))}
+                      </div>
+                    </motion.div>
                   )}
 
                   {/* Season + next milestone compact strip */}
                   {currentDoc > 0 && (
-                    <div className="flex gap-2">
-                      <div className={cn('flex-1 rounded-2xl px-4 py-3 border flex items-center gap-2',
-                        isDark ? `bg-white/5 border-white/10` : season.bg
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className={cn('rounded-[1.8rem] px-4 py-3 border flex items-center gap-2.5',
+                        isDark ? 'bg-white/5 border-white/10' : season.bg
                       )}>
-                        <span className="text-lg">{season.emoji}</span>
+                        <span className="text-2xl">{season.emoji}</span>
                         <div>
-                          <p className={cn('text-[8px] font-black', isDark ? 'text-white/80' : season.color)}>{season.label} Season</p>
-                          <p className={cn('text-[7px] font-medium', isDark ? 'text-white/30' : 'text-ink/40')}>{season.risk.split('·')[0].trim()}</p>
+                          <p className={cn('text-[9px] font-black', isDark ? 'text-white' : season.color)}>{season.label} Season</p>
+                          <p className={cn('text-[7px] font-medium leading-snug mt-0.5', isDark ? 'text-white/30' : 'text-ink/40')}>{season.risk.split('·')[0].trim()}</p>
                         </div>
                       </div>
                       {nextMilestone && (
-                        <div className={cn('flex-1 rounded-2xl px-4 py-3 border flex items-center gap-2',
+                        <div className={cn('rounded-[1.8rem] px-4 py-3 border flex items-center gap-2.5',
                           isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'
                         )}>
-                          <Clock size={18} className={isDark ? 'text-indigo-400' : 'text-indigo-400'} />
+                          <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600')}>
+                            <Clock size={14} />
+                          </div>
                           <div>
-                            <p className={cn('text-[8px] font-black', isDark ? 'text-indigo-300' : 'text-indigo-700')}>{nextMilestone.label}</p>
-                            <p className={cn('text-[7px] font-black', isDark ? 'text-indigo-500' : 'text-indigo-400')}>in +{nextMilestone.doc - currentDoc} days</p>
+                            <p className={cn('text-[9px] font-black leading-tight', isDark ? 'text-indigo-300' : 'text-indigo-700')}>{nextMilestone.label}</p>
+                            <p className={cn('text-[7px] font-black mt-0.5', isDark ? 'text-indigo-500' : 'text-indigo-400')}>in +{nextMilestone.doc - currentDoc} days</p>
                           </div>
                         </div>
                       )}
@@ -1028,127 +1038,190 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center justify-between px-1 mb-1">
                         <div>
-                          <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-ink')}>{t.dailySOP}</h2>
-                          <p className="text-[#C78200] text-[9px] font-black uppercase tracking-widest mt-0.5">
-                            {selectedDate.toDateString() === new Date().toDateString() ? 'Required Today' : `Required on ${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`}
-                            {currentDoc >= 0 ? ` — DOC ${currentDoc}` : ` — Preparation Phase`} ({selectedDate.toLocaleDateString('en-IN', { weekday: 'long' })})
+                          <h2 className={cn('font-black text-base tracking-tight', isDark ? 'text-white' : 'text-ink')}>{t.dailySOP}</h2>
+                          <p className="text-[#C78200] text-[8px] font-black uppercase tracking-widest mt-0.5">
+                            {selectedDate.toDateString() === new Date().toDateString()
+                              ? `Required Today · DOC ${currentDoc}` 
+                              : `Required on ${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}`
+                            } · {selectedDate.toLocaleDateString('en-IN', { weekday: 'long' })}
                           </p>
                         </div>
                         <div className={cn(
-                          'w-12 h-12 rounded-2xl flex items-center justify-center',
-                          currentDoc >= 31 && currentDoc <= 45 ? 'bg-red-500/10 text-red-500' : isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-500/10 text-emerald-500'
+                          'px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border',
+                          todayGuidance.filter(g => g.type === 'MEDICINE').length > 0
+                            ? isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-slate-50 border-slate-200 text-slate-400'
                         )}>
-                          <ShieldCheck size={24} />
+                          {todayGuidance.filter(g => g.type === 'MEDICINE').length} medicines
                         </div>
                       </div>
 
                       <div className="space-y-3">
-                        {todayGuidance
-                          .map((item, i) => {
-                            // Check if this specific medicine was ALREADY logged today for this pond
-                            const isAlreadyInHistory = medicineLogs.some(l =>
-                              l.pondId === selectedPond.id &&
-                              l.name === item.title &&
-                              new Date(l.date).toDateString() === new Date().toDateString()
-                            );
+                        {todayGuidance.map((item, i) => {
+                          const isAlreadyInHistory = medicineLogs.some(l =>
+                            l.pondId === selectedPond.id &&
+                            l.name === item.title &&
+                            new Date(l.date).toDateString() === new Date().toDateString()
+                          );
+                          const isCompleted = isAlreadyInHistory || completedMeds.includes(item.title);
+                          const Icon = getIconForType(item.type);
+                          const importance = item.type === 'MEDICINE'
+                            ? getMedicineImportance(item.title, currentDoc, item.priority)
+                            : null;
 
-                            const isCompleted = isAlreadyInHistory || completedMeds.includes(item.title);
-                            const Icon = getIconForType(item.type);
+                          // Accent color by type
+                          const accentMap: Record<string, { bg: string; text: string; border: string; glow: string }> = {
+                            MEDICINE: { bg: 'bg-emerald-500', text: 'text-emerald-500', border: 'border-emerald-500/20', glow: 'shadow-emerald-900/20' },
+                            ALERT:    { bg: 'bg-red-500',     text: 'text-red-500',     border: 'border-red-500/20',     glow: 'shadow-red-900/20' },
+                            LUNAR:    { bg: 'bg-indigo-500',  text: 'text-indigo-400',  border: 'border-indigo-500/20',  glow: 'shadow-indigo-900/20' },
+                            RULE:     { bg: 'bg-blue-500',    text: 'text-blue-400',    border: 'border-blue-500/20',    glow: 'shadow-blue-900/20' },
+                            TIP:      { bg: 'bg-amber-500',   text: 'text-amber-500',   border: 'border-amber-500/20',   glow: 'shadow-amber-900/20' },
+                            FEED:     { bg: 'bg-orange-500',  text: 'text-orange-500',  border: 'border-orange-500/20',  glow: 'shadow-orange-900/20' },
+                          };
+                          const accent = accentMap[item.type] ?? accentMap.MEDICINE;
 
-                            return (
-                              <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.05 }}
-                                onClick={() => !isAlreadyInHistory && item.type === 'MEDICINE' && toggleMed(item.title)}
-                                className={cn(
-                                  'p-5 rounded-[2rem] shadow-sm border transition-all flex items-center justify-between group',
-                                  (item.type === 'MEDICINE' && !isAlreadyInHistory) ? 'cursor-pointer' : 'cursor-default',
-                                  isCompleted
-                                    ? isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'
-                                    : item.type === 'ALERT' || item.priority === 'HIGH'
-                                      ? isDark ? 'bg-red-500/8 border-red-500/20 hover:border-red-500/30' : 'bg-card border-red-100 hover:border-red-200'
-                                      : isDark ? 'bg-white/[0.03] border-white/8 hover:border-white/15' : 'bg-card border-card-border hover:border-emerald-200'
-                                )}
-                              >
-                                <div className={cn("flex items-center gap-4 flex-1 min-w-0", isAlreadyInHistory && "opacity-60")}>
-                                  <div className={cn(
-                                    'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all',
-                                    isCompleted
-                                      ? 'bg-emerald-500 text-white'
-                                      : getTypeAccent(item.type)
-                                  )}>
-                                    {isCompleted ? <CheckCircle2 size={22} /> : <Icon size={22} />}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                                      <h4 className={cn(
-                                        'font-black text-sm tracking-tight truncate',
-                                        isCompleted
-                                          ? isDark ? 'text-emerald-400' : 'text-emerald-800'
-                                          : isDark ? 'text-white' : 'text-ink'
-                                      )}>
-                                        {item.title}
-                                      </h4>
-                                      {isAlreadyInHistory && (
-                                        <span className="text-[7px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white border-none flex-shrink-0 animate-pulse">
-                                          Synced
-                                        </span>
-                                      )}
-                                      <span className={cn(
-                                        'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex-shrink-0',
-                                        getPriorityColor(item.priority)
-                                      )}>
-                                        {item.priority}
-                                      </span>
-                                      {item.applicationType && (
+                          return (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.04 }}
+                              onClick={() => !isAlreadyInHistory && item.type === 'MEDICINE' && toggleMed(item.title)}
+                              className={cn(
+                                'rounded-[2rem] border transition-all overflow-hidden',
+                                (item.type === 'MEDICINE' && !isAlreadyInHistory) ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default',
+                                isCompleted
+                                  ? isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'
+                                  : item.priority === 'HIGH' || item.type === 'ALERT'
+                                    ? isDark ? 'bg-red-500/5 border-red-500/15 hover:border-red-500/25' : 'bg-white border-red-100 hover:border-red-200 shadow-sm'
+                                    : isDark ? 'bg-white/[0.03] border-white/8 hover:border-white/15' : 'bg-white border-slate-100 hover:border-emerald-200 shadow-sm'
+                              )}
+                            >
+                              {/* ── Urgency stripe on the left ── */}
+                              <div className="flex">
+                                <div className={cn(
+                                  'w-1 flex-shrink-0 rounded-l-[2rem]',
+                                  isCompleted ? 'bg-emerald-500'
+                                    : item.priority === 'HIGH' || item.type === 'ALERT' ? 'bg-red-500'
+                                    : item.priority === 'MEDIUM' ? 'bg-amber-500'
+                                    : 'bg-emerald-500/30'
+                                )} />
+
+                                <div className="flex-1 p-4">
+                                  {/* ── Top row: icon + name + checkbox ── */}
+                                  <div className="flex items-start gap-3">
+                                    {/* Icon block */}
+                                    <div className={cn(
+                                      'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all',
+                                      isCompleted ? 'bg-emerald-500 text-white' : `${accent.bg}/15 ${accent.text}`
+                                    )}>
+                                      {isCompleted ? <CheckCircle2 size={20} /> : <Icon size={20} />}
+                                    </div>
+
+                                    {/* Name + tags */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <h4 className={cn(
+                                          'font-black text-[13px] tracking-tight leading-tight',
+                                          isCompleted
+                                            ? isDark ? 'text-emerald-400' : 'text-emerald-800'
+                                            : isDark ? 'text-white' : 'text-slate-900'
+                                        )}>
+                                          {item.title}
+                                        </h4>
+                                        {/* Checkbox (only for medicines) */}
+                                        {item.type === 'MEDICINE' && (
+                                          <div className={cn(
+                                            'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                                            isCompleted || isAlreadyInHistory
+                                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                                              : isDark ? 'border-white/20' : 'border-slate-300'
+                                          )}>
+                                            {(isCompleted || isAlreadyInHistory) && <CheckCircle2 size={13} />}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Tags row */}
+                                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                        {/* Priority badge */}
                                         <span className={cn(
-                                          'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex-shrink-0',
-                                          item.applicationType === 'WATER' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                          'text-[6.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                                          item.priority === 'HIGH' ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                            : item.priority === 'MEDIUM' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                                            : 'bg-emerald-500/10 text-emerald-600 border-emerald-200'
                                         )}>
-                                          {item.applicationType === 'WATER' ? 'Water' : 'Feed'}
+                                          {item.priority}
                                         </span>
+
+                                        {/* Application type */}
+                                        {item.applicationType && (
+                                          <span className={cn(
+                                            'text-[6.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                                            item.applicationType === 'WATER'
+                                              ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                              : 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                                          )}>
+                                            {item.applicationType === 'WATER' ? '💧 Water' : '🍽 Feed'}
+                                          </span>
+                                        )}
+
+                                        {/* Already synced badge */}
+                                        {isAlreadyInHistory && (
+                                          <span className="text-[6.5px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                                            ✓ Logged Today
+                                          </span>
+                                        )}
+
+                                        {/* Cost badge */}
+                                        {item.type === 'MEDICINE' && !isAlreadyInHistory && (
+                                          <span className={cn(
+                                            'text-[6.5px] font-black px-2 py-0.5 rounded-full border ml-auto',
+                                            isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                          )}>
+                                            ~₹{estimateMedicineCost(item.title, pondAcreage)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* ── Description + Dose row ── */}
+                                  {!isAlreadyInHistory && (
+                                    <div className={cn('mt-3 pt-3 border-t space-y-1',
+                                      isDark ? 'border-white/5' : 'border-slate-100'
+                                    )}>
+                                      {item.description && (
+                                        <p className={cn('text-[10px] font-medium leading-relaxed',
+                                          isDark ? 'text-white/45' : 'text-slate-500'
+                                        )}>
+                                          {item.description}
+                                        </p>
                                       )}
-                                      {item.type === 'MEDICINE' && !isAlreadyInHistory && (
-                                        <span className={cn('text-[7px] font-black px-2 py-0.5 rounded-full border flex-shrink-0',
-                                          isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                                        )}>
-                                          ~{'\u20b9'}{estimateMedicineCost(item.title, pondAcreage)}
-                                        </span>
+                                      {item.dose && (
+                                        <div className="flex items-center gap-1.5">
+                                          <div className={cn('w-1 h-1 rounded-full flex-shrink-0', accent.text.replace('text-', 'bg-'))} />
+                                          <p className={cn('text-[9px] font-black uppercase tracking-wide',
+                                            isDark ? 'text-emerald-400/80' : 'text-emerald-700'
+                                          )}>
+                                            Dose: {item.dose}
+                                          </p>
+                                        </div>
                                       )}
                                     </div>
-                                    <p className={cn('text-[10px] font-medium leading-snug',
-                                      isAlreadyInHistory
-                                        ? isDark ? 'text-emerald-400/60' : 'text-emerald-700/60'
-                                        : isDark ? 'text-white/35' : 'text-ink/40'
-                                    )}>
-                                      {isAlreadyInHistory ? "Already applied and synced for today" : item.description}
+                                  )}
+                                  {isAlreadyInHistory && (
+                                    <p className={cn('text-[9px] font-medium mt-2', isDark ? 'text-emerald-400/50' : 'text-emerald-700/60')}>
+                                      ✓ Already applied and synced for today
                                     </p>
-                                    {item.dose && !isAlreadyInHistory && (
-                                      <p className={cn('text-[8px] font-black uppercase tracking-widest mt-0.5',
-                                        isDark ? 'text-emerald-400/70' : 'text-[#0D523C]'
-                                      )}>
-                                        Dose: {item.dose}
-                                      </p>
-                                    )}
-                                  </div>
+                                  )}
                                 </div>
-                                {item.type === 'MEDICINE' && (
-                                  <div className={cn(
-                                    'w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ml-3',
-                                    isCompleted
-                                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                                      : isDark ? 'border-white/15 text-transparent' : 'border-card-border text-transparent'
-                                  )}>
-                                    <CheckCircle2 size={16} />
-                                  </div>
-                                )}
-                              </motion.div>
-                            );
-                          })}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
                       </div>
 
                       {/* ── HARVESTED POND GUARD ── */}
@@ -1197,19 +1270,29 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       )}
 
                       {/* Log Button */}
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
                         onClick={handleLog}
                         disabled={completedMeds.length === 0 || selectedPond.status === 'harvested'}
                         className={cn(
-                          'w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3',
+                          'w-full py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg',
                           completedMeds.length > 0 && selectedPond.status !== 'harvested'
-                            ? 'bg-[#0D523C] text-white shadow-2xl shadow-emerald-900/20 active:scale-95'
-                            : 'bg-[#F0F0F0] text-ink/20 cursor-not-allowed'
+                            ? 'bg-[#0D523C] text-white shadow-emerald-900/30 active:scale-95'
+                            : isDark ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/10' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                         )}
                       >
-                        {isLogging ? 'Syncing...' : (selectedDate.toDateString() === new Date().toDateString() ? `${t.logDailyProtocol || 'Log Protocol'} (${completedMeds.length})` : 'Planning Only')}
-                        <ArrowRight size={18} />
-                      </button>
+                        {isLogging
+                          ? <><Waves size={16} className="animate-spin" /> Syncing...</>
+                          : selectedDate.toDateString() === new Date().toDateString()
+                            ? <><ShieldCheck size={16} /> {t.logDailyProtocol || 'Log Protocol'}
+                                {completedMeds.length > 0 && (
+                                  <span className="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                                    {completedMeds.length} selected
+                                  </span>
+                                )}
+                              </>
+                            : <><Calendar size={16} /> Planning Mode — Not Logged</>}
+                      </motion.button>
                       {selectedDate.toDateString() !== new Date().toDateString() && (
                         <button
                           onClick={() => setSelectedDate(new Date())}
