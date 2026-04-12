@@ -1,13 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Package, Fish, Wheat, Pill, ChevronRight, Truck,
   CheckCircle2, Clock, X, Phone, MessageSquare, MapPin,
+  ShoppingBag, RefreshCw, AlertCircle,
 } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
+import { API_BASE_URL } from '../../config';
 
 const ORDERS = [
   { id: 'ORD-1041', farmer: 'Ravi Kumar',   location: 'Nellore',     phone: '9876543210', item: 'Vannamei SPF Seed', qty: '50,000 PLs', amount: 22500, status: 'pending',   date: '2026-04-09', category: 'seed',     note: 'PL12 preferred. Deliver by evening.' },
@@ -32,12 +34,47 @@ const CAT_COLOR: Record<string, string> = {
 };
 
 export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
-  const { theme } = useData();
+  const { theme, user } = useData() as any;
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  const [orders, setOrders]        = useState(ORDERS);
-  const [activeStatus, setStatus]  = useState<string>('all');
-  const [selected, setSelected]    = useState<any>(null);
+  const [orders, setOrders]          = useState(ORDERS);
+  const [activeStatus, setStatus]    = useState<string>('all');
+  const [selected, setSelected]      = useState<any>(null);
+  const [orderTab, setOrderTab]      = useState<'regular' | 'shop'>('regular');
+
+  // ── Shop orders from API ──────────────────────────────────────────────────
+  const [shopOrders, setShopOrders]  = useState<any[]>([]);
+  const [shopLoading, setShopLoading]= useState(false);
+  const [shopError, setShopError]    = useState('');
+
+  const fetchShopOrders = async () => {
+    setShopLoading(true); setShopError('');
+    try {
+      const providerId = user?._id || user?.id;
+      const res = await fetch(`${API_BASE_URL}/api/shop/orders?providerId=${providerId}`);
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setShopOrders(Array.isArray(data) ? data : data.orders || []);
+    } catch {
+      setShopError('Could not load shop orders. Pull to refresh.');
+    } finally {
+      setShopLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchShopOrders(); }, []);
+
+  const advanceShopOrder = async (orderId: string, newStatus: string) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/shop/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      setShopOrders(prev => prev.map(o => o._id === orderId || o.id === orderId ? { ...o, status: newStatus } : o));
+      setSelected((s: any) => s?._id === orderId || s?.id === orderId ? { ...s, status: newStatus } : s);
+    } catch { /* silent */ }
+  };
 
   const advance = (orderId: string, nextStatus: string) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
@@ -54,12 +91,108 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
     return c;
   }, [orders]);
 
-  return (
-    <div className={cn('min-h-screen pb-40', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
+  return <div className={cn('min-h-screen pb-40', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
       <Header title="Orders" showBack />
 
       <div className="pt-20 px-4 max-w-[420px] mx-auto space-y-4">
 
+        {/* ── ORDER TYPE TABS ── */}
+        <div className={cn('flex rounded-2xl p-1 border gap-1', isDark ? 'bg-white/5 border-white/8' : 'bg-slate-100 border-transparent')}>
+          {([
+            { key: 'regular', label: '📋 Regular Orders' },
+            { key: 'shop',    label: '🛒 Shop Orders',   badge: shopOrders.filter(o => o.status === 'assigned' || o.status === 'pending').length },
+          ] as const).map(tab => (
+            <button key={tab.key} onClick={() => setOrderTab(tab.key)}
+              className={cn('flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5',
+                orderTab === tab.key ? isDark ? 'bg-white/15 text-white' : 'bg-white text-slate-900 shadow-sm' : isDark ? 'text-white/30' : 'text-slate-400'
+              )}>
+              {tab.label}
+              {'badge' in tab && tab.badge > 0 && (
+                <span className="w-4 h-4 bg-red-500 text-white rounded-full text-[6px] flex items-center justify-center font-black">{tab.badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ── SHOP ORDERS TAB ── */}
+        {orderTab === 'shop' && (
+          <div className="space-y-3">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <p className={cn('text-[10px] font-black uppercase tracking-widest', isDark ? 'text-white/50' : 'text-slate-500')}>AquaGrow Shop Orders</p>
+                <p className={cn('text-[7px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>Company-assigned · Deliver to farmers</p>
+              </div>
+              <button onClick={fetchShopOrders} className={cn('w-8 h-8 rounded-xl flex items-center justify-center', isDark ? 'bg-white/8' : 'bg-slate-100')}>
+                <RefreshCw size={13} className={cn(shopLoading ? 'animate-spin' : '', isDark ? 'text-white/40' : 'text-slate-500')} />
+              </button>
+            </div>
+
+            {shopError && (
+              <div className={cn('rounded-2xl p-3 border flex items-center gap-2', isDark ? 'bg-red-500/8 border-red-500/15' : 'bg-red-50 border-red-100')}>
+                <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                <p className="text-red-500 text-[8px] font-medium">{shopError}</p>
+              </div>
+            )}
+
+            {shopLoading && shopOrders.length === 0 ? (
+              <div className="text-center py-10">
+                <RefreshCw size={24} className={cn('mx-auto mb-3 animate-spin', isDark ? 'text-white/20' : 'text-slate-300')} />
+                <p className={cn('text-[9px] font-black', isDark ? 'text-white/20' : 'text-slate-400')}>Loading shop orders...</p>
+              </div>
+            ) : shopOrders.length === 0 && !shopLoading ? (
+              <div className="text-center py-14">
+                <span className="text-4xl">📦</span>
+                <p className={cn('font-black text-sm mt-4', isDark ? 'text-white/30' : 'text-slate-400')}>No shop orders assigned</p>
+                <p className={cn('text-[8px] font-medium mt-1', isDark ? 'text-white/15' : 'text-slate-300')}>When a farmer near you orders, it appears here</p>
+              </div>
+            ) : (
+              shopOrders.map((order: any, i: number) => {
+                const oid = order._id || order.id;
+                const st = STATUS_CFG[order.status] || STATUS_CFG['pending'];
+                return (
+                  <motion.div key={oid} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                    onClick={() => setSelected({ ...order, _isShop: true })}
+                    className={cn('rounded-[1.8rem] border p-4 cursor-pointer active:scale-[0.98] transition-all',
+                      isDark ? 'bg-white/[0.03] border-amber-500/15 hover:border-amber-500/25' : 'bg-white border-amber-100 shadow-sm')}>
+                    <div className="flex items-start gap-3">
+                      <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0', isDark ? 'bg-amber-500/10' : 'bg-amber-50 border border-amber-100')}>
+                        <ShoppingBag size={16} className="text-amber-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/60' : 'text-amber-600')}>#{oid?.slice?.(-6) || 'SHOP'}</p>
+                            <span className="text-[6px] font-black px-1.5 py-0.5 bg-amber-500 text-white rounded-full uppercase tracking-widest">Shop</span>
+                          </div>
+                          <span className={cn('px-2 py-0.5 rounded-lg text-[6.5px] font-black uppercase tracking-widest', st.bg, st.text)}>{st.label}</span>
+                        </div>
+                        <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{order.farmerName || 'Farmer'}</p>
+                        <p className={cn('text-[7.5px] font-medium', isDark ? 'text-white/30' : 'text-slate-400')}>
+                          {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''} · ₹{(order.totalAmount || order.subtotal || 0).toLocaleString('en-IN')}
+                        </p>
+                        {order.deliveryNote && (
+                          <p className={cn('text-[7px] font-medium mt-0.5 italic', isDark ? 'text-white/20' : 'text-slate-400')}>📝 {order.deliveryNote}</p>
+                        )}
+                      </div>
+                    </div>
+                    {st.next && (
+                      <button onClick={e => { e.stopPropagation(); advanceShopOrder(oid, st.next!); }}
+                        className={cn('mt-3 w-full py-2.5 rounded-2xl text-[8px] font-black uppercase tracking-widest text-white',
+                          order.status === 'pending' || order.status === 'assigned' ? 'bg-amber-500' :
+                          order.status === 'confirmed' ? 'bg-blue-500' : 'bg-purple-500')}>
+                        {st.nextLabel}
+                      </button>
+                    )}
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ── REGULAR ORDERS TAB ── */}
+        {orderTab === 'regular' && <>
         {/* Status chip filters */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
           {(['all', 'pending', 'confirmed', 'shipped', 'delivered'] as const).map(st => (
@@ -137,6 +270,7 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
             </div>
           )}
         </div>
+        </>}
       </div>
 
       {/* Order detail bottom sheet */}
