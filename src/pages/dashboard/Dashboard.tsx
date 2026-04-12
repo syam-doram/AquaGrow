@@ -660,14 +660,28 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
         <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo
           rightElement={
-            <button
-              onClick={() => navigate('/orders')}
-              className="relative w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: isDark ? 'rgba(199,130,0,0.12)' : 'rgba(199,130,0,0.10)' }}
-            >
-              <Package size={18} style={{ color: '#C78200' }} />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[6px] font-black rounded-full flex items-center justify-center">!</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              {/* Orders icon */}
+              <button
+                onClick={() => navigate('/orders')}
+                className="relative w-9 h-9 rounded-2xl flex items-center justify-center"
+                style={{ background: isDark ? 'rgba(199,130,0,0.12)' : 'rgba(199,130,0,0.10)' }}
+              >
+                <Package size={16} style={{ color: '#C78200' }} />
+                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 text-white text-[5px] font-black rounded-full flex items-center justify-center">!</span>
+              </button>
+              {/* Bell / Notifications icon */}
+              <button
+                onClick={() => navigate('/notifications')}
+                className="relative w-9 h-9 rounded-2xl flex items-center justify-center"
+                style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
+              >
+                <Bell size={16} className={isDark ? 'text-white/60' : 'text-slate-500'} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border border-white" />
+                )}
+              </button>
+            </div>
           }
         />
 
@@ -925,22 +939,24 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
           {ponds.length > 0 && (
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-5 gap-2">
               {[
                 { label: t.monitor,     icon: Activity,       path: '/monitor',               from: '#38bdf8', to: '#0284c7' },
                 { label: t.liveMonitor, icon: Eye,            path: '/live-monitor',          from: '#22d3ee', to: '#0891b2' },
                 { label: t.disease,     icon: HeartPulse,     path: '/disease-detection',     from: '#f87171', to: '#dc2626' },
                 { label: t.market,      icon: TrendingUp,     path: '/market',                from: '#34d399', to: '#059669' },
                 { label: t.weather,     icon: Wind,           path: '/weather',               from: '#818cf8', to: '#4f46e5' },
+                { label: 'AquaCalc',    icon: Calculator,     path: '/aqua-calc',             from: '#10b981', to: '#059669' },
+                { label: 'SOP Hub',     icon: FileText,       path: '/sop-library',           from: '#e879f9', to: '#c026d3' },
                 { label: 'Learnings',   icon: GraduationCap,  path: '/learn',                 from: '#f59e0b', to: '#d97706' },
                 { label: 'Expert',      icon: BookOpen,       path: '/expert-consultations',  from: '#ec4899', to: '#db2777' },
                 { label: '🛒 Shop',     icon: ShoppingBag,    path: '/shop',                  from: '#C78200', to: '#92400E' },
               ].map((n, i) => (
-                <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-2 group outline-none">
-                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 15px ${n.from}15` : `0 10px 25px ${n.from}20` }}>
-                    <n.icon size={22} className="drop-shadow-sm" style={{ color: n.from }} />
+                <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
+                    <n.icon size={18} className="drop-shadow-sm" style={{ color: n.from }} />
                   </div>
-                  <span className={cn("text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
+                  <span className={cn("text-[7px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
                 </motion.button>
               ))}
             </div>
