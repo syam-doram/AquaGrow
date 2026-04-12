@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { DataProvider, useData } from './context/DataContext';
+import { BottomSheetProvider, useBottomSheet } from './context/BottomSheetContext';
 import { translations } from './translations';
 import { Language, User } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -87,9 +88,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <DataProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <BottomSheetProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </BottomSheetProvider>
       </DataProvider>
     </ErrorBoundary>
   );
@@ -292,6 +295,7 @@ const AppContent = () => {
   }
 
 
+  const { isBottomSheetOpen } = useBottomSheet();
   const isProvider = user?.role === 'provider';
   const isFarmer = user?.role === 'farmer';
 
@@ -542,13 +546,29 @@ const AppContent = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Persistent Navigation */}
-          {showProviderNav && (
-            <ProviderBottomNav t={t} onMenuClick={() => navigate('/profile')} />
-          )}
-          {showFarmerNav && (
-            <BottomNav t={t} onMenuClick={() => navigate('/profile')} />
-          )}
+          {/* Persistent Navigation — hidden when any bottom sheet is open */}
+          <AnimatePresence>
+            {showProviderNav && !isBottomSheetOpen && (
+              <motion.div
+                key="provider-nav"
+                initial={{ y: 0, opacity: 1 }}
+                exit={{ y: 100, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+              >
+                <ProviderBottomNav t={t} onMenuClick={() => navigate('/profile')} />
+              </motion.div>
+            )}
+            {showFarmerNav && !isBottomSheetOpen && (
+              <motion.div
+                key="farmer-nav"
+                initial={{ y: 0, opacity: 1 }}
+                exit={{ y: 100, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+              >
+                <BottomNav t={t} onMenuClick={() => navigate('/profile')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </div>
