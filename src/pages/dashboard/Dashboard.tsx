@@ -263,10 +263,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const { requestNotificationPermission, fcmToken, deepLinkUrl, clearDeepLink, incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
 
   // ── On-enter: notification permission banner + sync progress ──────────────────
-  const [showPermBanner, setShowPermBanner]     = useState(false);
-  const [showSyncBanner, setShowSyncBanner]     = useState(true);
-  const [syncStep,       setSyncStep]           = useState(0);  // 0-100%
-  const [serverPingMs,   setServerPingMs]       = useState<number | null>(null);
+  const [showPermBanner, setShowPermBanner] = useState(false);
+  const [showSyncBanner, setShowSyncBanner] = useState(true);
+  const [syncStep, setSyncStep] = useState(0);  // 0-100%
+  const [serverPingMs, setServerPingMs] = useState<number | null>(null);
 
   useEffect(() => {
     // ── 1. Sync progress (show every time dashboard mounts) ─────────────────────
@@ -643,541 +643,541 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
   return (
     <>
-    <div className={cn("pb-32 min-h-[100dvh] relative overflow-hidden transition-colors duration-700", isDark ? "bg-[#030E1B]" : "bg-[#F8FAFC]")}>
-      {/* ── Breathtaking Ambient Background Details ── */}
-      <div className="absolute inset-0 pointer-events-none fixed">
-        <div className={cn("absolute top-[-10%] right-[-5%] w-[80%] h-[50%] blur-[140px] rounded-full animate-pulse-slow", isDark ? "bg-indigo-600/10" : "bg-indigo-500/5")} />
-        <div className={cn("absolute bottom-[-10%] left-[-10%] w-[60%] h-[40%] blur-[120px] rounded-full", isDark ? "bg-emerald-600/10" : "bg-emerald-500/5")} />
-      </div>
+      <div className={cn("pb-32 min-h-[100dvh] relative overflow-hidden transition-colors duration-700", isDark ? "bg-[#030E1B]" : "bg-[#F8FAFC]")}>
+        {/* ── Breathtaking Ambient Background Details ── */}
+        <div className="absolute inset-0 pointer-events-none fixed">
+          <div className={cn("absolute top-[-10%] right-[-5%] w-[80%] h-[50%] blur-[140px] rounded-full animate-pulse-slow", isDark ? "bg-indigo-600/10" : "bg-indigo-500/5")} />
+          <div className={cn("absolute bottom-[-10%] left-[-10%] w-[60%] h-[40%] blur-[120px] rounded-full", isDark ? "bg-emerald-600/10" : "bg-emerald-500/5")} />
+        </div>
 
-      <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo />
+        <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo />
 
-      {/* ── SYNC PROGRESS BAR (shows on every dashboard entry ~2s) ── */}
-      <AnimatePresence>
-        {showSyncBanner && (
-          <motion.div
-            key="sync-bar"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed top-[calc(env(safe-area-inset-top)+3.5rem)] left-0 right-0 z-[190] px-4"
-          >
-            <div className={cn(
-              "rounded-2xl overflow-hidden border shadow-lg backdrop-blur-md",
-              isDark ? "bg-slate-900/90 border-white/8" : "bg-white/95 border-slate-100"
-            )}>
-              {/* Progress track */}
-              <div className="h-[2px] w-full bg-slate-200/20">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ width: `${syncStep}%`, background: 'linear-gradient(90deg, #10B981, #3B82F6)' }}
-                  transition={{ ease: 'linear' }}
-                />
-              </div>
-              <div className="flex items-center justify-between px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <div className={cn("w-1.5 h-1.5 rounded-full", syncStep < 100 ? "bg-emerald-500 animate-pulse" : "bg-emerald-500")} />
-                  <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/40" : "text-slate-500")}>
-                    {syncStep < 100 ? `Syncing data… ${syncStep}%` : '✓ Sync complete'}
-                  </p>
-                </div>
-                {serverPingMs !== null && (
-                  <p className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>
-                    Server {serverPingMs}ms
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── NOTIFICATION PERMISSION BANNER (Android only, once per session) ── */}
-      <AnimatePresence>
-        {showPermBanner && (
-          <motion.div
-            key="perm-banner"
-            initial={{ opacity: 0, y: 60 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 60 }}
-            transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-            className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-4 right-4 z-[190]"
-          >
-            <div className={cn(
-              "rounded-3xl p-4 border shadow-2xl backdrop-blur-xl overflow-hidden",
-              isDark ? "bg-slate-900/95 border-white/10" : "bg-white/95 border-slate-100"
-            )}>
-              <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-500" />
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg">
-                  <Bell size={20} className="text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className={cn("text-[10px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-white" : "text-slate-900")}>
-                    Enable Push Alerts
-                  </p>
-                  <p className={cn("text-[8px] font-medium leading-snug", isDark ? "text-white/40" : "text-slate-500")}>
-                    Get critical DO drops, harvest updates & feeding reminders — even when the app is closed.
-                  </p>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={async () => {
-                        setShowPermBanner(false);
-                        await requestNotificationPermission();
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[8px] font-black uppercase tracking-widest shadow-lg"
-                    >
-                      🔔 Allow Alerts
-                    </button>
-                    <button
-                      onClick={() => setShowPermBanner(false)}
-                      className={cn("px-4 py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "border-white/10 text-white/30" : "border-slate-200 text-slate-400")}
-                    >
-                      Later
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── HARVEST STAGE TOAST (foreground in-app alert) ── */}
-      <AnimatePresence>
-        {harvestToast && (() => {
-          const meta = HARVEST_STAGE_META[harvestToast.status];
-          if (!meta) return null;
-          return (
+        {/* ── SYNC PROGRESS BAR (shows on every dashboard entry ~2s) ── */}
+        <AnimatePresence>
+          {showSyncBanner && (
             <motion.div
-              key="harvest-toast"
-              initial={{ opacity: 0, y: -60, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -40, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="fixed top-[calc(env(safe-area-inset-top)+4rem)] left-4 right-4 z-[200]"
+              key="sync-bar"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="fixed top-[calc(env(safe-area-inset-top)+3.5rem)] left-0 right-0 z-[190] px-4"
             >
-              <div
-                className="rounded-2xl overflow-hidden shadow-2xl border"
-                style={{ borderColor: meta.color + '40', backgroundColor: meta.color + '18' }}
-              >
-                <div
-                  className="h-[3px] w-full"
-                  style={{ background: meta.color }}
-                />
-                <div className="px-4 py-3 flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
-                    style={{ backgroundColor: meta.color + '25', border: `1px solid ${meta.color}40` }}
-                  >
-                    {meta.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: meta.color }}>
-                      {meta.title}
-                    </p>
-                    <p className={cn('text-[9px] font-medium truncate mt-0.5', isDark ? 'text-white/60' : 'text-slate-600')}>
-                      {harvestToast.pondName} · Harvest Update
+              <div className={cn(
+                "rounded-2xl overflow-hidden border shadow-lg backdrop-blur-md",
+                isDark ? "bg-slate-900/90 border-white/8" : "bg-white/95 border-slate-100"
+              )}>
+                {/* Progress track */}
+                <div className="h-[2px] w-full bg-slate-200/20">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ width: `${syncStep}%`, background: 'linear-gradient(90deg, #10B981, #3B82F6)' }}
+                    transition={{ ease: 'linear' }}
+                  />
+                </div>
+                <div className="flex items-center justify-between px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-1.5 h-1.5 rounded-full", syncStep < 100 ? "bg-emerald-500 animate-pulse" : "bg-emerald-500")} />
+                    <p className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/40" : "text-slate-500")}>
+                      {syncStep < 100 ? `Syncing data… ${syncStep}%` : '✓ Sync complete'}
                     </p>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => { setHarvestToast(null); clearAlert(); }}
-                      className={cn('px-2 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest border',
-                        isDark ? 'border-white/10 text-white/30' : 'border-slate-200 text-slate-400'
-                      )}
-                    >
-                      ✕
-                    </button>
-                    <button
-                      onClick={() => {
-                        setHarvestToast(null);
-                        clearAlert();
-                        navigate(`/ponds/${harvestToast.pondId}/tracking`);
-                      }}
-                      className="px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest text-white shadow-lg"
-                      style={{ backgroundColor: meta.color }}
-                    >
-                      View →
-                    </button>
-                  </div>
+                  {serverPingMs !== null && (
+                    <p className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-white/20" : "text-slate-400")}>
+                      Server {serverPingMs}ms
+                    </p>
+                  )}
                 </div>
               </div>
             </motion.div>
-          );
-        })()}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <div className="px-5 pt-[calc(env(safe-area-inset-top)+4.5rem)] space-y-5 relative z-10">
-
-        {/* ── PERSONALIZED GREETING HQ + STREAK ── */}
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-[1fr_auto] items-end justify-between py-1">
-          <div>
-            <h2 className={cn("text-[8px] font-black uppercase tracking-[0.4em] mb-1", isDark ? "text-indigo-400" : "text-indigo-600")}>
-              {(() => {
-                const hour = new Date().getHours();
-                if (hour < 12) return t.goodMorning || 'Good Morning';
-                if (hour < 17) return t.goodAfternoon || 'Good Afternoon';
-                return t.goodEvening || 'Good Evening';
-              })()}
-            </h2>
-            <p className={cn("text-3xl font-black tracking-tighter leading-none", isDark ? "text-white" : "text-slate-900")}>
-              {user.name.split(' ')[0]}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className={cn("text-[7.5px] font-black uppercase tracking-[0.2em]", isDark ? "text-emerald-400" : "text-emerald-600")}>{t.systemLive || 'Sys Live'}</p>
-              </div>
-              <p className={cn("text-[8px] font-bold uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
-                {new Date().toLocaleDateString(user.language === 'English' ? 'en-US' : 'te-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-          </div>
-          {/* ACTIVE PONDS BADGE — compact */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
-            className={cn("flex flex-col items-center px-3 py-2 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}
-          >
-            <span className="text-base leading-none">🦐</span>
-            <span className={cn("text-lg font-black tracking-tighter leading-none mt-0.5", isDark ? "text-emerald-400" : "text-emerald-600")}>{activePonds.length}</span>
-            <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/60" : "text-emerald-600/60")}>Ponds</span>
-          </motion.div>
-        </motion.div>
-
-        {/* ── STOCKING CONFIRMATION ACCELERATOR ALERTS ── */}
+        {/* ── NOTIFICATION PERMISSION BANNER (Android only, once per session) ── */}
         <AnimatePresence>
-          {pondsReadyToStock.map(p => (
-            <motion.div key={`confirm-${p.id}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="bg-gradient-to-br from-[#0D523C] to-[#04281e] p-5 rounded-2xl border border-emerald-500/40 shadow-2xl relative overflow-hidden mb-2 shadow-emerald-900/20">
-                <div className="absolute top-[-50%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-                <div className="flex items-start gap-4 relative z-10">
-                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/30">
-                    <Zap className="text-emerald-400 drop-shadow-md" size={24} />
+          {showPermBanner && (
+            <motion.div
+              key="perm-banner"
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 60 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+              className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-4 right-4 z-[190]"
+            >
+              <div className={cn(
+                "rounded-3xl p-4 border shadow-2xl backdrop-blur-xl overflow-hidden",
+                isDark ? "bg-slate-900/95 border-white/10" : "bg-white/95 border-slate-100"
+              )}>
+                <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-500" />
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Bell size={20} className="text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1">Stock Day Alert</p>
-                    <h3 className="text-white text-xl font-black tracking-tight leading-none mb-1.5">
-                      {p.name}
-                    </h3>
-                    <p className="text-emerald-100/60 text-[10px] uppercase font-bold tracking-widest leading-relaxed mb-4">
-                      Date reached. Action required to start SOP tracking.
+                    <p className={cn("text-[10px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-white" : "text-slate-900")}>
+                      Enable Push Alerts
                     </p>
-                    <div className="flex gap-2">
-                      <button onClick={() => updatePond(p.id, { status: 'active' })} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-center gap-2 uppercase tracking-[0.1em] text-[9px] active:scale-95 transition-all outline-none">
-                        <Fish size={14} /> CONFIRM STOCK
+                    <p className={cn("text-[8px] font-medium leading-snug", isDark ? "text-white/40" : "text-slate-500")}>
+                      Get critical DO drops, harvest updates & feeding reminders — even when the app is closed.
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={async () => {
+                          setShowPermBanner(false);
+                          await requestNotificationPermission();
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[8px] font-black uppercase tracking-widest shadow-lg"
+                      >
+                        🔔 Allow Alerts
+                      </button>
+                      <button
+                        onClick={() => setShowPermBanner(false)}
+                        className={cn("px-4 py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "border-white/10 text-white/30" : "border-slate-200 text-slate-400")}
+                      >
+                        Later
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
             </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
-        {ponds.length > 0 && (
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { label: t.monitor,      icon: Activity,   path: '/monitor',              from: '#38bdf8', to: '#0284c7' },
-              { label: t.liveMonitor,  icon: Eye,        path: '/live-monitor',         from: '#22d3ee', to: '#0891b2' },
-              { label: t.disease,      icon: HeartPulse, path: '/disease-detection',    from: '#f87171', to: '#dc2626' },
-              { label: t.market,       icon: TrendingUp, path: '/market',               from: '#34d399', to: '#059669' },
-              { label: t.weather,      icon: Wind,       path: '/weather',              from: '#818cf8', to: '#4f46e5' },
-              { label: 'AquaCalc',    icon: Calculator, path: '/aqua-calc',            from: '#10b981', to: '#059669' },
-              { label: 'SOP Hub',      icon: FileText,   path: '/sop-library',          from: '#e879f9', to: '#c026d3' },
-              { label: t.expert,       icon: Target,     path: '/expert-consultations', from: '#fbbf24', to: '#d97706' },
-            ].map((n, i) => (
-              <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-2 group outline-none">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 15px ${n.from}15` : `0 10px 25px ${n.from}20` }}>
-                  <n.icon size={22} className="drop-shadow-sm" style={{ color: n.from }} />
-                </div>
-                <span className={cn("text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
-              </motion.button>
-            ))}
-          </div>
-        )}
-
-        {/* ── SITUATION INTELLIGENCE ALERTS ── */}
-        <AnimatePresence>
-          {situationAlerts.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-2">
-              {/* Header */}
-              <div className="flex items-center justify-between px-1">
-                <h2 className={cn("text-xs font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
-                  <Bell size={13} className="text-red-500 animate-bounce" />
-                  Smart Alerts
-                  <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full bg-red-500 text-white">{situationAlerts.length}</span>
-                </h2>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
-                    See All →
-                  </button>
-                  <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; sessionStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className={cn("text-[8px] font-black uppercase tracking-widest text-red-400")}>
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {/* Only show first 3 alerts */}
-              {situationAlerts.slice(0, 3).map((alert, i) => {
-                const alertColors = {
-                  critical: { bg: isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200', text: 'text-red-500', badge: 'bg-red-500' },
-                  warning: { bg: isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200', text: 'text-amber-500', badge: 'bg-amber-500' },
-                  info: { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500' },
-                  success: { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500' },
-                  lunar: { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500' },
-                };
-                const c = alertColors[alert.type] || alertColors.info;
-                return (
-                  <motion.div
-                    key={alert.id}
-                    initial={{ opacity: 0, x: -15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 15, height: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className={cn('rounded-2xl px-3 py-2.5 border flex items-center gap-2.5 relative overflow-hidden', c.bg)}
-                  >
-                    {alert.type === 'critical' && (
-                      <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />
-                    )}
-                    <span className="text-base leading-none flex-shrink-0">{alert.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className={cn('text-[10px] font-black tracking-tight truncate', c.text)}>{alert.title}</p>
-                        {alert.type === 'critical' && (
-                          <span className="text-[6px] font-black px-1 py-0.5 rounded-full bg-red-500 text-white uppercase tracking-widest flex-shrink-0">!</span>
-                        )}
-                      </div>
-                      <p className={cn('text-[8px] font-medium truncate', isDark ? 'text-white/50' : 'text-slate-500')}>{alert.body}</p>
-                      {alert.action && alert.actionPath && (
-                        <button onClick={() => navigate(alert.actionPath!)} className={cn('text-[7px] font-black uppercase tracking-widest flex items-center gap-0.5 mt-0.5', c.text)}>
-                          {alert.action} <ChevronRight size={8} />
-                        </button>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => dismissSituation(alert.id)}
-                      className={cn('w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0', isDark ? 'bg-white/10 text-white/40' : 'bg-black/5 text-slate-400')}
-                    >
-                      <X size={9} />
-                    </button>
-                  </motion.div>
-                );
-              })}
-
-              {/* More alerts hint */}
-              {situationAlerts.length > 3 && (
-                <button onClick={() => navigate('/notifications')} className={cn("w-full py-2 rounded-xl border text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5",
-                  isDark ? "bg-white/3 border-white/8 text-white/30" : "bg-white border-slate-200 text-slate-400"
-                )}>
-                  +{situationAlerts.length - 3} more alerts · View all in Notifications
-                </button>
-              )}
-            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── AERATOR STAGE CHECK BANNERS ── */}
+        {/* ── HARVEST STAGE TOAST (foreground in-app alert) ── */}
         <AnimatePresence>
-          {aeratorDuePonds.map(pond => {
-            const doc = calculateDOC(pond.stockingDate);
+          {harvestToast && (() => {
+            const meta = HARVEST_STAGE_META[harvestToast.status];
+            if (!meta) return null;
             return (
               <motion.div
-                key={`aer-${pond.id}`}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className={cn('rounded-2xl px-4 py-3 border flex items-center gap-3',
-                  isDark ? 'bg-blue-500/8 border-blue-500/20' : 'bg-blue-50 border-blue-200'
-                )}
+                key="harvest-toast"
+                initial={{ opacity: 0, y: -60, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -40, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                className="fixed top-[calc(env(safe-area-inset-top)+4rem)] left-4 right-4 z-[200]"
               >
-                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
-                  isDark ? 'bg-blue-500/15 border border-blue-500/25' : 'bg-blue-100 border border-blue-300'
-                )}>
-                  <Wind size={16} className="text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-blue-400' : 'text-blue-700')}>
-                    Aerator Check Due · DOC {doc}
-                  </p>
-                  <p className={cn('text-[8px] font-medium truncate', isDark ? 'text-white/40' : 'text-slate-600')}>
-                    {pond.name} · {getAeratorStageLabel(doc)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setAeratorPopupPond(pond.id)}
-                  className={cn('px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest flex-shrink-0',
-                    isDark ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-blue-600 text-white shadow-sm'
-                  )}
+                <div
+                  className="rounded-2xl overflow-hidden shadow-2xl border"
+                  style={{ borderColor: meta.color + '40', backgroundColor: meta.color + '18' }}
                 >
-                  Update →
-                </button>
+                  <div
+                    className="h-[3px] w-full"
+                    style={{ background: meta.color }}
+                  />
+                  <div className="px-4 py-3 flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
+                      style={{ backgroundColor: meta.color + '25', border: `1px solid ${meta.color}40` }}
+                    >
+                      {meta.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: meta.color }}>
+                        {meta.title}
+                      </p>
+                      <p className={cn('text-[9px] font-medium truncate mt-0.5', isDark ? 'text-white/60' : 'text-slate-600')}>
+                        {harvestToast.pondName} · Harvest Update
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => { setHarvestToast(null); clearAlert(); }}
+                        className={cn('px-2 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest border',
+                          isDark ? 'border-white/10 text-white/30' : 'border-slate-200 text-slate-400'
+                        )}
+                      >
+                        ✕
+                      </button>
+                      <button
+                        onClick={() => {
+                          setHarvestToast(null);
+                          clearAlert();
+                          navigate(`/ponds/${harvestToast.pondId}/tracking`);
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-[7px] font-black uppercase tracking-widest text-white shadow-lg"
+                        style={{ backgroundColor: meta.color }}
+                      >
+                        View →
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             );
-          })}
+          })()}
         </AnimatePresence>
 
-        {/* ── CORE OPERATIONS ── */}
-        {loading ? (
-          <div className={cn("p-10 rounded-[2rem] text-center border overflow-hidden relative", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")}>
-            <div className="absolute top-0 left-0 w-full h-[5px] bg-slate-100 dark:bg-white/5">
-              <motion.div initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="h-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
-            </div>
-            <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border relative", isDark ? "bg-indigo-500/10 border-indigo-500/20" : "bg-indigo-50 border-indigo-200")}>
-              <RefreshCw size={28} className={isDark ? "text-indigo-400 animate-spin" : "text-indigo-600 animate-spin"} />
-            </div>
-            <h3 className={cn("font-black text-sm uppercase tracking-widest mb-1", isDark ? "text-white" : "text-slate-900")}>{t.syncingData || 'Syncing Cloud'}</h3>
-            <p className={cn("text-[9px] font-black uppercase tracking-[0.2em] mb-4", isDark ? "text-white/30" : "text-slate-400")}>Downloading Realtime Telemetry</p>
-          </div>
-        ) : activePonds.length === 0 ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-6">
-            {serverError ? (
-              <ServerErrorState isDark={isDark} />
-            ) : (
-              <NoPondState
-                isDark={isDark}
-                subtitle="Deploy your first pond to unlock real-time monitoring, SOP alerts, and AI-powered intelligence."
-              />
-            )}
-          </motion.div>
-        ) : (
-          <div className="space-y-6">
+        <div className="px-5 pt-[calc(env(safe-area-inset-top)+4.5rem)] space-y-5 relative z-10">
 
-            {/* ══ DYNAMIC TASK QUEUE ══ */}
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-              <div className="flex items-center justify-between mb-3 px-1">
-                <h2 className={cn("text-lg font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
-                  <Clock size={18} className="text-amber-500" />{t.todaysTasks}
-                </h2>
-                <button onClick={() => navigate('/medicine')} className={cn("text-[9px] font-black uppercase tracking-widest flex items-center gap-0.5", isDark ? "text-amber-400" : "text-amber-600")}>
-                  {t.viewSchedule} <ChevronRight size={12} />
-                </button>
+          {/* ── PERSONALIZED GREETING HQ + STREAK ── */}
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-[1fr_auto] items-end justify-between py-1">
+            <div>
+              <h2 className={cn("text-[8px] font-black uppercase tracking-[0.4em] mb-1", isDark ? "text-indigo-400" : "text-indigo-600")}>
+                {(() => {
+                  const hour = new Date().getHours();
+                  if (hour < 12) return t.goodMorning || 'Good Morning';
+                  if (hour < 17) return t.goodAfternoon || 'Good Afternoon';
+                  return t.goodEvening || 'Good Evening';
+                })()}
+              </h2>
+              <p className={cn("text-3xl font-black tracking-tighter leading-none", isDark ? "text-white" : "text-slate-900")}>
+                {user.name.split(' ')[0]}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <p className={cn("text-[7.5px] font-black uppercase tracking-[0.2em]", isDark ? "text-emerald-400" : "text-emerald-600")}>{t.systemLive || 'Sys Live'}</p>
+                </div>
+                <p className={cn("text-[8px] font-bold uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
+                  {new Date().toLocaleDateString(user.language === 'English' ? 'en-US' : 'te-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
               </div>
-              <div className="space-y-2">
-                {pondTasks.length > 0 ? pondTasks.map((task, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }} className={cn("rounded-xl p-3 border shadow-sm flex items-center justify-between", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shadow-inner relative overflow-hidden" style={{ background: `${task.color}20` }}>
-                        <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at top right, ${task.color}, transparent)` }} />
-                        <task.icon size={18} style={{ color: task.color }} className="relative z-10" />
-                      </div>
-                      <div>
-                        <h3 className={cn("font-black text-xs tracking-tight", isDark ? "text-white" : "text-slate-800")}>{task.title}</h3>
-                        <p className={cn("font-black text-[9px] uppercase tracking-widest mt-0.5", isDark ? "text-white/40" : "text-slate-400")}>{task.time}</p>
+            </div>
+            {/* ACTIVE PONDS BADGE — compact */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
+              className={cn("flex flex-col items-center px-3 py-2 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}
+            >
+              <span className="text-base leading-none">🦐</span>
+              <span className={cn("text-lg font-black tracking-tighter leading-none mt-0.5", isDark ? "text-emerald-400" : "text-emerald-600")}>{activePonds.length}</span>
+              <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/60" : "text-emerald-600/60")}>Active Ponds</span>
+            </motion.div>
+          </motion.div>
+
+          {/* ── STOCKING CONFIRMATION ACCELERATOR ALERTS ── */}
+          <AnimatePresence>
+            {pondsReadyToStock.map(p => (
+              <motion.div key={`confirm-${p.id}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                <div className="bg-gradient-to-br from-[#0D523C] to-[#04281e] p-5 rounded-2xl border border-emerald-500/40 shadow-2xl relative overflow-hidden mb-2 shadow-emerald-900/20">
+                  <div className="absolute top-[-50%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/30">
+                      <Zap className="text-emerald-400 drop-shadow-md" size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1">Stock Day Alert</p>
+                      <h3 className="text-white text-xl font-black tracking-tight leading-none mb-1.5">
+                        {p.name}
+                      </h3>
+                      <p className="text-emerald-100/60 text-[10px] uppercase font-bold tracking-widest leading-relaxed mb-4">
+                        Date reached. Action required to start SOP tracking.
+                      </p>
+                      <div className="flex gap-2">
+                        <button onClick={() => updatePond(p.id, { status: 'active' })} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-center gap-2 uppercase tracking-[0.1em] text-[9px] active:scale-95 transition-all outline-none">
+                          <Fish size={14} /> CONFIRM STOCK
+                        </button>
                       </div>
                     </div>
-                    <span className="text-[8px] font-black px-2 py-1 rounded-[6px] border shadow-sm backdrop-blur-md" style={{ background: `${task.color}15`, color: task.color, borderColor: `${task.color}30` }}>
-                      {task.tag}
-                    </span>
-                  </motion.div>
-                )) : (
-                  <div className={cn("p-6 rounded-2xl border text-center relative overflow-hidden", isDark ? "bg-emerald-500/5 border-emerald-500/10" : "bg-emerald-50 border-emerald-100")}>
-                    <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2 drop-shadow-lg" />
-                    <p className={cn("text-[10px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/80" : "text-emerald-600")}>{t.allTasksDone}</p>
                   </div>
-                )}
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
-            {/* ══ ELEGANT FLEET PREVIEWS ══ */}
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
-              <div className="flex items-center justify-between mb-3 px-1">
-                <h2 className={cn("text-lg font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
-                  <Waves size={18} className="text-blue-500" />{t.activePonds}
-                </h2>
-              </div>
-              <div className="space-y-3">
-                {activePonds.slice(0, 4).map((p, i) => {
-                  const doc = calculateDOC(p.stockingDate);
-                  const growth = getGrowthPercentage(doc);
-                  const lastWater = waterRecords.filter(w => w.pondId === p.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-                  const hs = calcPondHealthScore(lastWater);
-                  const hsColor = hs >= 80 ? '#10b981' : hs >= 60 ? '#f59e0b' : '#ef4444';
+          {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
+          {ponds.length > 0 && (
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: t.monitor, icon: Activity, path: '/monitor', from: '#38bdf8', to: '#0284c7' },
+                { label: t.liveMonitor, icon: Eye, path: '/live-monitor', from: '#22d3ee', to: '#0891b2' },
+                { label: t.disease, icon: HeartPulse, path: '/disease-detection', from: '#f87171', to: '#dc2626' },
+                { label: t.market, icon: TrendingUp, path: '/market', from: '#34d399', to: '#059669' },
+                { label: t.weather, icon: Wind, path: '/weather', from: '#818cf8', to: '#4f46e5' },
+                { label: 'AquaCalc', icon: Calculator, path: '/aqua-calc', from: '#10b981', to: '#059669' },
+                { label: 'SOP Hub', icon: FileText, path: '/sop-library', from: '#e879f9', to: '#c026d3' },
+                { label: t.expert, icon: Target, path: '/expert-consultations', from: '#fbbf24', to: '#d97706' },
+              ].map((n, i) => (
+                <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-2 group outline-none">
+                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 15px ${n.from}15` : `0 10px 25px ${n.from}20` }}>
+                    <n.icon size={22} className="drop-shadow-sm" style={{ color: n.from }} />
+                  </div>
+                  <span className={cn("text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
+                </motion.button>
+              ))}
+            </div>
+          )}
 
+          {/* ── SITUATION INTELLIGENCE ALERTS ── */}
+          <AnimatePresence>
+            {situationAlerts.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-2">
+                {/* Header */}
+                <div className="flex items-center justify-between px-1">
+                  <h2 className={cn("text-xs font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
+                    <Bell size={13} className="text-red-500 animate-bounce" />
+                    Smart Alerts
+                    <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full bg-red-500 text-white">{situationAlerts.length}</span>
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
+                      See All →
+                    </button>
+                    <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; sessionStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className={cn("text-[8px] font-black uppercase tracking-widest text-red-400")}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Only show first 3 alerts */}
+                {situationAlerts.slice(0, 3).map((alert, i) => {
+                  const alertColors = {
+                    critical: { bg: isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200', text: 'text-red-500', badge: 'bg-red-500' },
+                    warning: { bg: isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200', text: 'text-amber-500', badge: 'bg-amber-500' },
+                    info: { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500' },
+                    success: { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500' },
+                    lunar: { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500' },
+                  };
+                  const c = alertColors[alert.type] || alertColors.info;
                   return (
-                    <motion.div key={p.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.05 }} whileTap={{ scale: 0.98 }} onClick={() => navigate(`/ponds/${p.id}`)} className={cn("rounded-[1.5rem] p-5 border shadow-md relative overflow-hidden", isDark ? "bg-black/20 border-white/10 backdrop-blur-2xl" : "bg-white border-slate-200")}>
-                      {/* Subdued background blob inside card */}
-                      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-[40px] opacity-10 pointer-events-none" style={{ background: hsColor }} />
-
-                      <div className="flex items-start justify-between mb-4 relative z-10">
-                        <div>
-                          <h3 className={cn("font-black text-lg tracking-tight leading-none mb-1.5", isDark ? "text-white" : "text-slate-800")}>{p.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border", isDark ? "bg-white/5 border-white/20 text-white/70" : "bg-slate-100 border-slate-200 text-slate-600")}>{p.species}</span>
-                            <span className={cn("text-[9px] font-black uppercase tracking-widest", p.status === 'planned' ? "text-blue-500" : isDark ? "text-emerald-400" : "text-emerald-600")}>
-                              {p.status === 'planned' ? (t.planned || 'Planned') : `${t.doc || 'DOC'} ${doc}`}
-                            </span>
-                          </div>
+                    <motion.div
+                      key={alert.id}
+                      initial={{ opacity: 0, x: -15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 15, height: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className={cn('rounded-2xl px-3 py-2.5 border flex items-center gap-2.5 relative overflow-hidden', c.bg)}
+                    >
+                      {alert.type === 'critical' && (
+                        <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />
+                      )}
+                      <span className="text-base leading-none flex-shrink-0">{alert.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className={cn('text-[10px] font-black tracking-tight truncate', c.text)}>{alert.title}</p>
+                          {alert.type === 'critical' && (
+                            <span className="text-[6px] font-black px-1 py-0.5 rounded-full bg-red-500 text-white uppercase tracking-widest flex-shrink-0">!</span>
+                          )}
                         </div>
-                        <div className="flex flex-col items-end gap-1.5">
-                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner backdrop-blur-md" style={{ background: `${hsColor}15`, borderColor: `${hsColor}30` }}>
-                            <HeartPulse size={10} style={{ color: hsColor }} />
-                            <span className="text-[10px] font-black" style={{ color: hsColor }}>{hs}%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Premium Growth Bar Component */}
-                      <div className="mb-4 relative z-10">
-                        <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] mb-1.5">
-                          <span className={cn(isDark ? "text-white/40" : "text-slate-400")}>{t.growthStage || 'Biomass Cap'}</span>
-                          <span className={isDark ? "text-blue-400" : "text-blue-600"}>{growth}%</span>
-                        </div>
-                        <div className={cn("h-1.5 rounded-full overflow-hidden shadow-inner", isDark ? "bg-white/5" : "bg-slate-100")}>
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${growth}%` }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)', boxShadow: '0 0 10px rgba(56,189,248,0.5)' }} />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 flex-wrap relative z-10">
-                        {lastWater ? (
-                          <>
-                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
-                              <FlaskConical size={10} style={{ color: phColor(safeNum(lastWater.ph, 7.8)) }} />
-                              <span className={cn("text-[10px] font-bold", isDark ? "text-white" : "text-slate-800")}>pH {safeNum(lastWater.ph, 7.8)}</span>
-                            </div>
-                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
-                              <Droplets size={10} style={{ color: doColor(safeNum(lastWater.do, 5.5)) }} />
-                              <span className={cn("text-[10px] font-bold", isDark ? "text-white" : "text-slate-800")}>DO {safeNum(lastWater.do, 5.5)}</span>
-                            </div>
-                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
-                              <Thermometer size={10} className="text-amber-500" />
-                              <span className={cn("text-[10px] font-bold", isDark ? "text-white" : "text-slate-800")}>{safeNum(lastWater.temperature, 28)}°</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200")}>
-                            <AlertTriangle size={10} className="text-amber-500" />
-                            <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">{t.noWaterData || 'Awaiting Metrics'}</span>
-                          </div>
+                        <p className={cn('text-[8px] font-medium truncate', isDark ? 'text-white/50' : 'text-slate-500')}>{alert.body}</p>
+                        {alert.action && alert.actionPath && (
+                          <button onClick={() => navigate(alert.actionPath!)} className={cn('text-[7px] font-black uppercase tracking-widest flex items-center gap-0.5 mt-0.5', c.text)}>
+                            {alert.action} <ChevronRight size={8} />
+                          </button>
                         )}
                       </div>
+                      <button
+                        onClick={() => dismissSituation(alert.id)}
+                        className={cn('w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0', isDark ? 'bg-white/10 text-white/40' : 'bg-black/5 text-slate-400')}
+                      >
+                        <X size={9} />
+                      </button>
                     </motion.div>
                   );
                 })}
-                {activePonds.length > 4 && (
-                  <button onClick={() => navigate('/ponds')} className={cn("w-full py-4 rounded-xl border text-[10px] font-black uppercase tracking-widest shadow-sm transition-all outline-none", isDark ? "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white" : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100")}>
-                    {t.viewAllPonds} ({activePonds.length}) →
+
+                {/* More alerts hint */}
+                {situationAlerts.length > 3 && (
+                  <button onClick={() => navigate('/notifications')} className={cn("w-full py-2 rounded-xl border text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5",
+                    isDark ? "bg-white/3 border-white/8 text-white/30" : "bg-white border-slate-200 text-slate-400"
+                  )}>
+                    +{situationAlerts.length - 3} more alerts · View all in Notifications
                   </button>
                 )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── AERATOR STAGE CHECK BANNERS ── */}
+          <AnimatePresence>
+            {aeratorDuePonds.map(pond => {
+              const doc = calculateDOC(pond.stockingDate);
+              return (
+                <motion.div
+                  key={`aer-${pond.id}`}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className={cn('rounded-2xl px-4 py-3 border flex items-center gap-3',
+                    isDark ? 'bg-blue-500/8 border-blue-500/20' : 'bg-blue-50 border-blue-200'
+                  )}
+                >
+                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
+                    isDark ? 'bg-blue-500/15 border border-blue-500/25' : 'bg-blue-100 border border-blue-300'
+                  )}>
+                    <Wind size={16} className="text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-blue-400' : 'text-blue-700')}>
+                      Aerator Check Due · DOC {doc}
+                    </p>
+                    <p className={cn('text-[8px] font-medium truncate', isDark ? 'text-white/40' : 'text-slate-600')}>
+                      {pond.name} · {getAeratorStageLabel(doc)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setAeratorPopupPond(pond.id)}
+                    className={cn('px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest flex-shrink-0',
+                      isDark ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-blue-600 text-white shadow-sm'
+                    )}
+                  >
+                    Update →
+                  </button>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {/* ── CORE OPERATIONS ── */}
+          {loading ? (
+            <div className={cn("p-10 rounded-[2rem] text-center border overflow-hidden relative", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")}>
+              <div className="absolute top-0 left-0 w-full h-[5px] bg-slate-100 dark:bg-white/5">
+                <motion.div initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="h-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
               </div>
+              <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border relative", isDark ? "bg-indigo-500/10 border-indigo-500/20" : "bg-indigo-50 border-indigo-200")}>
+                <RefreshCw size={28} className={isDark ? "text-indigo-400 animate-spin" : "text-indigo-600 animate-spin"} />
+              </div>
+              <h3 className={cn("font-black text-sm uppercase tracking-widest mb-1", isDark ? "text-white" : "text-slate-900")}>{t.syncingData || 'Syncing Cloud'}</h3>
+              <p className={cn("text-[9px] font-black uppercase tracking-[0.2em] mb-4", isDark ? "text-white/30" : "text-slate-400")}>Downloading Realtime Telemetry</p>
+            </div>
+          ) : activePonds.length === 0 ? (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-6">
+              {serverError ? (
+                <ServerErrorState isDark={isDark} />
+              ) : (
+                <NoPondState
+                  isDark={isDark}
+                  subtitle="Deploy your first pond to unlock real-time monitoring, SOP alerts, and AI-powered intelligence."
+                />
+              )}
             </motion.div>
+          ) : (
+            <div className="space-y-6">
 
-          </div>
-        )}
+              {/* ══ DYNAMIC TASK QUEUE ══ */}
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h2 className={cn("text-lg font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
+                    <Clock size={18} className="text-amber-500" />{t.todaysTasks}
+                  </h2>
+                  <button onClick={() => navigate('/medicine')} className={cn("text-[9px] font-black uppercase tracking-widest flex items-center gap-0.5", isDark ? "text-amber-400" : "text-amber-600")}>
+                    {t.viewSchedule} <ChevronRight size={12} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {pondTasks.length > 0 ? pondTasks.map((task, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }} className={cn("rounded-xl p-3 border shadow-sm flex items-center justify-between", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shadow-inner relative overflow-hidden" style={{ background: `${task.color}20` }}>
+                          <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at top right, ${task.color}, transparent)` }} />
+                          <task.icon size={18} style={{ color: task.color }} className="relative z-10" />
+                        </div>
+                        <div>
+                          <h3 className={cn("font-black text-xs tracking-tight", isDark ? "text-white" : "text-slate-800")}>{task.title}</h3>
+                          <p className={cn("font-black text-[9px] uppercase tracking-widest mt-0.5", isDark ? "text-white/40" : "text-slate-400")}>{task.time}</p>
+                        </div>
+                      </div>
+                      <span className="text-[8px] font-black px-2 py-1 rounded-[6px] border shadow-sm backdrop-blur-md" style={{ background: `${task.color}15`, color: task.color, borderColor: `${task.color}30` }}>
+                        {task.tag}
+                      </span>
+                    </motion.div>
+                  )) : (
+                    <div className={cn("p-6 rounded-2xl border text-center relative overflow-hidden", isDark ? "bg-emerald-500/5 border-emerald-500/10" : "bg-emerald-50 border-emerald-100")}>
+                      <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2 drop-shadow-lg" />
+                      <p className={cn("text-[10px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/80" : "text-emerald-600")}>{t.allTasksDone}</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* ══ ELEGANT FLEET PREVIEWS ══ */}
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h2 className={cn("text-lg font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
+                    <Waves size={18} className="text-blue-500" />{t.activePonds}
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  {activePonds.slice(0, 4).map((p, i) => {
+                    const doc = calculateDOC(p.stockingDate);
+                    const growth = getGrowthPercentage(doc);
+                    const lastWater = waterRecords.filter(w => w.pondId === p.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                    const hs = calcPondHealthScore(lastWater);
+                    const hsColor = hs >= 80 ? '#10b981' : hs >= 60 ? '#f59e0b' : '#ef4444';
+
+                    return (
+                      <motion.div key={p.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.05 }} whileTap={{ scale: 0.98 }} onClick={() => navigate(`/ponds/${p.id}`)} className={cn("rounded-[1.5rem] p-5 border shadow-md relative overflow-hidden", isDark ? "bg-black/20 border-white/10 backdrop-blur-2xl" : "bg-white border-slate-200")}>
+                        {/* Subdued background blob inside card */}
+                        <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-[40px] opacity-10 pointer-events-none" style={{ background: hsColor }} />
+
+                        <div className="flex items-start justify-between mb-4 relative z-10">
+                          <div>
+                            <h3 className={cn("font-black text-lg tracking-tight leading-none mb-1.5", isDark ? "text-white" : "text-slate-800")}>{p.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border", isDark ? "bg-white/5 border-white/20 text-white/70" : "bg-slate-100 border-slate-200 text-slate-600")}>{p.species}</span>
+                              <span className={cn("text-[9px] font-black uppercase tracking-widest", p.status === 'planned' ? "text-blue-500" : isDark ? "text-emerald-400" : "text-emerald-600")}>
+                                {p.status === 'planned' ? (t.planned || 'Planned') : `${t.doc || 'DOC'} ${doc}`}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-inner backdrop-blur-md" style={{ background: `${hsColor}15`, borderColor: `${hsColor}30` }}>
+                              <HeartPulse size={10} style={{ color: hsColor }} />
+                              <span className="text-[10px] font-black" style={{ color: hsColor }}>{hs}%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Premium Growth Bar Component */}
+                        <div className="mb-4 relative z-10">
+                          <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] mb-1.5">
+                            <span className={cn(isDark ? "text-white/40" : "text-slate-400")}>{t.growthStage || 'Biomass Cap'}</span>
+                            <span className={isDark ? "text-blue-400" : "text-blue-600"}>{growth}%</span>
+                          </div>
+                          <div className={cn("h-1.5 rounded-full overflow-hidden shadow-inner", isDark ? "bg-white/5" : "bg-slate-100")}>
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${growth}%` }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)', boxShadow: '0 0 10px rgba(56,189,248,0.5)' }} />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 flex-wrap relative z-10">
+                          {lastWater ? (
+                            <>
+                              <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                                <FlaskConical size={10} style={{ color: phColor(safeNum(lastWater.ph, 7.8)) }} />
+                                <span className={cn("text-[10px] font-bold", isDark ? "text-white" : "text-slate-800")}>pH {safeNum(lastWater.ph, 7.8)}</span>
+                              </div>
+                              <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                                <Droplets size={10} style={{ color: doColor(safeNum(lastWater.do, 5.5)) }} />
+                                <span className={cn("text-[10px] font-bold", isDark ? "text-white" : "text-slate-800")}>DO {safeNum(lastWater.do, 5.5)}</span>
+                              </div>
+                              <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                                <Thermometer size={10} className="text-amber-500" />
+                                <span className={cn("text-[10px] font-bold", isDark ? "text-white" : "text-slate-800")}>{safeNum(lastWater.temperature, 28)}°</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200")}>
+                              <AlertTriangle size={10} className="text-amber-500" />
+                              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">{t.noWaterData || 'Awaiting Metrics'}</span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                  {activePonds.length > 4 && (
+                    <button onClick={() => navigate('/ponds')} className={cn("w-full py-4 rounded-xl border text-[10px] font-black uppercase tracking-widest shadow-sm transition-all outline-none", isDark ? "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white" : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100")}>
+                      {t.viewAllPonds} ({activePonds.length}) →
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+
+            </div>
+          )}
+        </div>
       </div>
-    </div>
 
-    {/* ── AERATOR POPUP OVERLAY ── */}
-    <AnimatePresence>
-      {aeratorTargetPond && (
-        <AeratorPopup
-          pond={aeratorTargetPond}
-          doc={calculateDOC(aeratorTargetPond.stockingDate)}
-          isDark={isDark}
-          onClose={() => setAeratorPopupPond(null)}
-          onSaved={() => setAeratorPopupPond(null)}
-        />
-      )}
-    </AnimatePresence>
+      {/* ── AERATOR POPUP OVERLAY ── */}
+      <AnimatePresence>
+        {aeratorTargetPond && (
+          <AeratorPopup
+            pond={aeratorTargetPond}
+            doc={calculateDOC(aeratorTargetPond.stockingDate)}
+            isDark={isDark}
+            onClose={() => setAeratorPopupPond(null)}
+            onSaved={() => setAeratorPopupPond(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };
