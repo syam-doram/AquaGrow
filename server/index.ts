@@ -66,6 +66,37 @@ app.get('/api/health', (_req, res) =>
   })
 );
 
+// ─── App Version Management ───────────────────────────────────────────────────
+// ✅ HOW TO RELEASE A NEW VERSION:
+//    1. Bump LATEST_APP_VERSION to the new version string  (e.g., "1.1.0")
+//    2. If this is a SECURITY / CRITICAL hotfix, also bump MIN_APP_VERSION
+//       so older clients are FORCED to update.
+//    3. Add a line to RELEASE_NOTES describing the key changes.
+//    4. Update CURRENT_APP_VERSION in src/hooks/useAppUpdate.ts to match the new APK.
+//    5. Build & deploy the server. The mobile app will auto-detect on next launch.
+// ─────────────────────────────────────────────────────────────────────────────
+const LATEST_APP_VERSION = '1.0.0';    // ← bump when you publish a new APK
+const MIN_APP_VERSION    = '1.0.0';    // ← bump only for forced/critical updates
+
+const RELEASE_NOTES: string[] = [
+  'Initial release — full AquaGrow farm management suite',
+  'Feed tray monitoring with DOC 20 activation flow',
+  'Medicine SOP scheduler with lunar cycle integration',
+  'ROI entry with harvest size validation (min 10g ABW)',
+];
+
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.aquagrow.app';
+
+app.get('/api/app-version', (_req, res) => {
+  res.json({
+    latestVersion: LATEST_APP_VERSION,
+    minVersion:    MIN_APP_VERSION,
+    releaseNotes:  RELEASE_NOTES,
+    updateUrl:     PLAY_STORE_URL,
+    publishedAt:   '2026-04-12T00:00:00Z',
+  });
+});
+
 // ═══════════════════════════════╗
 //  SUBSCRIPTION                  ║
 // ═══════════════════════════════╝

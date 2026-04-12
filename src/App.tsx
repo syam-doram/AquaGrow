@@ -19,6 +19,8 @@ import { ProviderBottomNav } from './components/ProviderBottomNav';
 import { PushSyncManager } from './components/PushSyncManager';
 import { GlobalAlertCenter } from './components/GlobalAlertCenter';
 import { WifiOff, Wifi } from 'lucide-react';
+import { useAppUpdate } from './hooks/useAppUpdate';
+import { AppUpdateModal } from './components/AppUpdateModal';
 
 // Pages
 import { Dashboard } from './pages/dashboard/Dashboard';
@@ -105,6 +107,8 @@ const AppContent = () => {
   const [showReconnectToast, setShowReconnectToast] = useState(false);
   const prevOfflineRef = React.useRef(isOffline);
   const t = translations[lang];
+  const appUpdate = useAppUpdate();
+  const isDark = theme === 'dark' || theme === 'midnight';
 
   const handleLanguageChange = (l: Language) => {
     setLang(l);
@@ -320,7 +324,15 @@ const AppContent = () => {
         <div className="relative z-10 w-full min-h-[100dvh] flex flex-col">
           <PushSyncManager />
           <GlobalAlertCenter t={t} />
-          
+
+          {/* ── APP UPDATE MODAL ── */}
+          {user && appUpdate.hasUpdate && !appUpdate.dismissed && (
+            <AppUpdateModal
+              updateInfo={appUpdate.updateInfo!}
+              isDark={isDark}
+              onDismiss={appUpdate.dismiss}
+            />
+          )}
           {/* ── GLOBAL API HANDSHAKE INDICATOR ── */}
           <AnimatePresence>
             {(isSyncing || loading) && (
