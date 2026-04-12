@@ -49,7 +49,7 @@ interface CartItem { id: string; name: string; price: number; qty: number; unit:
 
 export const AquaShop = () => {
   const navigate = useNavigate();
-  const { theme, user } = useData() as any;
+  const { theme, user, apiFetch } = useData() as any;
   const isDark = theme === 'dark' || theme === 'midnight';
 
   const [activeCategory, setActiveCategory]  = useState('all');
@@ -119,7 +119,7 @@ export const AquaShop = () => {
         source:       'aqua_shop',
       };
 
-      const res = await fetch(`${API_BASE_URL}/shop/orders`, {
+      const res = await apiFetch(`${API_BASE_URL}/shop/orders`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
