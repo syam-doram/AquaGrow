@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Waves, Plus, Sun, CloudRain, Cloud, Snowflake, TrendingDown, Flame } from 'lucide-react';
 import { NoPondState } from '../../components/NoPondState';
 import { ServerErrorState } from '../../components/ServerErrorState';
@@ -1067,13 +1067,13 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           const isCompleted = isAlreadyInHistory || completedMeds.includes(item.title);
                           const Icon = getIconForType(item.type);
 
-                          const accentMap: Record<string, { bg: string; text: string }> = {
-                            MEDICINE: { bg: 'bg-emerald-500', text: 'text-emerald-500' },
-                            ALERT:    { bg: 'bg-red-500',     text: 'text-red-500' },
-                            LUNAR:    { bg: 'bg-indigo-500',  text: 'text-indigo-400' },
-                            RULE:     { bg: 'bg-blue-500',    text: 'text-blue-400' },
-                            TIP:      { bg: 'bg-amber-500',   text: 'text-amber-500' },
-                            FEED:     { bg: 'bg-orange-500',  text: 'text-orange-500' },
+                          const accentMap: Record<string, { bgColor: string; text: string; bgStyle: string }> = {
+                            MEDICINE: { bgColor: '#10b981', bgStyle: 'rgba(16,185,129,0.12)', text: 'text-emerald-500' },
+                            ALERT:    { bgColor: '#ef4444', bgStyle: 'rgba(239,68,68,0.12)',   text: 'text-red-500'     },
+                            LUNAR:    { bgColor: '#6366f1', bgStyle: 'rgba(99,102,241,0.12)',  text: 'text-indigo-400'  },
+                            RULE:     { bgColor: '#3b82f6', bgStyle: 'rgba(59,130,246,0.12)',  text: 'text-blue-400'    },
+                            TIP:      { bgColor: '#f59e0b', bgStyle: 'rgba(245,158,11,0.12)',  text: 'text-amber-500'   },
+                            FEED:     { bgColor: '#f97316', bgStyle: 'rgba(249,115,22,0.12)',  text: 'text-orange-500'  },
                           };
                           const accent = accentMap[item.type] ?? accentMap.MEDICINE;
 
@@ -1109,8 +1109,8 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                     {/* Icon block â€” compact */}
                                     <div className={cn(
                                       'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
-                                      isCompleted ? 'bg-emerald-500 text-white' : `${accent.bg}/15 ${accent.text}`
-                                    )}>
+                                      isCompleted ? 'bg-emerald-500 text-white' : accent.text
+                                     )} style={!isCompleted ? { backgroundColor: accent.bgStyle } : undefined}>
                                       {isCompleted ? <CheckCircle2 size={17} /> : <Icon size={17} />}
                                     </div>
 
