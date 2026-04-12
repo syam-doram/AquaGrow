@@ -35,7 +35,10 @@ export const SecurityPrivacy = ({ t }: { t: Translations }) => {
     finally   { setPassSaving(false); }
   };
 
-  const securityItems = [
+  const securityItems: {
+    icon: any; label: string; desc: string; color: string; bg: string;
+    onClick?: () => void; isToggle?: boolean; onToggle?: () => void; value?: boolean;
+  }[] = [
     {
       icon: KeyRound, label: t.changePassword,
       desc: 'Update your login password',
