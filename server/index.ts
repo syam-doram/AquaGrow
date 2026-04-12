@@ -1151,4 +1151,146 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
+// ════════════════════════════════╗
+//  SHOP ORDERS                   ║
+// ════════════════════════════════╝
+
+// ── Schema ────────────────────────────────────────────────────────────────────
+const ShopOrderSchema = new mongoose.Schema({
+  farmerId:     { type: String, required: true },
+  farmerName:   { type: String, default: '' },
+  farmerPhone:  { type: String, default: '' },
+  providerId:   { type: String, default: null },   // assigned by backend
+  providerName: { type: String, default: '' },
+  items: [{
+    productId:   String,
+    productName: String,
+    unit:        String,
+    qty:         Number,
+    unitPrice:   Number,
+    subtotal:    Number,
+  }],
+  subtotal:     { type: Number, default: 0 },
+  deliveryFee:  { type: Number, default: 0 },
+  totalAmount:  { type: Number, default: 0 },
+  deliveryNote: { type: String, default: '' },
+  location:     { lat: Number, lng: Number },      // farmer's GPS at order time
+  status:       { type: String, default: 'assigned', enum: ['assigned','confirmed','shipped','delivered','cancelled'] },
+  source:       { type: String, default: 'aqua_shop' },
+}, { timestamps: true });
+
+const ShopOrder = mongoose.models.ShopOrder || mongoose.model('ShopOrder', ShopOrderSchema);
+
+// ── Helper: find nearest active provider ──────────────────────────────────────
+// Simple version: picks first available provider. Extend with geo-query when needed.
+const assignNearestProvider = async (lat?: number, lng?: number): Promise<{ id: string; name: string } | null> => {
+  try {
+    const providers = await UserMongo.find({ role: 'provider' }).select('_id name location').limit(20);
+    if (!providers.length) return null;
+    if (!lat || !lng) return { id: String(providers[0]._id), name: providers[0].name || 'Provider' };
+
+    // Haversine distance sort
+    const withDist = providers.map(p => {
+      const pLat = (p as any).location?.lat;
+      const pLng = (p as any).location?.lng;
+      if (!pLat || !pLng) return { p, dist: 99999 };
+      const R = 6371;
+      const dLat = (pLat - lat) * Math.PI / 180;
+      const dLng = (pLng - lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat*Math.PI/180)*Math.cos(pLat*Math.PI/180)*Math.sin(dLng/2)**2;
+      return { p, dist: R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) };
+    });
+    withDist.sort((a, b) => a.dist - b.dist);
+    const nearest = withDist[0].p;
+    return { id: String(nearest._id), name: nearest.name || 'Provider' };
+  } catch { return null; }
+};
+
+// ── POST /api/shop/orders — farmer places order ────────────────────────────────
+app.post('/api/shop/orders', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const { farmerId, farmerName, farmerPhone, items, subtotal, deliveryFee, totalAmount, deliveryNote, location, source } = req.body;
+
+    if (!items || items.length === 0) return res.status(400).json({ error: 'Cart is empty' });
+
+    // Find nearest provider based on farmer's GPS location
+    const provider = await assignNearestProvider(location?.lat, location?.lng);
+
+    const order = await new ShopOrder({
+      farmerId:    farmerId || req.user.id,
+      farmerName:  farmerName || '',
+      farmerPhone: farmerPhone || '',
+      providerId:  provider?.id || null,
+      providerName:provider?.name || '',
+      items,
+      subtotal:    subtotal || 0,
+      deliveryFee: deliveryFee || 0,
+      totalAmount: totalAmount || 0,
+      deliveryNote:deliveryNote || '',
+      location:    location || {},
+      source:      source || 'aqua_shop',
+      status:      'assigned',
+    }).save();
+
+    console.log(`[ShopOrder] New order ${order._id} assigned to provider ${provider?.name || 'none'}`);
+    res.status(201).json({ orderId: order._id, providerId: provider?.id, providerName: provider?.name, status: 'assigned' });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// ── GET /api/shop/orders — list orders (role-scoped) ──────────────────────────
+app.get('/api/shop/orders', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    let filter: any = {};
+    if (req.user.role === 'farmer') {
+      filter.farmerId = req.user.id;
+    } else if (req.user.role === 'provider') {
+      // Provider sees only orders assigned to them
+      const { providerId } = req.query;
+      filter.providerId = String(providerId || req.user.id);
+    }
+    // admin sees everything (no filter)
+    const orders = await ShopOrder.find(filter).sort({ createdAt: -1 }).limit(200);
+    res.json(orders);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/shop/orders/:id — single order ────────────────────────────────────
+app.get('/api/shop/orders/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const order = await ShopOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/shop/orders/:id/status — provider/admin updates delivery stage ─
+app.patch('/api/shop/orders/:id/status', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const { status } = req.body;
+    const allowed = ['assigned','confirmed','shipped','delivered','cancelled'];
+    if (!allowed.includes(status)) return res.status(400).json({ error: `Invalid status. Must be one of: ${allowed.join(', ')}` });
+
+    const order = await ShopOrder.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    console.log(`[ShopOrder] ${order._id} → ${status} by ${req.user.id}`);
+    res.json(order);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/shop/orders/:id/assign — admin reassigns to different provider ──
+app.patch('/api/shop/orders/:id/assign', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const { providerId, providerName } = req.body;
+    if (!providerId) return res.status(400).json({ error: 'providerId is required' });
+    const order = await ShopOrder.findByIdAndUpdate(req.params.id, { providerId, providerName: providerName || '' }, { new: true });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 export default app;

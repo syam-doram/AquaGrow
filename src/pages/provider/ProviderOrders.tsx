@@ -20,8 +20,9 @@ const ORDERS = [
 ];
 
 const STATUS_CFG: Record<string, { label: string; bg: string; text: string; icon: any; next?: string; nextLabel?: string }> = {
-  pending:   { label: 'Pending',   bg: 'bg-amber-500/10',   text: 'text-amber-500',  icon: Clock,        next: 'confirmed', nextLabel: 'Confirm Order' },
-  confirmed: { label: 'Confirmed', bg: 'bg-blue-500/10',    text: 'text-blue-500',   icon: CheckCircle2, next: 'shipped',   nextLabel: 'Mark Shipped'  },
+  assigned:  { label: 'New',       bg: 'bg-red-500/10',     text: 'text-red-500',    icon: Clock,        next: 'confirmed', nextLabel: 'Accept Order'     },
+  pending:   { label: 'Pending',   bg: 'bg-amber-500/10',   text: 'text-amber-500',  icon: Clock,        next: 'confirmed', nextLabel: 'Confirm Order'    },
+  confirmed: { label: 'Confirmed', bg: 'bg-blue-500/10',    text: 'text-blue-500',   icon: CheckCircle2, next: 'shipped',   nextLabel: 'Mark Shipped'     },
   shipped:   { label: 'Shipped',   bg: 'bg-purple-500/10',  text: 'text-purple-500', icon: Truck,        next: 'delivered', nextLabel: 'Confirm Delivery' },
   delivered: { label: 'Delivered', bg: 'bg-emerald-500/10', text: 'text-emerald-500',icon: CheckCircle2, next: undefined    },
 };
