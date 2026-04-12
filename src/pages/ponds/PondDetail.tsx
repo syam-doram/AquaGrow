@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Trash2, Activity, Droplets, Info,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
+import { useBottomSheet } from '../../context/BottomSheetContext';
 import type { Translations } from '../../translations';
 import { calculateDOC, calculateWeight } from '../../utils/pondUtils';
 import { getSOPGuidance } from '../../utils/sopRules';
@@ -17,7 +18,6 @@ import { cn } from '../../utils/cn';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { AlertModal } from '../../components/AlertModal';
 import { AeratorManagement } from './AeratorManagement';
-import { useEffect } from 'react';
 
 const safeNum = (v: any, fallback = 0) => {
   const n = Number(v);
@@ -42,9 +42,17 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert]     = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'timeline' | 'certificate' | 'aerators'>('overview');
   const { ponds, deletePond, waterRecords, feedLogs, theme, harvestRequests, updatePond, updateHarvestRequest } = useData();
+  const { openBottomSheet, closeBottomSheet } = useBottomSheet();
+
+  // Sync any open sheet/modal to global BottomSheetContext so BottomNav hides
+  useEffect(() => {
+    const anyOpen = showDeleteConfirm || showDeleteAlert || showCancelConfirm;
+    if (anyOpen) openBottomSheet(); else closeBottomSheet();
+    return () => closeBottomSheet(); // cleanup on unmount
+  }, [showDeleteConfirm, showDeleteAlert, showCancelConfirm]);
 
   // Auto-activate a tab when navigated from push notification deep-link
   useEffect(() => {
