@@ -77,6 +77,20 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
     } catch { /* silent */ }
   };
 
+  const claimShopOrder = async (orderId: string) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/shop/orders/${orderId}/claim`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setShopOrders(prev => prev.map(o => o._id === orderId || o.id === orderId ? updated : o));
+        setSelected((s: any) => s?._id === orderId || s?.id === orderId ? updated : s);
+      }
+    } catch { /* silent */ }
+  };
+
   const advance = (orderId: string, nextStatus: string) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
     setSelected((s: any) => s?.id === orderId ? { ...s, status: nextStatus } : s);
@@ -102,7 +116,7 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
         <div className={cn('flex rounded-2xl p-1 border gap-1', isDark ? 'bg-white/5 border-white/8' : 'bg-slate-100 border-transparent')}>
           {([
             { key: 'regular', label: '📋 Regular Orders' },
-            { key: 'shop',    label: '🛒 Shop Orders',   badge: shopOrders.filter(o => o.status === 'assigned' || o.status === 'pending').length },
+            { key: 'shop',    label: '🛒 Shop Orders',   badge: shopOrders.filter(o => !o.providerId || o.status === 'assigned' || o.status === 'pending').length },
           ] as const).map(tab => (
             <button key={tab.key} onClick={() => setOrderTab(tab.key)}
               className={cn('flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5',
@@ -150,8 +164,11 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
               </div>
             ) : (
               shopOrders.map((order: any, i: number) => {
-                const oid = order._id || order.id;
-                const st = STATUS_CFG[order.status] || STATUS_CFG['pending'];
+                const oid        = order._id || order.id;
+                const isUnclaimed = !order.providerId;
+                const st         = isUnclaimed
+                  ? { label: 'Unclaimed', bg: 'bg-orange-500/10', text: 'text-orange-500', next: null, nextLabel: '' }
+                  : (STATUS_CFG[order.status] || STATUS_CFG['pending']);
                 return (
                   <motion.div key={oid} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                     onClick={() => setSelected({ ...order, _isShop: true })}
@@ -166,6 +183,7 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
                           <div className="flex items-center gap-1.5">
                             <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/60' : 'text-amber-600')}>#{oid?.slice?.(-6) || 'SHOP'}</p>
                             <span className="text-[6px] font-black px-1.5 py-0.5 bg-amber-500 text-white rounded-full uppercase tracking-widest">Shop</span>
+                            {isUnclaimed && <span className="text-[6px] font-black px-1.5 py-0.5 bg-orange-500 text-white rounded-full uppercase tracking-widest">New</span>}
                           </div>
                           <span className={cn('px-2 py-0.5 rounded-lg text-[6.5px] font-black uppercase tracking-widest', st.bg, st.text)}>{st.label}</span>
                         </div>
@@ -178,14 +196,19 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
                         )}
                       </div>
                     </div>
-                    {st.next && (
+                    {/* Claim button for unclaimed orders */}
+                    {isUnclaimed ? (
+                      <button onClick={e => { e.stopPropagation(); claimShopOrder(oid); }}
+                        className="mt-3 w-full py-2.5 rounded-2xl text-[8px] font-black uppercase tracking-widest text-white bg-orange-500">
+                        🤝 Claim &amp; Accept Order
+                      </button>
+                    ) : st.next ? (
                       <button onClick={e => { e.stopPropagation(); advanceShopOrder(oid, st.next!); }}
                         className={cn('mt-3 w-full py-2.5 rounded-2xl text-[8px] font-black uppercase tracking-widest text-white',
-                          order.status === 'pending' || order.status === 'assigned' ? 'bg-amber-500' :
                           order.status === 'confirmed' ? 'bg-blue-500' : 'bg-purple-500')}>
                         {st.nextLabel}
                       </button>
-                    )}
+                    ) : null}
                   </motion.div>
                 );
               })

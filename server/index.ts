@@ -1246,13 +1246,39 @@ app.get('/api/shop/orders', authenticate, async (req: AuthenticatedRequest, res)
     if (req.user.role === 'farmer') {
       filter.farmerId = req.user.id;
     } else if (req.user.role === 'provider') {
-      // Provider sees only orders assigned to them
-      const { providerId } = req.query;
-      filter.providerId = String(providerId || req.user.id);
+      // Provider sees: orders assigned to them OR unassigned (so they can claim)
+      filter = {
+        $or: [
+          { providerId: req.user.id },
+          { providerId: null },
+          { providerId: { $exists: false } },
+        ]
+      };
     }
     // admin sees everything (no filter)
     const orders = await ShopOrder.find(filter).sort({ createdAt: -1 }).limit(200);
     res.json(orders);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/shop/orders/:id/claim — provider self-assigns an unassigned order
+app.patch('/api/shop/orders/:id/claim', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    if (req.user.role !== 'provider' && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Only providers can claim orders' });
+    const order = await ShopOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.providerId && order.providerId !== req.user.id)
+      return res.status(409).json({ error: 'Order already claimed by another provider' });
+    const user = await UserMongo.findById(req.user.id).select('name');
+    const updated = await ShopOrder.findByIdAndUpdate(
+      req.params.id,
+      { providerId: req.user.id, providerName: (user as any)?.name || 'Provider', status: 'confirmed' },
+      { new: true }
+    );
+    console.log(`[ShopOrder] ${req.params.id} claimed by provider ${req.user.id}`);
+    res.json(updated);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
