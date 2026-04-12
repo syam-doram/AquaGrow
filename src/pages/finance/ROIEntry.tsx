@@ -121,12 +121,12 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   const { ponds, expenses, feedLogs, medicineLogs, apiFetch, theme, serverError } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  // ── Only truly active ponds can have ROI logged (not planned)
+  // ── Only truly active ponds in the pond selector — NEVER harvested or planned
   const activePonds = useMemo(
-    () => ponds.filter(p => p.status === 'active' || p.status === 'harvested'),
+    () => ponds.filter(p => p.status === 'active'),
     [ponds]
   );
-  const hasActivePond = useMemo(() => ponds.some(p => p.status === 'active'), [ponds]);
+  const hasActivePond = activePonds.length > 0;
 
   // ── Harvest context from query params (from PondHarvest flow) ──
   const fromHarvest   = searchParams.get('fromHarvest') === 'self';
