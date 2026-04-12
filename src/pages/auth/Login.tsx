@@ -244,7 +244,6 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
           goHome(loggedUser);
           return;
         }
-
         // If biometric available but not yet set up → show our premium setup prompt
         if (canBiometric && !localStorage.getItem('aqua_bio_asked')) {
           setPendingLoginResult(result);
