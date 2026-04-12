@@ -65,7 +65,7 @@ const STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: strin
 export const PondManagement = ({ t, onMenuClick }: { t: Translations, onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, deletePond, user, isPro, theme, waterRecords, feedLogs, medicineLogs, reminders, unreadCount, harvestRequests, serverError } = useData();
-  const [activeTab, setActiveTab] = useState<'active' | 'planned' | 'harvested' | 'archive'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'harvested' | 'archive'>('active');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const isDark = theme === 'dark' || theme === 'midnight';
@@ -127,8 +127,7 @@ export const PondManagement = ({ t, onMenuClick }: { t: Translations, onMenuClic
   const archiveCount   = ponds.filter(p => p.status === 'archive').length;
 
   const TABS = [
-    { key: 'active',  label: t.activePonds || 'Active',  count: ponds.filter(p => p.status === 'active' || p.status === 'harvest_pending').length },
-    { key: 'planned', label: t.planned || 'Planned',     count: ponds.filter(p => p.status === 'planned').length },
+    { key: 'active',    label: t.activePonds || 'Active',    count: ponds.filter(p => p.status === 'active' || p.status === 'planned' || p.status === 'harvest_pending').length },
     // Only show Harvested tab when at least one pond has been harvested
     ...(harvestedCount > 0 ? [{ key: 'harvested', label: t.harvest || 'Harvested', count: harvestedCount }] : []),
     // Only show Archive tab when at least one pond is archived

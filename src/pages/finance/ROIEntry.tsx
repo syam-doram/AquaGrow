@@ -121,11 +121,12 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
   const { ponds, expenses, feedLogs, medicineLogs, apiFetch, theme, serverError } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  // ── Only active/planned ponds — NEVER harvested ──
+  // ── Only truly active ponds can have ROI logged (not planned)
   const activePonds = useMemo(
-    () => ponds.filter(p => p.status === 'active' || p.status === 'planned'),
+    () => ponds.filter(p => p.status === 'active' || p.status === 'harvested'),
     [ponds]
   );
+  const hasActivePond = useMemo(() => ponds.some(p => p.status === 'active'), [ponds]);
 
   // ── Harvest context from query params (from PondHarvest flow) ──
   const fromHarvest   = searchParams.get('fromHarvest') === 'self';
@@ -248,8 +249,8 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
   const currentStep = STEPS[step - 1];
 
-  // ── No active ponds guard ──
-  if (!fromHarvest && activePonds.length === 0) {
+  // ── No active ponds guard — block ROI entry if no active pond exists ──
+  if (!fromHarvest && !hasActivePond) {
     return (
       <div className={cn('min-h-screen', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
         <Header title={t.postHarvestROI} showBack />
@@ -257,11 +258,19 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
           {serverError ? (
             <ServerErrorState isDark={isDark} />
           ) : (
-            <NoPondState
-              isDark={isDark}
-              fullScreen={false}
-              subtitle="Add an active pond and complete a harvest cycle before logging ROI."
-            />
+            <div className={cn('rounded-3xl p-8 text-center border mx-2 mt-4', isDark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
+              <div className="text-5xl mb-4">🚫</div>
+              <h3 className={cn('font-black text-base tracking-tight mb-2', isDark ? 'text-white' : 'text-slate-900')}>No Active Pond</h3>
+              <p className={cn('text-[10px] font-medium leading-relaxed mb-6', isDark ? 'text-white/40' : 'text-slate-500')}>
+                ROI entry requires at least one <strong>active</strong> pond with a stocking date. You can only log ROI data after a harvest cycle is complete.
+              </p>
+              <button
+                onClick={() => navigate('/ponds')}
+                className="px-6 py-3 rounded-2xl bg-[#C78200] text-white text-[10px] font-black uppercase tracking-widest"
+              >
+                Go to Ponds →
+              </button>
+            </div>
           )}
         </div>
       </div>

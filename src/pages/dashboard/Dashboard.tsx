@@ -515,32 +515,35 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
   // ── PUSH TO LOCAL NOTIFICATIONS & HISTORY EFFECT ──
   useEffect(() => {
-    // 1. Log Engine Alerts
+    const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // 1. Log Engine Alerts — only once per day per alert key
     if (engineAlerts.length > 0) {
       engineAlerts.forEach(async (alert) => {
-        const alreadyInHistory = sessionStorage.getItem(`added_to_history_${alert.alertKey}`);
+        const dailyKey = `added_to_history_${alert.alertKey}_${todayKey}`;
+        const alreadyInHistory = localStorage.getItem(dailyKey);
         if (!alreadyInHistory) {
           addNotification(`${t.sopEngineAlert} · ${alert.pondName}`, alert.title, alert.type);
-          sessionStorage.setItem(`added_to_history_${alert.alertKey}`, 'true');
+          localStorage.setItem(dailyKey, 'true');
         }
 
-        if (Capacitor.isNativePlatform()) {
-          const notifiedInSession = sessionStorage.getItem(`notified_eng_${alert.alertKey}`);
-          if (!notifiedInSession) {
+        // Only fire OS push for critical/warning — not every time app opens
+        if (Capacitor.isNativePlatform() && (alert.type === 'critical' || alert.type === 'warning')) {
+          const pushKey = `notified_eng_${alert.alertKey}_${todayKey}`;
+          const notifiedToday = localStorage.getItem(pushKey);
+          if (!notifiedToday) {
             try {
               await LocalNotifications.schedule({
-                notifications: [
-                  {
-                    id: Math.floor(Math.random() * 100000),
-                    title: `${t.sopEngineAlert} · ${alert.pondName}`,
-                    body: alert.title,
-                    smallIcon: 'ic_stat_name',
-                    largeIcon: 'res://icon',
-                    sound: 'default'
-                  }
-                ]
+                notifications: [{
+                  id: Math.floor(Math.random() * 100000),
+                  title: `${t.sopEngineAlert} · ${alert.pondName}`,
+                  body: alert.title,
+                  smallIcon: 'ic_stat_name',
+                  largeIcon: 'res://icon',
+                  sound: 'default'
+                }]
               });
-              sessionStorage.setItem(`notified_eng_${alert.alertKey}`, 'true');
+              localStorage.setItem(pushKey, 'true');
             } catch (err) {
               console.error('Failed to trigger local notification:', err);
             }
@@ -548,21 +551,20 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         }
       });
 
-      // Auto-dismiss engine alerts after 10 seconds locally (internal logic remains if needed for other components)
+      // Auto-dismiss engine alerts after 10 seconds locally
       const timer = setTimeout(() => {
         engineAlerts.forEach(alert => handleDismiss(alert.alertKey));
       }, 10000);
       return () => clearTimeout(timer);
     }
 
-    // 2. Log Lunar Alerts
+    // 2. Log Lunar Alerts — once per phase per day
     const lunarPhases = ['AMAVASYA', 'POURNAMI', 'ASHTAMI', 'NAVAMI'];
     if (lunarPhases.includes(lunar.phase)) {
-      const today = new Date().toISOString().split('T')[0];
-      const lunarKey = `lunar_${lunar.phase}_${today}`;
-      if (!sessionStorage.getItem(`added_to_history_${lunarKey}`)) {
+      const lunarKey = `lunar_${lunar.phase}_${todayKey}`;
+      if (!localStorage.getItem(`added_to_history_${lunarKey}`)) {
         addNotification(t.moonPhaseTitle || 'Lunar Cycle Alert', `${lunar.phase} Phase Detected - Check SOP`, 'warning');
-        sessionStorage.setItem(`added_to_history_${lunarKey}`, 'true');
+        localStorage.setItem(`added_to_history_${lunarKey}`, 'true');
       }
     }
   }, [engineAlerts, lunar, t, addNotification]);
@@ -913,22 +915,22 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                     <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
                       See All →
                     </button>
-                    <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; sessionStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className={cn("text-[8px] font-black uppercase tracking-widest text-red-400")}>
+                    <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; sessionStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className="text-[8px] font-black uppercase tracking-widest text-red-400">
                       Clear
                     </button>
                   </div>
                 </div>
 
-                {/* Only show first 3 alerts */}
+                {/* Show first 3 alerts — full detail */}
                 {situationAlerts.slice(0, 3).map((alert, i) => {
                   const alertColors = {
-                    critical: { bg: isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200', text: 'text-red-500', badge: 'bg-red-500' },
-                    warning: { bg: isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200', text: 'text-amber-500', badge: 'bg-amber-500' },
-                    info: { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500' },
-                    success: { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500' },
-                    lunar: { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500' },
+                    critical: { bg: isDark ? 'bg-red-500/12 border-red-500/40' : 'bg-red-50 border-red-300', text: 'text-red-500', badge: 'bg-red-500', label: 'CRITICAL' },
+                    warning:  { bg: isDark ? 'bg-amber-500/12 border-amber-500/40' : 'bg-amber-50 border-amber-300', text: 'text-amber-500', badge: 'bg-amber-500', label: 'WARNING' },
+                    info:     { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: 'INFO' },
+                    success:  { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500', label: 'GOOD' },
+                    lunar:    { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: 'LUNAR' },
                   };
-                  const c = alertColors[alert.type] || alertColors.info;
+                  const c = alertColors[alert.type as keyof typeof alertColors] || alertColors.info;
                   return (
                     <motion.div
                       key={alert.id}
@@ -936,32 +938,55 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 15, height: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className={cn('rounded-2xl px-3 py-2.5 border flex items-center gap-2.5 relative overflow-hidden', c.bg)}
+                      onClick={() => alert.actionPath && navigate(alert.actionPath)}
+                      className={cn('rounded-2xl px-3 py-3 border relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform', c.bg)}
                     >
                       {alert.type === 'critical' && (
                         <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />
                       )}
-                      <span className="text-base leading-none flex-shrink-0">{alert.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className={cn('text-[10px] font-black tracking-tight truncate', c.text)}>{alert.title}</p>
-                          {alert.type === 'critical' && (
-                            <span className="text-[6px] font-black px-1 py-0.5 rounded-full bg-red-500 text-white uppercase tracking-widest flex-shrink-0">!</span>
+
+                      {/* Top row: emoji + title + priority badge + dismiss */}
+                      <div className="flex items-start gap-2.5">
+                        <span className="text-lg leading-none flex-shrink-0 mt-0.5">{alert.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <p className={cn('text-[11px] font-black tracking-tight leading-snug', c.text)}>{alert.title}</p>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <span className={cn('text-[6px] font-black px-1.5 py-0.5 rounded-full text-white uppercase tracking-widest', c.badge)}>{c.label}</span>
+                              <button
+                                onClick={e => { e.stopPropagation(); dismissSituation(alert.id); }}
+                                className={cn('w-5 h-5 rounded-full flex items-center justify-center', isDark ? 'bg-white/10 text-white/40' : 'bg-black/5 text-slate-400')}
+                              >
+                                <X size={9} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Pond name badge */}
+                          {alert.pondName && (
+                            <span className={cn('inline-flex items-center gap-1 text-[7px] font-black px-2 py-0.5 rounded-full mb-1.5',
+                              isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-600'
+                            )}>
+                              📍 {alert.pondName}
+                            </span>
+                          )}
+
+                          {/* Full description — not truncated */}
+                          <p className={cn('text-[9px] font-medium leading-snug', isDark ? 'text-white/55' : 'text-slate-600')}>{alert.body}</p>
+
+                          {/* Action button */}
+                          {alert.action && alert.actionPath && (
+                            <button
+                              onClick={e => { e.stopPropagation(); navigate(alert.actionPath!); }}
+                              className={cn('text-[7px] font-black uppercase tracking-widest flex items-center gap-0.5 mt-2 px-2.5 py-1 rounded-lg border', c.text,
+                                isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-current/20'
+                              )}
+                            >
+                              {alert.action} <ChevronRight size={8} />
+                            </button>
                           )}
                         </div>
-                        <p className={cn('text-[8px] font-medium truncate', isDark ? 'text-white/50' : 'text-slate-500')}>{alert.body}</p>
-                        {alert.action && alert.actionPath && (
-                          <button onClick={() => navigate(alert.actionPath!)} className={cn('text-[7px] font-black uppercase tracking-widest flex items-center gap-0.5 mt-0.5', c.text)}>
-                            {alert.action} <ChevronRight size={8} />
-                          </button>
-                        )}
                       </div>
-                      <button
-                        onClick={() => dismissSituation(alert.id)}
-                        className={cn('w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0', isDark ? 'bg-white/10 text-white/40' : 'bg-black/5 text-slate-400')}
-                      >
-                        <X size={9} />
-                      </button>
                     </motion.div>
                   );
                 })}

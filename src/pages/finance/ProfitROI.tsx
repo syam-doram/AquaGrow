@@ -60,6 +60,8 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
   const entries: any[] = useMemo(() => roiEntries || [], [roiEntries]);
   const harvestedPonds = useMemo(() => ponds.filter(p => p.status === 'harvested'), [ponds]);
   const activePonds = useMemo(() => ponds.filter(p => p.status === 'active' || p.status === 'planned'), [ponds]);
+  const hasActivePond = useMemo(() => ponds.some(p => p.status === 'active'), [ponds]);
+  const goToROIEntry = () => { if (!hasActivePond) { navigate('/ponds'); } else { navigate('/roi-entry'); } };
 
   const totalCycles = entries.length;
   const avgROI = totalCycles > 0 ? entries.reduce((a, e) => a + (e.roi ?? 0), 0) / totalCycles : 0;
@@ -325,7 +327,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                     Add your income and expenses to calculate your true profit and ROI.
                   </p>
                   <button
-                    onClick={() => navigate('/roi-entry')}
+                    onClick={goToROIEntry}
                     className="mt-3 px-3 py-1.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest rounded-xl flex items-center gap-1.5"
                   >
                     <Plus size={10} /> Add ROI Entry
@@ -418,7 +420,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
             {hasROIData && (
               <motion.button
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                onClick={() => navigate('/roi-entry')}
+                onClick={goToROIEntry}
                 className="w-full py-4 rounded-[1.5rem] border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                 style={{
                   background: isDark ? 'rgba(16,185,129,0.08)' : '#ecfdf5',
