@@ -337,7 +337,8 @@ const getMedicineImportance = (title: string, doc: number, priority: string): 'U
 
 export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { ponds, addMedicineLog, medicineLogs, waterRecords } = useData();
+  const { ponds, addMedicineLog, medicineLogs, waterRecords, theme } = useData();
+  const isDark = theme === 'dark' || theme === 'midnight';
 
   // Only show active / planned ponds — no SOPs for harvested/sold ponds
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'planned');
@@ -880,15 +881,19 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    'flex-shrink-0 flex items-center gap-1.5 py-3 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
+                    'flex-shrink-0 flex items-center gap-1.5 py-2.5 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
                     (activeTab as string) === tab.id
                       ? tab.id === 'my_sop'
                         ? 'bg-purple-600 text-white border-purple-600 shadow-lg'
+                        : tab.id === 'diseases' && (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH')
+                        ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-900/30'
                         : 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
-                      : 'bg-card text-ink/40 border-card-border'
+                      : isDark
+                        ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                   )}
                 >
-                  <span className="text-[10px]">{tab.emoji}</span>
+                  <span className="text-[11px]">{tab.emoji}</span>
                   {tab.label}
                   {/* Urgent indicator badges */}
                   {tab.id === 'diseases' && (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH') && (
@@ -943,19 +948,23 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   {/* Season + next milestone compact strip */}
                   {currentDoc > 0 && (
                     <div className="flex gap-2">
-                      <div className={cn('flex-1 rounded-2xl px-4 py-3 border flex items-center gap-2', season.bg)}>
+                      <div className={cn('flex-1 rounded-2xl px-4 py-3 border flex items-center gap-2',
+                        isDark ? `bg-white/5 border-white/10` : season.bg
+                      )}>
                         <span className="text-lg">{season.emoji}</span>
                         <div>
-                          <p className={cn('text-[8px] font-black', season.color)}>{season.label} Season</p>
-                          <p className="text-ink/40 text-[7px] font-medium">{season.risk.split('·')[0].trim()}</p>
+                          <p className={cn('text-[8px] font-black', isDark ? 'text-white/80' : season.color)}>{season.label} Season</p>
+                          <p className={cn('text-[7px] font-medium', isDark ? 'text-white/30' : 'text-ink/40')}>{season.risk.split('·')[0].trim()}</p>
                         </div>
                       </div>
                       {nextMilestone && (
-                        <div className="flex-1 rounded-2xl px-4 py-3 bg-indigo-50 border border-indigo-200 flex items-center gap-2">
-                          <Clock size={18} className="text-indigo-400 flex-shrink-0" />
+                        <div className={cn('flex-1 rounded-2xl px-4 py-3 border flex items-center gap-2',
+                          isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'
+                        )}>
+                          <Clock size={18} className={isDark ? 'text-indigo-400' : 'text-indigo-400'} />
                           <div>
-                            <p className="text-[8px] font-black text-indigo-700">{nextMilestone.label}</p>
-                            <p className="text-indigo-400 text-[7px] font-black">in +{nextMilestone.doc - currentDoc} days</p>
+                            <p className={cn('text-[8px] font-black', isDark ? 'text-indigo-300' : 'text-indigo-700')}>{nextMilestone.label}</p>
+                            <p className={cn('text-[7px] font-black', isDark ? 'text-indigo-500' : 'text-indigo-400')}>in +{nextMilestone.doc - currentDoc} days</p>
                           </div>
                         </div>
                       )}
@@ -967,25 +976,33 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     <motion.div
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-[2rem] px-5 py-4 flex items-center justify-between border bg-gradient-to-r from-indigo-50 to-violet-50 border-indigo-200 shadow-sm"
+                      className={cn('rounded-[2rem] px-5 py-4 flex items-center justify-between border shadow-sm',
+                        isDark
+                          ? 'bg-indigo-500/10 border-indigo-500/20'
+                          : 'bg-gradient-to-r from-indigo-50 to-violet-50 border-indigo-200'
+                      )}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-indigo-100 border border-indigo-200 rounded-2xl flex items-center justify-center flex-shrink-0">
-                          <Clock size={20} className="text-indigo-500" />
+                        <div className={cn('w-11 h-11 border rounded-2xl flex items-center justify-center flex-shrink-0',
+                          isDark ? 'bg-indigo-500/15 border-indigo-500/25' : 'bg-indigo-100 border-indigo-200'
+                        )}>
+                          <Clock size={20} className="text-indigo-400" />
                         </div>
                         <div>
-                          <p className="text-indigo-400 text-[6px] font-black uppercase tracking-[0.3em]">Next Culture Milestone</p>
-                          <p className="text-indigo-900 font-black text-sm tracking-tight">{nextMilestone.label}</p>
-                          <p className="text-indigo-400/70 text-[7px] font-medium mt-0.5">
+                          <p className={cn('text-[6px] font-black uppercase tracking-[0.3em]', isDark ? 'text-indigo-400' : 'text-indigo-400')}>Next Culture Milestone</p>
+                          <p className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-indigo-900')}>{nextMilestone.label}</p>
+                          <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-indigo-400/70' : 'text-indigo-400/70')}>
                             {lunar.phase !== 'NORMAL'
                               ? `⚠ Overlaps with ${lunar.phase} moon — apply extra care`
                               : `🌕 Lunar phase stable for this milestone`}
                           </p>
                         </div>
                       </div>
-                      <div className="bg-indigo-100 border border-indigo-200 rounded-2xl px-4 py-3 text-center flex-shrink-0">
-                        <p className="text-indigo-900 font-black text-2xl leading-none">+{nextMilestone.doc - currentDoc}</p>
-                        <p className="text-indigo-400 text-[5px] font-black uppercase tracking-widest">days</p>
+                      <div className={cn('border rounded-2xl px-4 py-3 text-center flex-shrink-0',
+                        isDark ? 'bg-indigo-500/20 border-indigo-500/30' : 'bg-indigo-100 border-indigo-200'
+                      )}>
+                        <p className={cn('font-black text-2xl leading-none', isDark ? 'text-indigo-300' : 'text-indigo-900')}>+{nextMilestone.doc - currentDoc}</p>
+                        <p className={cn('text-[5px] font-black uppercase tracking-widest', isDark ? 'text-indigo-500' : 'text-indigo-400')}>days</p>
                       </div>
                     </motion.div>
                   )}
@@ -993,20 +1010,26 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
                   {/* Not Stocked Empty State (Only for non-planned) */}
                   {(!selectedPond.stockingDate && selectedPond.status !== 'planned') ? (
-                    <div className="bg-card rounded-[2.5rem] p-10 text-center border border-dashed border-card-border">
-                      <div className="w-12 h-12 bg-[#F8F9FE] rounded-3xl flex items-center justify-center mx-auto mb-4 text-[#C78200]">
+                    <div className={cn('rounded-[2.5rem] p-10 text-center border border-dashed',
+                      isDark ? 'bg-white/[0.03] border-white/10' : 'bg-card border-card-border'
+                    )}>
+                      <div className={cn('w-12 h-12 rounded-3xl flex items-center justify-center mx-auto mb-4 text-[#C78200]',
+                        isDark ? 'bg-white/5' : 'bg-[#F8F9FE]'
+                      )}>
                         <Calendar size={32} />
                       </div>
-                      <h3 className="text-ink font-black text-base tracking-tight mb-2">Culture Not Started</h3>
-                      <p className="text-ink/40 text-[11px] leading-relaxed">
+                      <h3 className={cn('font-black text-base tracking-tight mb-2', isDark ? 'text-white' : 'text-ink')}>Culture Not Started</h3>
+                      <p className={cn('text-[11px] leading-relaxed', isDark ? 'text-white/40' : 'text-ink/40')}>
                         Set a stocking date for <span className="text-[#C78200] font-black">{selectedPond.name}</span> to begin tracking SOP medicines.
                       </p>
                     </div>
                   ) : (todayGuidance.length === 0 && currentDoc > 0) ? (
-                    <div className="bg-card rounded-[2.5rem] p-10 text-center border border-dashed border-card-border">
+                    <div className={cn('rounded-[2.5rem] p-10 text-center border border-dashed',
+                      isDark ? 'bg-white/[0.03] border-white/10' : 'bg-card border-card-border'
+                    )}>
                       <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-3" />
-                      <h3 className="text-ink font-black text-base tracking-tight mb-2">All Clear Today!</h3>
-                      <p className="text-ink/40 text-[11px]">No specific SOP medicines for DOC {currentDoc}. Maintain routine aeration.</p>
+                      <h3 className={cn('font-black text-base tracking-tight mb-2', isDark ? 'text-white' : 'text-ink')}>All Clear Today!</h3>
+                      <p className={cn('text-[11px]', isDark ? 'text-white/40' : 'text-ink/40')}>No specific SOP medicines for DOC {currentDoc}. Maintain routine aeration.</p>
                     </div>
                   ) : (
                     <>
@@ -1040,15 +1063,15 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
                       <div className="flex items-center justify-between px-1">
                         <div>
-                          <h2 className="text-ink font-black text-lg tracking-tight">{t.dailySOP}</h2>
+                          <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-ink')}>{t.dailySOP}</h2>
                           <p className="text-[#C78200] text-[9px] font-black uppercase tracking-widest mt-0.5">
-                            {selectedDate.toDateString() === new Date().toDateString() ? 'Required Today' : `Required on ${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`} 
+                            {selectedDate.toDateString() === new Date().toDateString() ? 'Required Today' : `Required on ${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`}
                             {currentDoc >= 0 ? ` — DOC ${currentDoc}` : ` — Preparation Phase`} ({selectedDate.toLocaleDateString('en-IN', { weekday: 'long' })})
                           </p>
                         </div>
                         <div className={cn(
                           'w-12 h-12 rounded-2xl flex items-center justify-center',
-                          currentDoc >= 31 && currentDoc <= 45 ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
+                          currentDoc >= 31 && currentDoc <= 45 ? 'bg-red-500/10 text-red-500' : isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-500/10 text-emerald-500'
                         )}>
                           <ShieldCheck size={24} />
                         </div>
@@ -1078,10 +1101,10 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                 'p-5 rounded-[2rem] shadow-sm border transition-all flex items-center justify-between group',
                                 (item.type === 'MEDICINE' && !isAlreadyInHistory) ? 'cursor-pointer' : 'cursor-default',
                                 isCompleted
-                                  ? 'bg-emerald-50 border-emerald-200'
+                                  ? isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'
                                   : item.type === 'ALERT' || item.priority === 'HIGH'
-                                  ? 'bg-card border-red-100 hover:border-red-200'
-                                  : 'bg-card border-card-border hover:border-emerald-200'
+                                  ? isDark ? 'bg-red-500/8 border-red-500/20 hover:border-red-500/30' : 'bg-card border-red-100 hover:border-red-200'
+                                  : isDark ? 'bg-white/[0.03] border-white/8 hover:border-white/15' : 'bg-card border-card-border hover:border-emerald-200'
                               )}
                             >
                               <div className={cn("flex items-center gap-4 flex-1 min-w-0", isAlreadyInHistory && "opacity-60")}>
@@ -1097,7 +1120,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                     <h4 className={cn(
                                       'font-black text-sm tracking-tight truncate',
-                                      isCompleted ? 'text-emerald-800' : 'text-ink'
+                                      isCompleted
+                                        ? isDark ? 'text-emerald-400' : 'text-emerald-800'
+                                        : isDark ? 'text-white' : 'text-ink'
                                     )}>
                                       {item.title}
                                     </h4>
@@ -1115,22 +1140,30 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                     {item.applicationType && (
                                        <span className={cn(
                                          'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex-shrink-0',
-                                         item.applicationType === 'WATER' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                         item.applicationType === 'WATER' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                        )}>
                                           {item.applicationType === 'WATER' ? 'Water' : 'Feed'}
                                        </span>
                                     )}
                                      {item.type === 'MEDICINE' && !isAlreadyInHistory && (
-                                       <span className="text-[7px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 flex-shrink-0">
+                                       <span className={cn('text-[7px] font-black px-2 py-0.5 rounded-full border flex-shrink-0',
+                                         isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                       )}>
                                          ~{'\u20b9'}{estimateMedicineCost(item.title, pondAcreage)}
                                        </span>
                                      )}
                                   </div>
-                                   <p className="text-ink/40 text-[10px] font-medium leading-snug">
+                                   <p className={cn('text-[10px] font-medium leading-snug',
+                                     isAlreadyInHistory
+                                       ? isDark ? 'text-emerald-400/60' : 'text-emerald-700/60'
+                                       : isDark ? 'text-white/35' : 'text-ink/40'
+                                   )}>
                                     {isAlreadyInHistory ? "Already applied and synced for today" : item.description}
                                   </p>
                                    {item.dose && !isAlreadyInHistory && (
-                                     <p className="text-[#0D523C] text-[8px] font-black uppercase tracking-widest mt-0.5">
+                                     <p className={cn('text-[8px] font-black uppercase tracking-widest mt-0.5',
+                                       isDark ? 'text-emerald-400/70' : 'text-[#0D523C]'
+                                     )}>
                                        Dose: {item.dose}
                                      </p>
                                    )}
@@ -1141,7 +1174,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                   'w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ml-3',
                                   isCompleted
                                     ? 'bg-emerald-500 border-emerald-500 text-white'
-                                    : 'border-card-border text-transparent'
+                                    : isDark ? 'border-white/15 text-transparent' : 'border-card-border text-transparent'
                                 )}>
                                   <CheckCircle2 size={16} />
                                 </div>
@@ -1234,18 +1267,18 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   className="space-y-4"
                 >
                   {isPrestocking ? (
-                    <div className="bg-card rounded-[2rem] p-8 text-center border border-card-border">
+                    <div className={cn('rounded-[2rem] p-8 text-center border', isDark ? 'bg-white/[0.03] border-white/10' : 'bg-card border-card-border')}>
                       <div className="text-4xl mb-3">🏗️</div>
-                      <h3 className="text-ink font-black text-sm tracking-tight mb-2">Preparation Phase</h3>
-                      <p className="text-ink/40 text-[10px] leading-relaxed">
+                      <h3 className={cn('font-black text-sm tracking-tight mb-2', isDark ? 'text-white' : 'text-ink')}>Preparation Phase</h3>
+                      <p className={cn('text-[10px] leading-relaxed', isDark ? 'text-white/40' : 'text-ink/40')}>
                         Disease risk alerts activate after stocking. Focus on water quality and pond preparation now.
                       </p>
                     </div>
                   ) : currentDoc === 0 ? (
-                    <div className="bg-card rounded-[2rem] p-8 text-center border border-card-border">
+                    <div className={cn('rounded-[2rem] p-8 text-center border', isDark ? 'bg-white/[0.03] border-white/10' : 'bg-card border-card-border')}>
                       <div className="text-4xl mb-3">✅</div>
-                      <h3 className="text-ink font-black text-sm tracking-tight mb-2">Stocking Day</h3>
-                      <p className="text-ink/40 text-[10px] leading-relaxed">Disease monitoring begins from DOC 1.</p>
+                      <h3 className={cn('font-black text-sm tracking-tight mb-2', isDark ? 'text-white' : 'text-ink')}>Stocking Day</h3>
+                      <p className={cn('text-[10px] leading-relaxed', isDark ? 'text-white/40' : 'text-ink/40')}>Disease monitoring begins from DOC 1.</p>
                     </div>
                   ) : (() => {
                     const riskReport = diseaseRiskReport;
@@ -1260,8 +1293,8 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         {/* Section header */}
                         <div className="flex items-center justify-between px-1">
                           <div>
-                            <h3 className="text-ink font-black text-sm tracking-tight">🦠 Stage Disease Alerts</h3>
-                            <p className="text-ink/40 text-[8px] font-black uppercase tracking-widest mt-0.5">
+                            <h3 className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-ink')}>🦠 Stage Disease Alerts</h3>
+                            <p className={cn('text-[8px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/35' : 'text-ink/40')}>
                               {stageMeta.emoji} {stageMeta.label} · DOC {currentDoc} · {seasonMeta.emoji} {seasonMeta.label}
                             </p>
                           </div>
@@ -1271,10 +1304,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </div>
 
                         {alerts.length === 0 ? (
-                          <div className="bg-emerald-50 border border-emerald-100 rounded-[2rem] p-8 text-center">
+                          <div className={cn('rounded-[2rem] p-8 text-center border',
+                            isDark ? 'bg-emerald-500/8 border-emerald-500/15' : 'bg-emerald-50 border-emerald-100'
+                          )}>
                             <div className="text-4xl mb-3">🛡️</div>
-                            <h3 className="text-emerald-800 font-black text-sm tracking-tight mb-2">All Clear!</h3>
-                            <p className="text-emerald-700/60 text-[10px] leading-relaxed">No significant disease risk at DOC {currentDoc}. Maintain your SOP protocol.</p>
+                            <h3 className={cn('font-black text-sm tracking-tight mb-2', isDark ? 'text-emerald-400' : 'text-emerald-800')}>All Clear!</h3>
+                            <p className={cn('text-[10px] leading-relaxed', isDark ? 'text-emerald-400/60' : 'text-emerald-700/60')}>No significant disease risk at DOC {currentDoc}. Maintain your SOP protocol.</p>
                           </div>
                         ) : alerts.map((risk, i) => {
                           const rc       = RISK_COLORS[risk.riskLevel];
@@ -1291,21 +1326,29 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                               transition={{ delay: i * 0.07 }}
                               className={cn(
                                 'rounded-[2rem] border overflow-hidden shadow-sm',
-                                isCrit ? 'bg-red-50 border-red-100' :
-                                isHigh ? 'bg-orange-50 border-orange-100' :
-                                risk.riskLevel === 'MODERATE' ? 'bg-amber-50 border-amber-100' :
-                                'bg-card border-card-border'
+                                isCrit
+                                  ? isDark ? 'bg-red-500/10 border-red-500/25' : 'bg-red-50 border-red-100'
+                                  : isHigh
+                                  ? isDark ? 'bg-orange-500/8 border-orange-500/20' : 'bg-orange-50 border-orange-100'
+                                  : risk.riskLevel === 'MODERATE'
+                                  ? isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-100'
+                                  : isDark ? 'bg-white/[0.03] border-white/8' : 'bg-card border-card-border'
                               )}
                             >
                               {/* Top banner: Stage + Season + Level */}
                               <div className={cn(
                                 'px-5 py-2.5 flex items-center gap-2 border-b flex-wrap',
-                                isCrit ? 'bg-red-100/60 border-red-100' :
-                                isHigh ? 'bg-orange-100/50 border-orange-100' :
-                                risk.riskLevel === 'MODERATE' ? 'bg-amber-100/40 border-amber-100' :
-                                'bg-slate-50 border-slate-100'
+                                isCrit
+                                  ? isDark ? 'bg-red-500/15 border-red-500/20' : 'bg-red-100/60 border-red-100'
+                                  : isHigh
+                                  ? isDark ? 'bg-orange-500/10 border-orange-500/15' : 'bg-orange-100/50 border-orange-100'
+                                  : risk.riskLevel === 'MODERATE'
+                                  ? isDark ? 'bg-amber-500/10 border-amber-500/15' : 'bg-amber-100/40 border-amber-100'
+                                  : isDark ? 'bg-white/5 border-white/8' : 'bg-slate-50 border-slate-100'
                               )}>
-                                <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border bg-white/70', stageMeta.color)}>
+                                <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                                  isDark ? 'bg-white/10 ' + stageMeta.color : 'bg-white/70 ' + stageMeta.color
+                                )}>
                                   {stageMeta.emoji} {stageMeta.label}
                                 </span>
                                 {risk.seasonMatch && (
@@ -1373,23 +1416,29 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                 {/* Action + Tip */}
                                 <div className="space-y-2">
                                   <div className={cn('rounded-2xl px-3.5 py-3 border',
-                                    isCrit  ? 'bg-red-100/70 border-red-200'    :
-                                    isHigh  ? 'bg-orange-100/60 border-orange-200' :
-                                    risk.riskLevel === 'MODERATE' ? 'bg-amber-100/50 border-amber-200' :
-                                    'bg-blue-50 border-blue-100'
+                                    isCrit  ? isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-100/70 border-red-200' :
+                                    isHigh  ? isDark ? 'bg-orange-500/10 border-orange-500/20' : 'bg-orange-100/60 border-orange-200' :
+                                    risk.riskLevel === 'MODERATE' ? isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-100/50 border-amber-200' :
+                                    isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-100'
                                   )}>
                                     <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
-                                      isCrit ? 'text-red-600' : isHigh ? 'text-orange-600' :
-                                      risk.riskLevel === 'MODERATE' ? 'text-amber-600' : 'text-blue-500'
+                                      isCrit ? 'text-red-400' : isHigh ? 'text-orange-400' :
+                                      risk.riskLevel === 'MODERATE' ? 'text-amber-400' : 'text-blue-400'
                                     )}>{isHotZone ? '🚨 Immediate Action' : '💡 Prevention'}</p>
                                     <p className={cn('text-[9px] font-medium leading-relaxed',
-                                      isCrit ? 'text-red-800/80' : isHigh ? 'text-orange-800/80' : 'text-ink/60'
+                                      isCrit ? 'text-red-300' : isHigh ? 'text-orange-300' : isDark ? 'text-white/60' : 'text-ink/60'
                                     )}>{risk.action.split('.')[0]}.</p>
                                   </div>
                                   {cardTip && (
-                                    <div className="rounded-2xl px-3.5 py-2.5 bg-emerald-50 border border-emerald-100">
-                                      <p className="text-emerald-600 text-[6px] font-black uppercase tracking-widest mb-1">💡 {stageMeta.label} Tip</p>
-                                      <p className="text-emerald-800/70 text-[9px] font-medium leading-relaxed">{cardTip}</p>
+                                    <div className={cn('rounded-2xl px-3.5 py-2.5 border',
+                                      isDark ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'
+                                    )}>
+                                      <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
+                                        isDark ? 'text-emerald-400' : 'text-emerald-600'
+                                      )}>💡 {stageMeta.label} Tip</p>
+                                      <p className={cn('text-[9px] font-medium leading-relaxed',
+                                        isDark ? 'text-emerald-300/70' : 'text-emerald-800/70'
+                                      )}>{cardTip}</p>
                                     </div>
                                   )}
                                 </div>
@@ -1416,14 +1465,16 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 >
                   <div className="flex items-center justify-between px-1 mb-3">
                     <div>
-                      <h2 className="text-ink font-black text-lg tracking-tight">{t.cultureTimeline}</h2>
+                      <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-ink')}>{t.cultureTimeline}</h2>
                       {selectedPond && (
                         <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">
                           {selectedPond.status === 'planned' ? 'Phase: Pre-Stocking Preparation' : `Total Cycle: 100 Days • ${100 - currentDoc > 0 ? `${100 - currentDoc} Days Remaining` : 'Culture Complete'}`}
                         </p>
                       )}
                     </div>
-                    <span className="text-[8px] font-black text-ink/30 uppercase tracking-widest bg-[#F8F9FE] px-3 py-1.5 rounded-xl border border-card-border">
+                    <span className={cn('text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border',
+                      isDark ? 'text-white/30 bg-white/5 border-white/10' : 'text-ink/30 bg-[#F8F9FE] border-card-border'
+                    )}>
                       Vannamei SOC
                     </span>
                   </div>
@@ -1442,20 +1493,28 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             key={phaseIdx}
                             className={cn(
                               'rounded-[2rem] border overflow-hidden shadow-md',
-                              phase.bgLight, phase.borderColor
+                              isDark
+                                ? 'bg-white/[0.04] border-white/10'
+                                : `${phase.bgLight} ${phase.borderColor}`
                             )}
                           >
                             {/* Header */}
-                            <div className="px-6 py-4 flex items-center justify-between">
+                            <div className={cn('px-6 py-4 flex items-center justify-between border-b',
+                              isDark ? 'border-white/8' : phase.borderColor
+                            )}>
                               <div className="flex items-center gap-3">
                                 <div className={cn('w-3 h-3 rounded-full flex-shrink-0', phase.color)} />
                                 <div>
-                                  <p className={cn('font-black text-sm tracking-tight', phase.textColor)}>
+                                  <p className={cn('font-black text-sm tracking-tight',
+                                    isDark ? 'text-white' : phase.textColor
+                                  )}>
                                     {phase.label}
                                   </p>
-                                  <div className="text-ink/40 text-[9px] font-black uppercase tracking-widest leading-none flex items-center gap-2">
-                                    {phase.range} 
-                                    <span className="w-1 h-1 bg-ink/20 rounded-full" />
+                                  <div className={cn('text-[9px] font-black uppercase tracking-widest leading-none flex items-center gap-2',
+                                    isDark ? 'text-white/35' : 'text-ink/40'
+                                  )}>
+                                    {phase.range}
+                                    <span className="w-1 h-1 bg-current rounded-full opacity-40" />
                                     <span className="text-[#C78200] border border-[#C78200]/20 bg-[#C78200]/5 px-2 py-0.5 rounded-md">
                                       TODAY: {currentDoc <= 0 ? 'PRE-STOCKING' : `DOC ${currentDoc}`}
                                     </span>
@@ -1463,8 +1522,10 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                 </div>
                               </div>
                               <span className={cn(
-                                'text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border bg-card',
-                                phase.textColor, phase.borderColor
+                                'text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border',
+                                isDark
+                                  ? `bg-white/5 text-white/60 border-white/10`
+                                  : `bg-card ${phase.textColor} ${phase.borderColor}`
                               )}>
                                 ▶ Active
                               </span>
@@ -1473,19 +1534,21 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             {/* Medicine list */}
                             <div className="px-6 pb-5 space-y-3">
                               {phase.meds.map((med, medIdx) => (
-                                <div key={medIdx} className="flex items-start gap-3 pt-3 border-t border-card-border first:border-t-0 first:pt-0">
-                                  <Pill size={14} className={cn('flex-shrink-0 mt-0.5', phase.textColor)} />
+                                <div key={medIdx} className={cn('flex items-start gap-3 pt-3 border-t first:border-t-0 first:pt-0',
+                                  isDark ? 'border-white/5' : 'border-card-border'
+                                )}>
+                                  <Pill size={14} className={cn('flex-shrink-0 mt-0.5', isDark ? 'text-emerald-400' : phase.textColor)} />
                                   <div>
-                                    <p className="text-ink text-[11px] font-black tracking-tight">{med.name}</p>
+                                    <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-ink')}>{med.name}</p>
                                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                       {med.dose && med.dose !== '—' && (
-                                        <span className="text-[8px] font-black text-ink/40 uppercase tracking-widest">{med.dose}</span>
+                                        <span className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/35' : 'text-ink/40')}>{med.dose}</span>
                                       )}
                                       {med.brand && (
                                         <span className="text-[8px] font-black text-[#C78200] bg-[#C78200]/10 px-1.5 py-0.5 rounded-md">{med.brand}</span>
                                       )}
-                                      {med.freq && (
-                                        <span className="text-[8px] font-black text-ink/30 italic">{med.freq}</span>
+                                      {(med as any).freq && (
+                                        <span className={cn('text-[8px] font-black italic', isDark ? 'text-white/25' : 'text-ink/30')}>{(med as any).freq}</span>
                                       )}
                                       <span className={cn(
                                         'text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border',
@@ -1509,21 +1572,21 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           className={cn(
                             'rounded-2xl border px-5 py-3.5 flex items-center justify-between transition-all',
                             isPast
-                              ? 'bg-card border-emerald-100/60 opacity-55'
-                              : 'bg-card border-card-border opacity-70'
+                              ? isDark ? 'bg-emerald-500/5 border-emerald-500/15 opacity-60' : 'bg-card border-emerald-100/60 opacity-55'
+                              : isDark ? 'bg-white/[0.02] border-white/5 opacity-60' : 'bg-card border-card-border opacity-70'
                           )}
                         >
                           <div className="flex items-center gap-3">
                             <div className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', phase.color)} />
                             <div>
-                              <p className="font-black text-[12px] tracking-tight text-ink">{phase.label}</p>
-                              <p className="text-ink/30 text-[8px] font-black uppercase tracking-widest">{phase.range}</p>
+                              <p className={cn('font-black text-[12px] tracking-tight', isDark ? 'text-white/70' : 'text-ink')}>{phase.label}</p>
+                              <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-ink/30')}>{phase.range}</p>
                             </div>
                           </div>
                           {isPast ? (
                             <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
                           ) : (
-                            <span className="text-[7px] font-black text-ink/20 uppercase tracking-widest flex-shrink-0">Upcoming</span>
+                            <span className={cn('text-[7px] font-black uppercase tracking-widest flex-shrink-0', isDark ? 'text-white/20' : 'text-ink/20')}>Upcoming</span>
                           )}
                         </div>
                       );

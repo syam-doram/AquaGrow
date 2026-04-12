@@ -195,6 +195,10 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
       const savedAbw = localStorage.getItem(`aqua_tray_abw_${selectedPondId}`);
       setConfirmedTrayAbw(savedAbw ? parseFloat(savedAbw) : null);
     } catch { setConfirmedTrayAbw(null); }
+    // Reload tray-enabled flag for new pond selection
+    try {
+      setTrayEnabled(localStorage.getItem(`aqua_tray_enabled_${selectedPondId}`) === '1');
+    } catch { setTrayEnabled(false); }
   }, [selectedPondId]);
 
   const [activeTab, setActiveTab] = useState<'schedule' | 'fcr' | 'sow' | 'tray' | 'chat'>('schedule');
@@ -202,7 +206,6 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
   // ── Tray confirmation state ──
   const getTrayKey = (pondId: string) => `aqua_tray_abw_${pondId}`;
-  const [showTraySetup, setShowTraySetup] = useState(false);
   const [trayAbwInput, setTrayAbwInput] = useState('');
   const [confirmedTrayAbw, setConfirmedTrayAbw] = useState<number | null>(() => {
     try {
@@ -210,6 +213,15 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
       return saved ? parseFloat(saved) : null;
     } catch { return null; }
   });
+  // ── Tray-enabled flag (separate from ABW; farmer must confirm before trays start) ──
+  const [trayEnabled, setTrayEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem(`aqua_tray_enabled_${activePonds[0]?.id || ''}`) === '1'; }
+    catch { return false; }
+  });
+  // 0 = closed, 1 = step-1 (enable confirmation), 2 = step-2 (ABW entry)
+  const [traySetupStep, setTraySetupStep] = useState<0|1|2>(0);
+  // Alias for backwards-compat with any remaining showTraySetup references
+  const showTraySetup = traySetupStep === 2;
   const [now, setNow] = useState(new Date());
   const [weather] = useState(getSimulatedWeather());
 
@@ -277,8 +289,17 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const trayKgPerSlot = trayGuide
     ? parseFloat(((adjustedDailyKg * trayGuide.trayRatioPct) / 100 / (sop.slotCount || 1)).toFixed(2))
     : 0;
-  // Show setup prompt exactly once when DOC crosses 20 and no ABW confirmed yet
-  const needsTraySetup = currentDoc >= 20 && confirmedTrayAbw === null;
+  // Show setup prompt exactly once when DOC crosses 20 and farmer hasn't enabled trays yet
+  const needsTraySetup = currentDoc >= 20 && !trayEnabled;
+  // Intercept tray tab: if DOC>=20 and not enabled, open confirmation instead
+  const handleTrayTabClick = () => {
+    if (currentDoc >= 20 && !trayEnabled) {
+      setTrayAbwInput(sop.avgWeightG.toFixed(2));
+      setTraySetupStep(1); // start at step 1 — Enable confirmation
+    } else {
+      setActiveTab('tray');
+    }
+  };
 
   // ”€”€ Daily Sequence slot log handler (needs biomassKg, totalFeedConsumed, combinedFactor) ”€”€”€”€”€
   const toggleSlot = async (slotTime: string, kg: string, slotLabel: string) => {
@@ -661,13 +682,13 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                       🔬 Tray Feed Starts Now — DOC {currentDoc}
                     </p>
                     <p className={cn('text-[8px] font-medium mt-0.5 leading-snug', isDark ? 'text-amber-300/70' : 'text-amber-800/80')}>
-                      Your shrimp have crossed DOC 20. Feed trays must now be used to monitor appetite. Enter your current measured average body weight to calibrate tray quantity.
+                      Your shrimp have crossed DOC 20. Feed trays must now be used to monitor appetite. Tap below to confirm and set up tray monitoring.
                     </p>
                     <button
-                      onClick={() => { setTrayAbwInput(sop.avgWeightG.toFixed(2)); setShowTraySetup(true); }}
+                      onClick={() => { setTrayAbwInput(sop.avgWeightG.toFixed(2)); setTraySetupStep(1); }}
                       className="mt-2.5 px-4 py-1.5 bg-amber-500 text-white rounded-xl text-[8px] font-black uppercase tracking-widest"
                     >
-                      Set Tray Weight →
+                      Enable Tray Monitoring →
                     </button>
                   </div>
                 </motion.div>
@@ -677,13 +698,13 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
               <div className={cn("flex p-1 rounded-2xl border gap-1",
                 isDark ? "bg-white/5 border-white/8" : "bg-slate-100/80 border-slate-200")}>
                 {(['schedule', 'tray', 'sow', 'fcr', 'chat'] as const).map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)}
-                    className={cn("flex-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-widest transition-all",
+                  <button key={tab} onClick={() => tab === 'tray' ? handleTrayTabClick() : setActiveTab(tab)}
+                    className={cn("flex-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-widest transition-all relative",
                       activeTab === tab
                         ? isDark ? "bg-white/12 text-white shadow-sm" : "bg-white text-emerald-700 shadow-md"
                         : isDark ? "text-white/35 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
                     )}>
-                    {tab === 'schedule' ? (<><Clock size={8} strokeWidth={3} className="mr-0.5"/>Plan</>) : tab === 'sow' ? (<><Scale size={8} strokeWidth={3} className="mr-0.5"/>SOP</>) : tab === 'fcr' ? (<><Activity size={8} strokeWidth={3} className="mr-0.5"/>FCR</>) : (<><MessageSquare size={8} strokeWidth={3} className="mr-0.5"/>Chat</>)}
+                    {tab === 'schedule' ? (<><Clock size={8} strokeWidth={3} className="mr-0.5"/>Plan</>) : tab === 'tray' ? (<><Eye size={8} strokeWidth={3} className="mr-0.5"/>Tray{currentDoc >= 20 && !trayEnabled && <span className="ml-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full inline-block animate-pulse" />}</>) : tab === 'sow' ? (<><Scale size={8} strokeWidth={3} className="mr-0.5"/>SOP</>) : tab === 'fcr' ? (<><Activity size={8} strokeWidth={3} className="mr-0.5"/>FCR</>) : (<><MessageSquare size={8} strokeWidth={3} className="mr-0.5"/>Chat</>)}
                   </button>
                 ))}
               </div>
@@ -851,12 +872,14 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                   pondSizeAcre={pondSizeAcre}
                   effectiveAbw={effectiveAbw}
                   confirmedTrayAbw={confirmedTrayAbw}
+                  trayEnabled={trayEnabled}
                   trayKgPerSlot={trayKgPerSlot}
                   kgPerSlot={kgPerSlot}
                   feedSlots={feedSlots}
                   feedType={feedProfile.type}
                   isDark={isDark}
-                  onRecalibrate={() => { setTrayAbwInput(effectiveAbw.toFixed(2)); setShowTraySetup(true); }}
+                  onRecalibrate={() => { setTrayAbwInput(effectiveAbw.toFixed(2)); setTraySetupStep(2); }}
+                  onEnableTray={() => { setTrayAbwInput(sop.avgWeightG.toFixed(2)); setTraySetupStep(1); }}
                 />
               )}
 
@@ -1289,13 +1312,13 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
         )}
       </div>
 
-      {/* ━━ TRAY ABW SETUP MODAL ━━ */}
+      {/* ━━ TRAY SETUP MODAL (Step 1: Enable Confirmation + Step 2: ABW Entry) ━━ */}
       <AnimatePresence>
-        {showTraySetup && (
+        {traySetupStep > 0 && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-end"
-            onClick={() => setShowTraySetup(false)}
+            onClick={() => setTraySetupStep(0)}
           >
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -1305,85 +1328,168 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
             >
               <div className="w-10 h-1 rounded-full bg-ink/10 mx-auto mb-5" />
 
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <Eye size={22} className="text-white" />
-                </div>
-                <div>
-                  <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Set Tray ABW</h2>
-                  <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-600')}>
-                    Average Body Weight from cast net sample
-                  </p>
-                </div>
-              </div>
-
-              {/* Info block */}
-              <div className={cn('rounded-2xl p-3.5 border mb-4', isDark ? 'bg-amber-500/5 border-amber-500/15' : 'bg-amber-50 border-amber-100')}>
-                <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-amber-300/70' : 'text-amber-800')}>
-                  🔬 Use your cast net or sample tray to measure 10–20 shrimp. Weigh them together and divide by count to get average grams per shrimp. This calibrates your tray feed quantity precisely.
-                </p>
-              </div>
-
-              {/* Weight input */}
-              <div className="mb-4">
-                <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/40' : 'text-slate-500')}>
-                  Measured ABW (grams per shrimp)
-                </p>
-                <div className="relative">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    value={trayAbwInput}
-                    onChange={e => setTrayAbwInput(e.target.value)}
-                    placeholder="e.g. 0.35"
-                    className={cn(
-                      'w-full px-5 py-4 rounded-2xl border outline-none text-2xl font-black tracking-tight transition-all pr-16',
-                      isDark
-                        ? 'bg-white/5 border-amber-500/20 text-white placeholder:text-white/15 focus:border-amber-500/50'
-                        : 'bg-amber-50 border-amber-200 text-slate-900 placeholder:text-slate-300 focus:border-amber-400 shadow-inner'
-                    )}
-                  />
-                  <span className={cn('absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
-                    g/shrimp
-                  </span>
-                </div>
-                {trayAbwInput && parseFloat(trayAbwInput) > 0 && (
-                  <p className={cn('text-[8px] font-bold mt-2 text-center', isDark ? 'text-amber-300/70' : 'text-amber-700')}>
-                    SOP estimate for DOC {currentDoc} is {sop.avgWeightG.toFixed(2)}g — you entered <span className="font-black">{parseFloat(trayAbwInput).toFixed(2)}g</span>
-                  </p>
-                )}
-              </div>
-
-              {/* SOP Guide */}
-              <div className={cn('rounded-2xl p-3 border mb-5', isDark ? 'bg-white/3 border-white/5' : 'bg-slate-50 border-slate-100')}>
-                <p className={cn('text-[7px] font-black uppercase tracking-widest mb-1.5', isDark ? 'text-white/25' : 'text-slate-400')}>
-                  How to measure ABW
-                </p>
-                {['Cast net or bucket sample 20–30 shrimp', 'Weigh all shrimp together on kitchen scale', 'Divide total weight (grams) by shrimp count', 'Enter that number above — done!'].map((s, i) => (
-                  <div key={i} className="flex items-start gap-1.5 mb-1">
-                    <span className="text-amber-500 font-black text-[8px] flex-shrink-0">{i + 1}.</span>
-                    <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>{s}</p>
+              {/* ── STEP 1: Enable Confirmation ── */}
+              {traySetupStep === 1 && (
+                <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <Eye size={22} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Enable Feed Tray?</h2>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-600')}>
+                        DOC {currentDoc} — Tray monitoring recommended
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Confirm button */}
-              <button
-                onClick={() => {
-                  const val = parseFloat(trayAbwInput);
-                  if (!val || val <= 0 || !selectedPond) return;
-                  try { localStorage.setItem(getTrayKey(selectedPond.id), String(val)); } catch {}
-                  setConfirmedTrayAbw(val);
-                  setShowTraySetup(false);
-                  setActiveTab('tray');
-                }}
-                disabled={!trayAbwInput || parseFloat(trayAbwInput) <= 0}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 disabled:opacity-40 transition-all active:scale-[0.98]"
-              >
-                ✓ Confirm Weight & Start Tray Guide
-              </button>
+                  {/* Why tray info */}
+                  <div className={cn('rounded-2xl p-4 border mb-4', isDark ? 'bg-amber-500/8 border-amber-500/15' : 'bg-amber-50 border-amber-100')}>
+                    <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-amber-400' : 'text-amber-700')}>Why Feed Trays?</p>
+                    {[
+                      '🎯 Trays let you see exactly how much your shrimp are eating',
+                      '📉 Prevents overfeeding → saves ₹200–₹500/day in feed waste',
+                      '🦠 Leftover feed = DO crash = disease — trays catch this early',
+                      '📊 Required for accurate FCR tracking from DOC 20 onwards',
+                    ].map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2 mb-1.5">
+                        <p className={cn('text-[9px] font-medium leading-snug', isDark ? 'text-amber-200/70' : 'text-amber-900/80')}>{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tray readiness checklist */}
+                  <div className={cn('rounded-2xl p-3.5 border mb-5', isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-100')}>
+                    <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/25' : 'text-slate-400')}>Before starting — do you have?</p>
+                    {[
+                      { item: `Feed tray(s) — 1 per ${pondSizeAcre <= 1 ? 'pond' : 'acre'}`, emoji: '🔵' },
+                      { item: 'A way to measure shrimp weight (cast net + scale)', emoji: '⚖️' },
+                      { item: 'Readiness to check tray 1–2 hrs after each feed slot', emoji: '⏰' },
+                    ].map((c, i) => (
+                      <div key={i} className="flex items-start gap-2 mb-1">
+                        <span className="text-sm flex-shrink-0">{c.emoji}</span>
+                        <p className={cn('text-[9px] font-medium', isDark ? 'text-white/50' : 'text-slate-600')}>{c.item}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setTraySetupStep(0)}
+                      className={cn('flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest border',
+                        isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-slate-100 border-slate-200 text-slate-500')}
+                    >
+                      Not Yet
+                    </button>
+                    <button
+                      onClick={() => setTraySetupStep(2)}
+                      className="flex-1 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-[0.98]"
+                    >
+                      Yes, Enable →
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── STEP 2: ABW Entry ── */}
+              {traySetupStep === 2 && (
+                <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <Eye size={22} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Set Tray ABW</h2>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-600')}>
+                        Average Body Weight from cast net sample
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Info block */}
+                  <div className={cn('rounded-2xl p-3.5 border mb-4', isDark ? 'bg-amber-500/5 border-amber-500/15' : 'bg-amber-50 border-amber-100')}>
+                    <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-amber-300/70' : 'text-amber-800')}>
+                      🔬 Use your cast net or sample tray to measure 10–20 shrimp. Weigh them together and divide by count to get average grams per shrimp. This calibrates your tray feed quantity precisely.
+                    </p>
+                  </div>
+
+                  {/* Weight input */}
+                  <div className="mb-4">
+                    <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/40' : 'text-slate-500')}>
+                      Measured ABW (grams per shrimp)
+                    </p>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        value={trayAbwInput}
+                        onChange={e => setTrayAbwInput(e.target.value)}
+                        placeholder="e.g. 0.35"
+                        className={cn(
+                          'w-full px-5 py-4 rounded-2xl border outline-none text-2xl font-black tracking-tight transition-all pr-16',
+                          isDark
+                            ? 'bg-white/5 border-amber-500/20 text-white placeholder:text-white/15 focus:border-amber-500/50'
+                            : 'bg-amber-50 border-amber-200 text-slate-900 placeholder:text-slate-300 focus:border-amber-400 shadow-inner'
+                        )}
+                      />
+                      <span className={cn('absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                        g/shrimp
+                      </span>
+                    </div>
+                    {trayAbwInput && parseFloat(trayAbwInput) > 0 && (
+                      <p className={cn('text-[8px] font-bold mt-2 text-center', isDark ? 'text-amber-300/70' : 'text-amber-700')}>
+                        SOP estimate for DOC {currentDoc} is {sop.avgWeightG.toFixed(2)}g — you entered <span className="font-black">{parseFloat(trayAbwInput).toFixed(2)}g</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* SOP Guide */}
+                  <div className={cn('rounded-2xl p-3 border mb-5', isDark ? 'bg-white/3 border-white/5' : 'bg-slate-50 border-slate-100')}>
+                    <p className={cn('text-[7px] font-black uppercase tracking-widest mb-1.5', isDark ? 'text-white/25' : 'text-slate-400')}>
+                      How to measure ABW
+                    </p>
+                    {['Cast net or bucket sample 20–30 shrimp', 'Weigh all shrimp together on kitchen scale', 'Divide total weight (grams) by shrimp count', 'Enter that number above — done!'].map((s, i) => (
+                      <div key={i} className="flex items-start gap-1.5 mb-1">
+                        <span className="text-amber-500 font-black text-[8px] flex-shrink-0">{i + 1}.</span>
+                        <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>{s}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Step buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setTraySetupStep(1)}
+                      className={cn('w-10 py-3.5 rounded-2xl font-black text-[10px] border flex items-center justify-center',
+                        isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-slate-100 border-slate-200 text-slate-500')}
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={() => {
+                        const val = parseFloat(trayAbwInput);
+                        if (!val || val <= 0 || !selectedPond) return;
+                        try {
+                          localStorage.setItem(getTrayKey(selectedPond.id), String(val));
+                          localStorage.setItem(`aqua_tray_enabled_${selectedPond.id}`, '1');
+                        } catch {}
+                        setConfirmedTrayAbw(val);
+                        setTrayEnabled(true);
+                        setTraySetupStep(0);
+                        setActiveTab('tray');
+                      }}
+                      disabled={!trayAbwInput || parseFloat(trayAbwInput) <= 0}
+                      className="flex-1 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 disabled:opacity-40 transition-all active:scale-[0.98]"
+                    >
+                      ✓ Confirm &amp; Start Tray Guide
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </motion.div>
         )}

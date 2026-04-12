@@ -39,21 +39,23 @@ interface Props {
   pondSizeAcre: number;
   effectiveAbw: number;
   confirmedTrayAbw: number | null;
+  trayEnabled: boolean;
   trayKgPerSlot: number;
   kgPerSlot: string;
   feedSlots: { time: string; hour: number; label: string }[];
   feedType: string;
   isDark: boolean;
   onRecalibrate: () => void;
+  onEnableTray: () => void;
 }
 
 export const TrayFeedGuide: React.FC<Props> = ({
-  doc, pondSizeAcre, effectiveAbw, confirmedTrayAbw,
-  trayKgPerSlot, kgPerSlot, feedSlots, feedType, isDark, onRecalibrate,
+  doc, pondSizeAcre, effectiveAbw, confirmedTrayAbw, trayEnabled,
+  trayKgPerSlot, kgPerSlot, feedSlots, feedType, isDark, onRecalibrate, onEnableTray,
 }) => {
   const trayGuide = getTrayGuide(doc, pondSizeAcre, effectiveAbw);
 
-  /* ── BLIND PHASE ── */
+  /* ── BLIND PHASE (DOC < 20) ── */
   if (doc < 20) return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
       <div className={cn('rounded-[2rem] p-6 border text-center', isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
@@ -81,6 +83,37 @@ export const TrayFeedGuide: React.FC<Props> = ({
               <p className={cn('text-[9px] font-medium', isDark ? 'text-white/50' : 'text-slate-600')}>{tip}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  /* ── DOC ≥ 20 BUT FARMER HASN'T CONFIRMED TRAYS YET ── */
+  if (doc >= 20 && !trayEnabled) return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+      <div className={cn('rounded-[2rem] overflow-hidden border', isDark ? 'border-amber-500/25' : 'border-amber-200 shadow-sm')}>
+        <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-5 text-center">
+          <div className="text-5xl mb-3">🔬</div>
+          <h3 className="text-white font-black text-base tracking-tight mb-1">Feed Tray Check Unlocked!</h3>
+          <p className="text-white/70 text-[8px] font-bold">Your shrimp are now at DOC {doc} — tray monitoring is recommended from DOC 20</p>
+        </div>
+        <div className={cn('p-5', isDark ? 'bg-[#0A1810]' : 'bg-white')}>
+          <div className={cn('rounded-2xl p-3.5 border mb-4', isDark ? 'bg-amber-500/8 border-amber-500/15' : 'bg-amber-50 border-amber-100')}>
+            {[
+              '🎯 See exactly how much shrimp are eating per slot',
+              '📉 Prevent overfeeding — saves ₹200–500/day in feed',
+              '⏰ Check tray 1–2 hrs after feed — adjust next slot',
+              '📊 Mandatory for accurate FCR from DOC 20 onwards',
+            ].map((tip, i) => (
+              <p key={i} className={cn('text-[9px] font-medium leading-snug mb-1.5', isDark ? 'text-amber-200/70' : 'text-amber-900/80')}>{tip}</p>
+            ))}
+          </div>
+          <button
+            onClick={onEnableTray}
+            className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all"
+          >
+            🔴 Enable Tray Monitoring →
+          </button>
         </div>
       </div>
     </motion.div>
