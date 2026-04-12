@@ -5,7 +5,7 @@ import {
   LogOut, MapPin, Activity, Zap, Globe, Sparkles, Phone, Mail,
   Award, Building2, XCircle, CheckCircle2, Fish, Droplets,
   TrendingUp, BarChart2, Moon, Sun, Star, Calendar,
-  Target, Layers, Cpu, ArrowUpRight, Leaf
+  Target, Layers, Cpu, ArrowUpRight, Leaf, Fingerprint,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -14,6 +14,8 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { API_BASE_URL } from '../../config';
 import { calculateDOC } from '../../utils/pondUtils';
+import { checkBiometric, deleteBiometric } from '../../utils/biometric';
+import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 
 export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
@@ -48,9 +50,72 @@ export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () =
     bankName: '', accountNumber: '', ifscCode: '', isVerified: false,
   });
 
+  // ── Biometric toggle ──
+  const [bioEnabled, setBioEnabled] = useState(user?.biometricEnabled ?? false);
+  const [bioLoading, setBioLoading] = useState(false);
+
   React.useEffect(() => {
     if (user?.bankDetails) setBankData(user.bankDetails);
   }, [user?.bankDetails]);
+
+  React.useEffect(() => {
+    setBioEnabled(user?.biometricEnabled ?? false);
+  }, [user?.biometricEnabled]);
+
+  const toggleBiometric = async () => {
+    if (bioLoading) return;
+    setBioLoading(true);
+    try {
+      if (!bioEnabled) {
+        // Check hardware first
+        const available = await checkBiometric();
+        if (!available) {
+          alert('Biometric authentication is not available on this device.');
+          return;
+        }
+        // Verify identity with fingerprint/face prompt
+        try {
+          await NativeBiometric.verifyIdentity({
+            reason: 'Enable biometric login for AquaGrow',
+            title: 'Verify Identity',
+            subtitle: 'Confirm fingerprint / Face ID',
+            description: 'This enables quick biometric login next time.',
+          });
+        } catch {
+          alert('Biometric verification failed or was cancelled.');
+          return;
+        }
+        // Mark enabled in DB + localStorage
+        await updateUser({ biometricEnabled: true });
+        const stored = localStorage.getItem('aqua_user');
+        if (stored) {
+          try {
+            const u = JSON.parse(stored);
+            localStorage.setItem('aqua_user', JSON.stringify({ ...u, biometricEnabled: true }));
+            localStorage.setItem('aqua_bio_asked', 'true');
+          } catch {}
+        }
+        setBioEnabled(true);
+      } else {
+        // Disable — remove stored credentials + flag
+        await deleteBiometric();
+        await updateUser({ biometricEnabled: false });
+        const stored = localStorage.getItem('aqua_user');
+        if (stored) {
+          try {
+            const u = JSON.parse(stored);
+            localStorage.setItem('aqua_user', JSON.stringify({ ...u, biometricEnabled: false }));
+          } catch {}
+        }
+        localStorage.removeItem('aqua_phone');
+        setBioEnabled(false);
+      }
+    } catch (e) {
+      console.error('[Biometric toggle]', e);
+    } finally {
+      setBioLoading(false);
+    }
+  };
 
   const handleVerifyBank = async () => {
     setBankStep('verifying');
@@ -246,6 +311,42 @@ export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () =
             </div>
             <div className={cn('w-12 h-6 rounded-full relative transition-all duration-500', isDark ? 'bg-indigo-500' : 'bg-slate-200')}>
               <motion.div animate={{ x: isDark ? 24 : 2 }}
+                className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+            </div>
+          </button>
+        </motion.div>
+
+        {/* ── BIOMETRIC TOGGLE ── */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
+          <button
+            onClick={toggleBiometric}
+            disabled={bioLoading}
+            className={cn('w-full p-4 rounded-[2rem] border flex items-center justify-between group transition-all duration-500 disabled:opacity-60',
+              isDark ? 'bg-[#0D1520] border-white/5 hover:border-white/10' : 'bg-white border-slate-100 shadow-sm hover:border-slate-200'
+            )}>
+            <div className="flex items-center gap-3">
+              <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center border transition-all',
+                bioEnabled
+                  ? (isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600')
+                  : (isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-slate-50 border-slate-200 text-slate-400')
+              )}>
+                {bioLoading
+                  ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  : <Fingerprint size={16} />}
+              </div>
+              <div className="text-left">
+                <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+                  Biometric Login
+                </p>
+                <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                  {bioEnabled ? '✓ Active — tap to disable' : 'Enable fingerprint / Face ID login'}
+                </p>
+              </div>
+            </div>
+            <div className={cn('w-12 h-6 rounded-full relative transition-all duration-500',
+              bioEnabled ? 'bg-emerald-500' : (isDark ? 'bg-white/10' : 'bg-slate-200')
+            )}>
+              <motion.div animate={{ x: bioEnabled ? 24 : 2 }}
                 className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
             </div>
           </button>

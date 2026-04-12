@@ -105,6 +105,7 @@ const AppContent = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showReconnectToast, setShowReconnectToast] = useState(false);
+  const [showServerBanner, setShowServerBanner] = useState(false);
   const prevOfflineRef = React.useRef(isOffline);
   const t = translations[lang];
   const appUpdate = useAppUpdate();
@@ -125,6 +126,17 @@ const AppContent = () => {
     }
     prevOfflineRef.current = isOffline;
   }, [isOffline]);
+
+  // Auto-show / auto-dismiss server error banner
+  useEffect(() => {
+    if (serverError && !isOffline) {
+      setShowServerBanner(true);
+      const t = setTimeout(() => setShowServerBanner(false), 8000);
+      return () => clearTimeout(t);
+    } else {
+      setShowServerBanner(false);
+    }
+  }, [serverError, isOffline]);
 
   useEffect(() => {
     if (user?.language) {
@@ -411,7 +423,7 @@ const AppContent = () => {
             )}
 
             {/* ── SERVER ERROR BANNER ── */}
-            {serverError && !isOffline && !showReconnectToast && (
+            {showServerBanner && !isOffline && !showReconnectToast && (
               <motion.div
                 key="server-error-banner"
                 initial={{ opacity: 0, y: -24 }}
@@ -436,7 +448,7 @@ const AppContent = () => {
                   </div>
                   {/* Retry */}
                   <button
-                    onClick={() => refreshData()}
+                    onClick={() => { setShowServerBanner(false); refreshData(); }}
                     className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white/15 active:bg-white/25 active:scale-95 transition-all rounded-xl text-white text-[8px] font-black uppercase tracking-widest border border-white/15"
                   >
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

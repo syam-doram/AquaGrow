@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Lock, Shield, Eye, Database, ChevronRight,
-  Fingerprint, KeyRound, Download, AlertTriangle,
+  KeyRound, Download, AlertTriangle,
   CheckCircle2, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,59 +10,17 @@ import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
 import { useData } from '../../context/DataContext';
-import { checkBiometric, setBiometric, deleteBiometric } from '../../utils/biometric';
-import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 export const SecurityPrivacy = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { user, updateUser, theme } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  const [biometricEnabled, setBiometricEnabled] = useState(user?.biometricEnabled ?? false);
-  const [checkingBio, setCheckingBio]           = useState(false);
   const [showChangePass, setShowChangePass]      = useState(false);
   const [passData, setPassData]                  = useState({ current: '', next: '', confirm: '' });
   const [passErr, setPassErr]                    = useState('');
   const [passSaving, setPassSaving]              = useState(false);
   const [passSuccess, setPassSuccess]            = useState(false);
-
-  const toggleBiometric = async () => {
-    setCheckingBio(true);
-    try {
-      if (!biometricEnabled) {
-        // Step 1 — check hardware availability
-        const available = await checkBiometric();
-        if (!available) {
-          alert('Biometric authentication is not available on this device.');
-          return;
-        }
-        // Step 2 — trigger the actual fingerprint / face prompt
-        try {
-          await NativeBiometric.verifyIdentity({
-            reason: 'Enable biometric login for AquaGrow',
-            title: 'Verify Identity',
-            subtitle: 'Use fingerprint or Face ID to enable',
-            description: 'Confirm it\'s you before enabling biometric login',
-          });
-        } catch {
-          // User cancelled or failed verification
-          alert('Biometric verification failed or was cancelled.');
-          return;
-        }
-        // Step 3 — store a credential placeholder & save to profile
-        const phone = user?.phoneNumber || user?.phone || '';
-        await setBiometric(phone, 'aquagrow_bio_enabled');
-        await updateUser({ biometricEnabled: true });
-        setBiometricEnabled(true);
-      } else {
-        // Disable — delete stored credentials
-        await deleteBiometric();
-        await updateUser({ biometricEnabled: false });
-        setBiometricEnabled(false);
-      }
-    } catch (e) { console.error('[Biometric toggle]', e); }
-    finally      { setCheckingBio(false); }
-  };
 
   const handleChangePassword = async () => {
     if (!passData.next || passData.next.length < 6) { setPassErr('Password must be at least 6 characters'); return; }
@@ -84,13 +42,6 @@ export const SecurityPrivacy = ({ t }: { t: Translations }) => {
       color: 'text-amber-500',
       bg: isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-100',
       onClick: () => setShowChangePass(true),
-    },
-    {
-      icon: Fingerprint, label: t.biometricLogin,
-      desc: checkingBio ? 'Checking device…' : (biometricEnabled ? 'Active — tap to disable' : 'Use FaceID or Fingerprint'),
-      color: 'text-emerald-500',
-      bg: isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100',
-      isToggle: true, value: biometricEnabled, onToggle: toggleBiometric,
     },
   ];
 

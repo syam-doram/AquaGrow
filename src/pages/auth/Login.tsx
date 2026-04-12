@@ -230,10 +230,18 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       }
 
       if (result.success) {
-        // If biometric is available and user has it enabled → save creds silently, go to dashboard
-        if (canBiometric && (result.user as any)?.biometricEnabled) {
-          if (step !== 'otp') await setBiometric(phone, password);
-          goHome(result.user);
+        const loggedUser = result.user as any;
+
+        // If biometric is available and user has it enabled → save real credentials so
+        // next launch auto-triggers the fingerprint prompt
+        if (canBiometric && loggedUser?.biometricEnabled) {
+          if (step !== 'otp' && password) {
+            // Password login — save phone+password to NativeBiometric keystore
+            await setBiometric(phone.replace(/\D/g, ''), password);
+          }
+          // Always persist phone so handleBiometricLogin can look up credentials on next launch
+          localStorage.setItem('aqua_phone', `+91 ${phone.replace(/\D/g, '')}`);
+          goHome(loggedUser);
           return;
         }
 

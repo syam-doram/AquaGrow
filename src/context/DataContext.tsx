@@ -199,7 +199,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchUserPonds = async (userId: string, overrideTokens?: any) => {
-    if (!navigator.onLine) return; // offline — handled by offline banner, not serverError
+    if (!navigator.onLine) return;
     try {
       const response = await apiFetch(`${API_BASE_URL}/user/${userId}/ponds`, { overrideTokens });
       if (response.ok) {
@@ -207,13 +207,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const mapped = data.map((p: any) => ({ ...p, id: p._id || p.id }));
         setPonds(mapped);
         writeCache('aqua_cache_ponds', mapped);
-        setServerError(false); // clear error on success
+        setServerError(false); // server is reachable — clear any prior error
+      } else if (response.status >= 500) {
+        // 5xx = server-side crash — genuinely unreachable
+        setServerError(true);
       } else {
-        setServerError(true); // 4xx/5xx from server
+        // 4xx (401, 403, 404) = server IS reachable, just no data/auth issue
+        // Don't flag as "server unreachable" — just keep existing cached ponds
+        setServerError(false);
       }
     } catch (error) {
       console.error("Error fetching ponds:", error);
-      setServerError(true); // network timeout or DNS failure while online
+      // Network timeout / DNS failure = genuinely unreachable
+      setServerError(true);
     }
   };
 
