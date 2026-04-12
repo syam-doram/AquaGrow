@@ -35,6 +35,8 @@ import {
   Pill,
   Eye,
   FileText,
+  ShoppingBag,
+  Tag,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -877,18 +879,47 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             ))}
           </AnimatePresence>
 
+          {/* ── HORIZONTAL AD BANNERS ── */}
+          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar snap-x -mx-1 px-1">
+            {[
+              { emoji: '💊', title: 'Medicine Sale', sub: 'Up to 20% off · Limited time', from: '#7c3aed', to: '#4f46e5', path: '/shop' },
+              { emoji: '🌾', title: 'Bulk Feed Deal', sub: 'Buy 10 bags, get 1 FREE!',     from: '#059669', to: '#047857', path: '/shop' },
+              { emoji: '🚚', title: 'Free Delivery',  sub: 'Orders above ₹2,000',          from: '#0284c7', to: '#0369a1', path: '/shop' },
+              { emoji: '🛡️', title: 'WSSV Kit',       sub: 'DOC 31–45 bundle · ₹2,499',   from: '#dc2626', to: '#991b1b', path: '/shop' },
+            ].map((ad, i) => (
+              <motion.button
+                key={i}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.07 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => navigate(ad.path)}
+                className="flex-shrink-0 snap-start flex items-center gap-3 rounded-[1.6rem] px-4 py-3 min-w-[220px] relative overflow-hidden"
+                style={{ background: `linear-gradient(135deg, ${ad.from}, ${ad.to})` }}
+              >
+                <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full" />
+                <span className="text-2xl flex-shrink-0">{ad.emoji}</span>
+                <div className="text-left">
+                  <p className="text-white font-black text-[11px] tracking-tight">{ad.title}</p>
+                  <p className="text-white/65 text-[8px] font-medium">{ad.sub}</p>
+                </div>
+                <ArrowRight size={12} className="text-white/50 ml-auto flex-shrink-0" />
+              </motion.button>
+            ))}
+          </div>
+
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
           {ponds.length > 0 && (
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: t.monitor, icon: Activity, path: '/monitor', from: '#38bdf8', to: '#0284c7' },
-                { label: t.liveMonitor, icon: Eye, path: '/live-monitor', from: '#22d3ee', to: '#0891b2' },
-                { label: t.disease, icon: HeartPulse, path: '/disease-detection', from: '#f87171', to: '#dc2626' },
-                { label: t.market, icon: TrendingUp, path: '/market', from: '#34d399', to: '#059669' },
-                { label: t.weather, icon: Wind, path: '/weather', from: '#818cf8', to: '#4f46e5' },
-                { label: 'AquaCalc', icon: Calculator, path: '/aqua-calc', from: '#10b981', to: '#059669' },
-                { label: 'SOP Hub', icon: FileText, path: '/sop-library', from: '#e879f9', to: '#c026d3' },
-                { label: t.expert, icon: Target, path: '/expert-consultations', from: '#fbbf24', to: '#d97706' },
+                { label: t.monitor,     icon: Activity,     path: '/monitor',               from: '#38bdf8', to: '#0284c7' },
+                { label: t.liveMonitor, icon: Eye,          path: '/live-monitor',          from: '#22d3ee', to: '#0891b2' },
+                { label: t.disease,     icon: HeartPulse,   path: '/disease-detection',     from: '#f87171', to: '#dc2626' },
+                { label: t.market,      icon: TrendingUp,   path: '/market',                from: '#34d399', to: '#059669' },
+                { label: t.weather,     icon: Wind,         path: '/weather',               from: '#818cf8', to: '#4f46e5' },
+                { label: 'AquaCalc',    icon: Calculator,   path: '/aqua-calc',             from: '#10b981', to: '#059669' },
+                { label: 'SOP Hub',     icon: FileText,     path: '/sop-library',           from: '#e879f9', to: '#c026d3' },
+                { label: '🛒 Shop',     icon: ShoppingBag,  path: '/shop',                  from: '#C78200', to: '#92400E' },
               ].map((n, i) => (
                 <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-2 group outline-none">
                   <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 15px ${n.from}15` : `0 10px 25px ${n.from}20` }}>
