@@ -1179,7 +1179,7 @@ const ShopOrderSchema = new mongoose.Schema({
   source:       { type: String, default: 'aqua_shop' },
 }, { timestamps: true });
 
-const ShopOrder = mongoose.models.ShopOrder || mongoose.model('ShopOrder', ShopOrderSchema);
+const ShopOrder = (mongoose.models['ShopOrder'] ?? mongoose.model('ShopOrder', ShopOrderSchema)) as mongoose.Model<any>;
 
 // ── Helper: find nearest active provider ──────────────────────────────────────
 // Simple version: picks first available provider. Extend with geo-query when needed.
