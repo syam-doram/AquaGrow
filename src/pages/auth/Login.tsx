@@ -199,26 +199,31 @@ export const Login = ({ t, lang, onLanguageChange }: { t: Translations; lang: La
       if (step === 'otp') {
         // Firebase OTP: verify code → ID token → server login
         if (!otp || otp.length < 6) { setError('Enter the 6-digit OTP'); setLoading(false); return; }
-        // Try in-memory session first; fall back to sessionStorage backup in case
-        // the component was remounted by a deep-link navigation edge case.
-        if (!confirmationRef.current) {
-          const restored = restoreOtpSession();
-          if (restored) {
-            confirmationRef.current = restored;
-            console.log('[Login] OTP session recovered from sessionStorage backup');
-          } else {
-            setError('OTP session expired. Please resend.'); setLoading(false); return;
+
+        // ── Static OTP bypass (998974) — skips Firebase, uses sentinel token ──
+        if (otp === '998974') {
+          result = await loginWithFirebaseToken('998974', role, fullPhone);
+        } else {
+          // Try in-memory session first; fall back to sessionStorage backup
+          if (!confirmationRef.current) {
+            const restored = restoreOtpSession();
+            if (restored) {
+              confirmationRef.current = restored;
+              console.log('[Login] OTP session recovered from sessionStorage backup');
+            } else {
+              setError('OTP session expired. Please resend.'); setLoading(false); return;
+            }
           }
-        }
-        try {
-          const idToken = await verifyOtp(confirmationRef.current, otp);
-          result = await loginWithFirebaseToken(idToken, role);
-        } catch (fbErr: any) {
-          if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
-          else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');
-          else setError(fbErr.message || 'OTP verification failed.');
-          setLoading(false);
-          return;
+          try {
+            const idToken = await verifyOtp(confirmationRef.current, otp);
+            result = await loginWithFirebaseToken(idToken, role);
+          } catch (fbErr: any) {
+            if (fbErr.code === 'auth/invalid-verification-code') setError('Wrong OTP. Please try again.');
+            else if (fbErr.code === 'auth/code-expired') setError('OTP expired. Please resend.');
+            else setError(fbErr.message || 'OTP verification failed.');
+            setLoading(false);
+            return;
+          }
         }
       } else {
         result = await login(fullPhone, password, role);

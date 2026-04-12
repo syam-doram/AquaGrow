@@ -210,13 +210,14 @@ export const Register = ({ t, lang, onLanguageChange }: { t: Translations, lang:
     try {
       const displayName = role === 'provider' ? (businessName.trim() || name.trim()) : name.trim();
 
-      // ── Static OTP bypass for testing (998974) ──────────────────────────
+      // ── Static OTP bypass (998974) — skips Firebase, uses sentinel token ──
       if (otp === '998974') {
-        const result = await otpRegister(`+91 ${phone.replace(/\D/g, '')}`, otp, {
+        const result = await registerWithFirebaseToken('998974', {
           name:     displayName || (role === 'provider' ? 'Provider' : 'Farmer Member'),
           role:     role!,
           location: location || 'Unknown',
           language: currentLang,
+          phone:    `+91${phone.replace(/\D/g, '')}`,
         });
         if (result.success) {
           navigate(role === 'provider' ? '/provider/dashboard' : '/dashboard');

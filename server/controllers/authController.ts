@@ -237,21 +237,29 @@ export const resetPassword = async (req: any, res: any) => {
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    // Verify Firebase ID token — confirms the user passed phone OTP
-    let decoded: admin.auth.DecodedIdToken;
-    try {
-      decoded = await admin.auth().verifyIdToken(fbToken);
-    } catch (firebaseErr: any) {
-      console.error('[Reset Password] Token verification failed:', firebaseErr.message);
-      return res.status(401).json({ error: 'Invalid or expired session. Please verify OTP again.' });
-    }
-
-    const firebasePhone = decoded.phone_number;
-    if (!firebasePhone)
-      return res.status(400).json({ error: 'No phone number found in token' });
-
-    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
     const targetRole = role || 'farmer';
+    let normPhone: string;
+
+    // ── Static OTP bypass (998974) ─────────────────────────────────────────────
+    if (fbToken === '998974') {
+      const rawPhone = mobile || phone;
+      if (!rawPhone) return res.status(400).json({ error: 'Phone number is required for static OTP bypass.' });
+      normPhone = rawPhone.replace(/\D/g, '').slice(-10);
+      console.log(`[Static OTP] Reset password bypass for ${targetRole} ${normPhone}`);
+    } else {
+      // Verify Firebase ID token — confirms the user passed phone OTP
+      let decoded: admin.auth.DecodedIdToken;
+      try {
+        decoded = await admin.auth().verifyIdToken(fbToken);
+      } catch (firebaseErr: any) {
+        console.error('[Reset Password] Token verification failed:', firebaseErr.message);
+        return res.status(401).json({ error: 'Invalid or expired session. Please verify OTP again.' });
+      }
+      const firebasePhone = decoded.phone_number;
+      if (!firebasePhone)
+        return res.status(400).json({ error: 'No phone number found in token' });
+      normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
+    }
 
     // Role-based lookup — farmer vs provider
     const user = await UserMongo.findOne({
@@ -300,31 +308,37 @@ export const resetPassword = async (req: any, res: any) => {
 export const firebaseLogin = async (req: any, res: any) => {
   try {
     // Accept both 'token' and 'idToken' field names for flexibility
-    const { idToken, token, role } = req.body;
+    const { idToken, token, role, phone } = req.body;
     const firebaseToken = idToken || token;
     if (!firebaseToken) return res.status(400).json({ error: 'Firebase token is required (send as idToken or token)' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    // Verify the token with Firebase Admin SDK
-    let decoded: admin.auth.DecodedIdToken;
-    try {
-      decoded = await admin.auth().verifyIdToken(firebaseToken);
-    } catch (firebaseErr: any) {
-      console.error('[Firebase OTP] Token verification failed:', firebaseErr.message);
-      return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
+    const targetRole = role || 'farmer';
+    let normPhone: string;
+
+    // ── Static OTP bypass (998974) ─────────────────────────────────────────────
+    if (firebaseToken === '998974') {
+      if (!phone) return res.status(400).json({ error: 'Phone number is required for static OTP bypass.' });
+      normPhone = phone.replace(/\D/g, '').slice(-10);
+      console.log(`[Static OTP] Login bypass for ${targetRole} ${normPhone}`);
+    } else {
+      // Verify the token with Firebase Admin SDK
+      let decoded: admin.auth.DecodedIdToken;
+      try {
+        decoded = await admin.auth().verifyIdToken(firebaseToken);
+      } catch (firebaseErr: any) {
+        console.error('[Firebase OTP] Token verification failed:', firebaseErr.message);
+        return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
+      }
+      // Firebase phone_number is in E.164 format e.g. "+919876543210"
+      const firebasePhone = decoded.phone_number;
+      if (!firebasePhone) return res.status(400).json({ error: 'No phone number in token' });
+      normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
     }
 
-    // Firebase phone_number is in E.164 format e.g. "+919876543210"
-    const firebasePhone = decoded.phone_number;
-    if (!firebasePhone) return res.status(400).json({ error: 'No phone number in token' });
-
-    // Extract 10-digit number
-    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
-    const targetRole = role || 'farmer';
-
     // Find user by phone (multi-format, same backward-compat logic as password login)
-    let user = await UserMongo.findOne({
+    const user = await UserMongo.findOne({
       $or: [
         { phoneNumber: normPhone },
         { phoneNumber: `+91${normPhone}` },
@@ -366,27 +380,37 @@ export const firebaseLogin = async (req: any, res: any) => {
 export const firebaseRegister = async (req: any, res: any) => {
   try {
     // Accept both 'token' and 'idToken' field names
-    const { idToken, token, name, role, location, language } = req.body;
+    const { idToken, token, name, role, location, language, phone } = req.body;
     const firebaseToken = idToken || token;
     if (!firebaseToken || !name)
       return res.status(400).json({ error: 'Firebase token and name are required' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    // Verify the Firebase ID token
-    let decoded: admin.auth.DecodedIdToken;
-    try {
-      decoded = await admin.auth().verifyIdToken(firebaseToken);
-    } catch (firebaseErr: any) {
-      console.error('[Firebase Register] Token verification failed:', firebaseErr.message);
-      return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
-    }
-
-    const firebasePhone = decoded.phone_number;
-    if (!firebasePhone) return res.status(400).json({ error: 'No phone number in token' });
-
-    const normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
     const targetRole = role || 'farmer';
+    let normPhone: string;
+    let uid: string;
+
+    // ── Static OTP bypass (998974) ─────────────────────────────────────────────
+    if (firebaseToken === '998974') {
+      if (!phone) return res.status(400).json({ error: 'Phone number is required for static OTP bypass.' });
+      normPhone = phone.replace(/\D/g, '').slice(-10);
+      uid = `static_${normPhone}`;
+      console.log(`[Static OTP] Register bypass for ${targetRole} ${normPhone}`);
+    } else {
+      // Verify the Firebase ID token
+      let decoded: admin.auth.DecodedIdToken;
+      try {
+        decoded = await admin.auth().verifyIdToken(firebaseToken);
+      } catch (firebaseErr: any) {
+        console.error('[Firebase Register] Token verification failed:', firebaseErr.message);
+        return res.status(401).json({ error: 'Invalid or expired OTP session. Please request a new OTP.' });
+      }
+      const firebasePhone = decoded.phone_number;
+      if (!firebasePhone) return res.status(400).json({ error: 'No phone number in token' });
+      normPhone = firebasePhone.replace(/\D/g, '').slice(-10);
+      uid = decoded.uid;
+    }
 
     // Prevent duplicate registration for this role
     const existing = await UserMongo.findOne({ phoneNumber: normPhone, role: targetRole });
@@ -396,7 +420,7 @@ export const firebaseRegister = async (req: any, res: any) => {
       });
 
     // Generate a stable password from the UID so re-auth works if needed
-    const hash = await bcrypt.hash(decoded.uid, 12);
+    const hash = await bcrypt.hash(uid, 12);
     const email = `${normPhone}_${targetRole}@aquagrow.app`;
 
     const user = await new UserMongo({

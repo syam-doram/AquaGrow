@@ -586,13 +586,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   /** Login with Firebase Phone Auth ID token → POST /auth/firebase-login */
-  const loginWithFirebaseToken = async (idToken: string, role: string) => {
+  const loginWithFirebaseToken = async (idToken: string, role: string, phone?: string) => {
     setIsSyncing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/firebase-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: idToken, role }),
+        body: JSON.stringify({ token: idToken, role, ...(phone ? { phone } : {}) }),
       });
       const data = await response.json();
       if (!response.ok) return { success: false, error: data.error || 'Login failed' };
@@ -607,7 +607,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   /** Register with Firebase Phone Auth ID token → POST /auth/firebase-register */
   const registerWithFirebaseToken = async (idToken: string, payload: {
-    name: string; role: string; location?: string; language?: string;
+    name: string; role: string; location?: string; language?: string; phone?: string;
   }) => {
     setIsSyncing(true);
     try {
@@ -679,6 +679,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: firebaseToken,   // Firebase ID token — server verifies via Admin SDK
+          mobile: phoneNumber,    // needed for static OTP bypass (998974)
           newPassword,
           role,
         })
