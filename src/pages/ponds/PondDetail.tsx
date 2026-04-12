@@ -259,9 +259,11 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <p className="text-white font-black text-xl leading-none">
-                      {effectiveStatus === 'planned' ? Math.abs(currentDoc) : currentDoc}
+                      {effectiveStatus === 'harvested' ? '✓' : effectiveStatus === 'planned' ? Math.abs(currentDoc) : currentDoc}
                     </p>
-                    <p className="text-white/40 text-[6px] font-black uppercase tracking-widest">DOC</p>
+                    <p className="text-white/40 text-[6px] font-black uppercase tracking-widest">
+                      {effectiveStatus === 'harvested' ? 'DONE' : 'DOC'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -336,15 +338,15 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             )}
           </div>
 
-          {/* Quick action bar */}
+          {/* Quick action bar — hide AI Scan and Checklist when harvested */}
           <div className="px-5 pb-5 pt-1">
-            <div className="grid grid-cols-4 gap-2">
+            <div className={cn('grid gap-2', effectiveStatus === 'harvested' ? 'grid-cols-2' : 'grid-cols-4')}>
               {[
-                { icon: Droplets, label: 'Water', action: () => navigate(`/ponds/${pond.id}/water-log`), accent: hasLoggedToday ? 'bg-emerald-400/20 text-emerald-300' : 'bg-red-400/20 text-red-300' },
-                { icon: BarChart2, label: 'Monitor', action: () => navigate(`/ponds/${pond.id}/monitor`), accent: 'bg-white/10 text-white' },
-                { icon: CheckCircle2, label: 'Checklist', action: () => navigate(`/ponds/${pond.id}/entry`), accent: 'bg-amber-400/20 text-amber-300' },
-                { icon: Camera, label: 'AI Scan', action: () => navigate('/disease-detection'), accent: 'bg-purple-400/20 text-purple-300' },
-              ].map((btn, i) => (
+                { icon: Droplets, label: 'Water', action: () => navigate(`/ponds/${pond.id}/water-log`), accent: hasLoggedToday ? 'bg-emerald-400/20 text-emerald-300' : 'bg-red-400/20 text-red-300', hidden: effectiveStatus === 'harvested' },
+                { icon: BarChart2, label: 'Monitor', action: () => navigate(`/ponds/${pond.id}/monitor`), accent: 'bg-white/10 text-white', hidden: false },
+                { icon: CheckCircle2, label: 'Checklist', action: () => navigate(`/ponds/${pond.id}/entry`), accent: 'bg-amber-400/20 text-amber-300', hidden: effectiveStatus === 'harvested' },
+                { icon: Camera, label: 'AI Scan', action: () => navigate('/disease-detection'), accent: 'bg-purple-400/20 text-purple-300', hidden: effectiveStatus === 'harvested' },
+              ].filter(btn => !btn.hidden).map((btn, i) => (
                 <button
                   key={i}
                   onClick={btn.action}
@@ -412,30 +414,57 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             )}
           </AnimatePresence>
 
-          {/* ── CANCELLED STATE ── */}
-          {isCancelledState && lastCancelledRequest && (
+          {/* ── CANCELLED STATE — Enhanced with reason, date, restart option ── */}
+          {isCancelledState && (
             <div className={cn("rounded-[2rem] p-5 border", isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200")}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-amber-100 rounded-2xl flex items-center justify-center">
                   <AlertCircle size={18} className="text-amber-600" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-[11px] font-black text-amber-900 uppercase tracking-tight">{t.orderCancelled}</h3>
-                  <p className="text-[7px] font-black text-amber-600/50 uppercase tracking-widest">#H-{lastCancelledRequest.id?.slice(-4) || 'XXXX'}</p>
+                  {lastCancelledRequest && (
+                    <p className="text-[7px] font-black text-amber-600/50 uppercase tracking-widest">#H-{lastCancelledRequest.id?.slice(-4) || 'XXXX'}</p>
+                  )}
                 </div>
+                <span className="text-2xl">🚫</span>
               </div>
-              {lastCancelledRequest.cancellationReason && (
-                <p className="text-[9px] font-bold text-amber-800/70 italic leading-relaxed mb-4">"{lastCancelledRequest.cancellationReason}"</p>
+
+              {/* Cancellation reason */}
+              {lastCancelledRequest?.cancellationReason && (
+                <div className={cn('rounded-xl p-3 mb-3', isDark ? 'bg-amber-500/10' : 'bg-amber-100')}>
+                  <p className="text-[7px] font-black uppercase tracking-widest text-amber-700 mb-1">Reason</p>
+                  <p className="text-[10px] font-bold text-amber-800/80 italic leading-snug">"{lastCancelledRequest.cancellationReason}"</p>
+                </div>
               )}
-              <button
-                onClick={() => updatePond(pond.id, { harvestData: { ...pond.harvestData, cancelledAt: undefined } as any })}
-                className="w-full py-2.5 bg-amber-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
-              >{t.gotIt}</button>
+
+              {/* Cancellation timestamp */}
+              {pond?.harvestData?.cancelledAt && (
+                <p className="text-[8px] font-bold text-amber-700/50 mb-3">
+                  Cancelled on {new Date(pond.harvestData.cancelledAt as any).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+
+              <p className={cn('text-[9px] font-medium leading-relaxed mb-4', isDark ? 'text-amber-200/60' : 'text-amber-800/60')}>
+                Your harvest order was cancelled. The pond is back to active status. You can submit a new harvest order when ready.
+              </p>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updatePond(pond.id, { harvestData: { ...pond.harvestData, cancelledAt: undefined } as any })}
+                  className="flex-1 py-2.5 bg-amber-500/20 border border-amber-400/30 text-amber-700 rounded-xl text-[9px] font-black uppercase tracking-widest"
+                >{t.gotIt}</button>
+                <button
+                  onClick={() => navigate(`/ponds/${pond.id}/harvest`)}
+                  className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
+                >Re-submit Harvest</button>
+              </div>
             </div>
           )}
 
-          {/* ── ALERT BANNERS ── */}
-          {!isPlanned && isCriticalStage && (
+
+          {/* Alert banners — only show when pond is active, never on harvested */}
+          {!isPlanned && effectiveStatus !== 'harvested' && isCriticalStage && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-red-500 rounded-[1.5rem] p-4 flex items-start gap-3 shadow-lg shadow-red-500/20">
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
                 <AlertTriangle size={18} className="text-white" />
@@ -450,7 +479,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             </motion.div>
           )}
 
-          {!isPlanned && isHarvestPrepStage && !isCriticalStage && (
+          {!isPlanned && effectiveStatus !== 'harvested' && isHarvestPrepStage && !isCriticalStage && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className={cn("rounded-[1.5rem] p-4 flex items-start gap-3 border", isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200")}>
               <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Clock size={18} className="text-amber-600" />
@@ -464,7 +493,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             </motion.div>
           )}
 
-          {isFCRHigh && (
+          {effectiveStatus !== 'harvested' && isFCRHigh && (
             <div className={cn("rounded-[1.5rem] p-4 flex items-center gap-3 border", isDark ? "bg-orange-500/10 border-orange-500/20" : "bg-orange-50 border-orange-200")}>
               <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
                 <TrendingUp size={18} className="text-orange-600" />
@@ -476,7 +505,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             </div>
           )}
 
-          {lunarSops.length > 0 && !isPlanned && (
+          {lunarSops.length > 0 && !isPlanned && effectiveStatus !== 'harvested' && (
             <div className={cn("rounded-[1.5rem] p-4 flex items-center gap-3 border", isDark ? "bg-indigo-500/10 border-indigo-500/20" : "bg-indigo-50 border-indigo-200")}>
               <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
                 <span className="text-lg">🌙</span>
@@ -973,6 +1002,59 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                           </p>
                         </div>
                         <Send size={16} className="text-indigo-300" />
+                      </div>
+                    )}
+
+                    {/* ── CERTIFICATE PROCESS GUIDANCE (only after harvest) ── */}
+                    {effectiveStatus === 'harvested' && (
+                      <div className={cn("rounded-[2rem] border overflow-hidden shadow-sm", isDark ? "bg-[#0D1A13] border-emerald-500/20" : "bg-white border-emerald-200")}>
+                        {/* Header */}
+                        <div className={cn("px-5 pt-5 pb-4 border-b", isDark ? "border-white/5 bg-emerald-500/5" : "border-emerald-100 bg-emerald-50")}>
+                          <div className="flex items-center gap-3 mb-1">
+                            <span className="text-2xl">🏛️</span>
+                            <div>
+                              <h3 className={cn("font-black text-sm tracking-tight", isDark ? "text-emerald-300" : "text-emerald-900")}>
+                                Aquaculture Certificate
+                              </h3>
+                              <p className={cn("text-[7px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/50" : "text-emerald-600/60")}>
+                                Post-Harvest Official Process
+                              </p>
+                            </div>
+                          </div>
+                          <p className={cn("text-[9px] font-medium leading-relaxed", isDark ? "text-emerald-200/60" : "text-emerald-800/70")}>
+                            Your harvest is complete! Apply for the official Aquaculture Farm Certificate through MPEDA or your State Fisheries Department to sell to export markets and increase buyer trust.
+                          </p>
+                        </div>
+
+                        {/* Steps */}
+                        <div className="divide-y divide-card-border">
+                          {[
+                            { step: '1', icon: '📋', title: 'Gather Documents', detail: 'Gather land records / lease agreement, Aadhaar, pond size proof, stocking details (species, seed count, date), and harvest weight receipt.' },
+                            { step: '2', icon: '🏢', title: 'Visit MPEDA / State Office', detail: 'Go to your nearest MPEDA Regional Office or State Fisheries Dept. For Andhra Pradesh: AP Fisheries Dept. / Fisheries University Narasapur.' },
+                            { step: '3', icon: '📝', title: 'Submit Application', detail: 'Fill MPEDA Aquaculture Farm Registration Form. Attach harvest record, water quality logs (from AquaGrow export), and biomass certificate from buyer.' },
+                            { step: '4', icon: '🔍', title: 'Inspection', detail: 'An officer will visit your farm within 15–30 days to verify pond size, records, and compliance. Keep your AquaGrow data accessible.' },
+                            { step: '5', icon: '🎓', title: 'Certificate Issued', detail: 'Certificate valid for 5 years. Renew before expiry. Use it to access premium export buyers, government subsidies, and NABARD loans.' },
+                          ].map((s, i) => (
+                            <div key={i} className="px-5 py-3.5 flex items-start gap-3">
+                              <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 border text-[9px] font-black", isDark ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300" : "bg-emerald-50 border-emerald-200 text-emerald-700")}>
+                                {s.step}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={cn("text-[10px] font-black mb-0.5", isDark ? "text-white" : "text-slate-900")}>
+                                  {s.icon} {s.title}
+                                </p>
+                                <p className={cn("text-[8px] font-medium leading-relaxed", isDark ? "text-white/40" : "text-slate-500")}>{s.detail}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Info footer */}
+                        <div className={cn("px-5 py-4 border-t", isDark ? "border-white/5 bg-emerald-500/5" : "border-emerald-100 bg-emerald-50")}>
+                          <p className={cn("text-[8px] font-bold leading-relaxed", isDark ? "text-emerald-300/60" : "text-emerald-800/60")}>
+                            💡 <strong>Tip:</strong> Your AquaGrow water quality logs and feed records are accepted as official documentation. Export them from Profile → My Data.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </>
