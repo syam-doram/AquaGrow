@@ -51,7 +51,7 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
     setShopLoading(true); setShopError('');
     try {
       const providerId = user?._id || user?.id;
-      const res = await fetch(`${API_BASE_URL}/api/shop/orders?providerId=${providerId}`);
+      const res = await fetch(`${API_BASE_URL}/shop/orders?providerId=${providerId}`);
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setShopOrders(Array.isArray(data) ? data : data.orders || []);
@@ -66,7 +66,7 @@ export const ProviderOrders = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
   const advanceShopOrder = async (orderId: string, newStatus: string) => {
     try {
-      await fetch(`${API_BASE_URL}/api/shop/orders/${orderId}/status`, {
+      await fetch(`${API_BASE_URL}/shop/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),

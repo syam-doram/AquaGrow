@@ -119,7 +119,7 @@ export const AquaShop = () => {
         source:       'aqua_shop',
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/shop/orders`, {
+      const res = await fetch(`${API_BASE_URL}/shop/orders`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
