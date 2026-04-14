@@ -15,7 +15,7 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 
 // ─── Entry Card ────────────────────────────────────────────────────────────────
-const EntryCard = ({ entry, onClick, isDark }: { entry: any; onClick: () => void; isDark: boolean }) => {
+const EntryCard = ({ entry, onClick, isDark, t }: { entry: any; onClick: () => void; isDark: boolean; t: Translations }) => {
   const roi = entry.roi ?? 0;
   const roiColor =
     roi >= 40 ? 'text-emerald-500' :
@@ -63,9 +63,9 @@ const EntryCard = ({ entry, onClick, isDark }: { entry: any; onClick: () => void
       </div>
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Invested',  value: `₹${(entry.totalInvested / 100000).toFixed(1)}L`,   color: isDark ? 'text-white/70' : 'text-slate-700' },
-          { label: 'Revenue',   value: `₹${(entry.totalRevenue / 100000).toFixed(1)}L`,    color: 'text-emerald-500' },
-          { label: 'Net Profit',value: `${entry.netProfit >= 0 ? '+' : ''}₹${(Math.abs(entry.netProfit) / 100000).toFixed(1)}L`, color: entry.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500' },
+          { label: t.investments,  value: `₹${(entry.totalInvested / 100000).toFixed(1)}L`,   color: isDark ? 'text-white/70' : 'text-slate-700' },
+          { label: t.revenueEarned,   value: `₹${(entry.totalRevenue / 100000).toFixed(1)}L`,    color: 'text-emerald-500' },
+          { label: t.netProfitLoss, value: `${entry.netProfit >= 0 ? '+' : ''}₹${(Math.abs(entry.netProfit) / 100000).toFixed(1)}L`, color: entry.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500' },
         ].map((m, i) => (
           <div key={i} className={cn('rounded-xl p-2 border text-center', isDark ? 'bg-white/3 border-white/5' : 'bg-slate-50 border-slate-100')}>
             <p className={cn('text-[6px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>{m.label}</p>
@@ -78,16 +78,16 @@ const EntryCard = ({ entry, onClick, isDark }: { entry: any; onClick: () => void
 };
 
 // ─── Entry Detail Sheet ────────────────────────────────────────────────────────
-const EntryDetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () => void; isDark: boolean }) => {
+const EntryDetailSheet = ({ entry, onClose, isDark, t }: { entry: any; onClose: () => void; isDark: boolean; t: Translations }) => {
   const roi = entry.roi ?? 0;
   const categories = [
-    { label: 'Seed / PLs',      value: entry.seedCost || 0,           color: 'bg-blue-400',    fill: '#60a5fa' },
-    { label: 'Feed',             value: entry.feedCost || 0,           color: 'bg-emerald-500', fill: '#10b981' },
-    { label: 'Medicine',         value: entry.medicineCost || 0,       color: 'bg-amber-400',   fill: '#fbbf24' },
-    { label: 'Labor',            value: entry.laborCost || 0,          color: 'bg-purple-400',  fill: '#a78bfa' },
-    { label: 'Power / Utility',  value: entry.utilityCost || 0,        color: 'bg-orange-400',  fill: '#fb923c' },
-    { label: 'Infrastructure',   value: entry.infrastructureCost || 0, color: 'bg-pink-400',    fill: '#f472b6' },
-    { label: 'Other',            value: entry.otherCost || 0,          color: 'bg-slate-400',   fill: '#94a3b8' },
+    { label: t.seedPlsCost,      value: entry.seedCost || 0,           color: 'bg-blue-400',    fill: '#60a5fa' },
+    { label: t.feedCostLabel,             value: entry.feedCost || 0,           color: 'bg-emerald-500', fill: '#10b981' },
+    { label: t.medicineProbiotics,         value: entry.medicineCost || 0,       color: 'bg-amber-400',   fill: '#fbbf24' },
+    { label: t.laborWages,            value: entry.laborCost || 0,          color: 'bg-purple-400',  fill: '#a78bfa' },
+    { label: t.gridPowerBill,  value: entry.utilityCost || 0,        color: 'bg-orange-400',  fill: '#fb923c' },
+    { label: t.infrastructurePower,   value: entry.infrastructureCost || 0, color: 'bg-pink-400',    fill: '#f472b6' },
+    { label: t.otherTesting,            value: entry.otherCost || 0,          color: 'bg-slate-400',   fill: '#94a3b8' },
   ].filter(c => c.value > 0);
   const totalCost = categories.reduce((a, c) => a + c.value, 0) || 1;
 
@@ -133,9 +133,9 @@ const EntryDetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () 
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-2 mb-4">
           {[
-            { label: 'Invested',  value: `₹${(entry.totalInvested / 100000).toFixed(2)}L`,   color: isDark ? 'text-white' : 'text-slate-900' },
-            { label: 'Revenue',   value: `₹${(entry.totalRevenue / 100000).toFixed(2)}L`,    color: 'text-emerald-500' },
-            { label: 'Net',       value: `${entry.netProfit >= 0 ? '+' : ''}₹${(Math.abs(entry.netProfit) / 100000).toFixed(2)}L`, color: entry.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500' },
+            { label: t.investments,  value: `₹${(entry.totalInvested / 100000).toFixed(2)}L`,   color: isDark ? 'text-white' : 'text-slate-900' },
+            { label: t.revenueEarned,   value: `₹${(entry.totalRevenue / 100000).toFixed(2)}L`,    color: 'text-emerald-500' },
+            { label: t.netProfitLoss,       value: `${entry.netProfit >= 0 ? '+' : ''}₹${(Math.abs(entry.netProfit) / 100000).toFixed(2)}L`, color: entry.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500' },
           ].map((m, i) => (
             <div key={i} className={cn('rounded-2xl p-3 border text-center', isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100')}>
               <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>{m.label}</p>
@@ -148,11 +148,11 @@ const EntryDetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () 
         {(entry.harvestWeightKg || entry.countPerKg || entry.cultureDays || entry.survivalRate) && (
           <div className="flex gap-2 flex-wrap mb-4">
             {[
-              { label: 'Harvest',  value: entry.harvestWeightKg ? `${entry.harvestWeightKg} kg` : null },
-              { label: 'Count/kg', value: entry.countPerKg ? `${entry.countPerKg}/kg` : null },
-              { label: 'DOC',      value: entry.cultureDays ? `${entry.cultureDays} days` : null },
-              { label: 'Survival', value: entry.survivalRate ? `${entry.survivalRate}%` : null },
-              { label: 'Rate',     value: entry.pricePerKg   ? `₹${entry.pricePerKg}/kg` : null },
+              { label: t.harvestLabel,  value: entry.harvestWeightKg ? `${entry.harvestWeightKg} kg` : null },
+              { label: t.countPerKgSize, value: entry.countPerKg ? `${entry.countPerKg}/kg` : null },
+              { label: t.cultureDuration,      value: entry.cultureDays ? `${entry.cultureDays} ${t.days || 'days'}` : null },
+              { label: t.survival, value: entry.survivalRate ? `${entry.survivalRate}%` : null },
+              { label: t.pricePerKgReceived,     value: entry.pricePerKg   ? `₹${entry.pricePerKg}/kg` : null },
             ].filter(m => m.value).map((m, i) => (
               <div key={i} className={cn('px-3 py-2 rounded-xl border',
                 isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100')}>
@@ -164,7 +164,7 @@ const EntryDetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () 
         )}
 
         {/* Cost breakdown */}
-        <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/20' : 'text-slate-400')}>Cost Breakdown</p>
+        <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/20' : 'text-slate-400')}>{t.costBreakdown}</p>
         <div className="space-y-2 mb-5">
           {categories.map((c, i) => (
             <div key={i}>
@@ -191,14 +191,14 @@ const EntryDetailSheet = ({ entry, onClose, isDark }: { entry: any; onClose: () 
         {/* Notes */}
         {entry.notes && (
           <div className={cn('rounded-2xl p-3.5 border mb-4', isDark ? 'bg-white/3 border-white/5' : 'bg-slate-50 border-slate-100')}>
-            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/20' : 'text-slate-400')}>Notes</p>
+            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/20' : 'text-slate-400')}>{t.additionalNotes}</p>
             <p className={cn('text-[9px] font-medium italic leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>"{entry.notes}"</p>
           </div>
         )}
 
         <button onClick={onClose}
           className="w-full py-4 bg-gradient-to-r from-[#C78200] to-[#a06600] text-white font-black rounded-2xl text-[9px] uppercase tracking-widest">
-          Close
+          {t.close || 'Close'}
         </button>
       </motion.div>
     </div>
@@ -257,7 +257,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
 
   return (
     <div className={cn('min-h-screen pb-32', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
-      <Header title="Overall Performance" showBack
+      <Header title={t.overallPerformance} showBack
         rightElement={
           <button onClick={() => navigate('/roi-entry')}
             className={cn('w-9 h-9 rounded-xl flex items-center justify-center',
@@ -281,7 +281,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
                     ? isDark ? 'bg-[#C78200] border-[#C78200] text-white shadow-md' : 'bg-[#C78200] border-[#C78200] text-white shadow-md'
                     : isDark ? 'bg-white/5 border-white/8 text-white/40' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
                 )}>
-                All Years
+                {t.allYears}
               </button>
               {years.map(yr => (
                 <button key={yr}
@@ -304,31 +304,31 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
         <div className="grid grid-cols-2 gap-2">
           {[
             {
-              label: 'Total Cycles',
+              label: t.totalCycles,
               value: totalCycles,
-              sub: selectedYear === 'all' ? 'all time' : String(selectedYear),
+              sub: selectedYear === 'all' ? t.allTime : String(selectedYear),
               color: isDark ? 'text-white' : 'text-slate-900',
             },
             {
-              label: 'Avg ROI',
+              label: t.avgRoi,
               value: totalCycles > 0 ? `${avgROI >= 0 ? '+' : ''}${avgROI.toFixed(1)}%` : '--',
-              sub: 'per cycle',
+              sub: t.perCycle,
               color: avgROI >= 30 ? 'text-emerald-500' : avgROI >= 0 ? 'text-amber-500' : 'text-red-500',
             },
             {
-              label: 'Net Profit',
+              label: t.netProfitLoss,
               value: totalNetProfit !== 0
                 ? `${totalNetProfit >= 0 ? '+' : ''}₹${(Math.abs(totalNetProfit) / 100000).toFixed(1)}L`
                 : '--',
-              sub: 'total earnings',
+              sub: t.totalEarnings,
               color: totalNetProfit >= 0 ? 'text-emerald-500' : 'text-red-500',
             },
             {
-              label: 'Best ROI',
+              label: t.bestRoi,
               value: bestROI > 0 ? `${bestROI.toFixed(1)}%` : '--',
               sub: bestCycle
                 ? new Date(bestCycle.harvestDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
-                : 'single cycle peak',
+                : t.singleCyclePeak,
               color: 'text-[#C78200]',
             },
           ].map((m, i) => (
@@ -346,13 +346,13 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
           <div className={cn('rounded-[1.8rem] border px-4 py-3 grid grid-cols-2 gap-4',
             isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}>
             <div>
-              <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>Total Invested</p>
+              <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>{t.totalInvestment}</p>
               <p className={cn('text-base font-black tracking-tight', isDark ? 'text-white/80' : 'text-slate-700')}>
                 ₹{(totalInvested / 100000).toFixed(2)}L
               </p>
             </div>
             <div>
-              <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>Total Revenue</p>
+              <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>{t.totalSaleAmount}</p>
               <p className="text-base font-black tracking-tight text-emerald-500">
                 ₹{(totalRevenue / 100000).toFixed(2)}L
               </p>
@@ -397,7 +397,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
                 Revenue vs Invested (₹'000)
               </p>
               <div className="flex gap-3">
-                {[{ label: 'Revenue', color: 'bg-emerald-500' }, { label: 'Invested', color: 'bg-blue-400' }].map((l, i) => (
+                {[{ label: t.revenueEarned, color: 'bg-emerald-500' }, { label: t.investments, color: 'bg-blue-400' }].map((l, i) => (
                   <div key={i} className="flex items-center gap-1">
                     <div className={cn('w-2 h-2 rounded-sm', l.color)} />
                     <p className={cn('text-[6.5px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>{l.label}</p>
@@ -428,7 +428,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
             </div>
             <div className="flex-1 min-w-0">
               <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-700')}>
-                Best Performing Cycle
+                {t.bestPerformingCycle}
               </p>
               <p className={cn('text-[11px] font-black tracking-tight truncate', isDark ? 'text-white' : 'text-slate-900')}>
                 {bestCycle.buyerName || 'Harvest Cycle'} · {new Date(bestCycle.harvestDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
@@ -443,7 +443,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
           <div className="flex items-center justify-between mb-3 px-1">
             <div>
               <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
-                Cycle History
+                {t.cycleHistory}
               </p>
               <p className={cn('text-[6px] font-bold', isDark ? 'text-white/15' : 'text-slate-300')}>
                 {totalCycles} record{totalCycles !== 1 ? 's' : ''}{selectedYear !== 'all' ? ` in ${selectedYear}` : ' · all time'}
@@ -452,7 +452,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
             <button onClick={() => navigate('/roi-entry')}
               className={cn('flex items-center gap-1 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border',
                 isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700')}>
-              <Plus size={10} /> Add
+              <Plus size={10} /> {t.add}
             </button>
           </div>
 
@@ -460,7 +460,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
             <div className={cn('rounded-[2rem] border p-8 text-center', isDark ? 'bg-[#0D1520] border-white/5' : 'bg-white border-slate-100 shadow-sm')}>
               <p className="text-3xl mb-2">📊</p>
               <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white/50' : 'text-slate-700')}>
-                {selectedYear === 'all' ? 'No entries yet' : `No entries in ${selectedYear}`}
+                {selectedYear === 'all' ? t.noEntriesYet : `${t.noEntriesYet} in ${selectedYear}`}
               </p>
               <p className={cn('text-[8.5px] font-medium leading-relaxed mb-4', isDark ? 'text-white/25' : 'text-slate-400')}>
                 {selectedYear === 'all'
@@ -470,14 +470,14 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
               {selectedYear === 'all' && (
                 <button onClick={() => navigate('/roi-entry')}
                   className="px-4 py-2 bg-[#C78200] text-white text-[9px] font-black uppercase tracking-widest rounded-xl">
-                  Add Entry
+                  {t.addEntry}
                 </button>
               )}
             </div>
           ) : (
             <div className="space-y-2.5">
               {entries.map((entry, i) => (
-                <EntryCard key={`entry-${i}`} entry={entry} isDark={isDark} onClick={() => setSelectedEntry(entry)} />
+                <EntryCard key={`entry-${i}`} entry={entry} isDark={isDark} t={t} onClick={() => setSelectedEntry(entry)} />
               ))}
             </div>
           )}
@@ -487,7 +487,7 @@ export const ROIOverview = ({ t }: { t: Translations }) => {
       {/* Entry Detail Sheet */}
       <AnimatePresence>
         {selectedEntry && (
-          <EntryDetailSheet entry={selectedEntry} isDark={isDark} onClose={() => setSelectedEntry(null)} />
+          <EntryDetailSheet entry={selectedEntry} isDark={isDark} t={t} onClose={() => setSelectedEntry(null)} />
         )}
       </AnimatePresence>
     </div>

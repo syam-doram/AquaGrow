@@ -506,7 +506,7 @@ export interface Translations {
   onBudget: string;
   fourteenDayTrajectory: string;
   dailyExpenses: string;
-  live: string;
+  liveFinance: string;
   cost: string;
   dashedLineRunRate: string;
   categoryBreakdown: string;
@@ -555,6 +555,57 @@ export interface Translations {
   liveCycleStats: string;
   liveCycle: string;
   projectRoi: string;
+  overallPerformance: string;
+  allYears: string;
+  totalCycles: string;
+  avgRoi: string;
+  bestRoi: string;
+  allTime: string;
+  perCycle: string;
+  totalEarnings: string;
+  singleCyclePeak: string;
+  bestPerformingCycle: string;
+  cycleHistory: string;
+  add: string;
+  noEntriesYet: string;
+  addEntry: string;
+  costBreakdown: string;
+  proROIUnlockMsg: string;
+  upgrade: string;
+  financeROI: string;
+  financeIntelligence: string;
+  profitROI: string;
+  trackReturnsDesc: string;
+  noPondsAdded: string;
+  premiumPerformance: string;
+  goodFarmReturns: string;
+  lowReturnsWarning: string;
+  lossCycleWarning: string;
+  cultureInProgress: string;
+  cultureInProgressDesc: (count: number) => string;
+  harvestCompleteLogROI: string;
+  harvestCompleteLogROIDesc: (count: number) => string;
+  financeModules: string;
+  logNewHarvestCycle: string;
+  viewPonds: string;
+  noActivePond: string;
+  noActivePondROIDesc: string;
+  goToPonds: string;
+  harvestClosedSuccess: string;
+  marketPerformance: string;
+  fillRequiredFields: string;
+  selectPondError: string;
+  enterHarvestWeightError: string;
+  enterCountError: string;
+  enterSurvivalError: string;
+  enterDurationError: string;
+  enterSaleAmountError: string;
+  enterPricePerKgError: string;
+  abwTooSmallError: (weight: string) => string;
+  autoFilledMsg: string;
+  feedMedLogsReviewMsg: string;
+  enterAllCostsMsg: string;
+  marketConditionsMsg: string;
   forgotPassword: string;
   noWaterData: string;
 
@@ -827,6 +878,9 @@ export interface Translations {
   noProductsFound: string;
   orderFailed: string;
   codDisclaimer: string;
+  delivery: string;
+  subtotal: string;
+  addMoreForFreeDelivery: (amount: string) => string;
 }
 
 // Privacy Policy — English
@@ -1040,7 +1094,7 @@ const English: Translations = {
   harvest: 'Harvest',
   addPond: 'Add Pond',
   addFirstPond: 'Add First Pond',
-  addFirstPondDesc: 'Add your first pond to begin tracking.',
+  addFirstPondDesc: 'Add your first shrimp pond to start tracking culture cycles. ROI data will be available once you harvest a pond.',
   save: 'Save',
   timeToFeed: 'Time to Feed',
   checkFeedTrays: 'Check Feed Trays',
@@ -1244,7 +1298,7 @@ const English: Translations = {
   onBudget: 'On Budget',
   fourteenDayTrajectory: '14-Day Trajectory',
   dailyExpenses: 'Daily Expenses',
-  live: 'Live',
+  liveFinance: 'Live',
   cost: 'Cost',
   dashedLineRunRate: 'Dashed line = Avg. Daily Run-Rate',
   categoryBreakdown: 'Category Breakdown',
@@ -1452,6 +1506,57 @@ const English: Translations = {
   liveCycleStats: 'Live Cycle Stats',
   liveCycle: 'Live Cycle',
   projectRoi: 'Projected ROI',
+  overallPerformance: 'Overall Performance',
+  allYears: 'All Years',
+  totalCycles: 'Total Cycles',
+  avgRoi: 'Avg ROI',
+  bestRoi: 'Best ROI',
+  allTime: 'all time',
+  perCycle: 'per cycle',
+  totalEarnings: 'total earnings',
+  singleCyclePeak: 'single cycle peak',
+  bestPerformingCycle: 'Best Performing Cycle',
+  cycleHistory: 'Cycle History',
+  add: 'Add',
+  noEntriesYet: 'No entries yet',
+  addEntry: 'Add Entry',
+  costBreakdown: 'Cost Breakdown',
+  proROIUnlockMsg: 'Upgrade to unlock detailed analytics, pond-wise & year-wise ROI reports.',
+  upgrade: 'Upgrade',
+  financeROI: 'Finance & ROI',
+  financeIntelligence: 'Finance Intelligence',
+  profitROI: 'Profit & ROI',
+  trackReturnsDesc: 'Track investments, expenses, and returns across all your harvest cycles.',
+  noPondsAdded: 'No Ponds Added Yet',
+  premiumPerformance: 'Premium Performance!',
+  goodFarmReturns: 'Good Farm Returns',
+  lowReturnsWarning: 'Low Returns — Check Input Costs',
+  lossCycleWarning: 'Loss Cycle — Review All Expenses',
+  cultureInProgress: 'Culture In Progress',
+  cultureInProgressDesc: (count: number) => `You have ${count} active pond${count > 1 ? 's' : ''} in culture. ROI data becomes available after your first harvest is completed and logged.`,
+  harvestCompleteLogROI: 'Harvest Complete — Log Your ROI',
+  harvestCompleteLogROIDesc: (count: number) => `${count} pond${count > 1 ? 's' : ''} harvested. Add your income and expenses to calculate your true profit and ROI.`,
+  financeModules: 'Finance Modules',
+  logNewHarvestCycle: 'Log New Harvest Cycle',
+  viewPonds: 'View Ponds',
+  noActivePond: 'No Active Pond',
+  noActivePondROIDesc: 'ROI entry requires at least one active pond with a stocking date. You can only log ROI data after a harvest cycle is complete.',
+  goToPonds: 'Go to Ponds',
+  harvestClosedSuccess: '🎉 Harvest Fully Closed!',
+  marketPerformance: 'Market Performance',
+  fillRequiredFields: 'Please fill in the required fields',
+  selectPondError: 'Select a pond',
+  enterHarvestWeightError: 'Enter harvest weight',
+  enterCountError: 'Enter count/kg (shrimp size)',
+  enterSurvivalError: 'Enter survival rate',
+  enterDurationError: 'Enter culture duration (days)',
+  enterSaleAmountError: 'Enter total sale amount',
+  enterPricePerKgError: 'Enter price per kg',
+  abwTooSmallError: (weight: string) => `Body weight ${weight}g is below minimum 10g`,
+  autoFilledMsg: 'Auto-Filled from Logs',
+  feedMedLogsReviewMsg: 'Feed & medicine pulled from daily logs. Review & adjust.',
+  enterAllCostsMsg: 'Enter all investment costs for accurate ROI',
+  marketConditionsMsg: 'Market conditions, deductions, remarks…',
   forgotPassword: 'Forgot Password?',
   noWaterData: 'No Data',
   confirmStockingTitle: 'Time to Stock',
@@ -1459,8 +1564,16 @@ const English: Translations = {
   editDate: 'Reschedule Stocking',
 
   // Pond Status Labels
-  excellent: 'Excellent',
-  stable: 'Stable',
+  statusActive: 'Active',
+  statusPlanned: 'Planned',
+  statusSelling: 'Selling',
+  statusHarvested: 'Harvested',
+  statusArchived: 'Archived',
+  statusNotStarted: 'Not Started',
+  trustExcellent: 'Excellent',
+  trustGood: 'Good',
+  trustFair: 'Fair',
+  trustNeedsWork: 'Needs Work',
   critical: 'Critical',
   noData: 'No Data',
   ok: 'OK',
@@ -1473,14 +1586,12 @@ const English: Translations = {
   waterParameters: 'Water Parameters',
   live: 'LIVE',
   na: 'N/A',
-  urgent: 'Urgent',
   info: 'INFO',
   lunar: 'LUNAR',
   yesterday: 'Yesterday',
   pondHealth: 'Pond Health',
   viewFullReport: 'View Full Water Health Report',
   moreAlertsHint: 'more alerts · View all',
-  dailyFeedCost: 'Daily Feed Cost',
   activePondsLabel: 'Active Ponds',
   stockDayAlert: 'Stock Day Alert',
   stockDayDesc: 'Date reached. Action required to start SOP tracking.',
@@ -1696,6 +1807,9 @@ const English: Translations = {
   noProductsFound: 'No products found',
   orderFailed: 'Order failed. Please try again or call support.',
   codDisclaimer: 'Cash on delivery · Payment on delivery · AquaGrow approved products',
+  delivery: 'Delivery',
+  subtotal: 'Subtotal',
+  addMoreForFreeDelivery: (amount) => `Add ₹${amount} more for free delivery`,
 };
 
 // Privacy Policy — Telugu
@@ -1845,6 +1959,9 @@ const Telugu: Translations = {
   estSurvivingCount: 'అంచనా వేసిన రొయ్యల సంఖ్య',
   estimatedBiomass: 'అంచనా వేసిన బయోమాస్',
   survivalRate_short: 'జీవితకాలం',
+  good: 'మంచిది',
+  fair: 'సాధారణం',
+  poor: 'తక్కువ',
   excellent: 'అద్భుతం',
   stable: 'స్థిరంగా ఉంది',
   critical: 'అత్యవసరం',
@@ -1935,8 +2052,8 @@ const Telugu: Translations = {
   healthCheck: 'ఆరోగ్య తనిఖీ',
   harvest: 'పట్టివేత',
   addPond: 'చెరువును జోడించండి',
-  addFirstPond: 'మొదటి చెరువును జోడించండి',
-  addFirstPondDesc: 'ట్రాకింగ్ ప్రారంభించడానికి మీ మొదటి చెరువును జోడించండి.',
+  addFirstPond: 'మొదటి చెరువును జోడించు',
+  addFirstPondDesc: 'మీ మొదటి రొయ్యల చెరువును జోడించి సాగు వివరాలను ట్రాక్ చేయడం ప్రారంభించండి. పట్టివేత తరువాత ROI వివరాలు అందుబాటులోకి వస్తాయి.',
   save: 'సేవ్ చేయండి',
   cancel: 'రద్దు చేయండి',
   waterType: 'నీటి మూల రకం',
@@ -1992,14 +2109,6 @@ const Telugu: Translations = {
   gradeBYield: 'గ్రేడ్-B దిగుబడి (%)',
   marketSubsidy: 'మార్కెట్ రాయితీ',
   saveROIProfile: 'ROI ప్రొఫైల్‌ను సేవ్ చేయండి',
-  good: 'మంచిది',
-  fair: 'సాధారణం',
-  poor: 'తక్కువ',
-  excellent: 'అద్భుతం',
-  stable: 'స్థిరంగా ఉంది',
-  urgent: 'అవసరం',
-  dailyFeedCost: 'రోజువారీ మేత ఖర్చు',
-  estFeedCostPerKg: '@ ₹55/కిలో అంచనా',
   allTasksDone: 'అన్ని పనులు పూర్తయ్యాయి',
   viewAllPonds: 'అన్ని చెరువులను చూడండి',
   disease: 'వ్యాధి',
@@ -2076,7 +2185,6 @@ const Telugu: Translations = {
   protectedMode: 'రక్షిత మోడ్',
   cultureTimeline: 'సాగు టైమ్‌లైన్',
   dailyStats: 'రోజువారీ గణాంకాలు',
-  today: 'నేడు',
   notLoggedYet: 'ఇంకా నమోదు చేయలేదు',
   goldenRulesSchedule: 'గోల్డెన్ రూల్స్ & షెడ్యూల్',
   waterLog: 'నీటి లాగ్',
@@ -2150,6 +2258,7 @@ const Telugu: Translations = {
   ddQuotaExhausted: 'అయిపోయింది',
   ddQuotaResets: 'మీ కోటా వచ్చే నెల 1వ తేదీన రీసెట్ అవుతుంది.',
   ddProFeatureRequired: 'AI వ్యాధి గుర్తింపుకు యాక్టివ్ ప్రో ప్లాన్ అవసరం.',
+  blackTiger: 'బ్లాక్ టైగర్',
   scampi: 'స్కామ్పి',
   bhimavaram: 'భీమవరం',
   nellore: 'నెల్లూరు',
@@ -2235,7 +2344,7 @@ const Telugu: Translations = {
   onBudget: 'బడ్జెట్‌లో ఉంది',
   fourteenDayTrajectory: '14-రోజుల బాట',
   dailyExpenses: 'రోజువారీ ఖర్చులు',
-  live: 'లైవ్',
+  liveFinance: 'లైవ్',
   cost: 'ఖర్చు',
   dashedLineRunRate: 'చుక్కల లైన్ = సగటు రోజువారీ ఖర్చు',
   categoryBreakdown: 'కేటగిరీ విభజన',
@@ -2356,6 +2465,57 @@ const Telugu: Translations = {
   liveCycleStats: 'ప్రత్యక్ష సాగు గణాంకాలు',
   liveCycle: 'ప్రత్యక్ష సాగు',
   projectRoi: 'అంచనా ROI',
+  overallPerformance: 'మొత్తం పనితీరు',
+  allYears: 'అన్ని సంవత్సరాలు',
+  totalCycles: 'మొత్తం సాగులు',
+  avgRoi: 'సగటు ROI',
+  bestRoi: 'ఉత్తమ ROI',
+  allTime: 'అన్ని సమయాల్లో',
+  perCycle: 'ప్రతి సాగుకు',
+  totalEarnings: 'మొత్తం ఆదాయం',
+  singleCyclePeak: 'ఒక సాగు గరిష్ట స్థాయి',
+  bestPerformingCycle: 'అత్యుత్తమ ఫలిత సాగు',
+  cycleHistory: 'సాగు చరిత్ర',
+  add: 'జోడించు',
+  noEntriesYet: 'ఇంకా వివరాలు లేవు',
+  addEntry: 'వివరాలను జోడించు',
+  costBreakdown: 'ఖర్చుల విభజన',
+  proROIUnlockMsg: 'వివరణాత్మక విశ్లేషణలు మరియు సాగుల వారీగా ROI నివేదికలను చూడటానికి అప్‌గ్రేడ్ చేయండి.',
+  upgrade: 'అప్‌గ్రేడ్',
+  financeROI: 'ఫైనాన్స్ & ROI',
+  financeIntelligence: 'ఫైనాన్స్ ఇంటెలిజెన్స్',
+  profitROI: 'లాభం & ROI',
+  trackReturnsDesc: 'మీ అన్ని సాగుల పెట్టుబడులు, ఖర్చులు మరియు లాభాలను ట్రాక్ చేయండి.',
+  noPondsAdded: 'ఇంకా చెరువులు జోడించబడలేదు',
+  premiumPerformance: 'అత్యుత్తమ పనితీరు!',
+  goodFarmReturns: 'మంచి సాగు లాభాలు',
+  lowReturnsWarning: 'తక్కువ లాభాలు — ఖర్చులను తనిఖీ చేయండి',
+  lossCycleWarning: 'నష్ట సాగు — అన్ని ఖర్చులను సమీక్షించండి',
+  cultureInProgress: 'సాగు కొనసాగుతోంది',
+  cultureInProgressDesc: (count: number) => `మీకు ${count} చెరువుల సాగు కొనసాగుతోంది. పట్టివేత తరువాత ROI వివరాలు అందుబాటులోకి వస్తాయి.`,
+  harvestCompleteLogROI: 'పట్టివేత పూర్తయింది — ROI నమోదు చేయండి',
+  harvestCompleteLogROIDesc: (count: number) => `${count} చెరువుల పట్టివేత పూర్తయింది. లాభాన్ని లెక్కించడానికి ఆదాయం మరియు ఖర్చులను జోడించండి.`,
+  financeModules: 'ఫైనాన్స్ మాడ్యూల్స్',
+  logNewHarvestCycle: 'కొత్త సాగు పట్టివేత నమోదు',
+  viewPonds: 'చెరువులను చూడండి',
+  noActivePond: 'యాక్టివ్ చెరువులు లేవు',
+  noActivePondROIDesc: 'ROI నమోదు చేయడానికి స్టాకింగ్ తేదీతో కనీసం ఒక యాక్టివ్ చెరువు ఉండాలి. పట్టివేత తరువాత ROI నమోదు చేయండి.',
+  goToPonds: 'చెరువులకు వెళ్ళండి',
+  harvestClosedSuccess: '🎉 పట్టివేత విజయవంతంగా పూర్తయింది!',
+  marketPerformance: 'మార్కెట్ పనితీరు',
+  fillRequiredFields: 'దయచేసి అవసరమైన వివరాలను నింపండి',
+  selectPondError: 'ఒక చెరువును ఎంచుకోండి',
+  enterHarvestWeightError: 'పట్టివేత బరువును నమోదు చేయండి',
+  enterCountError: 'కిలో/కౌంట్ పరిమాణాన్ని నమోదు చేయండి',
+  enterSurvivalError: 'బతికిన శాతాన్ని నమోదు చేయండి',
+  enterDurationError: 'సాగు వ్యవధిని నమోదు చేయండి',
+  enterSaleAmountError: 'మొత్తం అమ్మకం ధరను నమోదు చేయండి',
+  enterPricePerKgError: 'కిలో ధరను నమోదు చేయండి',
+  abwTooSmallError: (weight: string) => `శరీర బరువు ${weight}g కనీస బరువు 10g కంటే తక్కువగా ఉంది`,
+  autoFilledMsg: 'లాగ్స్ నుండి ఆటో-ఫిల్ చేయబడింది',
+  feedMedLogsReviewMsg: 'మేత మరియు మందుల ఖర్చులు డైలీ లాగ్స్ నుండి తీసుకోబడ్డాయి. సమీక్షించి మార్చుకోండి.',
+  enterAllCostsMsg: 'ఖచ్చితమైన ROI కోసం అన్ని పెట్టుబడి ఖర్చులను నమోదు చేయండి',
+  marketConditionsMsg: 'మార్కెట్ పరిస్థితులు, తగ్గింపులు, వ్యాఖ్యలు...',
 
   // System
   systemHealthOptimal: 'సిస్టమ్ ఆరోగ్యం: అద్భుతం',
@@ -2590,6 +2750,9 @@ const Telugu: Translations = {
   noProductsFound: 'ఉత్పత్తులు ఏవీ కనుగొనబడలేదు',
   orderFailed: 'ఆర్డర్ విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి లేదా మద్దతును సంప్రదించండి.',
   codDisclaimer: 'క్యాష్ ఆన్ డెలివరీ · డెలివరీ సమయంలో చెల్లింపు · అక్వాగ్రో ఆమోదిత ఉత్పత్తులు',
+  delivery: 'డెలివరీ',
+  subtotal: 'మొత్తం',
+  addMoreForFreeDelivery: (amount) => `ఉచిత డెలివరీ కోసం మరో ₹${amount} జోడించండి`,
 };
 
 export const translations: Record<Language, Translations> = {

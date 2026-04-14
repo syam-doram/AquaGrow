@@ -18,6 +18,8 @@ type T0 = string;
 type T1<A> = (a: A) => string;
 type T2<A, B> = (a: A, b: B) => string;
 type T3<A, B, C> = (a: A, b: B, c: C) => string;
+type T4<A, B, C, D> = (a: A, b: B, c: C, d: D) => string;
+type T5<A, B, C, D, E> = (a: A, b: B, c: C, d: D, e: E) => string;
 
 // ─── Alert Text Schema ─────────────────────────────────────────────────────────
 export interface AlertTranslations {

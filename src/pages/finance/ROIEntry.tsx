@@ -206,18 +206,18 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
   // ── Step 1 validation ──
   const step1Errors: string[] = [];
-  if (!form.pondId)                              step1Errors.push('Select a pond');
-  if (!form.harvestWeightKg || n(form.harvestWeightKg) <= 0) step1Errors.push('Enter harvest weight');
-  if (!form.countPerKg || n(form.countPerKg) <= 0)           step1Errors.push('Enter count/kg (shrimp size)');
-  if (!form.survivalRate || n(form.survivalRate) <= 0)        step1Errors.push('Enter survival rate');
-  if (!form.cultureDays || n(form.cultureDays) <= 0)          step1Errors.push('Enter culture duration (days)');
-  if (abwTooSmall) step1Errors.push(`Body weight ${abwGrams!.toFixed(1)}g is below minimum 10g`);
+  if (!form.pondId)                              step1Errors.push(t.selectPondError);
+  if (!form.harvestWeightKg || n(form.harvestWeightKg) <= 0) step1Errors.push(t.enterHarvestWeightError);
+  if (!form.countPerKg || n(form.countPerKg) <= 0)           step1Errors.push(t.enterCountError);
+  if (!form.survivalRate || n(form.survivalRate) <= 0)        step1Errors.push(t.enterSurvivalError);
+  if (!form.cultureDays || n(form.cultureDays) <= 0)          step1Errors.push(t.enterDurationError);
+  if (abwTooSmall) step1Errors.push(t.abwTooSmallError(abwGrams!.toFixed(1)));
   const step1Valid = step1Errors.length === 0;
 
   // ── Step 3 validation ──
   const step3Errors: string[] = [];
-  if (!form.saleAmountTotal || n(form.saleAmountTotal) <= 0) step3Errors.push('Enter total sale amount');
-  if (!form.pricePerKg || n(form.pricePerKg) <= 0)           step3Errors.push('Enter price per kg');
+  if (!form.saleAmountTotal || n(form.saleAmountTotal) <= 0) step3Errors.push(t.enterSaleAmountError);
+  if (!form.pricePerKg || n(form.pricePerKg) <= 0)           step3Errors.push(t.enterPricePerKgError);
   const step3Valid = step3Errors.length === 0;
 
   const [showStepErrors, setShowStepErrors] = useState(false);
@@ -260,15 +260,15 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
           ) : (
             <div className={cn('rounded-3xl p-8 text-center border mx-2 mt-4', isDark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
               <div className="text-5xl mb-4">🚫</div>
-              <h3 className={cn('font-black text-base tracking-tight mb-2', isDark ? 'text-white' : 'text-slate-900')}>No Active Pond</h3>
+              <h3 className={cn('font-black text-base tracking-tight mb-2', isDark ? 'text-white' : 'text-slate-900')}>{t.noActivePond}</h3>
               <p className={cn('text-[10px] font-medium leading-relaxed mb-6', isDark ? 'text-white/40' : 'text-slate-500')}>
-                ROI entry requires at least one <strong>active</strong> pond with a stocking date. You can only log ROI data after a harvest cycle is complete.
+                {t.noActivePondROIDesc}
               </p>
               <button
                 onClick={() => navigate('/ponds')}
                 className="px-6 py-3 rounded-2xl bg-[#C78200] text-white text-[10px] font-black uppercase tracking-widest"
               >
-                Go to Ponds →
+                {t.goToPonds} →
               </button>
             </div>
           )}
@@ -295,10 +295,10 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
               <CheckCircle2 size={60} />
             </motion.div>
             <h3 className="text-3xl font-black tracking-tighter mb-2">
-              {fromHarvest ? '🎉 Harvest Fully Closed!' : t.roiProfileSaved}
+              {fromHarvest ? t.harvestClosedSuccess : t.roiProfileSaved}
             </h3>
             <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">
-              {fromHarvest ? 'ROI saved · Returning to your ponds...' : t.redirectingDashboard}
+              {fromHarvest ? `${t.roiProfileSaved} · ${t.redirectingDashboard}` : t.redirectingDashboard}
             </p>
             <div className="mt-8 flex items-center gap-3">
               <div className="px-5 py-2.5 bg-white/10 rounded-2xl border border-white/10">
@@ -330,7 +330,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
             <div className="flex-1 min-w-0">
               <p className="text-[7px] font-black text-white/60 uppercase tracking-widest">Step 2 of 2 — Harvest Closing</p>
               <p className="text-[10px] font-black text-white truncate">
-                {harvestPond?.name || 'Pond'} · {harvestBiomass}kg · Fill ROI to close
+                {harvestPond?.name || 'Pond'} · {harvestBiomass}kg · {t.harvestDetails}
               </p>
             </div>
             <ArrowRight size={13} className="text-white/50 flex-shrink-0" />
@@ -476,7 +476,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                     <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className={cn('text-[8px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-red-400' : 'text-red-700')}>
-                        🔴 Harvest Not Allowed — Body Weight &lt; 10g
+                        🔴 {t.harvestNotListed || 'Harvest Not Allowed'}
                       </p>
                       <p className={cn('text-[9px] font-medium leading-snug', isDark ? 'text-red-300/70' : 'text-red-700/80')}>
                         Current ABW: <strong>{abwGrams!.toFixed(1)}g</strong> ({form.countPerKg}/kg).
@@ -504,14 +504,14 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                   <div className={cn('rounded-2xl p-3.5 border flex items-start gap-2', isDark ? 'bg-emerald-500/8 border-emerald-500/15' : 'bg-emerald-50 border-emerald-100')}>
                     <CheckCircle2 size={13} className="text-emerald-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-700')}>Auto-Filled from Logs</p>
-                      <p className={cn('text-[8px] font-medium mt-0.5', isDark ? 'text-emerald-400/60' : 'text-emerald-600/70')}>Feed &amp; medicine pulled from daily logs. Review &amp; adjust.</p>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-700')}>{t.autoFilledMsg}</p>
+                      <p className={cn('text-[8px] font-medium mt-0.5', isDark ? 'text-emerald-400/60' : 'text-emerald-600/70')}>{t.feedMedLogsReviewMsg}</p>
                     </div>
                   </div>
                 ) : (
                   <div className={cn('rounded-2xl p-3.5 border flex items-center gap-2', isDark ? 'bg-amber-500/8 border-amber-500/15' : 'bg-amber-50 border-amber-100')}>
                     <AlertTriangle size={13} className="text-amber-500 flex-shrink-0" />
-                    <p className={cn('text-[8px] font-black', isDark ? 'text-amber-400' : 'text-amber-700')}>Enter all investment costs for accurate ROI</p>
+                    <p className={cn('text-[8px] font-black', isDark ? 'text-amber-400' : 'text-amber-700')}>{t.enterAllCostsMsg}</p>
                   </div>
                 )}
 
@@ -560,7 +560,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                     <textarea
                       value={form.notes}
                       onChange={e => set('notes')(e.target.value)}
-                      placeholder="Market conditions, deductions, remarks…"
+                      placeholder={t.marketConditionsMsg}
                       rows={3}
                       className={cn(
                         'w-full rounded-[1.4rem] py-3.5 pl-10 pr-4 text-[12px] font-black outline-none resize-none border transition-all',
@@ -720,7 +720,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                   className="w-full py-5 bg-gradient-to-br from-[#0D523C] to-[#1a7a5a] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                 >
                   <CheckCircle2 size={20} />
-                  {t.save} ROI Profile
+                  {t.save} {t.profileSummary}
                 </button>
               </div>
             )}
@@ -740,7 +740,7 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
                     <div>
                       <p className={cn('text-[8px] font-black uppercase tracking-widest mb-1',
                         isDark ? 'text-red-400' : 'text-red-700'
-                      )}>Please fill in the required fields</p>
+                      )}>{t.fillRequiredFields}</p>
                       {(step === 1 ? step1Errors : step3Errors).map((err, i) => (
                         <p key={i} className={cn('text-[9px] font-medium', isDark ? 'text-red-300/70' : 'text-red-700/80')}>
                           • {err}

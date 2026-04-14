@@ -378,14 +378,14 @@ export const AquaShop = () => {
                         {/* Total */}
                         <div className={cn('rounded-2xl p-4 mb-4 border', isDark ? 'bg-white/5 border-white/8' : 'bg-slate-50 border-slate-100')}>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/40' : 'text-slate-500')}>Subtotal</span>
+                            <span className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/40' : 'text-slate-500')}>{t.subtotal}</span>
                             <span className={cn('text-[12px] font-black', isDark ? 'text-white' : 'text-slate-900')}>₹{totalPrice.toLocaleString('en-IN')}</span>
                           </div>
                           <div className="flex justify-between items-center mb-1">
                             <span className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/40' : 'text-slate-500')}>{t.delivery}</span>
                             <span className={cn('text-[10px] font-black', delivery === 0 ? 'text-emerald-500' : isDark ? 'text-white' : 'text-slate-900')}>{delivery === 0 ? t.freeDelivery : `₹${delivery}`}</span>
                           </div>
-                          {delivery > 0 && <p className="text-[7px] font-medium text-amber-500">Add ₹{(2000 - totalPrice).toLocaleString('en-IN')} more for free delivery</p>}
+                          {delivery > 0 && <p className="text-[7px] font-medium text-amber-500">{t.addMoreForFreeDelivery((2000 - totalPrice).toLocaleString('en-IN'))}</p>}
                           <div className={cn('flex justify-between items-center pt-2 mt-2 border-t', isDark ? 'border-white/8' : 'border-slate-100')}>
                             <span className={cn('text-[10px] font-black uppercase tracking-widest', isDark ? 'text-white' : 'text-slate-900')}>{t.cartTotal}</span>
                             <span className="text-base font-black text-[#C78200]">₹{(totalPrice + delivery).toLocaleString('en-IN')}</span>

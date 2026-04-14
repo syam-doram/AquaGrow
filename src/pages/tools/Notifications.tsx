@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { Language } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useSmartAlerts } from '../../hooks/useSmartAlerts';
 import { cn } from '../../utils/cn';

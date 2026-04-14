@@ -32,10 +32,10 @@ const SubGateBanner = ({ isDark, navigate }: { isDark: boolean; navigate: Return
       </div>
       <div className="flex-1 min-w-0">
         <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
-          Pro Feature
+          {t.proFeature}
         </p>
         <p className={cn('text-[8.5px] font-medium leading-snug', isDark ? 'text-white/40' : 'text-slate-500')}>
-          Upgrade to unlock detailed analytics, pond-wise &amp; year-wise ROI reports.
+          {t.proROIUnlockMsg}
         </p>
       </div>
       <button
@@ -43,7 +43,7 @@ const SubGateBanner = ({ isDark, navigate }: { isDark: boolean; navigate: Return
         className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-gradient-to-br from-[#C78200] to-[#a06600] text-white rounded-xl font-black text-[8px] uppercase tracking-widest shadow-md"
       >
         <Sparkles size={10} />
-        Upgrade
+        {t.upgrade}
         <ChevronRight size={10} />
       </button>
     </div>
@@ -80,35 +80,32 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
       id: 'overview',
       route: '/roi/overview',
       icon: BarChart2,
-      label: 'Overall Performance',
-      sub: 'ROI trends, net profit & cycle history',
+      label: t.overallPerformance,
+      sub: t.roiProfileSaved, // Or similar descriptive key
       color: '#10b981',
       bg: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5',
-      border: isDark ? 'rgba(16,185,129,0.2)' : '#a7f3d0',
-      badge: totalCycles > 0 ? `${totalCycles} cycles` : null,
+      badge: totalCycles > 0 ? `${totalCycles} ${t.totalCycles}` : null,
       proRequired: false,
     },
     {
       id: 'revenue',
       route: '/harvest-revenue',
       icon: Layers,
-      label: 'Harvest Revenue Ledger',
-      sub: 'Settled harvest records & earnings',
+      label: t.yieldLedger,
+      sub: t.revenueEarned,
       color: '#6366f1',
       bg: isDark ? 'rgba(99,102,241,0.1)' : '#eef2ff',
-      border: isDark ? 'rgba(99,102,241,0.2)' : '#c7d2fe',
-      badge: harvestedPonds.length > 0 ? `${harvestedPonds.length} harvested` : null,
+      badge: harvestedPonds.length > 0 ? `${harvestedPonds.length} ${t.statusHarvested}` : null,
       proRequired: false,
     },
     {
       id: 'expenses',
       route: '/expense-report',
       icon: Receipt,
-      label: 'Expense Breakdown',
-      sub: 'Feed, medicine & operational costs',
+      label: t.expensesLabel || 'Expense Breakdown',
+      sub: t.trackReturnsDesc,
       color: '#f59e0b',
       bg: isDark ? 'rgba(245,158,11,0.1)' : '#fffbeb',
-      border: isDark ? 'rgba(245,158,11,0.2)' : '#fde68a',
       badge: null,
       proRequired: true,
     },
@@ -116,11 +113,10 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
       id: 'pondwise',
       route: '/roi/pond-wise',
       icon: Fish,
-      label: 'Pond-wise Analysis',
-      sub: 'Individual pond ROI & profit comparison',
+      label: t.pondwiseReport,
+      sub: t.proROIUnlockMsg,
       color: '#0ea5e9',
       bg: isDark ? 'rgba(14,165,233,0.1)' : '#f0f9ff',
-      border: isDark ? 'rgba(14,165,233,0.2)' : '#bae6fd',
       badge: null,
       proRequired: true,
     },
@@ -128,11 +124,10 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
       id: 'yearwise',
       route: '/roi/year-wise',
       icon: Calendar,
-      label: 'Year-wise Summary',
-      sub: 'Annual revenue & investment breakdown',
+      label: t.allYears,
+      sub: t.trackReturnsDesc,
       color: '#a855f7',
       bg: isDark ? 'rgba(168,85,247,0.1)' : '#faf5ff',
-      border: isDark ? 'rgba(168,85,247,0.2)' : '#e9d5ff',
       badge: null,
       proRequired: true,
     },
@@ -140,7 +135,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
 
   return (
     <div className={cn('min-h-screen pb-32', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
-      <Header title="Finance & ROI" showBack={false} onMenuClick={onMenuClick} />
+      <Header title={t.financeROI} showBack={false} onMenuClick={onMenuClick} />
 
       <div className="pt-20 px-4 space-y-4">
 
@@ -155,17 +150,17 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
           </div>
           <div className="relative z-10">
             <p className="text-[#C78200] text-[7px] font-black uppercase tracking-widest mb-1">
-              AquaGrow · Finance Intelligence
+              AquaGrow · {t.financeIntelligence}
             </p>
-            <h1 className="text-white text-2xl font-black tracking-tight mb-1">Profit &amp; ROI</h1>
+            <h1 className="text-white text-2xl font-black tracking-tight mb-1">{t.profitROI}</h1>
             <p className="text-white/30 text-[9px] font-medium max-w-[230px] leading-relaxed">
-              Track investments, expenses, and returns across all your harvest cycles.
+              {t.trackReturnsDesc}
             </p>
 
             {/* Stats row */}
             <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/5">
               <div>
-                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">Avg ROI</p>
+                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">{t.avgRoi}</p>
                 <p className={cn('text-lg font-black tracking-tight',
                   hasROIData ? (avgROI >= 30 ? 'text-emerald-400' : avgROI >= 0 ? 'text-amber-400' : 'text-red-400') : 'text-white/20'
                 )}>
@@ -174,7 +169,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div>
-                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">Net Profit</p>
+                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">{t.netProfitLoss}</p>
                 <p className={cn('text-lg font-black tracking-tight',
                   hasROIData ? (totalNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-white/20'
                 )}>
@@ -183,14 +178,14 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div>
-                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">Best ROI</p>
+                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">{t.bestRoi}</p>
                 <p className={cn('text-lg font-black tracking-tight', hasROIData ? 'text-emerald-400' : 'text-white/20')}>
                   {hasROIData ? `${bestROI.toFixed(1)}%` : '--'}
                 </p>
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div>
-                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">Cycles</p>
+                <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">{t.totalCycles}</p>
                 <p className={cn('text-lg font-black tracking-tight', hasROIData ? 'text-white' : 'text-white/20')}>
                   {totalCycles > 0 ? totalCycles : '0'}
                 </p>
@@ -216,15 +211,15 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
             )}>
               <Waves size={26} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
             </div>
-            <p className={cn('text-sm font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>No Ponds Added Yet</p>
+            <p className={cn('text-sm font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>{t.noPondsAdded}</p>
             <p className={cn('text-[9px] font-medium leading-relaxed mb-4', isDark ? 'text-white/40' : 'text-slate-500')}>
-              Add your first shrimp pond to start tracking culture cycles. ROI data will be available once you harvest a pond.
+              {t.addFirstPondDesc}
             </p>
             <button
               onClick={() => navigate('/ponds/new')}
               className="px-4 py-2 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-sm flex items-center gap-1.5 mx-auto"
             >
-              <Plus size={11} /> Add First Pond
+              <Plus size={11} /> {t.addFirstPond}
             </button>
           </motion.div>
           )
@@ -257,7 +252,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                 <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-0.5">
                     <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
-                      {avgROI >= 30 ? '🏆 Premium Performance!' : avgROI >= 15 ? '✅ Good Farm Returns' : avgROI >= 0 ? '📈 Low Returns — Check Input Costs' : '⚠️ Loss Cycle — Review All Expenses'}
+                      {avgROI >= 30 ? t.premiumPerformance : avgROI >= 15 ? t.goodFarmReturns : avgROI >= 0 ? t.lowReturnsWarning : t.lossCycleWarning}
                     </p>
                 </div>
                     <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>
@@ -289,17 +284,16 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                 </div>
                 <div>
                   <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>
-                    Culture In Progress
+                    {t.cultureInProgress}
                   </p>
                   <p className={cn('text-[8.5px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-                    You have {activePonds.length} active pond{activePonds.length > 1 ? 's' : ''} in culture.
-                    ROI data becomes available after your first harvest is completed and logged.
+                    {t.cultureInProgressDesc(activePonds.length)}
                   </p>
                   <button
                     onClick={() => navigate('/ponds')}
                     className="mt-3 text-blue-500 text-[8px] font-black uppercase tracking-widest flex items-center gap-1"
                   >
-                    View Ponds <ChevronRight size={10} />
+                    {t.viewPonds} <ChevronRight size={10} />
                   </button>
                 </div>
               </motion.div>
@@ -320,17 +314,16 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={cn('text-[11px] font-black mb-1', isDark ? 'text-white' : 'text-slate-900')}>
-                    Harvest Complete — Log Your ROI
+                    {t.harvestCompleteLogROI}
                   </p>
                   <p className={cn('text-[8.5px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-                    {harvestedPonds.length} pond{harvestedPonds.length > 1 ? 's' : ''} harvested.
-                    Add your income and expenses to calculate your true profit and ROI.
+                    {t.harvestCompleteLogROIDesc(harvestedPonds.length)}
                   </p>
                   <button
                     onClick={goToROIEntry}
                     className="mt-3 px-3 py-1.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest rounded-xl flex items-center gap-1.5"
                   >
-                    <Plus size={10} /> Add ROI Entry
+                    <Plus size={10} /> {t.addEntry}
                   </button>
                 </div>
               </motion.div>
@@ -341,7 +334,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
               <p className={cn('text-[7px] font-black uppercase tracking-widest mb-3 px-1',
                 isDark ? 'text-white/20' : 'text-slate-400'
               )}>
-                Finance Modules
+                {t.financeModules}
               </p>
               <div className="space-y-2.5">
                 {sections.map((s, i) => {
@@ -429,7 +422,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                 }}
               >
                 <Plus size={14} />
-                Log New Harvest Cycle
+                {t.logNewHarvestCycle}
               </motion.button>
             )}
           </>
