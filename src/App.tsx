@@ -69,6 +69,7 @@ import { DailyConditionsLog } from './pages/logs/DailyConditionsLog';
 import { DailyExpenseLog } from './pages/logs/DailyExpenseLog';
 import { WaterLogDetail } from './pages/monitoring/WaterLogDetail';
 import { WaterReportDetail } from './pages/monitoring/WaterReportDetail';
+import { WaterReportScanner } from './pages/monitoring/WaterReportScanner';
 import { HarvestRevenue } from './pages/finance/HarvestRevenue';
 import { ExpenseReport } from './pages/finance/ExpenseReport';
 import { ROIEntry } from './pages/finance/ROIEntry';
@@ -528,6 +529,7 @@ const AppContent = () => {
                 <Route path="/learn" element={<LearningCenter t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/notifications" element={<Notifications t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/water-logs/:pondId/:date" element={<WaterLogDetail t={t} />} />
+                <Route path="/monitor/scan" element={<WaterReportScanner t={t} />} />
                 <Route path="/monitor/report/:pondId/:date" element={<WaterReportDetail />} />
                 <Route path="/harvest-revenue" element={<HarvestRevenue t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/expense-report" element={<ExpenseReport t={t} onMenuClick={() => navigate('/profile')} />} />

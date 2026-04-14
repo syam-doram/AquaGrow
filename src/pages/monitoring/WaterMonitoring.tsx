@@ -431,17 +431,24 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           </motion.div>
         )}
 
-        {/* ── 8. LOG BUTTON ─────────────────────────────────────── */}
+        {/* ── 8. LOG & SCAN BUTTONS ─────────────────────────────────────── */}
         {selectedPond?.status === 'harvested' ? (
           <div className="w-full rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-400">
             🏁 Pond Harvested — No Logging Required
           </div>
         ) : (
-          <motion.button whileTap={{ scale: 0.97 }}
-            onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
-            className="w-full bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-            <Plus size={14} /> Log Today's Water Parameters
-          </motion.button>
+          <div className="flex gap-2.5">
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/monitor/scan')}
+              className="flex-1 bg-slate-800 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 active:scale-95 transition-all">
+              <Camera size={14} className="text-emerald-400" /> <span className="hidden sm:inline">Scan</span>
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
+              className="flex-[2.5] bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+              <Plus size={14} /> Log Today's Water Parameters
+            </motion.button>
+          </div>
         )}
 
 
