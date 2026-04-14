@@ -31,6 +31,7 @@ export const PushSyncManager = () => {
     feedRecords:  feedLogs     ?? [],
     marketPrices: marketPrices ?? [],
     enabled:      !!user,
+    language:     user?.language,
   });
 
   // Force an alert engine run once when pond data first loads

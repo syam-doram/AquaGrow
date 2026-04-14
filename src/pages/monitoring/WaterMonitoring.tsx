@@ -440,17 +440,16 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <div className="flex gap-2.5">
             <motion.button whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/monitor/scan')}
-              className="flex-[1.5] bg-[#1e293b] text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[#1e293b]/20 active:scale-95 transition-all outline outline-1 outline-slate-800">
-              <Camera size={14} className="text-emerald-400" /> <span>Scan</span>
+              className="flex-1 bg-slate-800 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 active:scale-95 transition-all">
+              <Camera size={14} className="text-emerald-400" /> <span className="hidden sm:inline">Scan</span>
             </motion.button>
             <motion.button whileTap={{ scale: 0.97 }}
               onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
-              className="flex-[2] bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-              <Plus size={14} /> Log Data
+              className="flex-[2.5] bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+              <Plus size={14} /> {"Log Today's Water Parameters"}
             </motion.button>
           </div>
         )}
-
       </div>
     </div>
   );

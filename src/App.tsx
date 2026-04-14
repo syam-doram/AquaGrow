@@ -163,6 +163,33 @@ const AppContent = () => {
     }
   }, [theme]);
 
+  // ── AUTO IDLE TIMEOUT ──
+  // Navigates the user back to the main dashboard after 3 minutes of zero interaction
+  useEffect(() => {
+    if (!user) return;
+    
+    let idleTimeout: ReturnType<typeof setTimeout>;
+    
+    const resetTimer = () => {
+      clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(() => {
+        const homePath = user.role === 'provider' ? '/provider/dashboard' : '/dashboard';
+        if (location.pathname !== homePath && !location.pathname.startsWith('/auth')) {
+          navigate(homePath, { replace: true });
+        }
+      }, 3 * 60 * 1000); // 3 minutes
+    };
+
+    const events = ['touchstart', 'mousemove', 'keydown', 'scroll', 'click'];
+    events.forEach(event => document.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(idleTimeout);
+      events.forEach(event => document.removeEventListener(event, resetTimer));
+    };
+  }, [user, location.pathname, navigate]);
+
   useEffect(() => {
     if (loading || !user) return;
 

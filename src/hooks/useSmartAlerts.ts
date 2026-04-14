@@ -33,8 +33,9 @@ export const useSmartAlerts = (params: {
   feedRecords: any[];
   marketPrices: any[];
   enabled: boolean;
+  language?: string;
 }) => {
-  const { ponds, waterRecords, feedRecords, marketPrices, enabled } = params;
+  const { ponds, waterRecords, feedRecords, marketPrices, enabled, language } = params;
 
   const [alerts, setAlerts] = useState<SmartAlert[]>(() => {
     try {
@@ -207,6 +208,7 @@ export const useSmartAlerts = (params: {
       feedRecords,
       marketPrices,
       prefs,
+      language: language as any,
     });
 
     // Filter out suppressed alerts and already-shown alerts from today

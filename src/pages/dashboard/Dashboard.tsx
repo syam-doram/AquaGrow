@@ -908,33 +908,65 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             ))}
           </AnimatePresence>
 
-          {/* ── HORIZONTAL AD BANNERS ── */}
-          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar snap-x -mx-1 px-1">
-            {[
-              { emoji: '💊', title: 'Medicine Sale', sub: 'Up to 20% off · Limited time', from: '#7c3aed', to: '#4f46e5', path: '/shop' },
-              { emoji: '🌾', title: 'Bulk Feed Deal', sub: 'Buy 10 bags, get 1 FREE!',     from: '#059669', to: '#047857', path: '/shop' },
-              { emoji: '🚚', title: 'Free Delivery',  sub: 'Orders above ₹2,000',          from: '#0284c7', to: '#0369a1', path: '/shop' },
-              { emoji: '🛡️', title: 'WSSV Kit',       sub: 'DOC 31–45 bundle · ₹2,499',   from: '#dc2626', to: '#991b1b', path: '/shop' },
-            ].map((ad, i) => (
-              <motion.button
-                key={i}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.07 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate(ad.path)}
-                className="flex-shrink-0 snap-start flex items-center gap-3 rounded-[1.6rem] px-4 py-3 min-w-[220px] relative overflow-hidden"
-                style={{ background: `linear-gradient(135deg, ${ad.from}, ${ad.to})` }}
-              >
-                <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full" />
-                <span className="text-2xl flex-shrink-0">{ad.emoji}</span>
-                <div className="text-left">
-                  <p className="text-white font-black text-[11px] tracking-tight">{ad.title}</p>
-                  <p className="text-white/65 text-[8px] font-medium">{ad.sub}</p>
-                </div>
-                <ArrowRight size={12} className="text-white/50 ml-auto flex-shrink-0" />
-              </motion.button>
-            ))}
+          {/* ── CINEMATIC AD BANNERS (Premium Posters) ── */}
+          <div className="relative">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 -mx-5 px-5">
+              {[
+                { 
+                  title: "AQUA PROBIOTIC", 
+                  season: "FORMULA 2.0",
+                  sub: "Protect your harvest from early mortality syndrome.", 
+                  img: "https://images.unsplash.com/photo-1620325867502-221affb5fb3f?q=80&w=800&auto=format&fit=crop", 
+                  path: '/shop'
+                },
+                { 
+                  title: "HIGH-PROTEIN", 
+                  season: "GROWTH FEED X",
+                  sub: "Accelerate Vanamei growth by 15% with complete nutrition.", 
+                  img: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop", 
+                  path: '/shop'
+                },
+                { 
+                  title: "AERATOR", 
+                  season: "FLEET UPGRADE",
+                  sub: "Energy efficient paddlewheel aerators available on 0% EMI.", 
+                  img: "https://images.unsplash.com/photo-1518118228308-5bb400262193?q=80&w=800&auto=format&fit=crop", 
+                  path: '/shop'
+                },
+              ].map((ad, i) => (
+                <motion.div
+                  key={i}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate(ad.path)}
+                  className="snap-center shrink-0 w-[90vw] sm:w-[450px] aspect-[1.8/1] relative rounded-xl overflow-hidden shadow-2xl group border border-white/10 bg-black"
+                >
+                  <img src={ad.img} alt={ad.title} className="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-[1.03]" />
+                  
+                  {/* Heavy dark gradient to replicate the TV poster look */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
+                  
+                  {/* Banner Content Container */}
+                  <div className="absolute inset-y-0 left-0 p-5 sm:p-8 flex flex-col justify-end pb-8 w-[80%] z-10">
+                    <h3 className="text-white text-3xl sm:text-4xl font-black tracking-tighter uppercase leading-[0.95]" style={{ textShadow: '2px 2px 12px rgba(0,0,0,0.9)' }}>
+                      {ad.title}
+                    </h3>
+                    <p className="text-white text-[11px] sm:text-xs font-black uppercase tracking-[0.3em] mt-3 mb-2 opacity-90" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
+                      {ad.season}
+                    </p>
+                    <p className="text-white/70 text-[10px] sm:text-xs font-medium leading-snug drop-shadow-md">
+                      {ad.sub}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            
+            {/* Pagination Indicators */}
+            <div className="flex justify-center gap-1.5 mt-2 mb-2">
+              <div className="w-4 h-1 bg-emerald-500 rounded-full" />
+              <div className="w-1.5 h-1.5 bg-slate-400/30 rounded-full" />
+              <div className="w-1.5 h-1.5 bg-slate-400/30 rounded-full" />
+            </div>
           </div>
 
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}

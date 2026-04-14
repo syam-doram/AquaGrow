@@ -14,6 +14,7 @@ export const WaterReportScanner = ({ t }: Props) => {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState(false);
@@ -59,6 +60,24 @@ export const WaterReportScanner = ({ t }: Props) => {
     return canvas.toDataURL('image/jpeg', 0.8);
   }, []);
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // In a real app we would upload the file or PDF to an OCR backend
+      setStatus('processing');
+      setTimeout(() => {
+        setStatus('success');
+        setScannedData({
+          ph: 7.8,
+          do: 5.6,
+          ammonia: 0.05,
+          salinity: 15,
+          temperature: 28.5
+        });
+      }, 2500);
+    }
+  };
+
   const handleScan = () => {
     const _image = captureFrame(); // We could process this image in real app
     setStatus('processing');
@@ -99,10 +118,10 @@ export const WaterReportScanner = ({ t }: Props) => {
               Please allow camera permissions or upload a lab report photo from your gallery.
             </p>
             <button 
-              onClick={() => { setStatus('processing'); setTimeout(() => setStatus('success'), 2000); }}
+              onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 bg-emerald-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
             >
-              <Upload size={14} /> Upload Lab Report
+              <Upload size={14} /> Upload PDF or Image
             </button>
           </div>
         ) : (
@@ -216,16 +235,37 @@ export const WaterReportScanner = ({ t }: Props) => {
 
         </AnimatePresence>
         
+        {/* Hidden File Input for PDF / Gallery */}
+        <input 
+          type="file" 
+          accept="image/*,application/pdf" 
+          className="hidden" 
+          ref={fileInputRef}
+          onChange={handleFileUpload} 
+        />
+
         {/* Camera Controls (Bottom Bar) */}
         {status === 'idle' && (
-          <div className="absolute bottom-0 left-0 right-0 p-8 flex items-end justify-center bg-gradient-to-t from-black via-black/80 to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 p-8 flex items-center justify-between pb-10 bg-gradient-to-t from-black via-black/80 to-transparent">
+            {/* Gallery / PDF Upload trigger */}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 active:scale-90 transition-all backdrop-blur-md shrink-0"
+            >
+              <Upload size={20} className="text-white" />
+            </button>
+            
+            {/* Main Scan Trigger */}
             <motion.button 
               whileTap={{ scale: 0.9 }}
               onClick={handleScan}
-              className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] border-4 border-black ring-4 ring-emerald-500/30"
+              className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] border-4 border-black ring-4 ring-emerald-500/30 shrink-0"
             >
-              <FileText size={28} className="text-black" />
+              <Camera size={28} className="text-black" />
             </motion.button>
+
+            {/* Balancing invisible element */}
+            <div className="w-12 h-12 shrink-0" />
           </div>
         )}
 

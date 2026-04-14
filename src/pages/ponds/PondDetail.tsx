@@ -38,6 +38,96 @@ const doColor = (doVal?: number) => {
   return 'text-red-500';
 };
 
+// ── Water Health Score utility ──
+function calcHealthScore(water: any) {
+  if (!water) return 100;
+  let score = 100;
+  const ph = safeNum(water.ph, 7.8);
+  const doVal = safeNum(water.do, 5.5);
+  const ammonia = safeNum(water.ammonia, 0.1);
+  if (ph < 7.0 || ph > 8.8) score -= 30; else if (ph < 7.5 || ph > 8.3) score -= 15;
+  if (doVal < 4.0) score -= 40; else if (doVal < 5.0) score -= 20;
+  if (ammonia > 0.5) score -= 25; else if (ammonia > 0.25) score -= 10;
+  return Math.max(0, score);
+}
+
+const CriticalMedicalWorkflow = ({ pond, latestWater, updatePond, navigate }: any) => {
+  const healthScore = calcHealthScore(latestWater);
+  const medStatus = pond.customData?.medicineStatus;
+  const medDate = pond.customData?.medicineAppliedAt;
+
+  const isCritical = healthScore < 60 || medStatus === 'pending' || medStatus === 'applied' || medStatus === 'failed';
+  if (!isCritical && medStatus !== 'recovered') return null;
+
+  const handleApply = () => {
+    updatePond(pond.id, {
+      ...pond,
+      customData: { ...pond.customData, medicineStatus: 'applied', medicineAppliedAt: new Date().toISOString() }
+    });
+  };
+
+  const handleRecovered = (recovered: boolean) => {
+    updatePond(pond.id, {
+      ...pond,
+      customData: { ...pond.customData, medicineStatus: recovered ? 'recovered' : 'failed' }
+    });
+  };
+
+  if (medStatus === 'recovered') return null;
+
+  if (medStatus === 'failed') {
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-[1.5rem] p-5 shadow-lg mb-4">
+        <h4 className="text-red-500 font-black text-sm mb-1 uppercase tracking-widest flex items-center gap-2">
+          <AlertTriangle size={16} /> Treatment Failed
+        </h4>
+        <p className="text-red-400/80 text-[10px] font-bold mb-4 leading-relaxed">
+          Pond did not recover after primary medicine application. High risk of immediate mortality.
+        </p>
+        <button onClick={() => navigate('/disease-detection')} className="w-full bg-red-600 text-white font-black text-[10px] uppercase tracking-widest py-3 rounded-xl shadow-lg active:scale-95 transition-all">
+          Contact Expert Immediately
+        </button>
+      </div>
+    );
+  }
+
+  if (medStatus === 'applied') {
+    return (
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-[1.5rem] p-5 shadow-lg mb-4">
+        <h4 className="text-amber-500 font-black text-sm mb-1 uppercase tracking-widest flex items-center gap-2">
+          <Stethoscope size={16} /> Under Treatment
+        </h4>
+        <p className="text-amber-400/80 text-[10px] font-bold mb-4 leading-relaxed">
+          Medicine was tracked as applied. Continue with reduced feed (-20%). Has the pond recovered?
+        </p>
+        <div className="flex gap-2">
+          <button onClick={() => handleRecovered(true)} className="flex-1 bg-emerald-600/20 border border-emerald-500/50 text-emerald-400 font-black text-[10px] uppercase tracking-widest py-3 rounded-xl active:scale-95 transition-all">
+            Yes, Recovered
+          </button>
+          <button onClick={() => handleRecovered(false)} className="flex-1 bg-red-600/20 border border-red-500/50 text-red-400 font-black text-[10px] uppercase tracking-widest py-3 rounded-xl active:scale-95 transition-all">
+            No, It's Worse
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-orange-500/10 border border-orange-500/30 rounded-[1.5rem] p-5 shadow-lg shadow-orange-900/20 relative overflow-hidden mb-4">
+      <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/20 blur-xl rounded-full" />
+      <h4 className="text-orange-500 font-black text-sm mb-1 uppercase tracking-widest flex items-center gap-2 relative z-10">
+        <AlertCircle size={16} className="animate-pulse" /> Critical Action Required
+      </h4>
+      <p className="text-orange-400/80 text-[10px] font-bold mb-4 relative z-10 leading-relaxed">
+        Pond is in critical state (Health &lt; 60). Immediate probiotics required. Reduce feeding by 20% immediately.
+      </p>
+      <button onClick={handleApply} className="relative z-10 w-full bg-orange-500 border border-orange-400 text-white font-black text-[10px] uppercase tracking-widest py-3 hover:bg-orange-600 rounded-xl shadow-xl active:scale-95 transition-all">
+        Confirm Meds Applied & Feed Reduced
+      </button>
+    </div>
+  );
+};
+
 export const PondDetail = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -608,6 +698,9 @@ export const PondDetail = ({ t }: { t: Translations }) => {
           <AnimatePresence mode="wait">
             {activeSection === 'overview' && (
               <motion.div key="overview" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="space-y-3">
+
+                {/* Critical Medicine Action Flow */}
+                <CriticalMedicalWorkflow pond={pond} latestWater={todayRecord || pondRecords[0]} updatePond={updatePond} navigate={navigate} />
 
                 {/* SOP Mentor */}
                 <div className={cn("rounded-[2rem] border overflow-hidden", isDark ? "bg-[#0D1A13] border-white/5" : "bg-white border-slate-100")}>

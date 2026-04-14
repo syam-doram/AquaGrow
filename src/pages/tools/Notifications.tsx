@@ -151,6 +151,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations; onMenuClick
     feedRecords: feedLogs ?? [],
     marketPrices: marketPrices ?? [],
     enabled: true,
+    language: user?.language,
   });
 
   const [activeCategory, setActiveCategory] = useState<AlertCategory | 'all'>('all');
