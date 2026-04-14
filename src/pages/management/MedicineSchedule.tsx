@@ -541,7 +541,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
       setCompletedMeds([]);
     } catch (error) {
       console.error('Error logging medication:', error);
-      alert('Failed to save logs. Please try again.');
+      alert(t.failedSaveLogs);
     } finally {
       setIsLogging(false);
     }

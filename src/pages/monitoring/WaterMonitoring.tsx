@@ -22,18 +22,18 @@ import { motion } from 'motion/react';
 import { calculateDOC } from '../../utils/pondUtils';
 
 // ─── HEALTH SCORING ─────────────────────────────────────────────────────────
-const calcHealth = (record: any) => {
-  if (!record) return { score: 0, status: 'NO DATA', color: 'text-slate-400', ring: '#94a3b8', badge: 'bg-slate-100 text-slate-500 border-slate-200' };
+const calcHealth = (record: any, t: Translations) => {
+  if (!record) return { score: 0, status: t.noData, color: 'text-slate-400', ring: '#94a3b8', badge: 'bg-slate-100 text-slate-500 border-slate-200' };
   let pts = 100;
   if (record.ph < 7.0 || record.ph > 9.0) pts -= 25; else if (record.ph < 7.5 || record.ph > 8.5) pts -= 10;
   if (record.do < 4.0) pts -= 35; else if (record.do < 5.0) pts -= 15;
   if (record.salinity < 5 || record.salinity > 30) pts -= 15; else if (record.salinity < 10 || record.salinity > 20) pts -= 5;
   if (record.ammonia && record.ammonia > 0.1) pts -= 30; else if (record.ammonia && record.ammonia > 0.05) pts -= 15;
   const score = Math.max(0, pts);
-  if (score >= 90) return { score, status: 'EXCELLENT', color: 'text-emerald-600', ring: '#10b981', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-  if (score >= 70) return { score, status: 'STABLE', color: 'text-blue-600', ring: '#3b82f6', badge: 'bg-blue-50 text-blue-700 border-blue-200' };
-  if (score >= 50) return { score, status: 'WARNING', color: 'text-amber-600', ring: '#f59e0b', badge: 'bg-amber-50 text-amber-700 border-amber-200' };
-  return { score, status: 'CRITICAL', color: 'text-red-600', ring: '#ef4444', badge: 'bg-red-50 text-red-700 border-red-200' };
+  if (score >= 90) return { score, status: t.excellent, color: 'text-emerald-600', ring: '#10b981', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  if (score >= 70) return { score, status: t.stable, color: 'text-blue-600', ring: '#3b82f6', badge: 'bg-blue-50 text-blue-700 border-blue-200' };
+  if (score >= 50) return { score, status: t.warning, color: 'text-amber-600', ring: '#f59e0b', badge: 'bg-amber-50 text-amber-700 border-amber-200' };
+  return { score, status: t.critical, color: 'text-red-600', ring: '#ef4444', badge: 'bg-red-50 text-red-700 border-red-200' };
 };
 
 const pondPalette = (score: number) =>
@@ -71,7 +71,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
     .filter(r => r.pondId === selectedPondId && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate)))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
-  const health = calcHealth(isLiveMode ? liveData : latestRecord);
+  const health = calcHealth(isLiveMode ? liveData : latestRecord, t);
   const chartData = Array.from({ length: 7 }).map((_, i) => {
     const d = subDays(selectedDate, 6 - i);
     const rec = waterRecords.find(r => r.pondId === selectedPondId && (r.date === format(d, 'yyyy-MM-dd') || isSameDay(new Date(r.date), d)));
@@ -87,7 +87,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
         setLiveData(data); setIsLiveMode(true);
         await addWaterRecord({ pondId: selectedPondId, date: format(new Date(), 'yyyy-MM-dd'), ph: data.ph, do: data.do, ammonia: 0.02, salinity: data.salinity, temperature: data.temp, isSynced: true });
       } else throw new Error('No data');
-    } catch { alert(`Could not connect ${type} sensor.`); }
+    } catch { alert(t.couldNotConnectSensor(type)); }
     finally { setIsConnecting(false); setConnType(null); }
   };
 
@@ -134,22 +134,22 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[8px] font-black text-ink/40 uppercase tracking-widest">
-                {selectedPond?.name || 'Select Pond'}
+                {selectedPond?.name || t.selectPond}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[8px] font-black text-ink/40 uppercase tracking-widest">
-                {isSameDay(selectedDate, startOfToday()) ? 'Today' : format(selectedDate, 'MMM d')}
+                {isSameDay(selectedDate, startOfToday()) ? t.today || 'Today' : format(selectedDate, 'MMM d')}
               </span>
               {!isSameDay(selectedDate, startOfToday()) && (
                 <button onClick={() => setSelectedDate(startOfToday())}
                   className="bg-emerald-600 text-white text-[6px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
-                  Today
+                  {t.today || 'Today'}
                 </button>
               )}
               {isSameDay(selectedDate, startOfToday()) && (
                 <span className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[6px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
-                  ✓ Today
+                  ✓ {t.today || 'Today'}
                 </span>
               )}
             </div>
@@ -159,7 +159,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <div ref={pondRailRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
             {activePonds.map(p => {
               const pr = waterRecords.filter(r => r.pondId === p.id && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-              const ph = calcHealth(pr);
+              const ph = calcHealth(pr, t);
               const pal = pondPalette(ph.score);
               const isActive = selectedPondId === p.id;
               const doc = calculateDOC(p.stockingDate, dateStr);
@@ -201,7 +201,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <Calendar size={11} className="text-emerald-500" />
-              <p className="text-[7px] font-black text-ink/40 uppercase tracking-widest">Culture Timeline</p>
+              <p className="text-[7px] font-black text-ink/40 uppercase tracking-widest">{t.cultureTimeline}</p>
             </div>
             <p className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">
               {selectedPond ? `Start: ${format(startOfDay(new Date(selectedPond.stockingDate)), 'MMM d')}` : '—'}
@@ -260,7 +260,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
             {/* Status info */}
             <div className="flex-1 min-w-0">
               <p className={cn('text-[6px] font-black uppercase tracking-widest mb-0.5', isLiveMode ? 'text-emerald-400' : 'text-ink/30')}>
-                {isLiveMode ? `● NODE LIVE — ${selectedPond?.name}` : 'Pond Health'}
+                {isLiveMode ? `● ${t.liveReadings} — ${selectedPond?.name}` : t.pondHealth}
               </p>
               <div className="flex items-center gap-2 mb-1.5">
                 <span className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border', health.badge)}>
@@ -271,7 +271,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
                 </span>
               </div>
               <p className={cn('text-[7px] font-medium leading-snug', isLiveMode ? 'text-white/40' : 'text-ink/40')}>
-                {health.score >= 90 ? 'All parameters stable.' : health.score >= 70 ? 'Monitor DO & pH.' : 'Check critical parameters now.'}
+                {health.score >= 90 ? t.allParametersStable : health.score >= 70 ? t.monitorDOAndPh : t.checkCriticalNow}
               </p>
             </div>
 
@@ -324,7 +324,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <div className="flex items-center justify-between mb-2 px-1">
             <div>
               <h2 className={cn('font-black text-sm tracking-tight', isLiveMode ? 'text-ink' : 'text-ink')}>
-                {isLiveMode ? 'Live Readings' : 'Water Parameters'}
+                {isLiveMode ? t.liveReadings : t.waterParameters}
               </h2>
               <p className="text-[7px] font-black text-ink/30 uppercase tracking-widest mt-0.5">
                 {format(selectedDate, 'MMM d, yyyy')} · {auditCount}/8 logged
@@ -358,7 +358,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
                       status === 'warn' ? 'bg-amber-100 border-amber-200 text-amber-600' :
                         status === 'ok' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
                           'bg-slate-100 border-slate-200 text-slate-400')}>
-                      {isLiveMode ? 'LIVE' : status === 'ok' ? 'OK' : status === 'warn' ? 'WARN' : 'N/A'}
+                      {isLiveMode ? t.live : status === 'ok' ? t.ok : status === 'warn' ? t.warn : t.na}
                     </span>
                   </div>
                   <p className="text-[6px] font-black text-ink/35 uppercase tracking-widest leading-none mb-1">{m.label}</p>
@@ -422,7 +422,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-blue-400 text-[5px] font-black uppercase tracking-[0.3em]">📊 Health Analysis</p>
-                  <p className="text-white font-black text-[11px] tracking-tight">View Full Water Health Report</p>
+                  <p className="text-white font-black text-[11px] tracking-tight">{t.viewFullReport}</p>
                   <p className="text-white/35 text-[7px] font-medium">Parameter breakdown · Contribution scores · AI actions</p>
                 </div>
                 <span className="text-blue-400 text-sm font-black flex-shrink-0">→</span>

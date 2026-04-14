@@ -16,6 +16,7 @@ import {
   AlertCategory, PRIORITY_CONFIG, CATEGORY_CONFIG,
   NotificationPrefs,
 } from '../../services/notificationEngine';
+import { getAlertTranslations, AlertTranslations } from '../../services/alertTranslations';
 
 // ─── CATEGORY FILTER TABS ─────────────────────────────────────────────────────
 const ALL_CATEGORIES: { id: AlertCategory | 'all'; label: string; icon: any }[] = [
@@ -44,12 +45,13 @@ const PREF_ITEMS: { key: keyof NotificationPrefs; label: string; sub: string; ic
 
 // ─── SINGLE ALERT CARD ────────────────────────────────────────────────────────
 const AlertCard = ({
-  alert, isDark, onRead, onDismiss, navigate,
+  alert, isDark, onRead, onDismiss, navigate, AT,
 }: {
   alert: any; isDark: boolean; key?: React.Key;
   onRead: (id: string) => void;
   onDismiss: (id: string) => void;
   navigate: (r: string) => void;
+  AT: AlertTranslations;
 }) => {
   const pri = PRIORITY_CONFIG[alert.priority as keyof typeof PRIORITY_CONFIG] ?? PRIORITY_CONFIG.info;
   const cat = CATEGORY_CONFIG[alert.category as AlertCategory] ?? CATEGORY_CONFIG.system;
@@ -88,8 +90,8 @@ const AlertCard = ({
                 <span className={cn('text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded',
                   isDark ? `${pri.dark} border border-white/10` : pri.light.replace('border-', 'border ').split(' ').slice(0,2).join(' '),
                   pri.text
-                )}>{pri.label}</span>
-                <span className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{cat.label}</span>
+                )}>{AT.priority[alert.priority as keyof typeof AT.priority] || pri.label}</span>
+                <span className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{AT.category[alert.category as keyof typeof AT.category] || cat.label}</span>
                 {alert.pondName && (
                   <span className={cn('text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
                     isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
@@ -140,6 +142,8 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations; onMenuClick
   const { user, theme, ponds, waterRecords, feedLogs, marketPrices } = useData();
   const navigate = useNavigate();
   const isDark = theme === 'dark' || theme === 'midnight';
+  const currentLang = user?.language || (localStorage.getItem('aqua_lang') as Language) || 'English';
+  const AT = getAlertTranslations(currentLang);
 
   const {
     alerts, prefs, updatePrefs,
@@ -151,7 +155,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations; onMenuClick
     feedRecords: feedLogs ?? [],
     marketPrices: marketPrices ?? [],
     enabled: true,
-    language: user?.language,
+    language: currentLang,
   });
 
   const [activeCategory, setActiveCategory] = useState<AlertCategory | 'all'>('all');
@@ -437,6 +441,7 @@ export const Notifications = ({ t, onMenuClick }: { t: Translations; onMenuClick
                     onRead={markRead}
                     onDismiss={dismissAlert}
                     navigate={navigate}
+                    AT={AT}
                   />
                 ))}
               </AnimatePresence>

@@ -236,9 +236,13 @@ export const useSmartAlerts = (params: {
     if (newAlerts.length > 0) {
       setAlerts(prev => [...newAlerts, ...prev].slice(0, 100));
     }
-  }, [enabled, ponds, waterRecords, feedRecords, marketPrices, prefs, fireLocalNotification]);
+  }, [enabled, ponds, waterRecords, feedRecords, marketPrices, prefs, fireLocalNotification, language]);
 
   // ── Auto-run on interval ──
+  useEffect(() => {
+    lastRunRef.current = 0; // Force run on language change
+  }, [language]);
+
   useEffect(() => {
     if (!enabled) return;
     // Immediate run

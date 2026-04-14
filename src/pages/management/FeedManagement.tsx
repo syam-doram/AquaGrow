@@ -306,7 +306,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
     if (syncedSlots.includes(slotTime) || !selectedPond) return;
     // Guard: can't log when offline — API call will fail silently
     if (isOffline) {
-      alert('You are offline. Feed slot logging will be available once connected.');
+      alert(t.offlineFeedLog);
       return;
     }
     const feedKg = Number(kg);

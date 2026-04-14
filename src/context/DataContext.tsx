@@ -540,7 +540,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: true };
     } catch (error: any) {
       console.error("Registration error:", error);
-      return { success: false, error: 'Cannot connect to server.' };
+      const t = translations[userData.language as keyof typeof translations || 'English'];
+      return { success: false, error: t.cannotConnectServer };
     } finally {
       setIsSyncing(false);
     }
@@ -565,7 +566,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: true, user: loggedUser };
     } catch (error: any) {
       console.error("Login error:", error);
-      return { success: false, error: 'Cannot connect to server.' };
+      const t = translations[user?.language as keyof typeof translations || 'English'];
+      return { success: false, error: t.cannotConnectServer };
     } finally {
       setIsSyncing(false);
     }
@@ -590,7 +592,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: true, user: loggedUser };
     } catch (error: any) {
       console.error("Login error:", error);
-      return { success: false, error: 'Cannot connect to server.' };
+      const t = translations[user?.language as keyof typeof translations || 'English'];
+      return { success: false, error: t.cannotConnectServer };
     } finally {
       setIsSyncing(false);
     }
@@ -722,8 +725,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const limit = getPondLimit();
     const activePondsCount = ponds.filter(p => p.status === 'active').length;
     
+    const t = translations[user?.language as keyof typeof translations || 'English'];
     if (activePondsCount >= limit) {
-      alert(`Capacity Reached! Your plan allows maximum ${limit} active ponds. Please upgrade to add more.`);
+      alert(t.capacityReached(limit));
       return;
     }
 

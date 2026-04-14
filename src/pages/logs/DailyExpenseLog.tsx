@@ -262,7 +262,7 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
                       type="number" 
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      placeholder={`${t.total} ${category.unit.toLowerCase()}...`}
+                      placeholder={`${t.expenseTotal} ${category.unit.toLowerCase()}...`}
                       className="w-full bg-card/50 border border-card-border rounded-[1.2rem] py-3 pl-4 pr-16 text-sm font-black text-ink outline-none focus:border-black/10 transition-all"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-ink/30 uppercase tracking-widest">

@@ -3,6 +3,7 @@ import { Language } from './types';
 export interface Translations {
   // Navigation & Headers
   dashboard: string;
+  all: string;
   home: string;
   ponds: string;
   feed: string;
@@ -221,8 +222,33 @@ export interface Translations {
   poor: string;
   excellent: string;
   stable: string;
+  critical: string;
+  noData: string;
+  ok: string;
+  warn: string;
+  selectPond: string;
+  allParametersStable: string;
+  monitorDOAndPh: string;
+  checkCriticalNow: string;
+  liveReadings: string;
+  waterParameters: string;
+  live: string;
+  na: string;
   urgent: string;
+  info: string;
+  lunar: string;
+  yesterday: string;
+  pondHealth: string;
+  viewFullReport: string;
+  moreAlertsHint: string;
   dailyFeedCost: string;
+  activePondsLabel: string;
+  stockDayAlert: string;
+  stockDayDesc: string;
+  confirmStock: string;
+  smartAlerts: string;
+  later: string;
+  allowAlerts: string;
   estFeedCostPerKg: string;
   allTasksDone: string;
   viewAllPonds: string;
@@ -465,7 +491,7 @@ export interface Translations {
   outflow: string;
   selectCulturePond: string;
   date: string;
-  total: string;
+  expenseTotal: string;
   expenseCategory: string;
   purchased: string;
   calculatedUnitPrice: string;
@@ -753,6 +779,54 @@ export interface Translations {
   ddQuotaExhausted: string;
   ddQuotaResets: string;
   ddProFeatureRequired: string;
+
+  // Alerts & Errors
+  capacityReached: (limit: number) => string;
+  cannotConnectServer: string;
+  couldNotConnectSensor: (type: string) => string;
+  upgradeFailed: string;
+  selectPlanToUpgrade: string;
+  failedSaveLogs: string;
+  offlineFeedLog: string;
+
+  // Shop Page
+  shopTitle: string;
+  shopSubtitle: string;
+  searchProducts: string;
+  itemsInCart: (count: number) => string;
+  medicineSale: string;
+  medicineSaleDesc: string;
+  bulkFeedDeal: string;
+  bulkFeedDealDesc: string;
+  freeDelivery: string;
+  freeDeliveryDesc: string;
+  wssvKit: string;
+  oneTwoDayDelivery: string;
+  ownerApproved: string;
+  nearestProvider: string;
+  bestPrices: string;
+  howItWorksShop: string;
+  medicinesLabel: string;
+  addToCart: string;
+  needExpertAdvice: string;
+  expertAdviceDesc: string;
+  callExpert: string;
+  whatsapp: string;
+  yourCart: string;
+  cartEmpty: string;
+  cartTotal: string;
+  placeOrder: string;
+  placingOrder: string;
+  orderPlaced: string;
+  whatHappensNext: string;
+  orderStep1: string;
+  orderStep2: string;
+  orderStep3: string;
+  deliveryNoteLabel: string;
+  deliveryNotePlaceholder: string;
+  noProductsFound: string;
+  orderFailed: string;
+  codDisclaimer: string;
 }
 
 // Privacy Policy — English
@@ -1155,7 +1229,7 @@ const English: Translations = {
   outflow: 'Outflow',
   selectCulturePond: 'Select Culture Pond',
   date: 'Date',
-  total: 'Total',
+  expenseTotal: 'Total',
   expenseCategory: 'Expense Category',
   purchased: 'Purchased',
   calculatedUnitPrice: 'Calculated Unit Price',
@@ -1273,8 +1347,15 @@ const English: Translations = {
   ddScansRemaining: 'remaining',
   ddMonthlyQuota: 'Monthly Quota',
   ddQuotaExhausted: 'Exhausted',
-  ddQuotaResets: 'Your quota resets on the 1st of next month.',
-  ddProFeatureRequired: 'AI Disease Detection requires an active Pro plan.',
+  ddQuotaResets: 'Quota resets on 1st of next month.',
+  ddProFeatureRequired: 'Pro Subscription Required',
+  capacityReached: (limit) => `Capacity Reached! Your plan allows maximum ${limit} active ponds. Please upgrade to add more.`,
+  cannotConnectServer: 'Cannot connect to server.',
+  couldNotConnectSensor: (type) => `Could not connect ${type} sensor.`,
+  upgradeFailed: 'Upgrade failed. Please check your connection.',
+  selectPlanToUpgrade: 'Please select a plan to upgrade.',
+  failedSaveLogs: 'Failed to save logs. Please try again.',
+  offlineFeedLog: 'You are offline. Feed slot logging will be available once connected.',
 
   // Market Prices  
   blackTiger: 'Black Tiger',
@@ -1378,17 +1459,35 @@ const English: Translations = {
   editDate: 'Reschedule Stocking',
 
   // Pond Status Labels
-  statusActive: 'Active',
-  statusPlanned: 'Planned',
-  statusSelling: 'Selling',
-  statusHarvested: 'Harvested',
-  statusArchived: 'Archived',
-  statusNotStarted: 'Not Started',
-  trustExcellent: 'Excellent',
-  trustGood: 'Good',
-  trustFair: 'Fair',
-  trustNeedsWork: 'Needs Work',
-
+  excellent: 'Excellent',
+  stable: 'Stable',
+  critical: 'Critical',
+  noData: 'No Data',
+  ok: 'OK',
+  warn: 'Warn',
+  selectPond: 'Select Pond',
+  allParametersStable: 'All parameters stable.',
+  monitorDOAndPh: 'Monitor DO & pH.',
+  checkCriticalNow: 'Check critical parameters now.',
+  liveReadings: 'Live Readings',
+  waterParameters: 'Water Parameters',
+  live: 'LIVE',
+  na: 'N/A',
+  urgent: 'Urgent',
+  info: 'INFO',
+  lunar: 'LUNAR',
+  yesterday: 'Yesterday',
+  pondHealth: 'Pond Health',
+  viewFullReport: 'View Full Water Health Report',
+  moreAlertsHint: 'more alerts · View all',
+  dailyFeedCost: 'Daily Feed Cost',
+  activePondsLabel: 'Active Ponds',
+  stockDayAlert: 'Stock Day Alert',
+  stockDayDesc: 'Date reached. Action required to start SOP tracking.',
+  confirmStock: 'CONFIRM STOCK',
+  smartAlerts: 'Smart Alerts',
+  later: 'Later',
+  allowAlerts: 'Allow Alerts',
   // Farm Overview
   farmOverview: 'Farm Overview',
   myFarm: 'My Farm',
@@ -1557,6 +1656,46 @@ const English: Translations = {
   addProduct: 'Add Product',
   stock: 'Stock',
   viewDetails: 'View Details',
+
+  // Shop Page
+  all: 'All',
+  shopTitle: 'AquaGrow Shop',
+  shopSubtitle: 'Genuine Medicines & Feed · Fast Delivery',
+  searchProducts: 'Search medicines, feeds...',
+  itemsInCart: (count) => `${count} item${count > 1 ? 's' : ''}`,
+  medicineSale: 'Medicine Sale',
+  medicineSaleDesc: 'Flat 20% Off',
+  bulkFeedDeal: 'Bulk Feed Deal',
+  bulkFeedDealDesc: 'Buy 5, Get 1 Free',
+  freeDelivery: 'Free Delivery',
+  freeDeliveryDesc: 'On orders over ₹1,999',
+  wssvKit: 'WSSV Kit',
+  oneTwoDayDelivery: '1–2 Day Delivery',
+  ownerApproved: 'Owner Approved',
+  nearestProvider: 'Nearest Provider',
+  bestPrices: 'Best Prices',
+  howItWorksShop: 'Your order goes to the nearest verified provider who delivers to your farm. All products are AquaGrow-approved & quality-checked.',
+  medicinesLabel: 'Medicines',
+  addToCart: 'Add to Cart',
+  needExpertAdvice: 'Need Expert Advice?',
+  expertAdviceDesc: 'Our experts help you choose the right medicine and feed for your pond stage.',
+  callExpert: 'Call Expert',
+  whatsapp: 'WhatsApp',
+  yourCart: 'Your Cart',
+  cartEmpty: 'Cart is empty',
+  cartTotal: 'Total',
+  placeOrder: 'Place Order',
+  placingOrder: 'Placing Order...',
+  orderPlaced: 'Order Placed!',
+  whatHappensNext: 'What happens next',
+  orderStep1: 'Your order is assigned to the nearest AquaGrow provider.',
+  orderStep2: 'Provider confirms and prepares your items for dispatch.',
+  orderStep3: 'Delivered to your farm within 1–2 working days.',
+  deliveryNoteLabel: 'Delivery Note (optional)',
+  deliveryNotePlaceholder: 'e.g. Deliver before 10am, call on arrival...',
+  noProductsFound: 'No products found',
+  orderFailed: 'Order failed. Please try again or call support.',
+  codDisclaimer: 'Cash on delivery · Payment on delivery · AquaGrow approved products',
 };
 
 // Privacy Policy — Telugu
@@ -1706,6 +1845,37 @@ const Telugu: Translations = {
   estSurvivingCount: 'అంచనా వేసిన రొయ్యల సంఖ్య',
   estimatedBiomass: 'అంచనా వేసిన బయోమాస్',
   survivalRate_short: 'జీవితకాలం',
+  excellent: 'అద్భుతం',
+  stable: 'స్థిరంగా ఉంది',
+  critical: 'అత్యవసరం',
+  noData: 'డేటా లేదు',
+  ok: 'బాగుంది',
+  warn: 'జాగ్రత్త',
+  selectPond: 'చెరువును ఎంచుకోండి',
+  allParametersStable: 'అన్ని పారామితులు స్థిరంగా ఉన్నాయి.',
+  monitorDOAndPh: 'DO & pH పర్యవేక్షించండి.',
+  checkCriticalNow: 'వెంటనే పారామితులను తనిఖీ చేయండి.',
+  liveReadings: 'లైవ్ రీడింగ్స్',
+  waterParameters: 'నీటి పారామితులు',
+  live: 'లైవ్',
+  na: 'లభ్యం లేదు',
+  urgent: 'అత్యవసరం',
+  info: 'సమాచారం',
+  lunar: 'చంద్ర',
+  today: 'నేడు',
+  yesterday: 'నిన్న',
+  pondHealth: 'చెరువు ఆరోగ్యం',
+  viewFullReport: 'పూర్తి నీటి ఆరోగ్య నివేదికను చూడండి',
+  moreAlertsHint: 'మరిన్ని హెచ్చరికలు · చూడు',
+  dailyFeedCost: 'రోజువారీ మేత ఖర్చు',
+  activePondsLabel: 'క్రియాశీల చెరువులు',
+  stockDayAlert: 'స్టాకింగ్ రోజు హెచ్చరిక',
+  stockDayDesc: 'తేదీ సమీపించింది. SOP ట్రాకింగ్ ప్రారంభించడానికి చర్య అవసరం.',
+  confirmStock: 'స్టాకింగ్ ధృవీకరించండి',
+  smartAlerts: 'స్మార్ట్ హెచ్చరికలు',
+  later: 'తర్వాత',
+  allowAlerts: 'హెచ్చరికలను అనుమతించండి',
+  estFeedCostPerKg: 'అంచనా వేసిన మేత ఖర్చు / కిలో',
   monitorTrays: 'మేత ట్రేలను జాగ్రత్తగా పర్యవేక్షించండి',
   blindFeedingActive: 'బ్లైండ్ ఫీడింగ్ (DOC < 10)',
   applyAction: 'అన్వయించండి',
@@ -2050,7 +2220,7 @@ const Telugu: Translations = {
   outflow: 'ఖర్చు',
   selectCulturePond: 'చెరువును ఎంచుకోండి',
   date: 'తేదీ',
-  total: 'మొత్తం',
+  expenseTotal: 'మొత్తం',
   expenseCategory: 'ఖర్చు కేటగిరీ',
   purchased: 'కొనుగోలు చేయబడింది',
   calculatedUnitPrice: 'లెక్కించిన యూనిట్ ధర',
@@ -2371,6 +2541,55 @@ const Telugu: Translations = {
   addProduct: 'ఉత్పత్తి జోడించండి',
   stock: 'స్టాక్',
   viewDetails: 'వివరాలు చూడండి',
+  
+  // Alerts & Errors
+  capacityReached: (limit) => `పరిమితికి చేరుకున్నారు! మీ ప్లాన్ గరిష్టంగా ${limit} క్రియాశీల చెరువులను మాత్రమే అనుమతిస్తుంది. మరిన్ని జోడించడానికి దయచేసి అప్‌గ్రేడ్ చేయండి.`,
+  cannotConnectServer: 'సర్వర్‌కు కనెక్ట్ కాలేదు.',
+  couldNotConnectSensor: (type) => `${type} సెన్సార్‌ను కనెక్ట్ చేయలేకపోయాము.`,
+  upgradeFailed: 'అప్‌గ్రేడ్ ఫెయిల్ అయింది. దయచేసి మీ కనెక్షన్‌ని తనిఖీ చేయండి.',
+  selectPlanToUpgrade: 'దయచేసి అప్‌గ్రేడ్ చేయడానికి ఒక ప్లాన్‌ని ఎంచుకోండి.',
+  failedSaveLogs: 'లాగ్స్ సేవ్ చేయడం విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి.',
+  offlineFeedLog: 'మీరు ఆఫ్‌లైన్‌లో ఉన్నారు. ఇంటర్నెట్ కనెక్ట్ అయిన తర్వాత ఫీడ్ స్లాట్ లాగింగ్ అందుబాటులో ఉంటుంది.',
+
+  // Shop Page
+  all: 'అన్నీ',
+  shopTitle: 'అక్వాగ్రో షాప్',
+  shopSubtitle: 'అసలైన మందులు & మేత · వేగవంతమైన డెలివరీ',
+  searchProducts: 'మందులు, మేత కోసం వెతకండి...',
+  itemsInCart: (count) => `${count} వస్తువు${count > 1 ? 'లు' : ''}`,
+  medicineSale: 'మందుల సేల్',
+  medicineSaleDesc: 'ఫ్లాట్ 20% తగ్గింపు',
+  bulkFeedDeal: 'బల్క్ ఫీడ్ డీల్',
+  bulkFeedDealDesc: '5 కొనండి, 1 ఉచితం',
+  freeDelivery: 'ఉచిత డెలివరీ',
+  freeDeliveryDesc: '₹1,999 పైగా ఆర్డర్లపై',
+  wssvKit: 'WSSV కిట్',
+  oneTwoDayDelivery: '1–2 రోజుల్లో డెలివరీ',
+  ownerApproved: 'యజమాని ఆమోదించినవి',
+  nearestProvider: 'దగ్గరి ప్రదాత',
+  bestPrices: 'ఉత్తమ ధరలు',
+  howItWorksShop: 'మీ ఆర్డర్ మీ ఫారమ్‌కు డెలివరీ చేసే సమీప ధృవీకరించబడిన ప్రదాతకు వెళుతుంది. అన్ని ఉత్పత్తులు అక్వాగ్రో-ఆమోదిత మరియు నాణ్యత తనిఖీ చేయబడినవి.',
+  medicinesLabel: 'మందులు',
+  addToCart: 'కార్ట్‌కు జోడించు',
+  needExpertAdvice: 'నిపుణుల సలహా కావాలా?',
+  expertAdviceDesc: 'మీ చెరువు దశకు సరైన మందు మరియు మేతను ఎంచుకోవడానికి మా నిపుణులు మీకు సహాయం చేస్తారు.',
+  callExpert: 'నిపుణుడికి కాల్ చేయండి',
+  whatsapp: 'వాట్సాప్',
+  yourCart: 'మీ కార్ట్',
+  cartEmpty: 'కార్ట్ ఖాళీగా ఉంది',
+  cartTotal: 'మొత్తం',
+  placeOrder: 'ఆర్డర్ చేయండి',
+  placingOrder: 'ఆర్డర్ పంపిస్తున్నాము...',
+  orderPlaced: 'ఆర్డర్ పూర్తయింది!',
+  whatHappensNext: 'తదుపరి ఏమి జరుగుతుంది',
+  orderStep1: 'మీ ఆర్డర్ సమీప అక్వాగ్రో ప్రదాతకు కేటాయించబడుతుంది.',
+  orderStep2: 'ప్రదాత మీ వస్తువులను ధృవీకరించి డెలివరీకి సిద్ధం చేస్తారు.',
+  orderStep3: '1-2 పని దినాలలో మీ ఫారమ్‌కు డెలివరీ చేయబడుతుంది.',
+  deliveryNoteLabel: 'డెలివరీ నోట్ (ఐచ్ఛికం)',
+  deliveryNotePlaceholder: 'ఉదా: ఉదయం 10 గంటల లోపు డెలివరీ చేయండి...',
+  noProductsFound: 'ఉత్పత్తులు ఏవీ కనుగొనబడలేదు',
+  orderFailed: 'ఆర్డర్ విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి లేదా మద్దతును సంప్రదించండి.',
+  codDisclaimer: 'క్యాష్ ఆన్ డెలివరీ · డెలివరీ సమయంలో చెల్లింపు · అక్వాగ్రో ఆమోదిత ఉత్పత్తులు',
 };
 
 export const translations: Record<Language, Translations> = {

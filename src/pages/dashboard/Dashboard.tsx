@@ -760,13 +760,13 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                         }}
                         className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[8px] font-black uppercase tracking-widest shadow-lg"
                       >
-                        🔔 Allow Alerts
+                        🔔 {t.allowAlerts}
                       </button>
                       <button
                         onClick={() => setShowPermBanner(false)}
                         className={cn("px-4 py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "border-white/10 text-white/30" : "border-slate-200 text-slate-400")}
                       >
-                        Later
+                        {t.later}
                       </button>
                     </div>
                   </div>
@@ -872,9 +872,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
               className={cn("flex flex-col items-center px-3 py-2 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}
             >
-              <span className="text-base leading-none">🦐</span>
-              <span className={cn("text-lg font-black tracking-tighter leading-none mt-0.5", isDark ? "text-emerald-400" : "text-emerald-600")}>{activePonds.length}</span>
-              <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/60" : "text-emerald-600/60")}>Active Ponds</span>
+               <span className="text-base leading-none">🦐</span>
+               <span className={cn("text-lg font-black tracking-tighter leading-none mt-0.5", isDark ? "text-emerald-400" : "text-emerald-600")}>{activePonds.length}</span>
+               <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/60" : "text-emerald-600/60")}>{t.activePondsLabel}</span>
             </motion.div>
           </motion.div>
 
@@ -889,17 +889,17 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                       <Zap className="text-emerald-400 drop-shadow-md" size={24} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1">Stock Day Alert</p>
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1">{t.stockDayAlert}</p>
                       <h3 className="text-white text-xl font-black tracking-tight leading-none mb-1.5">
                         {p.name}
                       </h3>
                       <p className="text-emerald-100/60 text-[10px] uppercase font-bold tracking-widest leading-relaxed mb-4">
-                        Date reached. Action required to start SOP tracking.
+                        {t.stockDayDesc}
                       </p>
                       <div className="flex gap-2">
-                        <button onClick={() => updatePond(p.id, { status: 'active' })} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-center gap-2 uppercase tracking-[0.1em] text-[9px] active:scale-95 transition-all outline-none">
-                          <Fish size={14} /> CONFIRM STOCK
-                        </button>
+                         <button onClick={() => updatePond(p.id, { status: 'active' })} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-center gap-2 uppercase tracking-[0.1em] text-[10px] active:scale-95 transition-all outline-none">
+                           <Fish size={14} /> {t.confirmStock}
+                         </button>
                       </div>
                     </div>
                   </div>
@@ -915,17 +915,17 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
               className="flex items-center gap-8 whitespace-nowrap min-w-max px-4"
             >
-              {[
-                { emoji: '💊', title: 'Medicine Sale', sub: 'Up to 20% off', color: 'text-purple-400' },
-                { emoji: '🌾', title: 'Bulk Feed Deal', sub: 'Buy 10 bags, get 1 FREE', color: 'text-emerald-400' },
-                { emoji: '🚚', title: 'Free Delivery', sub: 'Orders > ₹2,000', color: 'text-blue-400' },
-                { emoji: '🔬', title: 'WSSV Test Kit', sub: 'DOC 45 Special', color: 'text-red-400' },
-                // Duplicated array for seamless infinite loop effect
-                { emoji: '💊', title: 'Medicine Sale', sub: 'Up to 20% off', color: 'text-purple-400' },
-                { emoji: '🌾', title: 'Bulk Feed Deal', sub: 'Buy 10 bags, get 1 FREE', color: 'text-emerald-400' },
-                { emoji: '🚚', title: 'Free Delivery', sub: 'Orders > ₹2,000', color: 'text-blue-400' },
-                { emoji: '🔬', title: 'WSSV Test Kit', sub: 'DOC 45 Special', color: 'text-red-400' },
-              ].map((ad, i) => (
+                {[
+                  { emoji: '💊', title: t.medicineSale, sub: t.medicineSaleDesc, color: 'text-purple-400' },
+                  { emoji: '🌾', title: t.bulkFeedDeal, sub: t.bulkFeedDealDesc, color: 'text-emerald-400' },
+                  { emoji: '🚚', title: t.freeDelivery, sub: t.freeDeliveryDesc, color: 'text-blue-400' },
+                  { emoji: '🔬', title: t.wssvKit, sub: 'DOC 45 Special', color: 'text-red-400' },
+                  // Duplicated array for seamless infinite loop effect
+                  { emoji: '💊', title: t.medicineSale, sub: t.medicineSaleDesc, color: 'text-purple-400' },
+                  { emoji: '🌾', title: t.bulkFeedDeal, sub: t.bulkFeedDealDesc, color: 'text-emerald-400' },
+                  { emoji: '🚚', title: t.freeDelivery, sub: t.freeDeliveryDesc, color: 'text-blue-400' },
+                  { emoji: '🔬', title: t.wssvKit, sub: 'DOC 45 Special', color: 'text-red-400' },
+                ].map((ad, i) => (
                 <div key={i} className="flex items-center gap-2.5 active:opacity-50 transition-opacity">
                   <div className="w-7 h-7 rounded-none bg-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
                     <span className="text-sm leading-none drop-shadow-sm">{ad.emoji}</span>
@@ -973,8 +973,8 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 <div className="flex items-center justify-between px-1">
                   <h2 className={cn("text-xs font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
                     <Bell size={13} className="text-red-500 animate-bounce" />
-                    Smart Alerts
-                    <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full bg-red-500 text-white">{situationAlerts.length}</span>
+                     {t.smartAlerts}
+                     <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full bg-red-500 text-white">{situationAlerts.length}</span>
                   </h2>
                   <div className="flex items-center gap-3">
                     <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
@@ -989,11 +989,11 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 {/* Show first 3 alerts — full detail */}
                 {situationAlerts.slice(0, 3).map((alert, i) => {
                   const alertColors = {
-                    critical: { bg: isDark ? 'bg-red-500/12 border-red-500/40' : 'bg-red-50 border-red-300', text: 'text-red-500', badge: 'bg-red-500', label: 'CRITICAL' },
-                    warning:  { bg: isDark ? 'bg-amber-500/12 border-amber-500/40' : 'bg-amber-50 border-amber-300', text: 'text-amber-500', badge: 'bg-amber-500', label: 'WARNING' },
-                    info:     { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: 'INFO' },
-                    success:  { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500', label: 'GOOD' },
-                    lunar:    { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: 'LUNAR' },
+                    critical: { bg: isDark ? 'bg-red-500/12 border-red-500/40' : 'bg-red-50 border-red-300', text: 'text-red-500', badge: 'bg-red-500', label: t.critical },
+                    warning:  { bg: isDark ? 'bg-amber-500/12 border-amber-500/40' : 'bg-amber-50 border-amber-300', text: 'text-amber-500', badge: 'bg-amber-500', label: t.warning },
+                    info:     { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: (t as any).info || 'INFO' },
+                    success:  { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500', label: t.good },
+                    lunar:    { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: (t as any).lunar || 'LUNAR' },
                   };
                   const c = alertColors[alert.type as keyof typeof alertColors] || alertColors.info;
                   return (
@@ -1061,7 +1061,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   <button onClick={() => navigate('/notifications')} className={cn("w-full py-2 rounded-xl border text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5",
                     isDark ? "bg-white/3 border-white/8 text-white/30" : "bg-white border-slate-200 text-slate-400"
                   )}>
-                    +{situationAlerts.length - 3} more alerts · View all in Notifications
+                    +{situationAlerts.length - 3} {t.moreAlertsHint}
                   </button>
                 )}
               </motion.div>

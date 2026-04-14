@@ -340,44 +340,47 @@ export const ROIEntry = ({ t }: { t: Translations }) => {
 
       {/* ── STEP PROGRESS BAR ── */}
       <div className={cn(
-        'fixed left-0 right-0 max-w-[420px] mx-auto z-40 px-5 py-3 border-b backdrop-blur-xl',
+        'fixed left-0 right-0 max-w-[420px] mx-auto z-40 px-5 pt-4 pb-2.5 border-b backdrop-blur-xl',
         fromHarvest ? 'top-[108px]' : 'top-[60px]',
         isDark ? 'bg-[#070D12]/90 border-white/5' : 'bg-white/95 border-slate-100 shadow-sm'
       )}>
-        {/* Step dots with labels */}
-        <div className="flex items-center gap-0 mb-2">
-          {STEPS.map((s, i) => {
-            const done    = step > s.id;
-            const current = step === s.id;
-            return (
-              <React.Fragment key={s.id}>
-                <div className="flex flex-col items-center">
+        <div className="relative">
+          {/* Connector Line (Background) */}
+          <div className={cn('absolute top-[10px] left-8 right-8 h-0.5 -z-10 rounded-full', isDark ? 'bg-white/5' : 'bg-slate-100')} />
+          {/* Progress Line */}
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+            className="absolute top-[10px] left-8 right-8 h-0.5 bg-gradient-to-r from-[#C78200] to-amber-400 -z-10 rounded-full origin-left"
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+
+          <div className="flex justify-between items-start">
+            {STEPS.map((s, i) => {
+              const done    = step > s.id;
+              const current = step === s.id;
+              return (
+                <div key={s.id} className="flex flex-col items-center w-1/4">
+                  {/* Step Dot */}
                   <div className={cn(
-                    'w-5 h-5 rounded-full flex items-center justify-center border transition-all text-[7px] font-black',
+                    'w-5 h-5 rounded-full flex items-center justify-center border transition-all text-[8px] font-black z-10',
                     done    ? 'bg-emerald-500 border-emerald-500 text-white' :
                     current ? 'bg-[#C78200] border-[#C78200] text-white shadow-lg shadow-amber-500/30' :
-                              isDark ? 'bg-white/5 border-white/15 text-white/20' : 'bg-slate-100 border-slate-200 text-slate-400'
+                              isDark ? 'bg-[#070D12] border-white/10 text-white/20' : 'bg-white border-slate-200 text-slate-400'
                   )}>
-                    {done ? <CheckCircle2 size={10} /> : s.id}
+                    {done ? <CheckCircle2 size={11} /> : s.id}
                   </div>
-                  <p className={cn('text-[5.5px] font-black uppercase tracking-wider mt-0.5 whitespace-nowrap',
-                    current ? 'text-[#C78200]' : done ? isDark ? 'text-white/30' : 'text-slate-400' : isDark ? 'text-white/15' : 'text-slate-300'
-                  )}>{s.title}</p>
+                  {/* Step Title Label */}
+                  <p className={cn(
+                    'text-[6.5px] font-black uppercase tracking-tighter mt-1.5 text-center leading-tight transition-colors px-1',
+                    current ? 'text-[#C78200]' : done ? (isDark ? 'text-white/40' : 'text-slate-500') : (isDark ? 'text-white/10' : 'text-slate-300')
+                  )}>
+                    {s.title}
+                  </p>
                 </div>
-                {i < STEPS.length - 1 && (
-                  <div className={cn('flex-1 h-0.5 mb-3', done ? 'bg-emerald-500' : isDark ? 'bg-white/8' : 'bg-slate-200')} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-        {/* Progress bar */}
-        <div className={cn('w-full h-1 rounded-full overflow-hidden', isDark ? 'bg-white/5' : 'bg-slate-100')}>
-          <motion.div
-            animate={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="h-full bg-gradient-to-r from-[#C78200] to-amber-400 rounded-full"
-          />
+              );
+            })}
+          </div>
         </div>
       </div>
 

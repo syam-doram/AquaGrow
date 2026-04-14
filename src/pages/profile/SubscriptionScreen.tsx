@@ -55,7 +55,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
     if (selectedPlan) {
       setIsPaymentModalOpen(true);
     } else {
-      alert("Please select a plan to upgrade.");
+      alert(t.selectPlanToUpgrade);
     }
   };
 
@@ -92,7 +92,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
       if (success) {
         navigate('/dashboard');
       } else {
-        alert("Upgrade failed. Please check your connection.");
+        alert(t.upgradeFailed);
       }
     }
   };

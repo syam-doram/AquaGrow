@@ -245,6 +245,46 @@ export interface AlertTranslations {
     noFeedLog: { title: T0; body: T0 };
     streakRisk: { title: T0; body: T0 };
   };
+
+  // ── Trends & Predictive ─────────────────────────────────────────
+  trends: {
+    phDeclining: {
+      title: T1<string>; 
+      body: T4<number, number, number, number>;
+    };
+    phRising: {
+      title: T1<string>; 
+      body: T3<number, number, number>;
+    };
+    doDropping: {
+      title: T1<string>; 
+      body: T3<number, number, number>;
+    };
+    ammoniaRising: {
+      title: T1<string>; 
+      body: T3<number, number, number>;
+    };
+    compoundRisk: {
+      title: T2<number, string>;
+      body: T1<string>;
+    };
+    mineralGap: {
+      title: T1<string>;
+      body: T3<number | string, string, number>;
+    };
+    probioticGap: {
+      title: T1<string>;
+      body: T2<number | string, string>;
+    };
+    harvestApproaching: {
+      title: T1<string>;
+      body: T5<number, number, number, string, number>;
+    };
+    fcrAboveBenchmark: {
+      title: T3<number, number, string>;
+      body: T3<number, number, number>;
+    };
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -497,6 +537,45 @@ const English: AlertTranslations = {
     noFeedLog: { title: '🍤 Feed Not Logged Today', body: 'Feed log missing. Log your feed data to track FCR and get optimal feeding recommendations.' },
     streakRisk: { title: '🔥 Logging Streak at Risk!', body: 'You haven\'t logged today. Maintain your streak to build your Trust Score and unlock Pro insights.' },
   },
+
+  trends: {
+    phDeclining: {
+      title: (pond) => `📉 pH Declining Trend — ${pond}`,
+      body: (r2, r1, r0, count) => `pH dropped from ${r2.toFixed(1)} → ${r1.toFixed(1)} → ${r0.toFixed(1)} over ${count} readings. At this rate, pH will hit danger zone (<7.5) within 1–2 days. Apply Dolomite Lime (15 kg/acre) NOW before it crashes.`,
+    },
+    phRising: {
+      title: (pond) => `📈 pH Rising — Algal Bloom Risk — ${pond}`,
+      body: (r2, r1, r0) => `pH rising: ${r2.toFixed(1)} → ${r1.toFixed(1)} → ${r0.toFixed(1)}. Likely algal bloom intensifying. Apply Zeolite (20 kg/acre) and check Secchi depth. If <25cm, reduce feeding by 20%.`,
+    },
+    doDropping: {
+      title: (pond) => `📉 DO Dropping Fast — ${pond}`,
+      body: (r2, r1, r0) => `Dissolved oxygen falling: ${r2.toFixed(1)} → ${r1.toFixed(1)} → ${r0.toFixed(1)} mg/L. If trend continues, DO will hit danger zone (<4.5) by next reading. Run extra paddlewheel aerators now, especially at night.`,
+    },
+    ammoniaRising: {
+      title: (pond) => `⬆️ Ammonia Rising — ${pond}`,
+      body: (r2, r1, r0) => `Ammonia trend: ${r2.toFixed(2)} → ${r1.toFixed(2)} → ${r0.toFixed(2)} mg/L. Reduce feed by 20% immediately. Apply Zeolite (15 kg/acre). Do NOT apply probiotics until ammonia stabilizes.`,
+    },
+    compoundRisk: {
+      title: (count, pond) => `⚠️ ${count} Risk Factors Active — ${pond}`,
+      body: (factors) => `Compound risk detected: ${factors}. Multiple stress factors simultaneously increase disease susceptibility by 3–5×. Immediate action required: fix highest priority parameter first, then apply Vitamin C (5g/kg feed) for stress relief.`,
+    },
+    mineralGap: {
+      title: (pond) => `💊 Mineral Mix Gap — ${pond}`,
+      body: (daysAgo, pond, doc) => `No Mineral Mix logged in ${daysAgo === 99 ? 'this crop' : `${daysAgo} days`} for ${pond} (DOC ${doc}). Without regular mineralization, soft-shell molting mortality risk increases. Apply 15–20 kg/acre today.`,
+    },
+    probioticGap: {
+      title: (pond) => `🧫 Probiotic Gap — ${pond}`,
+      body: (daysAgo, pond) => `No probiotic logged in ${daysAgo === 99 ? 'this crop' : `${daysAgo} days`} for ${pond}. Water microbial balance is at risk. Pathogenic Vibrio colonies can double without regular probiotic competition. Apply today.`,
+    },
+    harvestApproaching: {
+      title: (pond) => `🎯 Harvest Window Approaching — ${pond}`,
+      body: (abw, doc, rate, dateStr, days) => `Based on current ABW (${abw}g at DOC ${doc}) and growth rate (~${rate.toFixed(2)}g/day), your pond is projected to reach 20g harvest size by ~${dateStr} (${days} days). Begin buyer contact and logistics planning now.`,
+    },
+    fcrAboveBenchmark: {
+      title: (fcr, pct, pond) => `📊 FCR ${fcr.toFixed(2)} — ${pct}% Above Benchmark — ${pond}`,
+      body: (fcr, pct, waste) => `Your FCR (${fcr.toFixed(2)}) is ${pct}% above the industry target (1.4). This means ~${waste} kg of feed is being wasted. Check: (1) tray residue after each meal, (2) shrimp gut fill under light. Reduce daily feed by 15% for next 3 days.`,
+    },
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -748,6 +827,45 @@ const Telugu: AlertTranslations = {
     noWaterLog: { title: '💧 నేడు నీటి నాణ్యత నమోదు చేయలేదు', body: 'ట్రస్ట్ స్కోర్ నిర్వహించడానికి నీటి నాణ్యత ఇప్పుడే నమోదు చేయండి. రోజువారీ నమోదు మెరుగైన AI హెచ్చరికలు ఇస్తుంది.' },
     noFeedLog: { title: '🍤 నేడు ఆహారం నమోదు చేయలేదు', body: 'ఆహారం నమోదు లేదు. FCR ట్రాక్ చేయడానికి మరియు అనుకూల ఆహార సిఫారసులు పొందడానికి ఆహార డేటా నమోదు చేయండి.' },
     streakRisk: { title: '🔥 నమోదు స్ట్రీక్ ప్రమాదంలో!', body: 'మీరు నేడు నమోదు చేయలేదు. స్ట్రీక్ కొనసాగించడానికి మరియు ట్రస్ట్ స్కోర్ నిర్మించుకోవడానికి ఇప్పుడు నమోదు చేయండి.' },
+  },
+
+  trends: {
+    phDeclining: {
+      title: (pond) => `📉 pH తగ్గుతున్న ధోరణి — ${pond}`,
+      body: (r2, r1, r0, count) => `pH గత ${count} రీడింగులలో ${r2.toFixed(1)} → ${r1.toFixed(1)} → ${r0.toFixed(1)}కి పడిపోయింది. ఇదే కొనసాగితే, 1–2 రోజుల్లో ప్రమాద స్థాయికి (<7.5) చేరుకుంటుంది. వెంటనే డోలమైట్ లైమ్ (15 కిలోలు/ఎకరా) వేయండి.`,
+    },
+    phRising: {
+      title: (pond) => `📈 pH పెరుగుతోంది — నాచు ప్రమాదం — ${pond}`,
+      body: (r2, r1, r0) => `pH పెరుగుతోంది: ${r2.toFixed(1)} → ${r1.toFixed(1)} → ${r0.toFixed(1)}. నాచు (Algal bloom) పెరిగే అవకాశం ఉంది. జియోలైట్ (20 కిలోలు/ఎకరా) వేయండి మరియు పారదర్శకత తనిఖీ చేయండి. <25cm ఉంటే, ఆహారాన్ని 20% తగ్గించండి.`,
+    },
+    doDropping: {
+      title: (pond) => `📉 DO వేగంగా పడిపోతోంది — ${pond}`,
+      body: (r2, r1, r0) => `ఆక్సిజన్ పడిపోతోంది: ${r2.toFixed(1)} → ${r1.toFixed(1)} → ${r0.toFixed(1)} mg/L. ఇదే కొనసాగితే తర్వాతి రీడింగ్‌లో ప్రమాద స్థాయి ని (<4.5) చేరుకుంటుంది. రాత్రివేళల్లో అదనపు ఆక్సిజనేటర్లు నడపండి.`,
+    },
+    ammoniaRising: {
+      title: (pond) => `⬆️ అమ్మోనియా పెరుగుతోంది — ${pond}`,
+      body: (r2, r1, r0) => `అమ్మోనియా ధోరణి: ${r2.toFixed(2)} → ${r1.toFixed(2)} → ${r0.toFixed(2)} mg/L. వెంటనే ఆహారం 20% తగ్గించండి. జియోలైట్ (15 కిలోలు/ఎకరా) వేయండి. అమ్మోనియా తగ్గేదాకా ప్రోబయోటిక్స్ వేయకండి.`,
+    },
+    compoundRisk: {
+      title: (count, pond) => `⚠️ ${count} ప్రమాద కారకాలు చురుకుగా ఉన్నాయి — ${pond}`,
+      body: (factors) => `మిశ్రమ ప్రమాదం గుర్తించబడింది: ${factors}. ఒకేసారి పలు ఒత్తిడి కారకాల వల్ల రోగాల బారిన పడే అవకాశం 3-5 రెట్లు పెరుగుతుంది. ప్రధాన సమస్యను ముందుగా పరిష్కరించి, ఆ తర్వాత విటమిన్ సి (5గ్రా/కిలో ఫీడ్) వేయండి.`,
+    },
+    mineralGap: {
+      title: (pond) => `💊 ఖనిజ మిశ్రమం గ్యాప్ — ${pond}`,
+      body: (daysAgo, pond, doc) => `${pond} (DOC ${doc}) కి ${daysAgo === 99 ? 'ఈ క్రాప్‌లో' : `గత ${daysAgo} రోజులుగా`} ఖనిజ మిశ్రమం లాగ్ చేయలేదు. ఖనిజాలు లేకుంటే మెత్తటి షెల్ తో మరణాల ప్రమాదం పెరుగుతుంది. ఈ రోజే 15–20 కిలోలు/ఎకరా వేయండి.`,
+    },
+    probioticGap: {
+      title: (pond) => `🧫 ప్రోబయోటిక్ గ్యాప్ — ${pond}`,
+      body: (daysAgo, pond) => `${pond} కి ${daysAgo === 99 ? 'ఈ క్రాప్‌లో' : `గత ${daysAgo} రోజులుగా`} ప్రోబయోటిక్ లాగ్ చేయలేదు. నీటి సూక్ష్మజీవుల సమతుల్యత దెబ్బతింటుంది. ఈ రోజే అప్లై చేయండి.`,
+    },
+    harvestApproaching: {
+      title: (pond) => `🎯 పట్టివేత సమయం సమీపిస్తోంది — ${pond}`,
+      body: (abw, doc, rate, dateStr, days) => `ప్రస్తుత ABW (${abw}గ్రా DOC ${doc} వద్ద) మరియు పెరుగుదల రేటు (రోజుకి ~${rate.toFixed(2)}గ్రా) ఆధారంగా, మీ చెరువు ~${dateStr} (${days} రోజులు) నాటికి 20గ్రా పట్టివేత సైజుకి చేరుకుంటుంది. వెంటనే ఏర్పాట్లు మొదలుపెట్టండి.`,
+    },
+    fcrAboveBenchmark: {
+      title: (fcr, pct, pond) => `📊 FCR ${fcr.toFixed(2)} — బెంచ్‌మార్క్ కన్నా ${pct}% ఎక్కువ — ${pond}`,
+      body: (fcr, pct, waste) => `మీ FCR (${fcr.toFixed(2)}) పరిశ్రమ లక్ష్యం (1.4) కన్నా ${pct}% ఎక్కువగా ఉంది. అంటే సుమారు ${waste} కిలోల ఆహారం వృధా అవుతోంది. ట్రేలలో మిగిలిన ఆహారాన్ని తనిఖీ చేయండి. రాబోయే 3 రోజుల్లో రోజువారీ ఆహారాన్ని 15% తగ్గించండి.`,
+    },
   },
 };
 
