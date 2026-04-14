@@ -31,31 +31,31 @@ const calcHealth = (record: any) => {
   if (record.ammonia && record.ammonia > 0.1) pts -= 30; else if (record.ammonia && record.ammonia > 0.05) pts -= 15;
   const score = Math.max(0, pts);
   if (score >= 90) return { score, status: 'EXCELLENT', color: 'text-emerald-600', ring: '#10b981', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-  if (score >= 70) return { score, status: 'STABLE',    color: 'text-blue-600',    ring: '#3b82f6', badge: 'bg-blue-50 text-blue-700 border-blue-200'         };
-  if (score >= 50) return { score, status: 'WARNING',   color: 'text-amber-600',   ring: '#f59e0b', badge: 'bg-amber-50 text-amber-700 border-amber-200'       };
-  return              { score, status: 'CRITICAL',  color: 'text-red-600',     ring: '#ef4444', badge: 'bg-red-50 text-red-700 border-red-200'             };
+  if (score >= 70) return { score, status: 'STABLE', color: 'text-blue-600', ring: '#3b82f6', badge: 'bg-blue-50 text-blue-700 border-blue-200' };
+  if (score >= 50) return { score, status: 'WARNING', color: 'text-amber-600', ring: '#f59e0b', badge: 'bg-amber-50 text-amber-700 border-amber-200' };
+  return { score, status: 'CRITICAL', color: 'text-red-600', ring: '#ef4444', badge: 'bg-red-50 text-red-700 border-red-200' };
 };
 
 const pondPalette = (score: number) =>
   score >= 90 ? { bar: 'bg-emerald-500', score: 'text-emerald-600', badge: 'bg-emerald-50 border-emerald-100 text-emerald-700', activeBg: '#f0fdf8', activeBorder: '#6ee7b7', glow: 'rgba(16,185,129,0.10)' }
-: score >= 70 ? { bar: 'bg-blue-500',    score: 'text-blue-600',    badge: 'bg-blue-50 border-blue-100 text-blue-700',           activeBg: '#eff6ff', activeBorder: '#93c5fd', glow: 'rgba(59,130,246,0.10)'  }
-: score >= 50 ? { bar: 'bg-amber-500',   score: 'text-amber-600',   badge: 'bg-amber-50 border-amber-100 text-amber-700',         activeBg: '#fffbeb', activeBorder: '#fcd34d', glow: 'rgba(245,158,11,0.10)' }
-: score > 0   ? { bar: 'bg-red-500',     score: 'text-red-600',     badge: 'bg-red-50 border-red-100 text-red-700',               activeBg: '#fef2f2', activeBorder: '#fca5a5', glow: 'rgba(239,68,68,0.10)'  }
-:               { bar: 'bg-slate-400',   score: 'text-slate-400',   badge: 'bg-slate-50 border-slate-100 text-slate-500',         activeBg: '#f8fafc', activeBorder: '#e2e8f0', glow: 'rgba(0,0,0,0.04)'      };
+    : score >= 70 ? { bar: 'bg-blue-500', score: 'text-blue-600', badge: 'bg-blue-50 border-blue-100 text-blue-700', activeBg: '#eff6ff', activeBorder: '#93c5fd', glow: 'rgba(59,130,246,0.10)' }
+      : score >= 50 ? { bar: 'bg-amber-500', score: 'text-amber-600', badge: 'bg-amber-50 border-amber-100 text-amber-700', activeBg: '#fffbeb', activeBorder: '#fcd34d', glow: 'rgba(245,158,11,0.10)' }
+        : score > 0 ? { bar: 'bg-red-500', score: 'text-red-600', badge: 'bg-red-50 border-red-100 text-red-700', activeBg: '#fef2f2', activeBorder: '#fca5a5', glow: 'rgba(239,68,68,0.10)' }
+          : { bar: 'bg-slate-400', score: 'text-slate-400', badge: 'bg-slate-50 border-slate-100 text-slate-500', activeBg: '#f8fafc', activeBorder: '#e2e8f0', glow: 'rgba(0,0,0,0.04)' };
 
 export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, waterRecords, isPro, addWaterRecord, serverError } = useData();
   const activePonds = ponds.filter(p => p.status !== 'harvested');
   const [selectedPondId, setSelectedPondId] = useState<string>(activePonds[0]?.id || '');
-  const [selectedDate,   setSelectedDate]   = useState<Date>(startOfToday());
-  const [isLiveMode,     setIsLiveMode]     = useState(false);
-  const [isConnecting,   setIsConnecting]   = useState(false);
-  const [connType,       setConnType]       = useState<'BLE' | 'WiFi' | null>(null);
-  const [liveData,       setLiveData]       = useState<SensorData | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connType, setConnType] = useState<'BLE' | 'WiFi' | null>(null);
+  const [liveData, setLiveData] = useState<SensorData | null>(null);
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
-  const dateStr      = format(selectedDate, 'yyyy-MM-dd');
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
   const dateRailRef = useRef<HTMLDivElement>(null);
   const pondRailRef = useRef<HTMLDivElement>(null);
@@ -71,9 +71,9 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
     .filter(r => r.pondId === selectedPondId && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate)))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
-  const health    = calcHealth(isLiveMode ? liveData : latestRecord);
+  const health = calcHealth(isLiveMode ? liveData : latestRecord);
   const chartData = Array.from({ length: 7 }).map((_, i) => {
-    const d   = subDays(selectedDate, 6 - i);
+    const d = subDays(selectedDate, 6 - i);
     const rec = waterRecords.find(r => r.pondId === selectedPondId && (r.date === format(d, 'yyyy-MM-dd') || isSameDay(new Date(r.date), d)));
     return { name: format(d, 'EEE'), do: rec?.do ?? null, ph: rec?.ph ?? null };
   });
@@ -92,14 +92,14 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
   };
 
   const METRICS = [
-    { label: t.phLevel,     val: isLiveMode ? liveData?.ph        : latestRecord?.ph,          unit: '',     target: '7.5–8.5', icon: FlaskConical,  warn: (v: number) => v < 7.5 || v > 8.5 },
-    { label: t.dissolvedO2, val: isLiveMode ? liveData?.do        : latestRecord?.do,          unit: 'mg/L', target: '>5.0',    icon: Wind,          warn: (v: number) => v < 5.0            },
-    { label: t.salinity,    val: isLiveMode ? liveData?.salinity  : latestRecord?.salinity,    unit: 'ppt',  target: '10–20',   icon: Waves,         warn: (v: number) => v < 10 || v > 20   },
-    { label: t.ammonia,     val: isLiveMode ? null                : latestRecord?.ammonia,      unit: 'ppm',  target: '<0.05',   icon: Zap,           warn: (v: number) => v > 0.05           },
-    { label: t.alkalinity,  val: latestRecord?.alkalinity,                                      unit: 'mg/L', target: '100–150', icon: Activity,      warn: (v: number) => v < 80             },
-    { label: t.turbidity,   val: latestRecord?.turbidity,                                       unit: 'NTU',  target: '20–40',   icon: Droplets,      warn: (v: number) => v > 60             },
-    { label: t.temperature, val: isLiveMode ? liveData?.temp      : latestRecord?.temperature, unit: '°C',   target: '26–30',   icon: Thermometer,   warn: (v: number) => v < 26 || v > 30   },
-    { label: t.mortality,   val: latestRecord?.mortality,                                       unit: '/day', target: '<10',     icon: AlertTriangle, warn: (v: number) => v > 10             },
+    { label: t.phLevel, val: isLiveMode ? liveData?.ph : latestRecord?.ph, unit: '', target: '7.5–8.5', icon: FlaskConical, warn: (v: number) => v < 7.5 || v > 8.5 },
+    { label: t.dissolvedO2, val: isLiveMode ? liveData?.do : latestRecord?.do, unit: 'mg/L', target: '>5.0', icon: Wind, warn: (v: number) => v < 5.0 },
+    { label: t.salinity, val: isLiveMode ? liveData?.salinity : latestRecord?.salinity, unit: 'ppt', target: '10–20', icon: Waves, warn: (v: number) => v < 10 || v > 20 },
+    { label: t.ammonia, val: isLiveMode ? null : latestRecord?.ammonia, unit: 'ppm', target: '<0.05', icon: Zap, warn: (v: number) => v > 0.05 },
+    { label: t.alkalinity, val: latestRecord?.alkalinity, unit: 'mg/L', target: '100–150', icon: Activity, warn: (v: number) => v < 80 },
+    { label: t.turbidity, val: latestRecord?.turbidity, unit: 'NTU', target: '20–40', icon: Droplets, warn: (v: number) => v > 60 },
+    { label: t.temperature, val: isLiveMode ? liveData?.temp : latestRecord?.temperature, unit: '°C', target: '26–30', icon: Thermometer, warn: (v: number) => v < 26 || v > 30 },
+    { label: t.mortality, val: latestRecord?.mortality, unit: '/day', target: '<10', icon: AlertTriangle, warn: (v: number) => v > 10 },
   ];
   const auditCount = METRICS.filter(m => m.val !== undefined && m.val !== null).length;
 
@@ -158,11 +158,11 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           {/* Pond chips rail */}
           <div ref={pondRailRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
             {activePonds.map(p => {
-              const pr       = waterRecords.filter(r => r.pondId === p.id && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-              const ph       = calcHealth(pr);
-              const pal      = pondPalette(ph.score);
+              const pr = waterRecords.filter(r => r.pondId === p.id && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate))).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+              const ph = calcHealth(pr);
+              const pal = pondPalette(ph.score);
               const isActive = selectedPondId === p.id;
-              const doc      = calculateDOC(p.stockingDate, dateStr);
+              const doc = calculateDOC(p.stockingDate, dateStr);
               return (
                 <motion.button key={p.id} onClick={() => setSelectedPondId(p.id)} whileTap={{ scale: 0.97 }}
                   data-active={isActive ? 'true' : 'false'}
@@ -210,11 +210,11 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <div ref={dateRailRef} className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
             {(() => {
               if (!selectedPond) return null;
-              const start     = startOfDay(new Date(selectedPond.stockingDate));
-              const today     = startOfToday();
+              const start = startOfDay(new Date(selectedPond.stockingDate));
+              const today = startOfToday();
               const totalDays = Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1);
               return Array.from({ length: totalDays }).map((_, i) => {
-                const d        = addDays(start, i);
+                const d = addDays(start, i);
                 const isActive = isSameDay(d, selectedDate);
                 return (
                   <button key={i} onClick={() => setSelectedDate(d)}
@@ -345,19 +345,19 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
                   className={cn(
                     'relative rounded-2xl px-3 pt-3 pb-2.5 border overflow-hidden',
                     status === 'warn' ? 'bg-amber-50 border-amber-100'
-                    : status === 'ok' ? 'bg-card border-card-border shadow-sm'
-                    : 'bg-slate-50 border-slate-100'
+                      : status === 'ok' ? 'bg-card border-card-border shadow-sm'
+                        : 'bg-slate-50 border-slate-100'
                   )}>
                   <div className="flex items-center justify-between mb-2">
                     <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center',
                       status === 'warn' ? 'bg-amber-100 text-amber-600' :
-                      status === 'ok'   ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-300')}>
+                        status === 'ok' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-300')}>
                       <m.icon size={14} />
                     </div>
                     <span className={cn('text-[5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
                       status === 'warn' ? 'bg-amber-100 border-amber-200 text-amber-600' :
-                      status === 'ok'   ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                      'bg-slate-100 border-slate-200 text-slate-400')}>
+                        status === 'ok' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                          'bg-slate-100 border-slate-200 text-slate-400')}>
                       {isLiveMode ? 'LIVE' : status === 'ok' ? 'OK' : status === 'warn' ? 'WARN' : 'N/A'}
                     </span>
                   </div>
@@ -440,17 +440,16 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <div className="flex gap-2.5">
             <motion.button whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/monitor/scan')}
-              className="flex-1 bg-slate-800 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 active:scale-95 transition-all">
-              <Camera size={14} className="text-emerald-400" /> <span className="hidden sm:inline">Scan</span>
+              className="flex-[1.5] bg-[#1e293b] text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[#1e293b]/20 active:scale-95 transition-all outline outline-1 outline-slate-800">
+              <Camera size={14} className="text-emerald-400" /> <span>Scan</span>
             </motion.button>
             <motion.button whileTap={{ scale: 0.97 }}
               onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
-              className="flex-[2.5] bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-              <Plus size={14} /> Log Today's Water Parameters
+              className="flex-[2] bg-emerald-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+              <Plus size={14} /> Log Data
             </motion.button>
           </div>
         )}
-
 
       </div>
     </div>

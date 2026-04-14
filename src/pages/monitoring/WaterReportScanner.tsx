@@ -83,7 +83,6 @@ export const WaterReportScanner = ({ t }: Props) => {
         showBack={true} 
         onBack={() => navigate(-1)} 
         onMenuClick={() => {}} 
-        transparent 
       />
 
       {/* Main Camera View */}

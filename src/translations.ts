@@ -1276,7 +1276,8 @@ const English: Translations = {
   ddQuotaResets: 'Your quota resets on the 1st of next month.',
   ddProFeatureRequired: 'AI Disease Detection requires an active Pro plan.',
 
-  // Market Prices  blackTiger: 'Black Tiger',
+  // Market Prices  
+  blackTiger: 'Black Tiger',
   scampi: 'Scampi',
   bhimavaram: 'Bhimavaram',
   nellore: 'Nellore',
