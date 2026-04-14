@@ -407,7 +407,31 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           </motion.div>
         )}
 
-        {/* ── 7. LOG BUTTON ─────────────────────────────────────── */}
+        {/* ── 7. VIEW FULL REPORT BUTTON ─────────────────────────── */}
+        {latestRecord && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.30 }}>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(`/monitor/report/${selectedPond?.id}/${dateStr}`)}
+              className="w-full rounded-2xl overflow-hidden border border-blue-900/30 text-left"
+              style={{ background: 'linear-gradient(135deg,#0f1e3a 0%,#0b1226 100%)' }}
+            >
+              <div className="px-4 py-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck size={17} className="text-blue-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-blue-400 text-[5px] font-black uppercase tracking-[0.3em]">📊 Health Analysis</p>
+                  <p className="text-white font-black text-[11px] tracking-tight">View Full Water Health Report</p>
+                  <p className="text-white/35 text-[7px] font-medium">Parameter breakdown · Contribution scores · AI actions</p>
+                </div>
+                <span className="text-blue-400 text-sm font-black flex-shrink-0">→</span>
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* ── 8. LOG BUTTON ─────────────────────────────────────── */}
         {selectedPond?.status === 'harvested' ? (
           <div className="w-full rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-400">
             🏁 Pond Harvested — No Logging Required
