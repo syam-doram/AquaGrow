@@ -84,17 +84,19 @@ export const runScheduleEngine = (
   pondDoc: number, 
   pondSeedCount: number, 
   isHarvested: boolean,
-  latestWater?: { do: number; ph: number; temp: number; ammonia: number }
+  latestWater?: { do: number; ph: number; temp: number; ammonia: number },
+  medicineStatus?: string
 ): EngineResult | null => {
-   if (isHarvested) {
+   if (isHarvested || medicineStatus === 'recovered') {
       return null; 
    }
+   const isUnderTreatment = medicineStatus === 'applied';
 
    const weather = fetchCurrentConditions();
    const alerts: ScheduleAlert[] = [];
    
    // 1. Water Quality & Real-time Sensor Alerts
-   if (latestWater) {
+   if (latestWater && !isUnderTreatment) {
       if (latestWater.do < 4.0) {
         alerts.push({ title: 'CRITICAL: DO Level Dangerous', trigger: `DO at ${latestWater.do} mg/L (Min 4.0)`, type: 'critical' });
       } else if (latestWater.do < 5.0) {
@@ -114,7 +116,7 @@ export const runScheduleEngine = (
    }
 
    // 2. SOP & Life-cycle Criticality
-   if (pondDoc >= 32 && pondDoc <= 48) {
+   if (pondDoc >= 32 && pondDoc <= 48 && !isUnderTreatment) {
      alerts.push({ title: 'CRITICAL PHASE: White Spot Risk', trigger: `DOC ${pondDoc} (Peak Risk Window)`, type: 'critical' });
    }
 

@@ -40,6 +40,12 @@ export interface Translations {
   activeGuidance: string;
   stockingGuidance: string;
   stockingStatus: string;
+  medicineCommandCenter: string;
+  feedCommandCenter: string;
+  dayStreak: string;
+  prepDays: string;
+  cultureDay: string;
+  riskZone: string;
 
   // Greetings & Status
   systemLive: string;
@@ -973,6 +979,12 @@ const English: Translations = {
   welcome: 'Welcome,',
   activePonds: 'Active Ponds',
   planned: 'Planned',
+  medicineCommandCenter: 'Medicine Command Center',
+  feedCommandCenter: 'Feed Command Center',
+  dayStreak: 'Day Streak',
+  prepDays: 'Prep Days',
+  cultureDay: 'Culture Day',
+  riskZone: 'Risk Zone',
   nextFeed: 'Next Feed',
   fcrCalculator: 'FCR Calculator',
   feedConversionRatio: 'Feed Conversion Ratio',
@@ -1901,6 +1913,12 @@ const Telugu: Translations = {
   welcome: 'స్వాగతం,',
   activePonds: 'క్రియాశీల చెరువులు',
   planned: 'ప్రణాళికాబద్ధం',
+  medicineCommandCenter: 'మెడిసిన్ కమాండ్ సెంటర్',
+  feedCommandCenter: 'ఫీడ్ కమాండ్ సెంటర్',
+  dayStreak: 'రోజుల స్ట్రీక్',
+  prepDays: 'తయారీ రోజులు',
+  cultureDay: 'కల్చర్ డే',
+  riskZone: 'ప్రమాద ప్రాంతం',
   nextFeed: 'తదుపరి మేత',
   fcrCalculator: 'FCR కాలిక్యులేటర్',
   feedConversionRatio: 'మేత మార్పిడి నిష్పత్తి',

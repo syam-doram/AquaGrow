@@ -582,13 +582,13 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-[#0D523C]/97 backdrop-blur-xl flex flex-col items-center justify-center text-white"
+            className="fixed inset-0 z-[100] bg-indigo-950/97 backdrop-blur-xl flex flex-col items-center justify-center text-white"
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', damping: 12 }}
-              className="w-32 h-32 bg-card rounded-[2.5rem] flex items-center justify-center text-[#0D523C] shadow-2xl mb-4"
+              className="w-32 h-32 bg-card rounded-[2.5rem] flex items-center justify-center text-indigo-900 shadow-2xl mb-4"
             >
               <ShieldCheck size={64} />
             </motion.div>
@@ -630,7 +630,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 className={cn(
                   'px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 flex items-center gap-2',
                   selectedPondId === p.id
-                    ? 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
+                    ? 'bg-indigo-700 text-white border-indigo-700 shadow-lg'
                     : p.status === 'harvested'
                       ? 'bg-card text-ink/20 border-card-border line-through'
                       : 'bg-card text-ink/40 border-card-border'
@@ -671,7 +671,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       ? 'linear-gradient(135deg, #1a0a00 0%, #92400e 100%)'
                       : riskLevel === 'CRITICAL'
                         ? 'linear-gradient(135deg, #0f0a1e 0%, #4c1d95 100%)'
-                        : 'linear-gradient(135deg, #022c22 0%, #0D523C 80%, #065f46 100%)'
+                        : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 80%, #3730a3 100%)'
               }}
             >
               {/* ── Ambient glow ── */}
@@ -683,7 +683,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="text-white/30 text-[7px] font-black uppercase tracking-[0.35em] mb-1">
-                      Medicine Command Center
+                      {t.medicineCommandCenter}
                     </p>
                     <h2 className="text-2xl font-black text-white tracking-tighter leading-none mb-2">
                       {selectedPond.name}
@@ -696,7 +696,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       {/* Compliance streak badge */}
                       {complianceStreak > 0 && (
                         <span className="text-[7px] font-black px-2.5 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-300">
-                          🔥 {complianceStreak}-Day Streak
+                          🔥 {complianceStreak}-{t.dayStreak}
                         </span>
                       )}
                     </div>
@@ -704,7 +704,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   {/* DOC number */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-white/25 text-[6px] font-black uppercase tracking-widest">
-                      {isPrestocking ? 'Prep Days' : 'Culture Day'}
+                      {isPrestocking ? t.prepDays : t.cultureDay}
                     </p>
                     <p className={cn('text-5xl font-black tracking-tighter leading-none',
                       isCritical ? 'text-red-300' : isWithdrawal ? 'text-amber-300' : 'text-white'
@@ -720,7 +720,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   <div className="mb-4">
                     <div className="flex justify-between text-[5px] font-black text-white/20 uppercase tracking-widest mb-1">
                       <span>DOC 1</span>
-                      <span className="text-white/40">Risk Zone →</span>
+                      <span className="text-white/40">{t.riskZone} →</span>
                       <span>DOC 100</span>
                     </div>
                     {/* Multi-zone progress bar */}
@@ -892,7 +892,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         ? 'bg-purple-600 text-white border-purple-600 shadow-lg'
                         : tab.id === 'diseases' && (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH')
                           ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-900/30'
-                          : 'bg-[#0D523C] text-white border-[#0D523C] shadow-lg'
+                          : 'bg-indigo-700 text-white border-indigo-700 shadow-lg'
                       : isDark
                         ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
                         : 'bg-white text-slate-500 border-slate-200'
@@ -1013,7 +1013,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       {(currentDoc <= 0) && todayGuidance.length > 0 && (
                         <div className="bg-emerald-50 border border-emerald-100/50 rounded-[2rem] p-3 text-center">
                           <Zap className="text-emerald-500 mx-auto mb-3" size={28} />
-                          <h4 className="text-[#0D523C] font-black text-base tracking-tight mb-1">
+                          <h4 className="text-indigo-900 font-black text-base tracking-tight mb-1">
                             {selectedPond.status === 'planned' ? (
                               Math.abs(currentDoc) > 10 ? 'Stage: Soil Preparation' :
                                 Math.abs(currentDoc) > 5 ? 'Stage: Water Sterilization' :
@@ -1021,7 +1021,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                     'Stage: Final Bloom & Seed Prep'
                             ) : 'Stocking Day (DOC 0)'}
                           </h4>
-                          <p className="text-[#0D523C]/50 text-[11px] leading-relaxed mb-4">
+                          <p className="text-indigo-900/50 text-[11px] leading-relaxed mb-4">
                             {selectedPond.status === 'planned'
                               ? (
                                 Math.abs(currentDoc) > 10 ? 'Sun-dry pond bottom and till soil until deep cracks appear to eliminate pathogens.' :

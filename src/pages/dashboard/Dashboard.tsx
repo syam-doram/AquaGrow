@@ -200,9 +200,9 @@ const DocRing = ({ doc, label }: { doc: number; label: string; key?: string }) =
 
 const QuickNav = ({ t, navigate }: { t: Translations; navigate: any }) => {
   const links = [
-    { label: t.monitor, icon: Droplets, path: '/monitor', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
-    { label: t.feed, icon: Utensils, path: '/feed', color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
-    { label: t.medicine, icon: Box, path: '/medicine', color: '#C78200', bg: 'rgba(199, 130, 0, 0.1)' },
+    { label: t.monitor, icon: Droplets, path: '/monitor', color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
+    { label: t.feed, icon: Utensils, path: '/feed', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    { label: t.medicine, icon: Pill, path: '/medicine', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.1)' },
     { label: t.addPond, icon: Plus, path: '/ponds/new', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.1)' },
   ];
 
@@ -263,7 +263,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   });
   const [isSyncingPush, setIsSyncingPush] = useState(false);
   const [dismissedSituationIds, setDismissedSituationIds] = useState<string[]>(() => {
-    const s = sessionStorage.getItem('dismissed_situation_ids');
+    const s = localStorage.getItem('dismissed_situation_ids');
     return s ? JSON.parse(s) : [];
   });
   const { requestNotificationPermission, fcmToken, deepLinkUrl, clearDeepLink, incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
@@ -493,7 +493,8 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         doc,
         Number(p.seedCount) || 200000,
         p.status === 'harvested',
-        lastW ? { do: lastW.do, ph: lastW.ph, temp: lastW.temperature, ammonia: lastW.ammonia } : undefined
+        lastW ? { do: lastW.do, ph: lastW.ph, temp: lastW.temperature, ammonia: lastW.ammonia } : undefined,
+        p.customData?.medicineStatus
       );
       const rawAlerts = result?.activeAlerts || [];
 
@@ -586,7 +587,8 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
       doc,
       Number(selectedPond.seedCount) || 200000,
       selectedPond.status === 'harvested',
-      lastW ? { do: lastW.do, ph: lastW.ph, temp: lastW.temperature, ammonia: lastW.ammonia } : undefined
+      lastW ? { do: lastW.do, ph: lastW.ph, temp: lastW.temperature, ammonia: lastW.ammonia } : undefined,
+      selectedPond.customData?.medicineStatus
     );
     return result?.dailySchedule.map(s => ({
       title: s.task,
@@ -644,7 +646,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const dismissSituation = (id: string) => {
     setDismissedSituationIds(prev => {
       const next = [...prev, id];
-      sessionStorage.setItem('dismissed_situation_ids', JSON.stringify(next));
+      localStorage.setItem('dismissed_situation_ids', JSON.stringify(next));
       return next;
     });
   };
@@ -980,7 +982,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                     <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
                       See All →
                     </button>
-                    <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; sessionStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className="text-[8px] font-black uppercase tracking-widest text-red-400">
+                    <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; localStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className="text-[8px] font-black uppercase tracking-widest text-red-400">
                       Clear
                     </button>
                   </div>

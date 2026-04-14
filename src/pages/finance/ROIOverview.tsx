@@ -10,6 +10,7 @@ import {
   Filter, CheckCircle2, AlertTriangle, Trophy,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useBottomSheet } from '../../context/BottomSheetContext';
 import { Header } from '../../components/Header';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
@@ -209,9 +210,21 @@ const EntryDetailSheet = ({ entry, onClose, isDark, t }: { entry: any; onClose: 
 export const ROIOverview = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { theme, roiEntries } = useData();
+  const { openBottomSheet, closeBottomSheet } = useBottomSheet();
   const isDark = theme === 'dark' || theme === 'midnight';
 
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
+
+  // Sync with global bottom sheet state to hide BottomNav
+  React.useEffect(() => {
+    if (selectedEntry) {
+      openBottomSheet();
+    } else {
+      closeBottomSheet();
+    }
+    return () => closeBottomSheet();
+  }, [selectedEntry, openBottomSheet, closeBottomSheet]);
+
   const [selectedYear, setSelectedYear]   = useState<string>('all');
   const [showYearPicker, setShowYearPicker] = useState(false);
 

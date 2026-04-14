@@ -561,9 +561,12 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
                   {/* Top row */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="text-[7.5px] font-black text-emerald-200/60 uppercase tracking-[0.25em] mb-0.5">
-                        {selectedPond.name} . DOC {currentDoc}
+                      <p className="text-emerald-200/40 text-[7px] font-black uppercase tracking-[0.35em] mb-1">
+                        {t.feedCommandCenter}
                       </p>
+                      <h2 className="text-2xl font-black text-white tracking-tighter leading-none mb-2">
+                        {selectedPond.name}
+                      </h2>
                       <div className="flex items-baseline gap-2">
                         <span className="text-5xl font-black text-white tracking-tighter leading-none" style={{textShadow:'0 2px 20px rgba(52,211,153,0.3)'}}>{adjustedDailyKg}</span>
                         <span className="text-base text-emerald-300 font-black">kg/day</span>

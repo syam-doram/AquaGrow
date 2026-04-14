@@ -47,6 +47,7 @@ export interface PondSituationInput {
   estimatedBiomassKg: number;
   medicineLogs7Days: number;
   lastMedicineDate?: string;
+  medicineStatus?: string;
   totalExpenseSoFar?: number;
   pondSize?: number;
 }
@@ -85,6 +86,13 @@ const timeLabel = (h: number) =>
 
 export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[] => {
   const alerts: SituationAlert[] = [];
+  
+  // ─── SUPPRESSION LOGIC ─────────────────────────────────────────────────────
+  // If the farmer has already marked the pond as 'applied' (under treatment) or 'recovered',
+  // we suppress repeated critical noise for that pond to avoid "sticky alert" frustration.
+  if (pond.status === 'harvested' || pond.medicineStatus === 'recovered') return [];
+  const isUnderTreatment = pond.medicineStatus === 'applied';
+
   const now   = new Date();
   const lunar = getLunarStatus(now);
   const hour  = now.getHours();
@@ -205,7 +213,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   const wssvWindow = profile.criticalDOC.wssv;
   const vibrioWindow = profile.criticalDOC.vibrio;
 
-  if (pond.doc >= wssvWindow[0] && pond.doc <= wssvWindow[1]) {
+  if (pond.doc >= wssvWindow[0] && pond.doc <= wssvWindow[1] && !isUnderTreatment) {
     alerts.push({
       id: `wssv-${pond.pondId}`,
       type: 'critical',
@@ -237,7 +245,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
 
   // ─── WATER QUALITY ALERTS ───────────────────────────────────────────────────
   if (pond.latestDO !== undefined) {
-    if (pond.latestDO < 3.0) {
+    if (pond.latestDO < 3.0 && !isUnderTreatment) {
       alerts.push({
         id: `do-critical-${pond.pondId}`,
         type: 'critical',
@@ -267,7 +275,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   }
 
   if (pond.latestPH !== undefined) {
-    if (pond.latestPH > 8.8 || pond.latestPH < 7.0) {
+    if ((pond.latestPH > 8.8 || pond.latestPH < 7.0) && !isUnderTreatment) {
       alerts.push({
         id: `ph-critical-${pond.pondId}`,
         type: 'critical',
@@ -298,7 +306,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
     }
   }
 
-  if (pond.latestAmmonia !== undefined && pond.latestAmmonia > 0.5) {
+  if (pond.latestAmmonia !== undefined && pond.latestAmmonia > 0.5 && !isUnderTreatment) {
     alerts.push({
       id: `ammonia-${pond.pondId}`,
       type: 'critical',
@@ -708,6 +716,7 @@ export const buildSituationInputs = (
         totalFeedKg: totalFeed,
         estimatedBiomassKg: biomassKg,
         medicineLogs7Days: pondMeds7,
+        medicineStatus: p.customData?.medicineStatus,
       };
     });
 };
