@@ -157,10 +157,10 @@ const getAdjustments = (weather: ReturnType<typeof getSimulatedWeather>, lunarPh
   if (weather.temp >= 34) adj.push({ factor: 0.80, label: `${t.heatStress} -20%`, reason: `Temp ${weather.temp}°C limits digestion`, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: Thermometer });
   if (weather.isRaining) adj.push({ factor: 0.85, label: `${t.rainEvent} -15%`, reason: 'Rain lowers dissolved oxygen', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Droplets });
   
-  if (lunarPhase === 'AMAVASYA') adj.push({ factor: 0.75, label: `ðŸŒ‘ Amavasya -25%`, reason: 'High mass molting energy demand', color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20', icon: Zap });
-  else if (lunarPhase === 'POURNAMI') adj.push({ factor: 1.0, label: `ðŸŒ• Pournami +0%`, reason: 'High biological activity', color: 'text-indigo-300', bg: 'bg-indigo-400/10 border-indigo-400/20', icon: Zap });
-  else if (lunarPhase === 'ASHTAMI') adj.push({ factor: 0.90, label: `ðŸŒ“ Ashtami -10%`, reason: 'Molting initiation risk', color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', icon: Zap });
-  else if (lunarPhase === 'NAVAMI') adj.push({ factor: 0.85, label: `ðŸŒ™ Navami -15%`, reason: 'Molting peak risk', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20', icon: Zap });
+  if (lunarPhase === 'AMAVASYA') adj.push({ factor: 0.75, label: `🌑 Amavasya -25%`, reason: 'High mass molting energy demand', color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20', icon: Zap });
+  else if (lunarPhase === 'POURNAMI') adj.push({ factor: 1.0, label: `🌕 Pournami +0%`, reason: 'High biological activity', color: 'text-indigo-300', bg: 'bg-indigo-400/10 border-indigo-400/20', icon: Zap });
+  else if (lunarPhase === 'ASHTAMI') adj.push({ factor: 0.90, label: `🌓 Ashtami -10%`, reason: 'Molting initiation risk', color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', icon: Zap });
+  else if (lunarPhase === 'NAVAMI') adj.push({ factor: 0.85, label: `🌙 Navami -15%`, reason: 'Molting peak risk', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20', icon: Zap });
 
   if (weather.doLevel === 'LOW') adj.push({ factor: 0.70, label: `${t.lowDOAdjustment} -30%`, reason: 'Extremely poor oxygen levels', color: 'text-red-500', bg: 'bg-red-600/10 border-red-600/20', icon: Waves });
   return adj;
@@ -508,7 +508,7 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
 
             {/* 30-Day Transition Plan */}
             <div className={cn("p-4 rounded-2xl border", isDark ? "bg-emerald-500/5 border-emerald-500/15" : "bg-emerald-50 border-emerald-100")}>
-              <p className={cn("text-[8px] font-black uppercase tracking-widest mb-2", isDark ? "text-emerald-400" : "text-emerald-700")}>ðŸ“… First 30 Days Transition</p>
+              <p className={cn("text-[8px] font-black uppercase tracking-widest mb-2", isDark ? "text-emerald-400" : "text-emerald-700")}>📅 First 30 Days Transition</p>
               <div className="space-y-2">
                 {[
                   { phase: 'DOC 1-“3', feed: 'Blind Feed · Scatter evenly', type: 'Crumble No.1' },

@@ -43,7 +43,7 @@ const PRE_STOCKING_PHASE = {
   bgLight: 'bg-indigo-50',
   borderColor: 'border-indigo-200',
   meds: [
-    { name: 'Pond Drying & Tilling', dose: 'â€”', brand: 'Soil Exposure', freq: 'Start Day', priority: 'HIGH' },
+    { name: 'Pond Drying & Tilling', dose: '—', brand: 'Soil Exposure', freq: 'Start Day', priority: 'HIGH' },
     { name: 'Chlorine Treatment', dose: '30ppm', brand: 'TCC 90%', freq: 'Day 5', priority: 'HIGH' },
     { name: 'Dolomite / Lime', dose: '500kg/acre', brand: 'Dolomite', freq: 'Adjust pH', priority: 'MEDIUM' },
     { name: 'Bloom Developer', dose: 'Fermented Juice', brand: 'Molasses + Probiotic', freq: '7 Days before stock', priority: 'HIGH' },
@@ -53,7 +53,7 @@ const PRE_STOCKING_PHASE = {
 // Full SOP cycle overview data (for the "Culture Timeline" card)
 const SOP_CYCLE_PHASES = [
   {
-    range: 'DOC 1â€“10',
+    range: 'DOC 1–10',
     label: 'Early Establishment',
     color: 'bg-emerald-500',
     textColor: 'text-emerald-600',
@@ -67,7 +67,7 @@ const SOP_CYCLE_PHASES = [
     ],
   },
   {
-    range: 'DOC 11â€“20',
+    range: 'DOC 11–20',
     label: 'Growth Spurt',
     color: 'bg-blue-500',
     textColor: 'text-blue-600',
@@ -81,7 +81,7 @@ const SOP_CYCLE_PHASES = [
     ],
   },
   {
-    range: 'DOC 21â€“30',
+    range: 'DOC 21–30',
     label: 'Risk Stage',
     color: 'bg-amber-500',
     textColor: 'text-amber-600',
@@ -93,20 +93,20 @@ const SOP_CYCLE_PHASES = [
     ],
   },
   {
-    range: 'DOC 31â€“45',
-    label: 'âš  Critical Stage',
+    range: 'DOC 31–45',
+    label: '⚠ Critical Stage',
     color: 'bg-red-500',
     textColor: 'text-red-600',
     bgLight: 'bg-red-50',
     borderColor: 'border-red-200',
     meds: [
       { name: 'Water Probiotic', dose: '400 g/acre', brand: '', freq: 'Every 3 days', priority: 'HIGH' },
-      { name: 'Anti-Stress Tonic', dose: 'Normal', brand: '', freq: 'DOC 30â€“35', priority: 'MEDIUM' },
+      { name: 'Anti-Stress Tonic', dose: 'Normal', brand: '', freq: 'DOC 30–35', priority: 'MEDIUM' },
       { name: 'Vitamin + Mineral Booster', dose: 'Boost', brand: '', freq: 'DOC 40 only', priority: 'HIGH' },
     ],
   },
   {
-    range: 'DOC 46â€“80',
+    range: 'DOC 46–80',
     label: 'Peak Growth',
     color: 'bg-purple-500',
     textColor: 'text-purple-600',
@@ -114,18 +114,18 @@ const SOP_CYCLE_PHASES = [
     borderColor: 'border-purple-200',
     meds: [
       { name: 'Liver Tonic', dose: 'Normal', brand: '', freq: 'DOC 50 only', priority: 'HIGH' },
-      { name: 'Mineral Mix', dose: '15â€“20 kg/acre', brand: '', freq: 'Continuous', priority: 'MEDIUM' },
+      { name: 'Mineral Mix', dose: '15–20 kg/acre', brand: '', freq: 'Continuous', priority: 'MEDIUM' },
     ],
   },
   {
-    range: 'DOC 81â€“100',
+    range: 'DOC 81–100',
     label: 'Harvest Stage',
     color: 'bg-[#C78200]',
     textColor: 'text-[#C78200]',
     bgLight: 'bg-amber-50',
     borderColor: 'border-amber-200',
     meds: [
-      { name: 'Stop heavy medicines', dose: 'â€”', brand: 'Clean water only', priority: 'HIGH' },
+      { name: 'Stop heavy medicines', dose: '—', brand: 'Clean water only', priority: 'HIGH' },
     ],
   },
 ];
@@ -142,7 +142,7 @@ const getIconForType = (type: string) => {
   }
 };
 
-// â”€â”€â”€ Medicine Cost Estimator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Medicine Cost Estimator ─────────────────────────────────────────────────
 const MEDICINE_UNIT_COSTS: Record<string, number> = {
   'Gut Probiotic Foundation': 120,
   'Gut Probiotic': 120,
@@ -170,18 +170,18 @@ const MEDICINE_UNIT_COSTS: Record<string, number> = {
   'Anti-Stress Tonic': 160,
   'Liver Tonic (Hepatopancreas)': 250,
   'Light Probiotic maintenance': 70,
-  'pH Correction â€” Zeolite/Organic Acid': 100,
-  'pH Stabilizer â€” Dolomite Lime': 60,
+  'pH Correction — Zeolite/Organic Acid': 100,
+  'pH Stabilizer — Dolomite Lime': 60,
   'Emergency Zeolite Application': 100,
   'Zeolite': 100,
   'Soil Liming (Dolomite)': 60,
   'Water Color Bloom (Organic)': 120,
-  'Monday â†’ Mineral Mix': 80,
-  'Tuesday â†’ Water Probiotic': 90,
-  'Wednesday â†’ Gut Probiotic': 120,
-  'Thursday â†’ Water Probiotic': 90,
-  'Friday â†’ Mineral Mix': 80,
-  'Saturday â†’ Immunity Booster': 190,
+  'Monday → Mineral Mix': 80,
+  'Tuesday → Water Probiotic': 90,
+  'Wednesday → Gut Probiotic': 120,
+  'Thursday → Water Probiotic': 90,
+  'Friday → Mineral Mix': 80,
+  'Saturday → Immunity Booster': 190,
   'Vitamin C': 180,
 };
 
@@ -230,7 +230,7 @@ const getNextMilestone = (doc: number): { doc: number; label: string } | null =>
     { doc: 15, label: 'Vitamin C Booster' },
     { doc: 21, label: 'Risk Stage Begins' },
     { doc: 25, label: 'Immunity Booster & Vibriosis Check' },
-    { doc: 31, label: 'CRITICAL STAGE â€“ Max Aeration' },
+    { doc: 31, label: 'CRITICAL STAGE – Max Aeration' },
     { doc: 40, label: 'Vitamin + Mineral Booster' },
     { doc: 50, label: 'Liver Tonic Day' },
     { doc: 81, label: 'Wind-Down / Harvest Prep' },
@@ -238,57 +238,57 @@ const getNextMilestone = (doc: number): { doc: number; label: string } | null =>
   return milestones.find(m => m.doc > doc) || null;
 };
 
-// â”€â”€â”€ Lunar helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Lunar helpers ───────────────────────────────────────────────────────────
 const MOON_META = {
   AMAVASYA: {
-    emoji: 'ðŸŒ‘',
-    label: 'Amavasya â€” New Moon',
+    emoji: '🌑',
+    label: 'Amavasya — New Moon',
     sublabel: 'CRITICAL HIGH RISK',
     bg: 'bg-black',
     border: 'border-indigo-500/50',
     textColor: 'text-indigo-400',
     badge: 'bg-red-500/20 text-red-300 border-red-400/30',
     rules: [
-      'ðŸ”´ Reduce feed by 20â€“30% tonight',
-      'ðŸ”µ Run ALL aerators through the night',
-      'ðŸ’Š Apply Mineral Mix (High Dose) â€” morning only',
-      'ðŸ’Š Apply Vitamin C / Immunity boost â€” morning only',
+      '🔴 Reduce feed by 20–30% tonight',
+      '🔵 Run ALL aerators through the night',
+      '💊 Apply Mineral Mix (High Dose) — morning only',
+      '💊 Apply Vitamin C / Immunity boost — morning only',
       'âš ï¸ Do NOT apply probiotics after 6 PM',
     ],
   },
   ASHTAMI: {
-    emoji: 'ðŸŒ“',
-    label: 'Ashtami â€” Molting Begins',
+    emoji: '🌓',
+    label: 'Ashtami — Molting Begins',
     sublabel: 'SEQUENCE START: 48HR STRESS',
     bg: 'bg-violet-950',
     border: 'border-violet-800/40',
     textColor: 'text-violet-300',
     badge: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
     rules: [
-      'ðŸŸ¡ Initial molting stress begins tonight',
-      'ðŸŸ¡ Reduce feed by 10% today',
-      'ðŸ”µ Start intensive aeration (Morning & Night)',
-      'ðŸ’Š Apply Minerals (Evening) for shell hardening',
+      '🟡 Initial molting stress begins tonight',
+      '🟡 Reduce feed by 10% today',
+      '🔵 Start intensive aeration (Morning & Night)',
+      '💊 Apply Minerals (Evening) for shell hardening',
     ],
   },
   NAVAMI: {
-    emoji: 'ðŸŒ™',
-    label: 'Navami â€” Peak Recovery',
+    emoji: '🌙',
+    label: 'Navami — Peak Recovery',
     sublabel: 'CRITICAL VIGILANCE',
     bg: 'bg-[#0B1A2E]',
     border: 'border-sky-500/30',
     textColor: 'text-sky-300',
     badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
     rules: [
-      'ðŸŸ  Maximum vigilance for molting recovery tonight',
-      'ðŸŸ  Watch for soft-shell / slow feeders',
-      'ðŸŸ¡ Reduce feed by 15% today if mortality seen',
-      'ðŸ’Š Apply Immunity boosters (Morning)',
-      'ðŸ”µ Maintain Max Aeration through 2 AM',
+      '🟠 Maximum vigilance for molting recovery tonight',
+      '🟠 Watch for soft-shell / slow feeders',
+      '🟡 Reduce feed by 15% today if mortality seen',
+      '💊 Apply Immunity boosters (Morning)',
+      '🔵 Maintain Max Aeration through 2 AM',
     ],
   },
   NORMAL: {
-    emoji: 'ðŸŒ•',
+    emoji: '🌕',
     label: 'Normal Moon Phase',
     sublabel: 'SAFE PERIOD',
     bg: 'bg-[#0D523C]',
@@ -296,35 +296,35 @@ const MOON_META = {
     textColor: 'text-emerald-300',
     badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
     rules: [
-      'âœ… Standard feeding schedule applies',
-      'âœ… Apply medicines as per DOC SOP',
-      'ðŸ’¡ Best time to apply: 7â€“9 AM or 4â€“6 PM',
+      '✅ Standard feeding schedule applies',
+      '✅ Apply medicines as per DOC SOP',
+      '💡 Best time to apply: 7–9 AM or 4–6 PM',
     ],
   },
   POURNAMI: {
-    emoji: 'ðŸŒ•',
-    label: 'Pournami â€” Full Moon',
+    emoji: '🌕',
+    label: 'Pournami — Full Moon',
     sublabel: 'HIGH BIOLOGICAL DEMAND',
     bg: 'bg-[#1A1C3E]',
     border: 'border-indigo-500/40',
     textColor: 'text-indigo-200',
     badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30',
     rules: [
-      'ðŸ”µ High biological activity tonight',
-      'ðŸ”µ Increase aeration levels (100% capacity)',
-      'ðŸŸ¡ Monitor DO levels afternoon & midnight',
-      'ðŸ’Š Mineral application suggested for partial molting',
+      '🔵 High biological activity tonight',
+      '🔵 Increase aeration levels (100% capacity)',
+      '🟡 Monitor DO levels afternoon & midnight',
+      '💊 Mineral application suggested for partial molting',
     ],
   },
 };
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
-// â”€â”€â”€ Season / Weather helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Season / Weather helpers ────────────────────────────────────────────────
 const getCurrentSeason = () => {
   const m = new Date().getMonth() + 1;
-  if (m >= 3 && m <= 6) return { label: 'Summer', emoji: 'â˜€ï¸', icon: Sun, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', risk: 'High Temp Â· Low DO Â· Vibriosis risk' };
-  if (m >= 7 && m <= 10) return { label: 'Monsoon', emoji: 'ðŸŒ§ï¸', icon: CloudRain, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', risk: 'Salinity drops Â· WSSV peak season' };
-  return { label: 'Winter', emoji: 'â„ï¸', icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20', risk: 'Low temp Â· WSSV trigger zone' };
+  if (m >= 3 && m <= 6) return { label: 'Summer', emoji: 'â˜€ï¸', icon: Sun, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', risk: 'High Temp · Low DO · Vibriosis risk' };
+  if (m >= 7 && m <= 10) return { label: 'Monsoon', emoji: 'ðŸŒ§ï¸', icon: CloudRain, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', risk: 'Salinity drops · WSSV peak season' };
+  return { label: 'Winter', emoji: 'â„ï¸', icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20', risk: 'Low temp · WSSV trigger zone' };
 };
 
 const getMedicineImportance = (title: string, doc: number, priority: string): 'URGENT' | 'IMPORTANT' | 'ROUTINE' => {
@@ -334,14 +334,14 @@ const getMedicineImportance = (title: string, doc: number, priority: string): 'U
   if (isCritSOP || isRiskDOC) return 'IMPORTANT';
   return 'ROUTINE';
 };
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
   const { ponds, addMedicineLog, medicineLogs, waterRecords, theme, serverError } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  // Only show active / planned ponds â€” no SOPs for harvested/sold ponds
+  // Only show active / planned ponds — no SOPs for harvested/sold ponds
   const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'planned');
   const [selectedPondId, setSelectedPondId] = useState(activePonds[0]?.id || ponds[0]?.id || '');
   const [completedMeds, setCompletedMeds] = useState<string[]>([]);
@@ -349,8 +349,8 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const [activeTab, setActiveTab] = useState<'today' | 'diseases' | 'cycle' | 'lunar' | 'my_sop'>('today');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // â”€â”€ Custom farmer medicine SOPs (persisted per pond) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Farmers enter their own medicine types + rates â†’ shown as SOP cards
+  // ── Custom farmer medicine SOPs (persisted per pond) ──────────────────────────
+  // Farmers enter their own medicine types + rates → shown as SOP cards
   interface FarmerSOP {
     id: string;
     name: string;
@@ -398,12 +398,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const deleteFarmerSOP = (id: string) => saveSOPs(farmerSOPs.filter(s => s.id !== id));
 
   const TYPE_META: Record<FarmerSOP['type'], { emoji: string; color: string }> = {
-    probiotic: { emoji: 'ðŸ¦ ', color: '#10B981' },
-    mineral: { emoji: 'ðŸ’Ž', color: '#3B82F6' },
-    vitamin: { emoji: 'ðŸ’Š', color: '#8B5CF6' },
-    antibiotic: { emoji: 'ðŸ”¬', color: '#EF4444' },
-    feed_additive: { emoji: 'ðŸŒ¿', color: '#F59E0B' },
-    other: { emoji: 'ðŸ“¦', color: '#6B7280' },
+    probiotic: { emoji: '🦠', color: '#10B981' },
+    mineral: { emoji: '💎', color: '#3B82F6' },
+    vitamin: { emoji: '💊', color: '#8B5CF6' },
+    antibiotic: { emoji: '🔬', color: '#EF4444' },
+    feed_additive: { emoji: '🌿', color: '#F59E0B' },
+    other: { emoji: '📦', color: '#6B7280' },
   };
 
 
@@ -425,7 +425,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const isWaterRisk = latestRead && (latestRead.do < 4.0 || latestRead.ph > 8.5 || latestRead.temp > 31);
   const riskLevel = (isDOCRisk && isWaterRisk) ? 'CRITICAL' : (isDOCRisk || isWaterRisk) ? 'HIGH' : 'STABLE';
 
-  // Compliance streak â€” consecutive days with â‰¥1 medicine logged
+  // Compliance streak — consecutive days with ≥1 medicine logged
   const complianceStreak = useMemo(() => {
     let streak = 0;
     const d = new Date();
@@ -437,7 +437,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     return streak;
   }, [medicineLogs, selectedPondId]);
 
-  // Disease risk report â€” computed once
+  // Disease risk report — computed once
   const diseaseRiskReport = useMemo(() => computeDiseaseRisk({
     doc: currentDoc,
     temperature: latestRead?.temp,
@@ -449,7 +449,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   // Lunar forecast for the planner (Extended to 40 days to ensure full culture-cycle coverage)
   const lunarForecast = React.useMemo(() => getLunarForecast(new Date(), 40), []);
 
-  // â”€â”€â”€ Simple 4-Day Aligned Forecast (Starting Today) â”€â”€â”€
+  // ─── Simple 4-Day Aligned Forecast (Starting Today) ───
   const compactLunarForecast = React.useMemo(() => {
     if (!selectedPond?.stockingDate) return [];
 
@@ -473,7 +473,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     return forecast;
   }, [selectedPond?.stockingDate, currentDoc]);
 
-  // â”€â”€â”€ SYNC ACTIVE POND SELECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── SYNC ACTIVE POND SELECTION ───────────────────────────────────────────
   useEffect(() => {
     if (!selectedPondId && ponds.length > 0) {
       setSelectedPondId(activePonds[0]?.id || ponds[0]?.id || "");
@@ -483,7 +483,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   // Filter logs for this specific pond to show the count
   const pondMedicineLogs = medicineLogs.filter(l => l.pondId === selectedPondId);
 
-  // Lunar status â€” computed once at render
+  // Lunar status — computed once at render
   const lunar = getLunarStatus(selectedDate);
   const moonMeta = MOON_META[lunar.phase];
   const isHighRiskMoon = lunar.phase !== 'NORMAL';
@@ -509,10 +509,10 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     );
   };
 
-  // â”€â”€ Pond acreage for cost estimation
+  // ── Pond acreage for cost estimation
   const pondAcreage = Number((selectedPond as any)?.farmSize) || 1;
 
-  // â”€â”€ Cost for each selected medicine
+  // ── Cost for each selected medicine
   const selectedCosts = completedMeds.map(name => ({
     name,
     cost: estimateMedicineCost(name, pondAcreage),
@@ -547,7 +547,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
     }
   };
 
-  // â”€â”€ Medicine compliance tracker
+  // ── Medicine compliance tracker
   const today = new Date().toISOString().split('T')[0];
   const pondMedLogs = medicineLogs?.filter((l: any) => l.pondId === selectedPondId) || [];
   const todayMedLogs = pondMedLogs.filter((l: any) => l.date?.startsWith(today));
@@ -561,18 +561,18 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const isPrestocking = selectedPond?.status === 'planned';
 
   const getSituationTag = () => {
-    if (selectedPond?.status === 'harvested') return { label: 'HARVESTED â€” NO SOP', color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20', emoji: 'âœ…' };
-    if (isWithdrawal) return { label: 'WITHDRAWAL PHASE', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', emoji: 'ðŸš«' };
+    if (selectedPond?.status === 'harvested') return { label: 'HARVESTED — NO SOP', color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20', emoji: '✅' };
+    if (isWithdrawal) return { label: 'WITHDRAWAL PHASE', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', emoji: '🚫' };
     if (isApproachingWithdrawal) return { label: 'PRE-HARVEST CARE', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', emoji: 'â°' };
-    if (isCritical) return { label: 'CRITICAL STAGE', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', emoji: 'ðŸ¦ ' };
-    if (currentDoc >= 20 && currentDoc <= 30) return { label: 'VIBRIOSIS WINDOW', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', emoji: 'ðŸ”¬' };
-    return { label: 'STANDARD PROTOCOL', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', emoji: 'âœ…' };
+    if (isCritical) return { label: 'CRITICAL STAGE', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', emoji: '🦠' };
+    if (currentDoc >= 20 && currentDoc <= 30) return { label: 'VIBRIOSIS WINDOW', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', emoji: '🔬' };
+    return { label: 'STANDARD PROTOCOL', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', emoji: '✅' };
   };
   const situationTag = getSituationTag();
 
   return (
     <div className="pb-40 bg-transparent min-h-screen text-left relative overflow-hidden">
-      {/* â”€â”€ Page Accents â”€â”€ */}
+      {/* ── Page Accents ── */}
       <div className="absolute top-10 right-[-10%] w-[70%] h-[30%] bg-purple-100/10 rounded-full blur-[100px] -z-10" />
       <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
       {/* Sync Success Overlay */}
@@ -657,7 +657,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
         {activePonds.length > 0 && selectedPond && (
           <>
-            {/* â”€â”€â”€ MEDICINE INTELLIGENCE HERO â”€â”€â”€ */}
+            {/* ─── MEDICINE INTELLIGENCE HERO ─── */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -674,12 +674,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         : 'linear-gradient(135deg, #022c22 0%, #0D523C 80%, #065f46 100%)'
               }}
             >
-              {/* â”€â”€ Ambient glow â”€â”€ */}
+              {/* ── Ambient glow ── */}
               <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-[80px] pointer-events-none"
                 style={{ background: isCritical ? 'rgba(239,68,68,0.25)' : isWithdrawal ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.15)' }} />
 
               <div className="p-5 relative z-10">
-                {/* â”€â”€ Row 1: Pond name + DOC â”€â”€ */}
+                {/* ── Row 1: Pond name + DOC ── */}
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="text-white/30 text-[7px] font-black uppercase tracking-[0.35em] mb-1">
@@ -696,7 +696,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       {/* Compliance streak badge */}
                       {complianceStreak > 0 && (
                         <span className="text-[7px] font-black px-2.5 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-300">
-                          ðŸ”¥ {complianceStreak}-Day Streak
+                          🔥 {complianceStreak}-Day Streak
                         </span>
                       )}
                     </div>
@@ -715,12 +715,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   </div>
                 </div>
 
-                {/* â”€â”€ Row 2: DOC Progress bar â”€â”€ */}
+                {/* ── Row 2: DOC Progress bar ── */}
                 {!isPrestocking && (
                   <div className="mb-4">
                     <div className="flex justify-between text-[5px] font-black text-white/20 uppercase tracking-widest mb-1">
                       <span>DOC 1</span>
-                      <span className="text-white/40">Risk Zone â†’</span>
+                      <span className="text-white/40">Risk Zone →</span>
                       <span>DOC 100</span>
                     </div>
                     {/* Multi-zone progress bar */}
@@ -744,30 +744,30 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     {/* Context labels */}
                     {isCritical && (
                       <p className="text-[7px] font-black text-red-300 mt-1.5 flex items-center gap-1 animate-pulse">
-                        <span>âš ï¸</span> Peak WSSV Risk Window (DOC 31â€“45) â€” Maximum vigilance required
+                        <span>âš ï¸</span> Peak WSSV Risk Window (DOC 31–45) — Maximum vigilance required
                       </p>
                     )}
                     {isWithdrawal && (
                       <p className="text-[7px] font-black text-amber-300 mt-1.5">
-                        ðŸš« Withdrawal phase â€” Stop all heavy medicines. Harvest window active.
+                        🚫 Withdrawal phase — Stop all heavy medicines. Harvest window active.
                       </p>
                     )}
                     {isApproachingWithdrawal && (
                       <p className="text-[7px] font-black text-amber-300 mt-1.5">
-                        â° Withdrawal in {90 - currentDoc} days â€” Start planning harvest logistics now
+                        â° Withdrawal in {90 - currentDoc} days — Start planning harvest logistics now
                       </p>
                     )}
                   </div>
                 )}
 
-                {/* â”€â”€ Row 3: 4-pillar Situation Intelligence Strip â”€â”€ */}
+                {/* ── Row 3: 4-pillar Situation Intelligence Strip ── */}
                 <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5 mb-4 -mx-1 px-1">
                   {[
                     {
                       icon: moonMeta.emoji,
                       label: 'Moon',
                       value: lunar.phase === 'NORMAL' ? 'Normal' : lunar.phase,
-                      sub: lunar.phase !== 'NORMAL' ? 'âš  Manage feed' : `â†“ Amavasya in ${lunar.daysToAmavasya}d`,
+                      sub: lunar.phase !== 'NORMAL' ? '⚠ Manage feed' : `↓ Amavasya in ${lunar.daysToAmavasya}d`,
                       urgent: lunar.phase !== 'NORMAL' && lunar.phase !== 'POURNAMI',
                       bg: lunar.phase !== 'NORMAL' ? 'bg-indigo-500/15 border-indigo-400/20' : 'bg-white/5 border-white/8',
                     },
@@ -775,12 +775,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       icon: season.emoji,
                       label: 'Season',
                       value: season.label,
-                      sub: season.risk.split('Â·')[0].trim(),
+                      sub: season.risk.split('·')[0].trim(),
                       urgent: season.label === 'Monsoon',
                       bg: season.label === 'Monsoon' ? 'bg-blue-500/15 border-blue-400/20' : season.label === 'Summer' ? 'bg-orange-500/15 border-orange-400/20' : 'bg-white/5 border-white/8',
                     },
                     {
-                      icon: diseaseRiskReport.overallRisk === 'CRITICAL' ? 'ðŸ”´' : diseaseRiskReport.overallRisk === 'HIGH' ? 'ðŸŸ ' : diseaseRiskReport.overallRisk === 'MODERATE' ? 'ðŸŸ¡' : 'ðŸŸ¢',
+                      icon: diseaseRiskReport.overallRisk === 'CRITICAL' ? '🔴' : diseaseRiskReport.overallRisk === 'HIGH' ? '🟠' : diseaseRiskReport.overallRisk === 'MODERATE' ? '🟡' : '🟢',
                       label: 'Disease Risk',
                       value: diseaseRiskReport.overallRisk,
                       sub: diseaseRiskReport.topRisks[0]?.shortName || 'Stable',
@@ -788,10 +788,10 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       bg: (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH') ? 'bg-red-500/15 border-red-400/20' : 'bg-white/5 border-white/8',
                     },
                     {
-                      icon: !latestRead ? 'ðŸ“Š' : latestRead.do < 4 ? 'ðŸš¨' : latestRead.ph > 8.5 ? 'âš ï¸' : 'âœ…',
+                      icon: !latestRead ? '📊' : latestRead.do < 4 ? '🚨' : latestRead.ph > 8.5 ? 'âš ï¸' : '✅',
                       label: 'Water',
                       value: !latestRead ? 'No data' : latestRead.do < 4 ? 'DO Critical' : latestRead.ph > 8.5 ? 'pH High' : 'Normal',
-                      sub: latestRead ? `DO: ${latestRead.do?.toFixed(1) ?? 'â€”'} Â· pH: ${latestRead.ph?.toFixed(1) ?? 'â€”'}` : 'Log water data',
+                      sub: latestRead ? `DO: ${latestRead.do?.toFixed(1) ?? '—'} · pH: ${latestRead.ph?.toFixed(1) ?? '—'}` : 'Log water data',
                       urgent: !!latestRead && (latestRead.do < 4 || latestRead.ph > 8.5),
                       bg: (latestRead && (latestRead.do < 4 || latestRead.ph > 8.5)) ? 'bg-red-500/15 border-red-400/20' : 'bg-white/5 border-white/8',
                     },
@@ -813,19 +813,19 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   ))}
                 </div>
 
-                {/* â”€â”€ Row 4: Stats + "Why Today Matters" â”€â”€ */}
+                {/* ── Row 4: Stats + "Why Today Matters" ── */}
                 <div className="pt-3 border-t border-white/10">
-                  {/* Why today matters â€” contextual message */}
+                  {/* Why today matters — contextual message */}
                   {(() => {
                     let msg = '';
-                    if (isCritical) msg = 'ðŸ¦  WSSV risk peaks now. Every medicine applied today reduces crop loss probability by up to 40%.';
-                    else if (isWithdrawal) msg = 'ðŸŒ¾ Harvest window open. Stop heavy medicines, check residue clearance and book logistics.';
+                    if (isCritical) msg = '🦠 WSSV risk peaks now. Every medicine applied today reduces crop loss probability by up to 40%.';
+                    else if (isWithdrawal) msg = '🌾 Harvest window open. Stop heavy medicines, check residue clearance and book logistics.';
                     else if (diseaseRiskReport.overallRisk === 'HIGH' || diseaseRiskReport.overallRisk === 'CRITICAL')
-                      msg = `âš¡ ${diseaseRiskReport.topRisks[0]?.name} risk is elevated at DOC ${currentDoc}. Today's SOP is your shield.`;
-                    else if (lunar.phase === 'AMAVASYA') msg = 'ðŸŒ‘ Amavasya tonight â€” shrimp are molting. Reduce feed, maximize aeration, apply minerals.';
-                    else if (complianceStreak >= 7) msg = `ðŸ”¥ ${complianceStreak}-day streak! Consistent medicine logging leads to 20%+ better FCR outcomes.`;
+                      msg = `⚡ ${diseaseRiskReport.topRisks[0]?.name} risk is elevated at DOC ${currentDoc}. Today's SOP is your shield.`;
+                    else if (lunar.phase === 'AMAVASYA') msg = '🌑 Amavasya tonight — shrimp are molting. Reduce feed, maximize aeration, apply minerals.';
+                    else if (complianceStreak >= 7) msg = `🔥 ${complianceStreak}-day streak! Consistent medicine logging leads to 20%+ better FCR outcomes.`;
                     else if (isPrestocking) msg = 'ðŸ—ï¸ Preparation phase. Clean pond = healthy crop. Follow soil and water SOP strictly before stocking.';
-                    else msg = `âœ… DOC ${currentDoc} â€” normal growth phase. Apply today's SOP protocol to maintain crop health.`;
+                    else msg = `✅ DOC ${currentDoc} — normal growth phase. Apply today's SOP protocol to maintain crop health.`;
 
                     return (
                       <div className="mb-3 px-1">
@@ -839,7 +839,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     {[
                       {
                         label: 'Streak',
-                        value: complianceStreak > 0 ? `${complianceStreak}d ðŸ”¥` : 'â€”',
+                        value: complianceStreak > 0 ? `${complianceStreak}d 🔥` : '—',
                         color: complianceStreak >= 7 ? 'text-yellow-300' : complianceStreak > 0 ? 'text-emerald-400' : 'text-red-400',
                       },
                       {
@@ -854,7 +854,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       },
                       {
                         label: 'Remaining',
-                        value: isWithdrawal ? 'ðŸš«' : Math.max(0, 100 - currentDoc),
+                        value: isWithdrawal ? '🚫' : Math.max(0, 100 - currentDoc),
                         color: isWithdrawal ? 'text-red-400' : currentDoc > 90 ? 'text-amber-400' : 'text-white',
                       },
                     ].map((m, i) => (
@@ -872,15 +872,15 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
 
             {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-                TAB NAVIGATION â€” immediately below hero
+                TAB NAVIGATION — immediately below hero
             â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {([
-                { id: 'today', label: "Today's SOP", emoji: 'ðŸ’Š' },
-                { id: 'diseases', label: 'Disease', emoji: 'ðŸ¦ ' },
-                { id: 'cycle', label: 'Full Cycle', emoji: 'ðŸ“…' },
-                { id: 'lunar', label: 'Lunar', emoji: 'ðŸŒ™' },
-                { id: 'my_sop', label: 'My SOP', emoji: 'ðŸ§ª' },
+                { id: 'today', label: "Today's SOP", emoji: '💊' },
+                { id: 'diseases', label: 'Disease', emoji: '🦠' },
+                { id: 'cycle', label: 'Full Cycle', emoji: '📅' },
+                { id: 'lunar', label: 'Lunar', emoji: '🌙' },
+                { id: 'my_sop', label: 'My SOP', emoji: '🧪' },
               ] as const).map(tab => (
                 <button
                   key={tab.id}
@@ -917,11 +917,11 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
             </div>
 
             {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-                TAB CONTENT â€” AnimatePresence for smooth transitions
+                TAB CONTENT — AnimatePresence for smooth transitions
             â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
             <AnimatePresence mode="wait">
 
-              {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB 1: TODAY'S SOP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ─────────────── TAB 1: TODAY'S SOP ─────────────── */}
               {(activeTab as string) === 'today' && (
                 <motion.div
                   key="today"
@@ -931,7 +931,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
-                  {/* Moon Phase Alert Strip â€” compact, only if active phase */}
+                  {/* Moon Phase Alert Strip — compact, only if active phase */}
                   {isHighRiskMoon && (
                     <motion.div
                       initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
@@ -966,7 +966,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         <span className="text-lg leading-none flex-shrink-0">{season.emoji}</span>
                         <div className="min-w-0">
                           <p className={cn('text-[8px] font-black leading-tight', isDark ? 'text-white' : season.color)}>{season.label}</p>
-                          <p className={cn('text-[6.5px] font-medium leading-tight mt-0.5 truncate', isDark ? 'text-white/30' : 'text-ink/40')}>{season.risk.split('Â·')[0].trim()}</p>
+                          <p className={cn('text-[6.5px] font-medium leading-tight mt-0.5 truncate', isDark ? 'text-white/30' : 'text-ink/40')}>{season.risk.split('·')[0].trim()}</p>
                         </div>
                       </div>
                       {nextMilestone && (
@@ -1106,7 +1106,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
                                 <div className="flex-1 px-3 py-2.5">
                                   <div className="flex items-center gap-2.5">
-                                    {/* Icon block â€” compact */}
+                                    {/* Icon block — compact */}
                                     <div className={cn(
                                       'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
                                       isCompleted ? 'bg-emerald-500 text-white' : accent.text
@@ -1202,10 +1202,10 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         })}
                       </div>
 
-                      {/* â”€â”€ HARVESTED POND GUARD â”€â”€ */}
+                      {/* ── HARVESTED POND GUARD ── */}
                       {selectedPond.status === 'harvested' && (
                         <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 text-center">
-                          <div className="text-4xl mb-3">ðŸŒ¾</div>
+                          <div className="text-4xl mb-3">🌾</div>
                           <h3 className="text-amber-800 font-black text-sm tracking-tight mb-2">Pond Harvested</h3>
                           <p className="text-amber-700/70 text-[11px] leading-relaxed">
                             This pond has been harvested. No SOP medicines are required.<br />
@@ -1283,7 +1283,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 </motion.div>
               )}
 
-              {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB 2: DISEASE ALERTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ─────────────── TAB 2: DISEASE ALERTS ─────────────── */}
               {activeTab === 'diseases' && (
                 <motion.div
                   key="diseases"
@@ -1303,7 +1303,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     </div>
                   ) : currentDoc === 0 ? (
                     <div className={cn('rounded-[2rem] p-8 text-center border', isDark ? 'bg-white/[0.03] border-white/10' : 'bg-card border-card-border')}>
-                      <div className="text-4xl mb-3">âœ…</div>
+                      <div className="text-4xl mb-3">✅</div>
                       <h3 className={cn('font-black text-sm tracking-tight mb-2', isDark ? 'text-white' : 'text-ink')}>Stocking Day</h3>
                       <p className={cn('text-[10px] leading-relaxed', isDark ? 'text-white/40' : 'text-ink/40')}>Disease monitoring begins from DOC 1.</p>
                     </div>
@@ -1320,9 +1320,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         {/* Section header */}
                         <div className="flex items-center justify-between px-1">
                           <div>
-                            <h3 className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-ink')}>ðŸ¦  Stage Disease Alerts</h3>
+                            <h3 className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-ink')}>🦠 Stage Disease Alerts</h3>
                             <p className={cn('text-[8px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/35' : 'text-ink/40')}>
-                              {stageMeta.emoji} {stageMeta.label} Â· DOC {currentDoc} Â· {seasonMeta.emoji} {seasonMeta.label}
+                              {stageMeta.emoji} {stageMeta.label} · DOC {currentDoc} · {seasonMeta.emoji} {seasonMeta.label}
                             </p>
                           </div>
                           <span className={cn('text-[7px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border', overallColors.badge)}>
@@ -1400,7 +1400,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                       isCrit ? 'text-red-800' : isHigh ? 'text-orange-800' : 'text-ink'
                                     )}>{risk.name}</h4>
                                     <p className={cn('text-[7px] font-black uppercase tracking-widest', rc.text)}>
-                                      {risk.window} Â· DOC {currentDoc}
+                                      {risk.window} · DOC {currentDoc}
                                     </p>
                                   </div>
                                   <div className={cn('w-11 h-11 rounded-2xl flex flex-col items-center justify-center border flex-shrink-0', rc.badge)}>
@@ -1415,7 +1415,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                 )}>
                                   <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
                                     isCrit ? 'text-red-500' : isHigh ? 'text-orange-500' : 'text-ink/30'
-                                  )}>âš¡ Why Now (DOC {currentDoc})</p>
+                                  )}>⚡ Why Now (DOC {currentDoc})</p>
                                   <p className={cn('text-[9px] font-semibold leading-relaxed',
                                     isCrit ? 'text-red-800/80' : isHigh ? 'text-orange-800/80' : 'text-ink/60'
                                   )}>{risk.trigger}</p>
@@ -1451,7 +1451,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                     <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
                                       isCrit ? 'text-red-400' : isHigh ? 'text-orange-400' :
                                         risk.riskLevel === 'MODERATE' ? 'text-amber-400' : 'text-blue-400'
-                                    )}>{isHotZone ? 'ðŸš¨ Immediate Action' : 'ðŸ’¡ Prevention'}</p>
+                                    )}>{isHotZone ? '🚨 Immediate Action' : '💡 Prevention'}</p>
                                     <p className={cn('text-[9px] font-medium leading-relaxed',
                                       isCrit ? 'text-red-300' : isHigh ? 'text-orange-300' : isDark ? 'text-white/60' : 'text-ink/60'
                                     )}>{risk.action.split('.')[0]}.</p>
@@ -1462,7 +1462,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                     )}>
                                       <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1',
                                         isDark ? 'text-emerald-400' : 'text-emerald-600'
-                                      )}>ðŸ’¡ {stageMeta.label} Tip</p>
+                                      )}>💡 {stageMeta.label} Tip</p>
                                       <p className={cn('text-[9px] font-medium leading-relaxed',
                                         isDark ? 'text-emerald-300/70' : 'text-emerald-800/70'
                                       )}>{cardTip}</p>
@@ -1479,7 +1479,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 </motion.div>
               )}
 
-              {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB 3: FULL CYCLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ─────────────── TAB 3: FULL CYCLE ─────────────── */}
               {activeTab === 'cycle' && (
                 /* Full SOP Cycle View */
                 <motion.div
@@ -1495,7 +1495,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       <h2 className={cn('font-black text-lg tracking-tight', isDark ? 'text-white' : 'text-ink')}>{t.cultureTimeline}</h2>
                       {selectedPond && (
                         <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest mt-0.5">
-                          {selectedPond.status === 'planned' ? 'Phase: Pre-Stocking Preparation' : `Total Cycle: 100 Days â€¢ ${100 - currentDoc > 0 ? `${100 - currentDoc} Days Remaining` : 'Culture Complete'}`}
+                          {selectedPond.status === 'planned' ? 'Phase: Pre-Stocking Preparation' : `Total Cycle: 100 Days • ${100 - currentDoc > 0 ? `${100 - currentDoc} Days Remaining` : 'Culture Complete'}`}
                         </p>
                       )}
                     </div>
@@ -1513,7 +1513,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       const isActive = isPrep ? (currentDoc <= 0) : (selectedPond?.status === 'planned' ? phaseIdx - 1 === currentPhaseIdx : phaseIdx === currentPhaseIdx);
                       const isPast = isPrep ? false : (selectedPond?.status === 'planned' ? phaseIdx - 1 < currentPhaseIdx : phaseIdx < currentPhaseIdx);
 
-                      /* â”€â”€ Active phase: full card with medicine details â”€â”€ */
+                      /* ── Active phase: full card with medicine details ── */
                       if (isActive) {
                         return (
                           <div
@@ -1554,7 +1554,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                   ? `bg-white/5 text-white/60 border-white/10`
                                   : `bg-card ${phase.textColor} ${phase.borderColor}`
                               )}>
-                                â–¶ Active
+                                ▶ Active
                               </span>
                             </div>
 
@@ -1568,7 +1568,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                   <div>
                                     <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-ink')}>{med.name}</p>
                                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                      {med.dose && med.dose !== 'â€”' && (
+                                      {med.dose && med.dose !== '—' && (
                                         <span className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/35' : 'text-ink/40')}>{med.dose}</span>
                                       )}
                                       {med.brand && (
@@ -1592,7 +1592,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         );
                       }
 
-                      /* â”€â”€ Past / upcoming phases: compact title-only pill â”€â”€ */
+                      /* ── Past / upcoming phases: compact title-only pill ── */
                       return (
                         <div
                           key={phaseIdx}
@@ -1622,7 +1622,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 </motion.div>
               )}
 
-              {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB 4: LUNAR PLANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ─────────────── TAB 4: LUNAR PLANNER ─────────────── */}
               {activeTab === 'lunar' && (
                 <motion.div
                   key="lunar"
@@ -1633,7 +1633,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   className="space-y-3 pb-10"
                 >
                   {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-                      LUNAR HERO â€” Premium Moon Phase Intelligence
+                      LUNAR HERO — Premium Moon Phase Intelligence
                   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
                   <div
                     className="rounded-[2.5rem] overflow-hidden relative border border-white/10"
@@ -1693,13 +1693,13 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       {/* 3-event countdown cards */}
                       <div className="grid grid-cols-3 gap-2 mb-5">
                         {(lunar.phase === 'POURNAMI' ? [
-                          { label: 'Ashtami', days: lunar.daysSinceAshtami, emoji: 'ðŸŒ“', color: 'from-violet-900/80 to-violet-800/50', border: 'border-violet-500/30', text: 'text-violet-300', note: 'ago', risk: 'Molt Start' },
-                          { label: 'Navami', days: lunar.daysSinceNavami, emoji: 'ðŸŒ™', color: 'from-sky-900/80 to-sky-800/50', border: 'border-sky-500/30', text: 'text-sky-300', note: 'ago', risk: 'Molt Peak' },
-                          { label: 'Amavasya', days: lunar.daysSinceAmavasya, emoji: 'ðŸŒ‘', color: 'from-indigo-900/80 to-indigo-800/50', border: 'border-indigo-500/30', text: 'text-indigo-300', note: 'ago', risk: 'New Moon' },
+                          { label: 'Ashtami', days: lunar.daysSinceAshtami, emoji: '🌓', color: 'from-violet-900/80 to-violet-800/50', border: 'border-violet-500/30', text: 'text-violet-300', note: 'ago', risk: 'Molt Start' },
+                          { label: 'Navami', days: lunar.daysSinceNavami, emoji: '🌙', color: 'from-sky-900/80 to-sky-800/50', border: 'border-sky-500/30', text: 'text-sky-300', note: 'ago', risk: 'Molt Peak' },
+                          { label: 'Amavasya', days: lunar.daysSinceAmavasya, emoji: '🌑', color: 'from-indigo-900/80 to-indigo-800/50', border: 'border-indigo-500/30', text: 'text-indigo-300', note: 'ago', risk: 'New Moon' },
                         ] : [
-                          { label: 'Ashtami', days: lunar.daysToAshtami, emoji: 'ðŸŒ“', color: 'from-violet-900/80 to-violet-800/50', border: 'border-violet-500/30', text: 'text-violet-300', note: 'd', risk: 'Molt Begins' },
-                          { label: 'Navami', days: lunar.daysToNavami, emoji: 'ðŸŒ™', color: 'from-sky-900/80 to-sky-800/50', border: 'border-sky-500/30', text: 'text-sky-300', note: 'd', risk: 'Molt Peak' },
-                          { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: 'ðŸŒ‘', color: 'from-indigo-900/80 to-indigo-800/50', border: 'border-indigo-500/30', text: 'text-indigo-300', note: 'd', risk: 'âš  Low DO Risk' },
+                          { label: 'Ashtami', days: lunar.daysToAshtami, emoji: '🌓', color: 'from-violet-900/80 to-violet-800/50', border: 'border-violet-500/30', text: 'text-violet-300', note: 'd', risk: 'Molt Begins' },
+                          { label: 'Navami', days: lunar.daysToNavami, emoji: '🌙', color: 'from-sky-900/80 to-sky-800/50', border: 'border-sky-500/30', text: 'text-sky-300', note: 'd', risk: 'Molt Peak' },
+                          { label: 'Amavasya', days: lunar.daysToAmavasya, emoji: '🌑', color: 'from-indigo-900/80 to-indigo-800/50', border: 'border-indigo-500/30', text: 'text-indigo-300', note: 'd', risk: '⚠ Low DO Risk' },
                         ]).map((ev, i) => (
                           <motion.div
                             key={i}
@@ -1721,19 +1721,19 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         ))}
                       </div>
 
-                      {/* SOP Rules â€” color coded */}
+                      {/* SOP Rules — color coded */}
                       <div className="bg-white/[0.04] rounded-2xl px-4 py-3.5 border border-white/5 mb-3">
                         <p className="text-white/25 text-[6px] font-black uppercase tracking-[0.3em] mb-2">
-                          Tonight's SOP â€” {moonMeta.sublabel}
+                          Tonight's SOP — {moonMeta.sublabel}
                         </p>
                         <div className="space-y-1.5">
                           {moonMeta.rules.map((rule, i) => {
-                            const isRed = rule.startsWith('ðŸ”´');
-                            const isOrange = rule.startsWith('ðŸŸ ');
-                            const isYellow = rule.startsWith('ðŸŸ¡');
-                            const isBlue = rule.startsWith('ðŸ”µ');
-                            const isMed = rule.startsWith('ðŸ’Š');
-                            const isCheck = rule.startsWith('âœ…');
+                            const isRed = rule.startsWith('🔴');
+                            const isOrange = rule.startsWith('🟠');
+                            const isYellow = rule.startsWith('🟡');
+                            const isBlue = rule.startsWith('🔵');
+                            const isMed = rule.startsWith('💊');
+                            const isCheck = rule.startsWith('✅');
                             return (
                               <div key={i} className={cn(
                                 'flex items-start gap-2 px-2.5 py-1.5 rounded-xl',
@@ -1749,19 +1749,19 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </div>
                       </div>
 
-                      {/* Season Ã— Lunar interaction */}
+                      {/* Season × Lunar interaction */}
                       <div className="flex items-center gap-3 bg-white/[0.04] rounded-2xl px-4 py-3 border border-white/5">
                         <span className="text-xl flex-shrink-0">{season.emoji}</span>
                         <div className="flex-1">
                           <p className="text-white/60 text-[9px] font-black tracking-tight">
-                            {season.label} Ã— {moonMeta.label.split('â€”')[0].trim()} Interaction
+                            {season.label} × {moonMeta.label.split('—')[0].trim()} Interaction
                           </p>
                           <p className="text-white/35 text-[8px] font-medium mt-0.5 leading-relaxed">
                             {lunar.phase === 'AMAVASYA'
-                              ? `${season.label} temps amplify DO crash risk tonight. Run aerators from 9 PM â€” 5 AM.`
+                              ? `${season.label} temps amplify DO crash risk tonight. Run aerators from 9 PM — 5 AM.`
                               : (lunar.phase === 'ASHTAMI' || lunar.phase === 'NAVAMI')
-                                ? `${season.label} heat stress compounds molt stress. Monitor Oâ‚‚ every 2 hrs during night.`
-                                : `${season.label} season active. Next major molting event in ${Math.min(lunar.daysToAmavasya, lunar.daysToAshtami, lunar.daysToNavami)} days â€” prepare Minerals & Probiotics.`}
+                                ? `${season.label} heat stress compounds molt stress. Monitor O₂ every 2 hrs during night.`
+                                : `${season.label} season active. Next major molting event in ${Math.min(lunar.daysToAmavasya, lunar.daysToAshtami, lunar.daysToNavami)} days — prepare Minerals & Probiotics.`}
                           </p>
                         </div>
                         <Thermometer size={16} className="text-white/20 flex-shrink-0" />
@@ -1809,7 +1809,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           </div>
 
                           <p className="text-white/40 text-[10px] font-medium leading-relaxed">
-                            DOC-Aligned 5-Week Forecast Â· Lunar Molt Cycles Integrated.
+                            DOC-Aligned 5-Week Forecast · Lunar Molt Cycles Integrated.
                           </p>
                         </div>
                         <div className="absolute right-[-5%] top-[-10%] opacity-10">
@@ -1891,11 +1891,11 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                             isNavami ? "text-2xl text-sky-200" :
                                               isToday ? "text-xl text-emerald-500" : "text-xl text-amber-400"
                                     )}>
-                                    {day.status.phase === 'AMAVASYA' ? 'ðŸŒ‘' :
-                                      day.status.phase === 'POURNAMI' ? 'ðŸŒ•' :
-                                        day.status.phase === 'ASHTAMI' ? 'ðŸŒ—' :
-                                          day.status.phase === 'NAVAMI' ? 'ðŸŒ˜' :
-                                            'ðŸŒ•'}
+                                    {day.status.phase === 'AMAVASYA' ? '🌑' :
+                                      day.status.phase === 'POURNAMI' ? '🌕' :
+                                        day.status.phase === 'ASHTAMI' ? '🌗' :
+                                          day.status.phase === 'NAVAMI' ? '🌘' :
+                                            '🌕'}
                                   </motion.span>
                                   {/* Tactically Lean: Medicine SOP Dots */}
                                   <div className="mt-1.5 flex justify-center gap-1">
@@ -1954,7 +1954,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           <div>
                             <p className="text-[#C78200] text-[8px] font-black uppercase tracking-widest leading-none mb-1">Schedule for</p>
                             <h3 className="text-ink text-sm font-black tracking-tighter">
-                              {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' })} â€¢ DOC {calculateDOC(selectedPond.stockingDate, selectedDate.toISOString())}
+                              {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' })} • DOC {calculateDOC(selectedPond.stockingDate, selectedDate.toISOString())}
                             </h3>
                           </div>
                           {getLunarStatus(selectedDate).phase !== 'NORMAL' && (
@@ -2002,7 +2002,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </div>
                         <p className="text-ink/60 text-[11px] leading-relaxed font-bold">
                           Based on your pond's stock date ({selectedPond.shrimpType}), the high-risk molting period is locked to the lunar cycle.
-                          <span className="text-indigo-900 font-black ml-1">ðŸŒ‘ New Moon</span> triggers on {lunarForecast.find(d => d.status.phase === 'AMAVASYA')?.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) || 'Cycle Peak'}.
+                          <span className="text-indigo-900 font-black ml-1">🌑 New Moon</span> triggers on {lunarForecast.find(d => d.status.phase === 'AMAVASYA')?.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) || 'Cycle Peak'}.
                           Ensure DO is &gt; 5ppm.
                         </p>
                       </div>
@@ -2088,7 +2088,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   onClick={() => navigate('/disease-detection')}
                   className="w-full py-4 bg-red-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-red-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                 >
-                  <span className="animate-pulse">â˜…</span> {t.diagnoseNow}
+                  <span className="animate-pulse">★</span> {t.diagnoseNow}
                 </button>
               </section>
             )}
@@ -2139,7 +2139,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
               </section>
             )}
 
-            {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB 5: MY SOP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─────────────── TAB 5: MY SOP ─────────────── */}
             {(activeTab as string) === 'my_sop' && (
               <motion.div
                 key="my_sop"
@@ -2154,7 +2154,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                   <div>
                     <h3 className="text-[11px] font-black text-ink tracking-tight">My Custom SOPs</h3>
                     <p className="text-[8px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">
-                      Your medicines Â· real rates Â· personal schedule
+                      Your medicines · real rates · personal schedule
                     </p>
                   </div>
                   <motion.button
@@ -2175,7 +2175,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                       className="rounded-[2rem] border border-purple-200 bg-purple-50/60 backdrop-blur-sm overflow-hidden"
                     >
                       <div className="p-5 space-y-3">
-                        <p className="text-[8px] font-black text-purple-700 uppercase tracking-widest">ðŸ§ª New Custom Medicine SOP</p>
+                        <p className="text-[8px] font-black text-purple-700 uppercase tracking-widest">🧪 New Custom Medicine SOP</p>
 
                         {/* Name */}
                         <div>
@@ -2197,12 +2197,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                               value={sopForm.type}
                               onChange={e => setSOPForm(p => ({ ...p, type: e.target.value as any }))}
                             >
-                              <option value="probiotic">ðŸ¦  Probiotic</option>
-                              <option value="mineral">ðŸ’Ž Mineral</option>
-                              <option value="vitamin">ðŸ’Š Vitamin</option>
-                              <option value="antibiotic">ðŸ”¬ Antibiotic</option>
-                              <option value="feed_additive">ðŸŒ¿ Feed Additive</option>
-                              <option value="other">ðŸ“¦ Other</option>
+                              <option value="probiotic">🦠 Probiotic</option>
+                              <option value="mineral">💎 Mineral</option>
+                              <option value="vitamin">💊 Vitamin</option>
+                              <option value="antibiotic">🔬 Antibiotic</option>
+                              <option value="feed_additive">🌿 Feed Additive</option>
+                              <option value="other">📦 Other</option>
                             </select>
                           </div>
                           <div>
@@ -2224,7 +2224,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         {/* Rate + Dose row */}
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Rate (â‚¹) *</label>
+                            <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">Rate (₹) *</label>
                             <input
                               className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
                               placeholder="e.g. 450"
@@ -2249,7 +2249,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           <label className="text-[7px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-1">DOC Range / Frequency</label>
                           <input
                             className="w-full px-4 py-3 rounded-2xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-400"
-                            placeholder="e.g. DOC 1â€“30 or Every 5 days"
+                            placeholder="e.g. DOC 1–30 or Every 5 days"
                             value={sopForm.docRange}
                             onChange={e => setSOPForm(p => ({ ...p, docRange: e.target.value }))}
                           />
@@ -2273,7 +2273,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             disabled={!sopForm.name.trim() || !sopForm.rate}
                             className="flex-1 py-3 rounded-2xl bg-purple-600 text-white text-[8px] font-black uppercase tracking-widest disabled:opacity-40 shadow-lg"
                           >
-                            âœ“ Save to My SOP
+                            ✓ Save to My SOP
                           </button>
                           <button onClick={() => setShowSOPForm(false)}
                             className="px-4 py-3 rounded-2xl border border-purple-200 text-[8px] font-black text-purple-600 uppercase tracking-widest"
@@ -2289,7 +2289,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                 {/* Empty state */}
                 {farmerSOPs.length === 0 && !showSOPForm && (
                   <div className="rounded-[2rem] border border-dashed border-purple-300/50 bg-purple-50/30 p-8 text-center">
-                    <div className="text-4xl mb-3">ðŸ§ª</div>
+                    <div className="text-4xl mb-3">🧪</div>
                     <p className="text-[10px] font-black text-purple-700 mb-1">No Custom SOPs Yet</p>
                     <p className="text-[8px] text-slate-400 font-medium leading-relaxed">
                       Add your own medicines with exact rates.<br />They'll appear here as your personal SOP.
@@ -2337,13 +2337,13 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                             </div>
                             <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                               {sop.dosePerAcre && (
-                                <p className="text-[8px] font-bold text-slate-500">ðŸ“¦ {sop.dosePerAcre}/acre</p>
+                                <p className="text-[8px] font-bold text-slate-500">📦 {sop.dosePerAcre}/acre</p>
                               )}
                               {sop.docRange && (
-                                <p className="text-[8px] font-bold text-slate-500">ðŸ“… {sop.docRange}</p>
+                                <p className="text-[8px] font-bold text-slate-500">📅 {sop.docRange}</p>
                               )}
                               <p className="text-[8px] font-black" style={{ color: meta.color }}>
-                                â‚¹{sop.rate}/{sop.unit} Â· Est. â‚¹{totalCost} for {pondAcreage} acre
+                                ₹{sop.rate}/{sop.unit} · Est. ₹{totalCost} for {pondAcreage} acre
                               </p>
                             </div>
                             {sop.notes && (
@@ -2363,7 +2363,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                 : 'border-purple-200 text-purple-600'
                             )}
                           >
-                            {isSelected ? 'âœ“ Selected' : '+ Select'}
+                            {isSelected ? '✓ Selected' : '+ Select'}
                           </button>
                           <button
                             onClick={() => deleteFarmerSOP(sop.id)}
@@ -2385,7 +2385,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     disabled={isLogging}
                     className="w-full py-4 rounded-[1.8rem] bg-gradient-to-r from-purple-600 to-purple-800 text-white text-[9px] font-black uppercase tracking-widest shadow-xl disabled:opacity-50"
                   >
-                    {isLogging ? 'âŒ› Saving...' : `ðŸ“‹ Log ${completedMeds.filter(m => farmerSOPs.some(s => s.name === m)).length} Medicine(s) Applied Today`}
+                    {isLogging ? '⌛ Saving...' : `📋 Log ${completedMeds.filter(m => farmerSOPs.some(s => s.name === m)).length} Medicine(s) Applied Today`}
                   </motion.button>
                 )}
               </motion.div>
