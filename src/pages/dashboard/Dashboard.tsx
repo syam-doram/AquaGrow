@@ -908,65 +908,36 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             ))}
           </AnimatePresence>
 
-          {/* ── CINEMATIC AD BANNERS (Premium Posters) ── */}
-          <div className="relative">
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 -mx-5 px-5">
+          {/* ── AUTO-SCROLLING TICKER MARQUEE ── */}
+          <div className="relative -mx-5 mb-2 mt-[-10px] sm:mt-0 bg-[#0A0A0A] border-y border-white/5 overflow-hidden flex items-center h-12 shadow-inner cursor-pointer" onClick={() => navigate('/shop')}>
+            <motion.div
+              animate={{ x: [0, -1000] }}
+              transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+              className="flex items-center gap-8 whitespace-nowrap min-w-max px-4"
+            >
               {[
-                { 
-                  title: "AQUA PROBIOTIC", 
-                  season: "FORMULA 2.0",
-                  sub: "Protect your harvest from early mortality syndrome.", 
-                  img: "https://images.unsplash.com/photo-1620325867502-221affb5fb3f?q=80&w=800&auto=format&fit=crop", 
-                  path: '/shop'
-                },
-                { 
-                  title: "HIGH-PROTEIN", 
-                  season: "GROWTH FEED X",
-                  sub: "Accelerate Vanamei growth by 15% with complete nutrition.", 
-                  img: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop", 
-                  path: '/shop'
-                },
-                { 
-                  title: "AERATOR", 
-                  season: "FLEET UPGRADE",
-                  sub: "Energy efficient paddlewheel aerators available on 0% EMI.", 
-                  img: "https://images.unsplash.com/photo-1518118228308-5bb400262193?q=80&w=800&auto=format&fit=crop", 
-                  path: '/shop'
-                },
+                { emoji: '💊', title: 'Medicine Sale', sub: 'Up to 20% off', color: 'text-purple-400' },
+                { emoji: '🌾', title: 'Bulk Feed Deal', sub: 'Buy 10 bags, get 1 FREE', color: 'text-emerald-400' },
+                { emoji: '🚚', title: 'Free Delivery', sub: 'Orders > ₹2,000', color: 'text-blue-400' },
+                { emoji: '🔬', title: 'WSSV Test Kit', sub: 'DOC 45 Special', color: 'text-red-400' },
+                // Duplicated array for seamless infinite loop effect
+                { emoji: '💊', title: 'Medicine Sale', sub: 'Up to 20% off', color: 'text-purple-400' },
+                { emoji: '🌾', title: 'Bulk Feed Deal', sub: 'Buy 10 bags, get 1 FREE', color: 'text-emerald-400' },
+                { emoji: '🚚', title: 'Free Delivery', sub: 'Orders > ₹2,000', color: 'text-blue-400' },
+                { emoji: '🔬', title: 'WSSV Test Kit', sub: 'DOC 45 Special', color: 'text-red-400' },
               ].map((ad, i) => (
-                <motion.div
-                  key={i}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(ad.path)}
-                  className="snap-center shrink-0 w-[90vw] sm:w-[450px] aspect-[1.8/1] relative rounded-xl overflow-hidden shadow-2xl group border border-white/10 bg-black"
-                >
-                  <img src={ad.img} alt={ad.title} className="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-[1.03]" />
-                  
-                  {/* Heavy dark gradient to replicate the TV poster look */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
-                  
-                  {/* Banner Content Container */}
-                  <div className="absolute inset-y-0 left-0 p-5 sm:p-8 flex flex-col justify-end pb-8 w-[80%] z-10">
-                    <h3 className="text-white text-3xl sm:text-4xl font-black tracking-tighter uppercase leading-[0.95]" style={{ textShadow: '2px 2px 12px rgba(0,0,0,0.9)' }}>
-                      {ad.title}
-                    </h3>
-                    <p className="text-white text-[11px] sm:text-xs font-black uppercase tracking-[0.3em] mt-3 mb-2 opacity-90" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
-                      {ad.season}
-                    </p>
-                    <p className="text-white/70 text-[10px] sm:text-xs font-medium leading-snug drop-shadow-md">
-                      {ad.sub}
-                    </p>
+                <div key={i} className="flex items-center gap-2.5 active:opacity-50 transition-opacity">
+                  <div className="w-7 h-7 rounded-none bg-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
+                    <span className="text-sm leading-none drop-shadow-sm">{ad.emoji}</span>
                   </div>
-                </motion.div>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/90 drop-shadow-sm">{ad.title}</p>
+                    <span className="text-white/20 text-[10px]">|</span>
+                    <p className={cn("text-[8.5px] font-bold uppercase tracking-widest drop-shadow-sm", ad.color)}>{ad.sub}</p>
+                  </div>
+                </div>
               ))}
-            </div>
-            
-            {/* Pagination Indicators */}
-            <div className="flex justify-center gap-1.5 mt-2 mb-2">
-              <div className="w-4 h-1 bg-emerald-500 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-slate-400/30 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-slate-400/30 rounded-full" />
-            </div>
+            </motion.div>
           </div>
 
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}

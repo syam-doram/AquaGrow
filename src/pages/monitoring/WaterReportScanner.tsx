@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Camera, X, Scan, Zap, FileText, CheckCircle2, Loader2, Upload } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Header } from '../../components/Header';
+import { useBottomSheet } from '../../context/BottomSheetContext';
 import type { Translations } from '../../translations';
 
 interface Props {
@@ -15,6 +16,7 @@ export const WaterReportScanner = ({ t }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { openBottomSheet, closeBottomSheet } = useBottomSheet();
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState(false);
@@ -44,6 +46,11 @@ export const WaterReportScanner = ({ t }: Props) => {
         stream.getTracks().forEach(track => track.stop());
       }
     };
+  }, []);
+
+  useEffect(() => {
+    openBottomSheet();
+    return () => closeBottomSheet();
   }, []);
 
   const captureFrame = useCallback(() => {

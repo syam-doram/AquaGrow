@@ -168,7 +168,8 @@ const CATEGORY_CONFIG = {
 export const SOPLibrary = () => {
   const navigate = useNavigate();
   const { theme, ponds, waterRecords, feedLogs, medicineLogs, serverError } = useData();
-  const [selectedPondId, setSelectedPondId] = React.useState(ponds[0]?.id || '');
+  const activePonds = ponds.filter(p => p.status === 'active' || p.status === 'planned');
+  const [selectedPondId, setSelectedPondId] = React.useState(activePonds[0]?.id || ponds[0]?.id || '');
   const [selectedCategory, setSelectedCategory] = React.useState<'ALL' | 'MEDICINE' | 'FEED' | 'WATER' | 'MOLTING'>('ALL');
   const [viewMode, setViewMode] = React.useState<'ALERTS' | 'STAGES' | 'DAILY'>('ALERTS');
   const [dismissedAlertIds, setDismissedAlertIds] = React.useState<string[]>([]);
@@ -234,7 +235,7 @@ export const SOPLibrary = () => {
     }
   };
 
-  if (ponds.length === 0) return (
+  if (activePonds.length === 0) return (
     <div className="min-h-screen bg-transparent flex flex-col">
       <Header title="SOP Hub" showBack onBack={() => navigate('/dashboard')} />
       <div className="pt-28 flex-1 flex items-center justify-center">
@@ -308,9 +309,9 @@ export const SOPLibrary = () => {
       <div className="px-4 pt-[calc(env(safe-area-inset-top)+5.5rem)] space-y-5">
 
         {/* ── Pond Selector ── */}
-        {ponds.length > 0 && (
+        {activePonds.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {ponds.map(p => {
+            {activePonds.map(p => {
               const doc = calculateDOC(p.stockingDate);
               const isSelected = selectedPondId === p.id;
               return (

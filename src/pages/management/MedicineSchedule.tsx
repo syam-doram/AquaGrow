@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Waves, Plus, Sun, CloudRain, Cloud, Snowflake, TrendingDown, Flame } from 'lucide-react';
 import { NoPondState } from '../../components/NoPondState';
 import { ServerErrorState } from '../../components/ServerErrorState';
@@ -322,9 +322,9 @@ const MOON_META = {
 // ─── Season / Weather helpers ────────────────────────────────────────────────
 const getCurrentSeason = () => {
   const m = new Date().getMonth() + 1;
-  if (m >= 3 && m <= 6) return { label: 'Summer', emoji: 'â˜€ï¸', icon: Sun, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', risk: 'High Temp · Low DO · Vibriosis risk' };
-  if (m >= 7 && m <= 10) return { label: 'Monsoon', emoji: 'ðŸŒ§ï¸', icon: CloudRain, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', risk: 'Salinity drops · WSSV peak season' };
-  return { label: 'Winter', emoji: 'â„ï¸', icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20', risk: 'Low temp · WSSV trigger zone' };
+  if (m >= 3 && m <= 6) return { label: 'Summer', emoji: '☀️', icon: Sun, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', risk: 'High Temp · Low DO · Vibriosis risk' };
+  if (m >= 7 && m <= 10) return { label: 'Monsoon', emoji: '🌧️', icon: CloudRain, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', risk: 'Salinity drops · WSSV peak season' };
+  return { label: 'Winter', emoji: '❄️', icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/20', risk: 'Low temp · WSSV trigger zone' };
 };
 
 const getMedicineImportance = (title: string, doc: number, priority: string): 'URGENT' | 'IMPORTANT' | 'ROUTINE' => {
@@ -533,7 +533,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
           name: medName,
           dosage: guidance?.dose || 'As per SOP',
           doc: currentDoc,
-          cost: estimatedCost,   // â† feeds into ROI expense tracking
+          cost: estimatedCost,
         });
       });
 
