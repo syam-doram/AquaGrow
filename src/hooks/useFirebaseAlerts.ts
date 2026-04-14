@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { requestFcmToken, onMessageListener } from '../lib/firebase';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { parseAeratorNotification } from '../services/aeratorPushService';
 import { parseHarvestNotification } from '../services/harvestPushService';
@@ -188,14 +189,34 @@ export const useFirebaseAlerts = (userLanguage: string) => {
         console.error('FCM Registration error:', err.error);
       });
 
-      // Foreground: show in-app banner + save to DB
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      // Foreground: show OS-level notification + save to DB
+      // NOTE: On Android, FCM suppresses the system notification when the app
+      // is in the foreground. We manually schedule a LocalNotification so the
+      // farmer sees it in the notification shade regardless of which screen they're on.
+      PushNotifications.addListener('pushNotificationReceived', async (notification) => {
         const data = notification.data || {};
         const meta = data.type === 'harvest_update'
-          ? { type: 'harvest', color: '#10B981' }
+          ? { type: 'harvest', color: '#10B981', channelId: 'aquagrow-harvest' }
           : data.type === 'aerator_check'
-          ? { type: 'aerator', color: '#3B82F6' }
-          : { type: 'general', color: '#6366F1' };
+          ? { type: 'aerator', color: '#3B82F6', channelId: 'aquagrow-aerator' }
+          : { type: 'general', color: '#6366F1', channelId: 'aquagrow-premium' };
+
+        // Show real OS notification even while app is open
+        try {
+          await LocalNotifications.schedule({
+            notifications: [{
+              id: Date.now() & 0x7fffffff, // must be positive int32
+              title: notification.title || 'AquaGrow Alert',
+              body: notification.body || '',
+              channelId: meta.channelId,
+              extra: data,
+              smallIcon: 'ic_launcher',
+              iconColor: meta.color,
+            }],
+          });
+        } catch (e) {
+          console.warn('[FCM] LocalNotifications.schedule failed:', e);
+        }
 
         addAlert({
           title: notification.title || 'New Alert',

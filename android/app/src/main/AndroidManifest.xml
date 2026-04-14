@@ -53,6 +53,22 @@ package="com.aquagrow.app">
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <!-- ── FCM Background Message Service ──────────────────────────────────
+             Declaring FirebaseMessagingService explicitly tells the Android OS
+             to keep the Firebase channel alive even when battery optimisation
+             would otherwise kill the process.  Without this, background push
+             notifications on Xiaomi / Samsung / OnePlus (MIUI, One UI, OxygenOS)
+             are silently dropped.
+             priority="-500" lets the Capacitor plugin intercept first.
+        ──────────────────────────────────────────────────────────────────── -->
+        <service
+            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter android:priority="-500">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
     </application>
 
     <!-- ── Core app permissions ── -->
@@ -72,5 +88,8 @@ package="com.aquagrow.app">
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Prevents CPU from sleeping when a high-priority FCM message arrives -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Allows prompting user to exclude app from battery optimisation
+         (critical for reliable background FCM on MIUI / One UI / OxygenOS) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
 </manifest>

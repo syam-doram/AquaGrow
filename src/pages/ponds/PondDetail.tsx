@@ -42,7 +42,10 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert]     = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [wasCancelledSuccessfully, setWasCancelledSuccessfully] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'timeline' | 'certificate' | 'aerators'>('overview');
   const { ponds, deletePond, waterRecords, feedLogs, theme, harvestRequests, updatePond, updateHarvestRequest } = useData();
   const { openBottomSheet, closeBottomSheet } = useBottomSheet();
@@ -82,9 +85,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   const harvestStartedAt = pond?.harvestData?.harvestStartedAt;
   const canCancel = harvestStartedAt && (new Date().getTime() - new Date(harvestStartedAt).getTime()) < 5 * 60 * 1000;
 
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [wasCancelledSuccessfully, setWasCancelledSuccessfully] = useState(false);
+
 
   if (!pond) return (
     <div className="min-h-screen flex items-center justify-center bg-card">
@@ -159,25 +160,25 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   // Trust Certificate computation
   const expectedWaterLogs = Math.ceil(currentDoc / 2);
   const waterCompliance = Math.min(100, Math.round((pondRecords.length / Math.max(1, expectedWaterLogs)) * 100));
-  const feedCompliance  = Math.min(100, Math.round((pondFeedLogs.length / Math.max(1, currentDoc)) * 100));
-  const certScore       = Math.round(waterCompliance * 0.5 + feedCompliance * 0.5);
+  const feedCompliance = Math.min(100, Math.round((pondFeedLogs.length / Math.max(1, currentDoc)) * 100));
+  const certScore = Math.round(waterCompliance * 0.5 + feedCompliance * 0.5);
   const certGrade = certScore >= 85 ? { label: 'PLATINUM', color: 'from-slate-600 to-slate-400', icon: '🏆' }
     : certScore >= 70 ? { label: 'GOLD', color: 'from-amber-600 to-yellow-500', icon: '🥇' }
-    : certScore >= 50 ? { label: 'SILVER', color: 'from-slate-400 to-slate-300', icon: '🥈' }
-    : { label: 'BRONZE', color: 'from-orange-700 to-orange-500', icon: '🥉' };
+      : certScore >= 50 ? { label: 'SILVER', color: 'from-slate-400 to-slate-300', icon: '🥈' }
+        : { label: 'BRONZE', color: 'from-orange-700 to-orange-500', icon: '🥉' };
 
   // Hero gradient per status
   const heroGradient = effectiveStatus === 'planned' ? 'from-[#1E1B4B] to-[#312E81]'
     : effectiveStatus === 'harvest_pending' ? 'from-[#1e1b4b] to-[#4338ca]'
-    : effectiveStatus === 'harvested' ? 'from-[#064E3B] to-[#065F46]'
-    : isHarvestReady ? 'from-[#78350F] to-[#92400E]'
-    : 'from-[#0D523C] to-[#065F46]';
+      : effectiveStatus === 'harvested' ? 'from-[#064E3B] to-[#065F46]'
+        : isHarvestReady ? 'from-[#78350F] to-[#92400E]'
+          : 'from-[#0D523C] to-[#065F46]';
 
   const TABS = [
-    { key: 'overview',     label: t.pondOverview,     icon: Activity },
-    { key: 'timeline',     label: t.pondTimeline,     icon: Calendar },
-    { key: 'aerators',     label: t.pondAerators,     icon: Wind },
-    { key: 'certificate',  label: t.pondCertificate,  icon: Award },
+    { key: 'overview', label: t.pondOverview, icon: Activity },
+    { key: 'timeline', label: t.pondTimeline, icon: Calendar },
+    { key: 'aerators', label: t.pondAerators, icon: Wind },
+    { key: 'certificate', label: t.pondCertificate, icon: Award },
   ];
 
   return (
@@ -200,8 +201,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
           <div className="flex items-center justify-center gap-2">
             <div className={cn("w-1.5 h-1.5 rounded-full",
               pond.status === 'active' ? 'bg-emerald-500 animate-pulse' :
-              pond.status === 'planned' ? 'bg-blue-400' :
-              pond.status === 'harvest_pending' ? 'bg-indigo-500 animate-pulse' : 'bg-slate-400'
+                pond.status === 'planned' ? 'bg-blue-400' :
+                  pond.status === 'harvest_pending' ? 'bg-indigo-500 animate-pulse' : 'bg-slate-400'
             )} />
             <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest">{pond.species}</p>
           </div>
@@ -229,24 +230,24 @@ export const PondDetail = ({ t }: { t: Translations }) => {
               <div>
                 <p className="text-white/40 text-[8px] font-black uppercase tracking-[0.3em] mb-1">
                   {effectiveStatus === 'planned' ? 'Pre-Stocking Phase' :
-                   effectiveStatus === 'harvest_pending' ? 'Market Tracking' :
-                   effectiveStatus === 'harvested' ? 'Cycle Complete' :
-                   isHarvestReady ? 'Harvest Ready! 🎉' : 'Live Culture Data'}
+                    effectiveStatus === 'harvest_pending' ? 'Market Tracking' :
+                      effectiveStatus === 'harvested' ? 'Cycle Complete' :
+                        isHarvestReady ? 'Harvest Ready! 🎉' : 'Live Culture Data'}
                 </p>
                 <h2 className="text-white text-5xl font-black tracking-tighter leading-none">
                   {effectiveStatus === 'planned' ? `D-${Math.abs(currentDoc)}`
-                   : effectiveStatus === 'harvested' ? '✓'
-                   : effectiveStatus === 'harvest_pending' ? '⚡'
-                   : `${currentWeight.toFixed(1)}`}
+                    : effectiveStatus === 'harvested' ? '✓'
+                      : effectiveStatus === 'harvest_pending' ? '⚡'
+                        : `${currentWeight.toFixed(1)}`}
                   {effectiveStatus === 'active' &&
                     <span className="text-xl text-white/30 font-bold ml-1">g</span>
                   }
                 </h2>
                 <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-1">
                   {effectiveStatus === 'planned' ? 'Days to stocking'
-                   : effectiveStatus === 'harvested' ? 'Archived cycle'
-                   : effectiveStatus === 'harvest_pending' ? 'Live sale in progress'
-                   : 'Avg. shrimp weight'}
+                    : effectiveStatus === 'harvested' ? 'Archived cycle'
+                      : effectiveStatus === 'harvest_pending' ? 'Live sale in progress'
+                        : 'Avg. shrimp weight'}
                 </p>
               </div>
 
@@ -282,7 +283,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
               {[
                 {
                   label: 'Est. Yield',
-                  value: isPlanned ? `${(safeNum(pond.seedCount)/1000).toFixed(0)}k PL` : `${estHarvestYield.toFixed(0)}kg`,
+                  value: isPlanned ? `${(safeNum(pond.seedCount) / 1000).toFixed(0)}k PL` : `${estHarvestYield.toFixed(0)}kg`,
                   icon: Fish, color: 'text-emerald-300'
                 },
                 {
@@ -333,7 +334,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                         <div className={cn(
                           "w-full h-1.5 rounded-full transition-all duration-700",
                           achieved ? (isHarvestReady ? 'bg-amber-400' : 'bg-emerald-400') :
-                          active ? 'bg-white/30' : 'bg-white/10'
+                            active ? 'bg-white/30' : 'bg-white/10'
                         )} />
                         <p className={cn("text-[6px] font-black",
                           achieved ? 'text-emerald-300' : active ? 'text-white/60' : 'text-white/20'
@@ -705,9 +706,9 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                       {/* Stats grid */}
                       <div className={cn("grid divide-x divide-card-border", "grid-cols-3")}>
                         {[
-                          { label: 'Biomass',    value: hd.totalBiomass ? `${hd.totalBiomass} kg` : '—' },
-                          { label: 'Avg Weight', value: hd.avgWeight    ? `${hd.avgWeight}g`       : '—' },
-                          { label: 'Rate /kg',   value: hd.marketRate   ? `₹${hd.marketRate}`      : '—' },
+                          { label: 'Biomass', value: hd.totalBiomass ? `${hd.totalBiomass} kg` : '—' },
+                          { label: 'Avg Weight', value: hd.avgWeight ? `${hd.avgWeight}g` : '—' },
+                          { label: 'Rate /kg', value: hd.marketRate ? `₹${hd.marketRate}` : '—' },
                         ].map((item, i) => (
                           <div key={i} className="py-4 text-center">
                             <p className={cn("font-black text-sm leading-none", isDark ? "text-white" : "text-slate-800")}>{item.value}</p>
@@ -747,8 +748,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                   const partials: any[] = (pond as any).partialHarvests || [];
                   if (partials.length === 0) return null;
                   const totalHarvested = partials.reduce((s: number, p: any) => s + (p.harvestedBiomass || 0), 0);
-                  const totalRevenue   = partials.reduce((s: number, p: any) => s + (p.revenue || 0), 0);
-                  const lastAvgWeight  = partials[partials.length - 1]?.avgWeight || 0;
+                  const totalRevenue = partials.reduce((s: number, p: any) => s + (p.revenue || 0), 0);
+                  const lastAvgWeight = partials[partials.length - 1]?.avgWeight || 0;
                   const remainingBiomass = (safeNum(pond.seedCount) * 0.8 * lastAvgWeight) / 1000;
                   return (
                     <div className={cn("rounded-[2rem] border overflow-hidden shadow-sm", isDark ? "bg-[#0D1A13] border-amber-500/20" : "bg-white border-amber-200")}>
@@ -776,8 +777,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                       <div className="grid grid-cols-3 divide-x divide-card-border border-b border-card-border">
                         {[
                           { label: 'Total Harvested', value: `${totalHarvested.toFixed(0)} kg` },
-                          { label: 'Total Revenue',   value: `₹${totalRevenue.toLocaleString('en-IN')}` },
-                          { label: 'Est. Remaining',  value: `~${remainingBiomass.toFixed(0)} kg` },
+                          { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}` },
+                          { label: 'Est. Remaining', value: `~${remainingBiomass.toFixed(0)} kg` },
                         ].map((s, i) => (
                           <div key={i} className="py-3 text-center">
                             <p className={cn("font-black text-sm leading-none", i === 2 ? isDark ? "text-amber-300" : "text-amber-700" : isDark ? "text-white" : "text-slate-800")}>{s.value}</p>
@@ -865,8 +866,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                             isToday
                               ? "bg-emerald-500 border-emerald-500 text-white"
                               : rec
-                              ? isDark ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-100 text-slate-700"
-                              : isDark ? "bg-white/3 border-white/5 text-white/20" : "bg-slate-50 border-slate-100 text-slate-300"
+                                ? isDark ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-100 text-slate-700"
+                                : isDark ? "bg-white/3 border-white/5 text-white/20" : "bg-slate-50 border-slate-100 text-slate-300"
                           )}>
                             <p className="text-[6px] font-black uppercase tracking-widest leading-none">{date.toLocaleString('default', { month: 'short' })}</p>
                             <p className="text-sm font-black tracking-tighter leading-none mt-0.5">{date.getDate()}</p>
@@ -957,7 +958,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                               <div className="flex items-center gap-2.5">
                                 <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center",
                                   item.pass ? isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-600"
-                                  : "bg-red-50 text-red-500"
+                                    : "bg-red-50 text-red-500"
                                 )}>
                                   <item.icon size={14} />
                                 </div>
@@ -976,7 +977,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                               <div
                                 className={cn("h-full rounded-full transition-all duration-1000",
                                   item.compliance >= 80 ? "bg-emerald-500" :
-                                  item.compliance >= 60 ? "bg-amber-400" : "bg-red-400"
+                                    item.compliance >= 60 ? "bg-amber-400" : "bg-red-400"
                                 )}
                                 style={{ width: `${item.compliance}%` }}
                               />

@@ -1059,51 +1059,101 @@ const runPushEngine = async () => {
           console.log(`[AERATOR-PUSH] Sent stage check to ${u.name || ''} for ${p.name} DOC ${doc}`);
         }
 
-        // ─── CONDITION 1: DOC Milestone (e.g. DOC 30) ───
-        if (doc === 30) {
-          alertTitle = `Milestone: DOC 30! 📈`;
-          alertBody = `Your prawns in ${p.name} have reached 30 days. Time for a transition to mineral-rich feed.`;
+        // ─── CONDITION 1: Rich DOC Milestones ──────────────────────────────────
+        const DOC_MILESTONES: Record<number, { title: string; body: string }> = {
+          15:  { title: '🦐 DOC 15 — First Growth Check!',        body: `${p.name}: Vitamin C spike time! Check feed tray consumption & apply immunity booster.` },
+          25:  { title: '⚠️ DOC 25 — Immunity Pulse Due',          body: `${p.name}: Prepare for critical DOC 30. Apply Immunity Pulse in feed now!` },
+          30:  { title: '📈 DOC 30 — Risk Transition Stage',       body: `${p.name}: High-risk period begins! Watch for tail redness. Increase water probiotics.` },
+          40:  { title: '🔴 DOC 40 — Critical Stage Alert!',       body: `${p.name}: DOC 40 Vit-Min Booster due. Run max aeration 9PM–5AM. Check trays hourly.` },
+          45:  { title: '🚨 DOC 45 — WSSV Risk Peak!',            body: `${p.name}: Maximum WSSV risk window. Max aeration. Reduce feed 10% on cloudy days.` },
+          50:  { title: '💊 DOC 50 — Liver Tonic Time',           body: `${p.name}: Hepatopancreas protection due. Apply Liver Tonic in feed today.` },
+          60:  { title: '🔵 DOC 60 — Growth Spurt Phase',         body: `${p.name}: 1g growth spike expected! Apply Water Probiotic Max every 2 days.` },
+          70:  { title: '🟣 DOC 70 — Final Immunity Boost',       body: `${p.name}: Last immunity boost before harvest stage. Follow SOP withdrawal plan.` },
+          83:  { title: '⏰ DOC 83 — Harvest Prep Begins',        body: `${p.name}: STOP heavy medicines. Withdrawal period active. Fresh water exchange soon.` },
+          90:  { title: '🎉 DOC 90 — Harvest Ready!',             body: `${p.name}: Zero heavy medicines now. Shell quality check. Submit harvest order when ready!` },
+        };
+
+        if (DOC_MILESTONES[doc]) {
+          alertTitle = DOC_MILESTONES[doc].title;
+          alertBody  = DOC_MILESTONES[doc].body;
         }
 
-        // ─── CONDITION 2: Amavasya Lunar Alert ───
+        // ─── CONDITION 2: Amavasya / Purnima Lunar Alert ───────────────────────
         else if (isAmavasya && u.notifications.water) {
-          alertTitle = `Amavasya Risk Alert 🌑`;
-          alertBody = `High risk of mass molting and DO drop tonight in ${p.name}. Ensure all aerators are functional.`;
+          alertTitle = `🌑 Amavasya High Molt Risk Tonight!`;
+          alertBody  = `${p.name}: Mass molting + DO drop risk. Run 100% aerators. Reduce feed by 25%. Stay alert!`;
         }
 
-        // ─── CONDITION 3: 6 AM Feeding Reminder ───
+        // ─── CONDITION 3: 6 AM Morning Feed Reminder ───────────────────────────
         else if (currentHour === 6 && u.notifications.feed) {
-          alertTitle = `Feeding Reminder 🥣`;
-          alertBody = `Good morning! It's 6:00 AM. Time for the first feed in ${p.name}.`;
+          alertTitle = `🦐 Time to Feed Your Shrimp – Don't Miss It!`;
+          alertBody  = `Good morning! First feed time for ${p.name} (DOC ${doc}). Apply 4-5 balanced meals today. Check trays.`;
+        }
+
+        // ─── CONDITION 4: 9 PM DO / Aeration Alert ─────────────────────────────
+        else if (currentHour === 21 && u.notifications.water && !isAmavasya) {
+          alertTitle = `💨 9 PM Aeration Check — ${p.name}`;
+          alertBody  = `Night aeration window (9PM–5AM). Maintain DO above 4.5 mg/L. DOC ${doc} — check all aerators now.`;
         }
 
         // --- DELIVERY LOGIC ---
         if (alertTitle && alertBody) {
           console.log(`[FCM-TRIGGER] Condition Met for ${u.name}: ${alertTitle}`);
 
-          if (admin.apps.length > 0) {
-            const message = {
-              notification: { title: alertTitle, body: alertBody },
-              token: u.fcmToken,
-              android: {
-                priority: 'high' as any,
-                notification: {
-                  channelId: 'aquagrow-premium',
-                  icon: 'ic_stat_aquagrow',
-                  color: '#10B981',
-                  tag: `engine-${u._id}-${now.toDateString().replace(/ /g,'_')}`,
-                  sound: 'default',
-                  visibility: 'public' as any,
-                  clickAction: 'FCM_PLUGIN_ACTIVITY',
-                }
-              }
-            };
+          // Determine channel + color + deepLink per alert type
+          const isLunar     = alertTitle.includes('Amavasya') || alertTitle.includes('Purnima');
+          const isFeed      = alertTitle.includes('Feeding') || alertTitle.includes('Feed');
+          const pondIdStr   = String((p as any)._id || (p as any).id || '');
+          const channelId   = isLunar ? 'aquagrow-premium' : isFeed ? 'aquagrow-aerator' : 'aquagrow-premium';
+          const color       = isLunar ? '#6366F1' : isFeed ? '#F59E0B' : '#10B981';
+          const deepLinkUrl = `/ponds/${pondIdStr}`;
+          const alertType   = isLunar ? 'lunar' : isFeed ? 'feed_reminder' : 'milestone';
 
+          const fullMessage: admin.messaging.Message = {
+            token: u.fcmToken!,
+            // notification key → OS shows system notification in background/killed state ✅
+            notification: {
+              title: alertTitle,
+              body: alertBody,
+            },
+            // data key → available to app on tap for deep-linking & custom handling ✅
+            data: {
+              type: alertType,
+              pondId: pondIdStr,
+              pondName: p.name || '',
+              doc: String(doc),
+              deepLink: deepLinkUrl,
+            },
+            android: {
+              priority: 'high',   // CRITICAL: delivers even when screen is off ✅
+              ttl: 3600000,       // 1 hour TTL — discard stale alert after 1h
+              notification: {
+                channelId,
+                icon: 'ic_stat_aquagrow',
+                color,
+                tag: `engine-${u._id}-${now.toDateString().replace(/ /g, '_')}`,
+                sound: 'alert_sound', // res/raw/alert_sound.mp3
+                visibility: 'public' as any,
+                clickAction: 'FCM_PLUGIN_ACTIVITY',
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  badge: 1,
+                  sound: 'default',
+                  category: isLunar ? 'LUNAR_ALERT' : isFeed ? 'FEED_REMINDER' : 'MILESTONE',
+                },
+              },
+            },
+          };
+
+          if (admin.apps.length > 0) {
             try {
-              await admin.messaging().send(message);
-              console.log(`[FCM-SUCCESS] Alert sent to ${u.name} for ${p.name}`);
-            } catch (err) {
-              console.warn('[FCM-ERROR] Peer failure:', err.message);
+              await admin.messaging().send(fullMessage);
+              console.log(`[FCM-SUCCESS] ✅ Sent to ${u.name} | ${p.name} | ${alertTitle}`);
+            } catch (err: any) {
+              console.warn('[FCM-ERROR]', err.message);
             }
           } else {
             console.log(`[SIMULATED-PUSH] ${alertTitle}: ${alertBody}`);
