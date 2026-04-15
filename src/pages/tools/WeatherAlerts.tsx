@@ -42,29 +42,57 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [pushSent, setPushSent] = useState<string[]>([]);
 
-  // Derive farmer location from profile → fallback to weatherService helper
-  const farmerCity = (user as any)?.location || getUserLocation();
+  // Resolve location fresh on each call — avoids stale closure on mount
+  const resolveCity = () => {
+    const profileLoc = (user as any)?.location;
+    if (profileLoc && profileLoc.toLowerCase() !== 'current location' && profileLoc.trim().length > 2) {
+      return profileLoc;
+    }
+    return getUserLocation(); // reads from localStorage
+  };
+
+  // Store city in ref so the interval always uses the latest value
+  const cityRef = React.useRef(resolveCity());
+  React.useEffect(() => {
+    cityRef.current = resolveCity();
+  });
+
+  const farmerCity = resolveCity(); // for display in header
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await fetchWeatherData(farmerCity);
+      const city = cityRef.current;
+      const data = await fetchWeatherData(city);
       setWeather(data);
       setLastRefresh(new Date());
 
-      // ── Auto-trigger FCM push for critical/warning alerts ──────────────────
-      // Only sends if not already fired in the last 3h (suppressed by sessionStorage)
+      // ── Auto-trigger FCM push for critical/warning alerts ────────────────
       for (const alert of data.alerts) {
         if (alert.type === 'critical' || alert.type === 'warning') {
-          sendWeatherPushAlert(alert, data); // fire-and-forget; uses built-in 3h cooldown
+          sendWeatherPushAlert(alert, data);
         }
       }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) {
+      console.error('[WeatherAlerts] Load failed:', e);
+      setError('Could not load weather data.');
+      // fetchWeatherData has its own try/catch fallback, so this catch
+      // should only fire for truly unexpected errors. Still show fallback:
+      if (!weather) {
+        try {
+          const fallback = await fetchWeatherData('Nellore');
+          setWeather(fallback);
+        } catch { /* ignore */ }
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -116,6 +144,34 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
         <div className="pt-48 flex flex-col items-center justify-center space-y-4">
           <div className={cn('w-14 h-14 rounded-full border-4 border-t-transparent animate-spin', isDark ? 'border-white/10 border-t-white/60' : 'border-slate-200 border-t-[#C78200]')} />
           <p className={cn('text-[9px] font-black uppercase tracking-widest animate-pulse', isDark ? 'text-white/30' : 'text-slate-400')}>Syncing satellite data…</p>
+          <p className={cn('text-[8px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+            📍 {farmerCity || 'Nellore'}
+          </p>
+        </div>
+      )}
+
+      {/* ── NO DATA ERROR STATE ── */}
+      {!loading && !weather && (
+        <div className="pt-48 flex flex-col items-center justify-center space-y-4 px-8 text-center">
+          <div className={cn('w-16 h-16 rounded-[1.5rem] flex items-center justify-center', isDark ? 'bg-white/5' : 'bg-slate-100')}>
+            <CloudSun size={28} className={isDark ? 'text-white/30' : 'text-slate-400'} />
+          </div>
+          <div>
+            <p className={cn('text-sm font-black tracking-tight mb-1', isDark ? 'text-white' : 'text-slate-800')}>
+              Weather unavailable
+            </p>
+            <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Could not fetch weather for <strong>{farmerCity || 'your location'}</strong>.
+              Tap refresh to retry, or check your internet connection.
+            </p>
+          </div>
+          <button
+            onClick={load}
+            className={cn('px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2',
+              isDark ? 'bg-white/10 text-white' : 'bg-slate-800 text-white')}
+          >
+            <RefreshCw size={13} /> Retry
+          </button>
         </div>
       )}
 

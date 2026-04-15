@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User as UserIcon, Settings, ShieldCheck, CreditCard, ChevronRight,
-  LogOut, MapPin, Activity, Zap, Globe, Sparkles, Phone, Mail,
-  Award, Building2, XCircle, CheckCircle2, Fish, Droplets,
-  TrendingUp, BarChart2, Moon, Sun, Star, Calendar,
-  Target, Layers, Cpu, ArrowUpRight, Leaf, Fingerprint,
+  LogOut, MapPin, Globe, Sparkles, Phone, Mail,
+  Building2, XCircle, CheckCircle2,
+  Moon, Sun,
+  ArrowUpRight, Fingerprint,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -13,26 +13,14 @@ import { Header } from '../../components/Header';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 import { API_BASE_URL } from '../../config';
-import { calculateDOC } from '../../utils/pondUtils';
 import { checkBiometric, deleteBiometric } from '../../utils/biometric';
 import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 
 export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { user, setUser, updateUser, isPro, theme, setAppTheme, ponds, feedLogs, waterRecords, medicineLogs } = useData();
+  const { user, setUser, updateUser, isPro, theme, setAppTheme } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
-
-  // ── Live farm metrics ──
-  const activePonds  = useMemo(() => ponds.filter(p => p.status === 'active'), [ponds]);
-  const totalFeedKg  = useMemo(() => Math.round(feedLogs.reduce((a, f) => a + (f.quantity || 0), 0) * 10) / 10, [feedLogs]);
-  const avgDOC       = useMemo(() => {
-    if (!activePonds.length) return 0;
-    return Math.round(activePonds.reduce((a, p) => a + calculateDOC(p.stockingDate), 0) / activePonds.length);
-  }, [activePonds]);
-  const totalMedLogs  = medicineLogs.length;
-  const totalWaterLogs = waterRecords.length;
-  const harvestedPonds = ponds.filter(p => p.status === 'harvested').length;
 
   // ── Subscription label ──
   const subLabel = {
@@ -205,21 +193,7 @@ export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () =
               </button>
             </div>
 
-            {/* Stats strip */}
-            <div className={cn('grid grid-cols-4 gap-2 mt-4 pt-4 border-t', isDark ? 'border-white/5' : 'border-slate-100')}>
-              {[
-                { label: 'Active', value: activePonds.length, unit: 'ponds', icon: Fish, color: 'text-blue-400' },
-                { label: 'Avg DOC', value: avgDOC,            unit: 'days',  icon: Calendar, color: 'text-amber-400' },
-                { label: 'Feed',   value: `${totalFeedKg}kg`, unit: `${feedLogs.length} logs`, icon: Leaf, color: 'text-emerald-400' },
-                { label: 'Harvested', value: harvestedPonds,  unit: 'ponds', icon: Target, color: 'text-purple-400' },
-              ].map((s, i) => (
-                <div key={i} className="text-center">
-                  <s.icon size={12} className={cn('mx-auto mb-1', s.color)} />
-                  <p className={cn('text-sm font-black', s.color)}>{s.value}</p>
-                  <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{s.label}</p>
-                </div>
-              ))}
-            </div>
+
           </div>
         </motion.div>
 
@@ -252,40 +226,6 @@ export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () =
         </motion.div>
 
 
-
-        {/* ── ANALYTICS CARD ── */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}>
-          <div className="bg-gradient-to-br from-[#051F19] to-[#0D523C] rounded-[2rem] p-5 border border-emerald-900/20 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-emerald-400/60 text-[7px] font-black uppercase tracking-widest">Live Farm Analytics</p>
-                <h3 className="text-white font-black text-sm tracking-tight mt-0.5">Performance Overview</h3>
-              </div>
-              <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
-                <BarChart2 size={18} className="text-emerald-400" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                { label: 'Active Ponds',   value: activePonds.length,       unit: 'total ponds',       icon: Fish,       color: 'text-blue-400' },
-                { label: 'Avg D.O.C',      value: `${avgDOC}d`,             unit: 'culture days',      icon: Activity,   color: 'text-amber-400' },
-                { label: 'Feed Logged',    value: `${totalFeedKg}kg`,       unit: `${feedLogs.length} records`, icon: Droplets, color: 'text-emerald-400' },
-                { label: 'Water Logs',     value: totalWaterLogs,           unit: 'quality readings',  icon: TrendingUp, color: 'text-sky-400' },
-                { label: 'Medicine Apps',  value: totalMedLogs,             unit: 'treatments',        icon: Target,     color: 'text-purple-400' },
-                { label: 'Harvested',      value: harvestedPonds,           unit: 'ponds done',        icon: Zap,        color: 'text-rose-400' },
-              ].map((m, i) => (
-                <div key={i} className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <m.icon size={11} className={m.color} />
-                    <p className="text-white/25 text-[6px] font-black uppercase tracking-widest">{m.label}</p>
-                  </div>
-                  <p className={cn('font-black text-xl tracking-tighter', m.color)}>{m.value}</p>
-                  <p className="text-white/15 text-[6px] font-bold mt-0.5">{m.unit}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
 
         {/* ── DARK MODE TOGGLE ── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>

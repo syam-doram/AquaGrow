@@ -120,6 +120,7 @@ export const PondEntry = ({ t }: { t: Translations }) => {
     stockingMode: 'stocked' as 'planned' | 'stocked',
     aeratorCount: '',
     aeratorHp: '1',
+    powerType: 'EB Electric',
   });
 
 
@@ -156,6 +157,7 @@ export const PondEntry = ({ t }: { t: Translations }) => {
         seedSource: form.seedSource,
         waterType: form.waterType,
         initialSalinity: parseInt(form.initialSalinity),
+        powerType: form.powerType,
         isStocked,
         // Initial aerator setup if provided
         ...(form.aeratorCount && parseInt(form.aeratorCount) > 0 ? {
@@ -381,6 +383,14 @@ export const PondEntry = ({ t }: { t: Translations }) => {
               </FieldSelect>
               <FieldInput label={t.initialSalinity} icon={Waves} value={form.initialSalinity} onChange={set('initialSalinity')} placeholder="5" suffix="PPT" isDark={isDark} />
             </div>
+
+            {/* Power Source */}
+            <FieldSelect label="Power Source" icon={Zap} value={form.powerType} onChange={set('powerType')} isDark={isDark}>
+              <option value="EB Electric">⚡ EB Electric (Grid)</option>
+              <option value="Generator">🔧 Generator (Diesel)</option>
+              <option value="Solar Hybrid">☀️ Solar Hybrid</option>
+              <option value="Solar + Generator">🔆 Solar + Generator</option>
+            </FieldSelect>
 
             {/* SOP tip */}
             <div className={cn("rounded-xl px-3.5 py-2.5 flex items-start gap-2 border", isDark ? "bg-white/3 border-white/5" : "bg-slate-50 border-slate-100")}>

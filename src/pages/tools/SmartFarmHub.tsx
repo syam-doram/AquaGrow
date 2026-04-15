@@ -1,6 +1,6 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Wind,
   Zap,
@@ -327,20 +327,42 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
         </motion.div>
 
         {/* Ã¢â€â‚¬Ã¢â€â‚¬ TABS Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* POND SELECTOR */}
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <div className={cn('flex items-center gap-3 rounded-2xl border p-3', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
+            <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', isDark ? 'bg-cyan-500/15 border border-cyan-500/25' : 'bg-cyan-50 border border-cyan-200')}>
+              <Waves size={14} className="text-cyan-500" />
+            </div>
+            <div className="flex-1">
+              <p className={cn('text-[7px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>Viewing Pond</p>
+              <select
+                value={selectedPondId}
+                onChange={e => setSelectedPondId(e.target.value)}
+                className={cn('w-full text-[11px] font-black bg-transparent outline-none appearance-none cursor-pointer', isDark ? 'text-white' : 'text-slate-900')}
+              >
+                <option value="all">All Active Ponds</option>
+                {ponds.filter(p => p.status === 'active').map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <ChevronRight size={12} className={cn('flex-shrink-0 -rotate-90', isDark ? 'text-white/20' : 'text-slate-300')} />
+          </div>
+        </motion.div>
+
+        {/* TABS */}
         <div className={cn('flex gap-1.5 p-1.5 rounded-2xl border', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex-1 flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all',
-                activeTab === tab.id
-                  ? isDark ? 'bg-white/10 shadow-inner' : 'bg-slate-100 shadow-inner'
-                  : ''
-              )}
+              className="flex-1 flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-200"
+              style={activeTab === tab.id ? { background: `${tab.color}20` } : {}}
             >
-              <tab.icon size={14} style={{ color: activeTab === tab.id ? tab.color : isDark ? 'rgba(255,255,255,0.3)' : '#94a3b8' }} />
-              <span className={cn('text-[7px] font-black uppercase tracking-widest', activeTab === tab.id ? (isDark ? 'text-white' : 'text-slate-800') : isDark ? 'text-white/30' : 'text-slate-400')}>{tab.label}</span>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: activeTab === tab.id ? `${tab.color}30` : 'transparent' }}>
+                <tab.icon size={14} style={{ color: activeTab === tab.id ? tab.color : isDark ? 'rgba(255,255,255,0.38)' : '#94a3b8' }} />
+              </div>
+              <span className="text-[6.5px] font-black uppercase tracking-widest" style={{ color: activeTab === tab.id ? tab.color : isDark ? 'rgba(255,255,255,0.3)' : '#94a3b8' }}>{tab.label}</span>
             </button>
           ))}
         </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { NoPondState } from '../../components/NoPondState';
 import { ServerErrorState } from '../../components/ServerErrorState';
 import { 
@@ -38,14 +38,23 @@ export const DailyExpenseLog = ({ t }: { t: Translations }) => {
     { id: 'other',    label: t.otherTesting, icon: Box,      color: 'bg-card/500',    unit: 'Items' }
   ];
 
+  const location = useLocation();
   const [pondId, setPondId] = useState(activePonds[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [amount, setAmount] = useState('');
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
-  
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Pre-select category if navigated from expense report
+  useEffect(() => {
+    const filterCat = (location.state as any)?.filterCategory;
+    if (filterCat) {
+      const found = CATEGORIES.find(c => c.id === filterCat);
+      if (found) setCategory(found);
+    }
+  }, [location.state]);
 
   // Live Analytics compute
   const amtNum = parseFloat(amount) || 0;

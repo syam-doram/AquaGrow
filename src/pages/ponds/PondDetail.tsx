@@ -260,7 +260,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   // Hero gradient per status
   const heroGradient = effectiveStatus === 'planned' ? 'from-[#1E1B4B] to-[#312E81]'
     : effectiveStatus === 'harvest_pending' ? 'from-[#1e1b4b] to-[#4338ca]'
-      : effectiveStatus === 'harvested' ? 'from-[#064E3B] to-[#065F46]'
+      : effectiveStatus === 'harvested' ? 'from-[#4A2700] to-[#7C4500]'
         : isHarvestReady ? 'from-[#78350F] to-[#92400E]'
           : 'from-[#0D523C] to-[#065F46]';
 
@@ -292,7 +292,8 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             <div className={cn("w-1.5 h-1.5 rounded-full",
               pond.status === 'active' ? 'bg-emerald-500 animate-pulse' :
                 pond.status === 'planned' ? 'bg-blue-400' :
-                  pond.status === 'harvest_pending' ? 'bg-indigo-500 animate-pulse' : 'bg-slate-400'
+                  pond.status === 'harvest_pending' ? 'bg-indigo-500 animate-pulse' :
+                  pond.status === 'harvested' ? 'bg-[#C78200]' : 'bg-slate-400'
             )} />
             <p className="text-[8px] font-black text-[#C78200] uppercase tracking-widest">{pond.species}</p>
           </div>
@@ -437,25 +438,37 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             )}
           </div>
 
-          {/* Quick action bar — hide AI Scan and Checklist when harvested */}
+          {/* Quick action bar — freeze data entry when harvested */}
           <div className="px-5 pb-5 pt-1">
-            <div className={cn('grid gap-2', effectiveStatus === 'harvested' ? 'grid-cols-2' : 'grid-cols-4')}>
-              {[
-                { icon: Droplets, label: 'Water', action: () => navigate(`/ponds/${pond.id}/water-log`), accent: hasLoggedToday ? 'bg-emerald-400/20 text-emerald-300' : 'bg-red-400/20 text-red-300', hidden: effectiveStatus === 'harvested' },
-                { icon: BarChart2, label: 'Monitor', action: () => navigate(`/ponds/${pond.id}/monitor`), accent: 'bg-white/10 text-white', hidden: false },
-                { icon: CheckCircle2, label: 'Checklist', action: () => navigate(`/ponds/${pond.id}/entry`), accent: 'bg-amber-400/20 text-amber-300', hidden: effectiveStatus === 'harvested' },
-                { icon: Camera, label: 'AI Scan', action: () => navigate('/disease-detection'), accent: 'bg-purple-400/20 text-purple-300', hidden: effectiveStatus === 'harvested' },
-              ].filter(btn => !btn.hidden).map((btn, i) => (
-                <button
-                  key={i}
-                  onClick={btn.action}
-                  className={cn("rounded-2xl py-3 flex flex-col items-center gap-1.5 transition-all active:scale-90 border border-white/10", btn.accent)}
-                >
-                  <btn.icon size={16} />
-                  <span className="text-[7px] font-black uppercase tracking-wider">{btn.label}</span>
-                </button>
-              ))}
-            </div>
+            {effectiveStatus === 'harvested' ? (
+              <div className="rounded-2xl bg-[#C78200]/10 border border-[#C78200]/25 p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#C78200]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">🏆</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[#C78200] text-[10px] font-black uppercase tracking-widest">Cycle Archived</p>
+                  <p className="text-[#C78200]/60 text-[8px] font-bold mt-0.5">Data logging is disabled for harvested ponds</p>
+                </div>
+              </div>
+            ) : (
+              <div className={cn('grid gap-2', 'grid-cols-4')}>
+                {[
+                  { icon: Droplets, label: 'Water', action: () => navigate(`/ponds/${pond.id}/water-log`), accent: hasLoggedToday ? 'bg-emerald-400/20 text-emerald-300' : 'bg-red-400/20 text-red-300' },
+                  { icon: BarChart2, label: 'Monitor', action: () => navigate(`/ponds/${pond.id}/monitor`), accent: 'bg-white/10 text-white' },
+                  { icon: CheckCircle2, label: 'Checklist', action: () => navigate(`/ponds/${pond.id}/entry`), accent: 'bg-amber-400/20 text-amber-300' },
+                  { icon: Camera, label: 'AI Scan', action: () => navigate('/disease-detection'), accent: 'bg-purple-400/20 text-purple-300' },
+                ].map((btn, i) => (
+                  <button
+                    key={i}
+                    onClick={btn.action}
+                    className={cn("rounded-2xl py-3 flex flex-col items-center gap-1.5 transition-all active:scale-90 border border-white/10", btn.accent)}
+                  >
+                    <btn.icon size={16} />
+                    <span className="text-[7px] font-black uppercase tracking-wider">{btn.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

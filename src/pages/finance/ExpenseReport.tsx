@@ -462,7 +462,10 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
                 pct={pct(catValues[cat.key] || 0)}
                 isDark={isDark}
                 isSelected={selectedCat === cat.key}
-                onClick={() => setSelectedCat(selectedCat === cat.key ? null : cat.key)}
+                onClick={() => {
+                  setSelectedCat(selectedCat === cat.key ? null : cat.key);
+                  setRecentTypeFilter(selectedCat === cat.key ? null : cat.key);
+                }}
               />
             ))}
           </div>
@@ -633,10 +636,21 @@ export const ExpenseReport = ({ t, onMenuClick }: { t: Translations; onMenuClick
                       ? `${CATEGORIES.find(c => c.key === selectedCat)?.label} Entries`
                       : 'Recent Expenses'}
                 </p>
-                <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
-                  isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400')}>
-                  {typeFiltered.length} items
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
+                    isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400')}>
+                    {typeFiltered.length} items
+                  </span>
+                  {(recentTypeFilter || selectedCat) && (
+                    <button
+                      onClick={() => navigate('/daily-expense', { state: { filterCategory: recentTypeFilter || selectedCat } })}
+                      className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1',
+                        isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600 border border-amber-200')}
+                    >
+                      <Plus size={9} /> Log
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Type filter chips */}

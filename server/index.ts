@@ -828,10 +828,21 @@ app.post('/api/push/weather-alert', authenticate, async (req: AuthenticatedReque
 
     const emoji   = alertType === 'critical' ? '🚨' : alertType === 'warning' ? '⚠️' : 'ℹ️';
     const color   = alertType === 'critical' ? '#EF4444' : alertType === 'warning' ? '#F59E0B' : '#10B981';
+    const condImg = conditionCode === 'storm'
+      ? 'https://aquagrow.onrender.com/assets/push/storm.png'
+      : conditionCode === 'rain'
+      ? 'https://aquagrow.onrender.com/assets/push/rain.png'
+      : conditionCode === 'hot'
+      ? 'https://aquagrow.onrender.com/assets/push/hot.png'
+      : 'https://aquagrow.onrender.com/assets/push/sunny.png';
 
     const message: admin.messaging.Message = {
       token: user.fcmToken,
-      notification: { title: `${emoji} ${alertTitle}`, body: alertBody },
+      notification: {
+        title: `${emoji} ${alertTitle}`,
+        body:  alertBody,
+        imageUrl: condImg,
+      },
       data: {
         type: 'weather_alert',
         alertType:    String(alertType || 'info'),
@@ -844,14 +855,24 @@ app.post('/api/push/weather-alert', authenticate, async (req: AuthenticatedReque
       },
       android: {
         priority: alertType === 'critical' ? 'high' : 'normal',
+        ttl: 3600000,
         notification: {
           channelId:   'aquagrow-premium',
           color,
           icon:        'ic_stat_aquagrow',
           tag:         `weather-${userId}`,
+          ticker:      `AquaGrow Weather: ${alertTitle}`,
+          notificationCount: 1,
           clickAction: 'OPEN_WEATHER_ALERTS',
-          sound:       'default',
+          sound:       'alert_sound',
           visibility:  'public' as any,
+          // BigText expanded view — shows full aqAction guidance
+          body:        `${alertBody}\n\n🌾 Action: ${aqAction}`,
+          imageUrl:    condImg,
+          defaultVibrateTimings: true,
+          defaultLightSettings: true,
+          // Inline action buttons
+          // (defined in Android Notification Channel in MainActivity)
         },
       },
       apns: { payload: { aps: { badge: 1, sound: 'default', category: 'WEATHER_ALERT' } } },
@@ -880,11 +901,13 @@ app.post('/api/push/aerator-check', authenticate, async (req: AuthenticatedReque
       return res.json({ sent: false, reason: 'No FCM token registered for this user' });
     }
 
+    const docStage = Number(doc) <= 20 ? 'Nursery' : Number(doc) <= 40 ? 'Early Growth' : Number(doc) <= 60 ? 'Mid Growth' : 'Pre-Harvest';
     const message: admin.messaging.Message = {
       token: user.fcmToken,
       notification: {
-        title: `💨 Aerator Check Due — DOC ${doc}`,
-        body: `${pondName}: ${stageLabel}. Please update your aerator count, HP & positions.`,
+        title: `💨 Aerator Check Required — DOC ${doc}`,
+        body:  `${pondName} | ${docStage} Stage`,
+        imageUrl: 'https://aquagrow.onrender.com/assets/push/aerator_banner.png',
       },
       data: {
         type: 'aerator_check',
@@ -895,14 +918,21 @@ app.post('/api/push/aerator-check', authenticate, async (req: AuthenticatedReque
       },
       android: {
         priority: 'high',
+        ttl: 7200000,
         notification: {
           channelId: 'aquagrow-aerator',
           color: '#3B82F6',
-          icon: 'ic_stat_aquagrow',
-          tag: `aerator-${pondId}`,
+          icon:  'ic_stat_aquagrow',
+          tag:   `aerator-${pondId}`,
+          ticker: `AquaGrow: Aerator check due for ${pondName}`,
+          notificationCount: 1,
           clickAction: 'OPEN_AERATOR',
-          sound: 'default',
+          sound: 'alert_sound',
           visibility: 'public' as any,
+          body: `📍 Pond: ${pondName}\n🌿 Stage: ${docStage} (DOC ${doc})\n📋 ${stageLabel}\n\nPlease update aerator count, HP & positions to meet SOP.`,
+          imageUrl: 'https://aquagrow.onrender.com/assets/push/aerator_banner.png',
+          defaultVibrateTimings: true,
+          defaultLightSettings: true,
         },
       },
       apns: {
@@ -1180,30 +1210,59 @@ app.post('/api/push/harvest-update', authenticate, async (req: AuthenticatedRequ
     const meta = HARVEST_STAGE_META[status];
     if (!meta) return res.json({ sent: false, reason: 'Unknown status' });
 
+    // Rich harvest stage image per status
+    const stageImages: Record<string, string> = {
+      pending:         'https://aquagrow.onrender.com/assets/push/harvest_pending.png',
+      accepted:        'https://aquagrow.onrender.com/assets/push/harvest_accepted.png',
+      quality_checked: 'https://aquagrow.onrender.com/assets/push/harvest_quality.png',
+      weighed:         'https://aquagrow.onrender.com/assets/push/harvest_weighed.png',
+      rate_confirmed:  'https://aquagrow.onrender.com/assets/push/harvest_rate.png',
+      harvested:       'https://aquagrow.onrender.com/assets/push/harvest_done.png',
+      paid:            'https://aquagrow.onrender.com/assets/push/harvest_paid.png',
+      completed:       'https://aquagrow.onrender.com/assets/push/harvest_complete.png',
+      cancelled:       'https://aquagrow.onrender.com/assets/push/harvest_cancelled.png',
+    };
+    const harvestStageColors: Record<string, string> = {
+      pending: '#6366F1', accepted: '#10B981', quality_checked: '#0EA5E9',
+      weighed: '#F59E0B', rate_confirmed: '#8B5CF6', harvested: '#EC4899',
+      paid: '#22C55E', completed: '#64748B', cancelled: '#EF4444',
+    };
+    const stageImg   = stageImages[status] ?? 'https://aquagrow.onrender.com/assets/push/harvest_done.png';
+    const stageColor = harvestStageColors[status] ?? '#10B981';
+    const msgBody    = meta.body(pondName || 'Your Pond');
+
     const msgPayload: admin.messaging.Message = {
       token: user.fcmToken,
       notification: {
-        title: `${meta.emoji} ${meta.title}`,
-        body: meta.body(pondName || 'Your Pond'),
+        title:    `${meta.emoji} ${meta.title}`,
+        body:     msgBody,
+        imageUrl: stageImg,
       },
       data: {
         type: 'harvest_update',
-        pondId: String(pondId || ''),
-        pondName: String(pondName || ''),
+        pondId:    String(pondId || ''),
+        pondName:  String(pondName || ''),
         requestId: String(requestId || ''),
-        status: String(status),
-        deepLink: `/ponds/${pondId}/tracking`,
+        status:    String(status),
+        deepLink:  `/ponds/${pondId}/tracking`,
       },
       android: {
         priority: 'high',
+        ttl: 86400000,  // 24h — harvest is time-sensitive
         notification: {
           channelId: 'aquagrow-harvest',
-          color: '#10B981',
-          icon: 'ic_stat_aquagrow',
-          tag: `harvest-${requestId}`,
+          color:     stageColor,
+          icon:      'ic_stat_aquagrow',
+          tag:       `harvest-${requestId}`,
+          ticker:    `AquaGrow Harvest: ${meta.title}`,
+          notificationCount: 1,
           clickAction: 'OPEN_HARVEST_TRACKING',
-          sound: 'default',
+          sound:     status === 'paid' || status === 'harvested' ? 'success_chime' : 'alert_sound',
           visibility: 'public' as any,
+          body:      `${msgBody}\n\n🐟 Pond: ${pondName || 'Your Pond'}\nTap to track your harvest live →`,
+          imageUrl:  stageImg,
+          defaultVibrateTimings: true,
+          defaultLightSettings:  true,
         },
       },
       apns: {
@@ -1313,17 +1372,77 @@ const runPushEngine = async () => {
         }
 
         // ─── CONDITION 1: Rich DOC Milestones ──────────────────────────────────
-        const DOC_MILESTONES: Record<number, { title: string; body: string }> = {
-          15:  { title: '🦐 DOC 15 — First Growth Check!',        body: `${p.name}: Vitamin C spike time! Check feed tray consumption & apply immunity booster.` },
-          25:  { title: '⚠️ DOC 25 — Immunity Pulse Due',          body: `${p.name}: Prepare for critical DOC 30. Apply Immunity Pulse in feed now!` },
-          30:  { title: '📈 DOC 30 — Risk Transition Stage',       body: `${p.name}: High-risk period begins! Watch for tail redness. Increase water probiotics.` },
-          40:  { title: '🔴 DOC 40 — Critical Stage Alert!',       body: `${p.name}: DOC 40 Vit-Min Booster due. Run max aeration 9PM–5AM. Check trays hourly.` },
-          45:  { title: '🚨 DOC 45 — WSSV Risk Peak!',            body: `${p.name}: Maximum WSSV risk window. Max aeration. Reduce feed 10% on cloudy days.` },
-          50:  { title: '💊 DOC 50 — Liver Tonic Time',           body: `${p.name}: Hepatopancreas protection due. Apply Liver Tonic in feed today.` },
-          60:  { title: '🔵 DOC 60 — Growth Spurt Phase',         body: `${p.name}: 1g growth spike expected! Apply Water Probiotic Max every 2 days.` },
-          70:  { title: '🟣 DOC 70 — Final Immunity Boost',       body: `${p.name}: Last immunity boost before harvest stage. Follow SOP withdrawal plan.` },
-          83:  { title: '⏰ DOC 83 — Harvest Prep Begins',        body: `${p.name}: STOP heavy medicines. Withdrawal period active. Fresh water exchange soon.` },
-          90:  { title: '🎉 DOC 90 — Harvest Ready!',             body: `${p.name}: Zero heavy medicines now. Shell quality check. Submit harvest order when ready!` },
+        const DOC_MILESTONES: Record<number, { title: string; body: string; bigBody: string; img: string; color: string }> = {
+          15: {
+            title:   '🦐 Day 15 Growth Check — Action Required!',
+            body:    `${p.name}: Vitamin C spike time! Check trays & apply immunity booster.`,
+            bigBody: `📍 Pond: ${p.name}\n\n✅ Action: Apply Vitamin C (1g/kg feed)\n🌡️ Check feed tray consumption\n💉 Start Immunity Pulse booster today\n\n💪 Your shrimp are in the crucial early window!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc15.png',
+            color:   '#22C55E',
+          },
+          25: {
+            title:   '⚠️ DOC 25 — Prepare for Critical Stage!',
+            body:    `${p.name}: Apply Immunity Pulse now before DOC 30 risk window opens.`,
+            bigBody: `📍 Pond: ${p.name}\n\n⚡ DOC 30 is 5 days away — act now:\n✅ Apply Immunity Pulse in feed\n🔬 Check for tail redness or white spots\n💊 Start probiotic dosing cycle\n\n🎯 Preparation now = higher survival!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc25.png',
+            color:   '#F59E0B',
+          },
+          30: {
+            title:   '📈 DOC 30 — Risk Window Starts Now!',
+            body:    `${p.name}: High-risk period. Watch for tail redness. Probiotics essential.`,
+            bigBody: `📍 Pond: ${p.name}\n\n🚨 Critical transition stage (DOC 30–45):\n🔴 Watch for tail redness / abnormal behavior\n💧 Increase water probiotic frequency\n💨 Run aerators 100% during 3–6 AM\n⚖️ Cross-check FCR and feed consumption\n\n⚠️ Do NOT miss tray checks this week!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc30.png',
+            color:   '#EF4444',
+          },
+          40: {
+            title:   '🔴 DOC 40 — Critical Stage Alert!',
+            body:    `${p.name}: DOC 40 Vit-Min Booster due. Max aeration 9PM–5AM.`,
+            bigBody: `📍 Pond: ${p.name}\n\n💊 Apply Vit-Min Booster in feed (2g/kg)\n💨 Run ALL aerators from 9 PM to 5 AM\n🔍 Check trays every hour during peak\n🧪 Log water quality — pH, DO, Ammonia\n\n🏅 DOC 40 is the make-or-break week. Stay sharp!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc40.png',
+            color:   '#EF4444',
+          },
+          45: {
+            title:   '🚨 DOC 45 — Peak WSSV Risk Window!',
+            body:    `${p.name}: Maximum virus risk. Max aeration. Reduce feed on cloudy days.`,
+            bigBody: `📍 Pond: ${p.name}\n\n🦠 WSSV Risk at MAXIMUM — Act Now:\n💨 Max aeration 24/7 for next 5 days\n⏬ Reduce feed by 10% on cloudy/rainy days\n🔬 Check for white spots on carapace\n📞 Any mortality spike? Call expert immediately!\n\n🛡️ Your vigilance is the vaccine. Don't relax!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc45.png',
+            color:   '#EF4444',
+          },
+          50: {
+            title:   '💊 DOC 50 — Liver Tonic Time',
+            body:    `${p.name}: Hepatopancreas protection due. Apply Liver Tonic in feed today.`,
+            bigBody: `📍 Pond: ${p.name}\n\n💊 Today's Protocol:\n🟡 Apply Liver Tonic (2ml/kg feed)\n⚖️ Check ABW — shrimp should be 5–7g\n💧 Partial water exchange if DO drops\n📋 Record medicine log in AquaGrow\n\n🌱 DOC 50: Hepatopancreas strength = harvest yield!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc50.png',
+            color:   '#8B5CF6',
+          },
+          60: {
+            title:   '🔵 DOC 60 — Growth Spurt Phase',
+            body:    `${p.name}: 1g growth spike expected! Double Water Probiotic application.`,
+            bigBody: `📍 Pond: ${p.name}\n\n🚀 Growth Acceleration Week:\n💧 Apply Water Probiotic Max every 2 days\n🍤 Increase feed ration by 10% if trays are clean\n📏 ABW target: 8–10g by DOC 65\n💨 Night aeration critical — DO must stay above 5\n\n🏆 You're 30 days from a record harvest!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc60.png',
+            color:   '#3B82F6',
+          },
+          70: {
+            title:   '🟣 DOC 70 — Final Immunity Boost',
+            body:    `${p.name}: Last immunity protocol before harvest prep. Follow SOP.`,
+            bigBody: `📍 Pond: ${p.name}\n\n🎯 Final Immunity Protocol:\n💉 Apply final Vit-C + Mineral mix (3g/kg feed)\n⚖️ ABW check — should be 12–15g for Vannamei\n📋 Plan withdrawal schedule (no heavy meds after DOC 80)\n🏪 Check market rates in AquaGrow → Market\n\n🌟 Finish strong. You're almost there!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc70.png',
+            color:   '#8B5CF6',
+          },
+          83: {
+            title:   '⏰ DOC 83 — Harvest Prep Has Begun!',
+            body:    `${p.name}: STOP heavy medicines. Withdrawal period active.`,
+            bigBody: `📍 Pond: ${p.name}\n\n🚫 STOP all heavy medicines now!\n✅ Only Vitamin C + probiotics allowed\n💧 Fresh water exchange: 20–30% today\n⚖️ ABW target: 15–18g before harvest\n📲 Open AquaGrow → Harvest to submit your order\n\n🎣 1 week to go. Prepare your team and buyer!`,
+            img:     'https://aquagrow.onrender.com/assets/push/doc83.png',
+            color:   '#EC4899',
+          },
+          90: {
+            title:   '🎉 DOC 90 — HARVEST READY! Submit Now!',
+            body:    `${p.name}: Zero medicines. Shell quality check done. Submit harvest order!`,
+            bigBody: `📍 Pond: ${p.name}\n\n🏆 YOUR SHRIMP ARE HARVEST-READY!\n\n✅ Zero heavy medicines for 7+ days\n🔬 Shell quality: firm & dark\n⚖️ Estimated yield: check ABW × survival%\n📲 AquaGrow → Harvest → New Request\n💰 Check live market rates before pricing\n\n🎊 Congratulations! Another successful cycle!`,
+            img:     'https://aquagrow.onrender.com/assets/push/harvest_done.png',
+            color:   '#22C55E',
+          },
         };
 
         if (DOC_MILESTONES[doc]) {
@@ -1362,32 +1481,48 @@ const runPushEngine = async () => {
           const deepLinkUrl = `/ponds/${pondIdStr}`;
           const alertType   = isLunar ? 'lunar' : isFeed ? 'feed_reminder' : 'milestone';
 
+          // Pull rich content from the milestone map if available
+          const milestoneData = DOC_MILESTONES[doc] || null;
+          const richBody    = milestoneData?.bigBody  || alertBody;
+          const richImg     = milestoneData?.img       || (isLunar
+            ? 'https://aquagrow.onrender.com/assets/push/lunar_alert.png'
+            : isFeed
+            ? 'https://aquagrow.onrender.com/assets/push/feed_reminder.png'
+            : 'https://aquagrow.onrender.com/assets/push/milestone.png');
+          const richColor   = milestoneData?.color || color;
+
           const fullMessage: admin.messaging.Message = {
             token: u.fcmToken!,
-            // notification key → OS shows system notification in background/killed state ✅
             notification: {
-              title: alertTitle,
-              body: alertBody,
+              title:    alertTitle,
+              body:     alertBody,
+              imageUrl: richImg,
             },
-            // data key → available to app on tap for deep-linking & custom handling ✅
             data: {
-              type: alertType,
-              pondId: pondIdStr,
+              type:     alertType,
+              pondId:   pondIdStr,
               pondName: p.name || '',
-              doc: String(doc),
+              doc:      String(doc),
               deepLink: deepLinkUrl,
             },
             android: {
-              priority: 'high',   // CRITICAL: delivers even when screen is off ✅
-              ttl: 3600000,       // 1 hour TTL — discard stale alert after 1h
+              priority: 'high',
+              ttl: 3600000,
               notification: {
                 channelId,
-                icon: 'ic_stat_aquagrow',
-                color,
-                tag: `engine-${u._id}-${now.toDateString().replace(/ /g, '_')}`,
-                sound: 'alert_sound', // res/raw/alert_sound.mp3
+                icon:    'ic_stat_aquagrow',
+                color:   richColor,
+                tag:     `engine-${u._id}-${now.toDateString().replace(/ /g, '_')}`,
+                ticker:  `AquaGrow: ${alertTitle}`,
+                notificationCount: 1,
+                sound:   'alert_sound',
                 visibility: 'public' as any,
                 clickAction: 'FCM_PLUGIN_ACTIVITY',
+                // BigText: expanded notification shows full farming guide
+                body:    richBody,
+                imageUrl: richImg,
+                defaultVibrateTimings: true,
+                defaultLightSettings:  true,
               },
             },
             apns: {
@@ -1435,33 +1570,50 @@ const runPushEngine = async () => {
       const topAlert = wxAlerts.find(a => a.type === 'critical') ?? wxAlerts.find(a => a.type === 'warning');
       if (!topAlert) continue;
 
+      const wxEmoji = topAlert.type === 'critical' ? '🚨' : '⚠️';
+      const wxCondImg = weatherBrief.conditionCode === 'storm'
+        ? 'https://aquagrow.onrender.com/assets/push/storm.png'
+        : weatherBrief.conditionCode === 'rain'
+        ? 'https://aquagrow.onrender.com/assets/push/rain.png'
+        : weatherBrief.conditionCode === 'hot'
+        ? 'https://aquagrow.onrender.com/assets/push/hot.png'
+        : 'https://aquagrow.onrender.com/assets/push/sunny.png';
+
       const wxMsg: admin.messaging.Message = {
         token: u.fcmToken!,
         notification: {
-          title: `${topAlert.type === 'critical' ? '🚨' : '⚠️'} ${topAlert.title}`,
-          body: topAlert.body,
+          title:    `${wxEmoji} ${topAlert.title}`,
+          body:     topAlert.body,
+          imageUrl: wxCondImg,
         },
         data: {
           type: 'weather_alert',
-          alertType:    topAlert.type,
+          alertType:     topAlert.type,
           conditionCode: weatherBrief.conditionCode,
-          location:     weatherBrief.location,
-          temp:         String(weatherBrief.temp),
-          rainPct:      String(weatherBrief.rainPct),
-          aqAction:     topAlert.aqAction,
-          deepLink:     '/weather',
+          location:      weatherBrief.location,
+          temp:          String(weatherBrief.temp),
+          rainPct:       String(weatherBrief.rainPct),
+          aqAction:      topAlert.aqAction,
+          deepLink:      '/weather',
         },
         android: {
           priority: topAlert.type === 'critical' ? 'high' : 'normal',
           ttl: 3600000,
           notification: {
             channelId: 'aquagrow-premium',
-            icon: 'ic_stat_aquagrow',
-            color: topAlert.color,
-            tag: `weather-${String(u._id)}-${now.toDateString()}`,
-            sound: 'default',
+            icon:      'ic_stat_aquagrow',
+            color:     topAlert.color,
+            tag:       `weather-${String(u._id)}-${now.toDateString()}`,
+            ticker:    `AquaGrow Weather: ${topAlert.title}`,
+            notificationCount: 1,
+            sound:     'alert_sound',
             visibility: 'public' as any,
             clickAction: 'OPEN_WEATHER_ALERTS',
+            // BigText expanded — shows full aquaculture action
+            body:      `${topAlert.body}\n\n🌾 AQ Action: ${topAlert.aqAction}\n📍 ${weatherBrief.location} | 🌡️ ${weatherBrief.temp}°C | 🌧️ ${weatherBrief.rainPct}%`,
+            imageUrl:  wxCondImg,
+            defaultVibrateTimings: true,
+            defaultLightSettings:  true,
           },
         },
         apns: { payload: { aps: { badge: 1, sound: 'default', category: 'WEATHER_ALERT' } } },
