@@ -62,6 +62,8 @@ import { analyzePondSituation, buildSituationInputs, type SituationAlert } from 
 import { AeratorPopup, getAeratorStageLabel } from '../../components/AeratorPopup';
 import { triggerAeratorCheckPush, snoozeAeratorCheck, parseAeratorNotification } from '../../services/aeratorPushService';
 import { sendHarvestStagePush, HARVEST_STAGE_META, parseHarvestNotification } from '../../services/harvestPushService';
+import { CriticalWaterAlert, CriticalWaterBanner, buildCriticals } from '../../components/CriticalWaterAlert';
+import { BatteryOptimizationPrompt } from '../../components/BatteryOptimizationPrompt';
 // import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
 
 
@@ -265,6 +267,16 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   });
   const { requestNotificationPermission, fcmToken, deepLinkUrl, clearDeepLink, incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
 
+  // ── Dashboard critical water modal state ──
+  const [showDashCriticalModal, setShowDashCriticalModal] = useState(false);
+  const [dashCriticalAcked, setDashCriticalAcked]         = useState(() =>
+    sessionStorage.getItem('dashboard_critical_acked') === 'true'
+  );
+
+  // ── Battery optimisation prompt state ──
+  // Show once after the farmer first grants notification permission
+  const [showBatteryPrompt, setShowBatteryPrompt] = useState(false);
+
   // ── On-enter: notification permission banner + sync progress ──────────────────
   const [showPermBanner, setShowPermBanner] = useState(false);
   const [showSyncBanner, setShowSyncBanner] = useState(true);
@@ -382,6 +394,13 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         });
         // Update local storage to reflect status
         localStorage.setItem('aqua_user', JSON.stringify({ ...user, fcmToken: token }));
+
+        // Show battery optimisation prompt on Android after first successful token registration
+        // Critical for MIUI / One UI / OxygenOS devices where OS kills background FCM
+        if (Capacitor.isNativePlatform() && !localStorage.getItem('aqua_battery_prompt_shown')) {
+          setTimeout(() => setShowBatteryPrompt(true), 1500);
+          localStorage.setItem('aqua_battery_prompt_shown', '1');
+        }
       } catch (err) {
         console.error('Push Engine Sync failed:', err);
       }
@@ -574,11 +593,57 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
       m.pondId === selectedPond?.id && new Date(m.date) >= weekAgo).length;
   }, [medicineLogs, selectedPond]);
 
+  // ── Dashboard-level critical water analysis (from saved water records) ──
+  const dashboardCriticals = useMemo(() => {
+    if (!latestWater) return [];
+    return buildCriticals({
+      ph:          latestWater.ph,
+      do:          latestWater.do,
+      temperature: latestWater.temperature,
+      salinity:    latestWater.salinity,
+      ammonia:     latestWater.ammonia,
+      mortality:   latestWater.mortality,
+    });
+  }, [latestWater]);
+
+  // Auto-show dashboard critical modal when critical readings exist and farmer hasn't acked
+  useEffect(() => {
+    if (dashboardCriticals.some(c => c.status === 'critical') && !dashCriticalAcked) {
+      setShowDashCriticalModal(true);
+    }
+  }, [dashboardCriticals, dashCriticalAcked]);
+
   // Water quality status bar gauge 
   const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
     <>
+      {/* ── DASHBOARD CRITICAL WATER MODAL OVERLAY ── */}
+      <AnimatePresence>
+        {showDashCriticalModal && dashboardCriticals.length > 0 && (
+          <CriticalWaterAlert
+            criticals={dashboardCriticals}
+            pondName={selectedPond?.name ?? 'Pond'}
+            isDark={isDark}
+            sessionKey="dashboard_critical_acked"
+            onAcknowledge={(resp) => {
+              setShowDashCriticalModal(false);
+              setDashCriticalAcked(true);
+              sessionStorage.setItem('dashboard_critical_acked', 'true');
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── BATTERY OPTIMIZATION PROMPT (Android, once after notification permission) ── */}
+      <AnimatePresence>
+        {showBatteryPrompt && (
+          <BatteryOptimizationPrompt
+            isDark={isDark}
+            onDismiss={() => setShowBatteryPrompt(false)}
+          />
+        )}
+      </AnimatePresence>
       <div className={cn("pb-32 min-h-[100dvh] relative overflow-hidden transition-colors duration-700", isDark ? "bg-[#030E1B]" : "bg-[#F8FAFC]")}>
         {/* ── Breathtaking Ambient Background Details ── */}
         <div className="absolute inset-0 pointer-events-none fixed">
@@ -836,45 +901,155 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             ))}
           </AnimatePresence>
 
-          {/* ── PREMIUM DEALS STRIP ── */}
-          <div
-            className="relative -mx-5 overflow-hidden cursor-pointer mb-2 mt-[-10px] sm:mt-0"
-            style={{ height: 52 }}
-            onClick={() => navigate('/shop')}
-          >
-            <div className={cn('absolute inset-0', isDark ? 'bg-gradient-to-r from-[#080D18] via-[#0C1422] to-[#080D18]' : 'bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800')} />
-            <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none" style={{ background: isDark ? 'linear-gradient(90deg,#080D18,transparent)' : 'linear-gradient(90deg,#1e293b,transparent)' }} />
-            <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none" style={{ background: isDark ? 'linear-gradient(270deg,#080D18,transparent)' : 'linear-gradient(270deg,#1e293b,transparent)' }} />
-            <motion.div
-              animate={{ x: ['0%', '-50%'] }}
-              transition={{ repeat: Infinity, duration: 22, ease: 'linear' }}
-              className="flex items-center gap-3 h-full px-6 whitespace-nowrap w-max"
-            >
-              {[
-                { emoji: '💊', title: t.medicineSale,  sub: t.medicineSaleDesc,       color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
-                { emoji: '🌾', title: t.bulkFeedDeal,  sub: t.bulkFeedDealDesc,       color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
-                { emoji: '🚚', title: t.freeDelivery,  sub: t.freeDeliveryDesc,       color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-                { emoji: '🔬', title: t.wssvKit,       sub: t.doc45Special,           color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
-                { emoji: '⚡', title: 'Smart Farm',    sub: 'IoT · Aerators · Bills', color: '#06b6d4', bg: 'rgba(6,182,212,0.12)'  },
-                { emoji: '💊', title: t.medicineSale,  sub: t.medicineSaleDesc,       color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
-                { emoji: '🌾', title: t.bulkFeedDeal,  sub: t.bulkFeedDealDesc,       color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
-                { emoji: '🚚', title: t.freeDelivery,  sub: t.freeDeliveryDesc,       color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-                { emoji: '🔬', title: t.wssvKit,       sub: t.doc45Special,           color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
-                { emoji: '⚡', title: 'Smart Farm',    sub: 'IoT · Aerators · Bills', color: '#06b6d4', bg: 'rgba(6,182,212,0.12)'  },
-              ].map((ad, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl flex-shrink-0"
-                  style={{ background: ad.bg, border: `1px solid ${ad.color}35` }}
-                >
-                  <span className="text-sm leading-none">{ad.emoji}</span>
-                  <span className="text-[10px] font-black text-white/90 tracking-wide">{ad.title}</span>
-                  <span className="text-white/20 text-[8px]">·</span>
-                  <span className="text-[8px] font-bold tracking-widest" style={{ color: ad.color }}>{ad.sub}</span>
+          {/* ── BANNER ADS CAROUSEL ── */}
+          {(() => {
+            const BANNER_ADS = [
+              {
+                id: 'medicine',
+                emoji: '💊',
+                tag: 'Limited Offer',
+                title: t.medicineSale,
+                sub: t.medicineSaleDesc,
+                cta: 'Shop Now',
+                path: '/shop',
+                from: '#7C3AED',
+                to: '#4F46E5',
+                accent: '#a78bfa',
+              },
+              {
+                id: 'feed',
+                emoji: '🌾',
+                tag: 'Bulk Deal',
+                title: t.bulkFeedDeal,
+                sub: t.bulkFeedDealDesc,
+                cta: 'Order Feed',
+                path: '/shop',
+                from: '#059669',
+                to: '#0F766E',
+                accent: '#34d399',
+              },
+              {
+                id: 'delivery',
+                emoji: '🚚',
+                tag: 'Free Delivery',
+                title: t.freeDelivery,
+                sub: t.freeDeliveryDesc,
+                cta: 'Explore',
+                path: '/shop',
+                from: '#0284C7',
+                to: '#0369A1',
+                accent: '#60a5fa',
+              },
+              {
+                id: 'wssv',
+                emoji: '🔬',
+                tag: 'DOC 45 Special',
+                title: t.wssvKit,
+                sub: t.doc45Special,
+                cta: 'Get Kit',
+                path: '/shop',
+                from: '#B91C1C',
+                to: '#991B1B',
+                accent: '#f87171',
+              },
+              {
+                id: 'smartfarm',
+                emoji: '⚡',
+                tag: 'New Feature',
+                title: 'Smart Farm Hub',
+                sub: 'IoT monitoring · Aerators · Power bill tracker',
+                cta: 'Open Hub',
+                path: '/smart-farm',
+                from: '#0891B2',
+                to: '#0E7490',
+                accent: '#22d3ee',
+              },
+            ];
+
+            // Use a ref-based auto-advance banner slider
+            const [bannerIdx, setBannerIdx] = React.useState(0);
+            React.useEffect(() => {
+              const t = setInterval(() => setBannerIdx(i => (i + 1) % BANNER_ADS.length), 4200);
+              return () => clearInterval(t);
+            }, []);
+
+            const ad = BANNER_ADS[bannerIdx];
+            return (
+              <div className="relative -mx-5">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={ad.id}
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -30 }}
+                    transition={{ duration: 0.28, ease: 'easeOut' }}
+                    className="px-5"
+                  >
+                    <div
+                      className="rounded-2xl overflow-hidden relative cursor-pointer active:scale-[0.99] transition-transform"
+                      style={{ background: `linear-gradient(135deg, ${ad.from}, ${ad.to})` }}
+                      onClick={() => navigate(ad.path)}
+                    >
+                      {/* Ambient blob */}
+                      <div
+                        className="absolute top-[-30%] right-[-10%] w-40 h-40 rounded-full blur-3xl opacity-20"
+                        style={{ background: ad.accent }}
+                      />
+                      <div className="relative z-10 flex items-center gap-4 px-4 py-3.5">
+                        {/* Icon */}
+                        <div
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl leading-none shadow-lg"
+                          style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}
+                        >
+                          {ad.emoji}
+                        </div>
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span
+                              className="text-[6px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full"
+                              style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}
+                            >
+                              {ad.tag}
+                            </span>
+                          </div>
+                          <p className="text-white font-black text-[13px] tracking-tight leading-tight">{ad.title}</p>
+                          <p className="text-white/60 text-[8px] font-medium mt-0.5 truncate">{ad.sub}</p>
+                        </div>
+                        {/* CTA */}
+                        <button
+                          onClick={e => { e.stopPropagation(); navigate(ad.path); }}
+                          className="flex-shrink-0 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest shadow-md"
+                          style={{ background: 'rgba(255,255,255,0.22)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)' }}
+                        >
+                          {ad.cta} →
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Dot indicators */}
+                <div className="flex items-center justify-center gap-1.5 mt-2">
+                  {BANNER_ADS.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setBannerIdx(i)}
+                      className="transition-all rounded-full"
+                      style={{
+                        width: i === bannerIdx ? 16 : 5,
+                        height: 5,
+                        background: i === bannerIdx
+                          ? BANNER_ADS[bannerIdx].accent
+                          : isDark ? 'rgba(255,255,255,0.12)' : '#cbd5e1',
+                      }}
+                    />
+                  ))}
                 </div>
-              ))}
-            </motion.div>
-          </div>
+              </div>
+            );
+          })()}
+
 
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
 
@@ -902,6 +1077,19 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               ))}
             </div>
           )}
+
+          {/* ── CRITICAL WATER DATA BANNER (dashboard, from latest saved log) ── */}
+          <AnimatePresence>
+            {dashboardCriticals.length > 0 && !showDashCriticalModal && dashCriticalAcked && (
+              <CriticalWaterBanner
+                criticals={dashboardCriticals}
+                pondName={selectedPond?.name ?? 'Pond'}
+                isDark={isDark}
+                onExpand={() => { setShowDashCriticalModal(true); setDashCriticalAcked(false); sessionStorage.removeItem('dashboard_critical_acked'); }}
+                onAcknowledge={() => { setDashCriticalAcked(true); sessionStorage.setItem('dashboard_critical_acked', 'true'); }}
+              />
+            )}
+          </AnimatePresence>
 
           {/* ── SITUATION INTELLIGENCE ALERTS ── */}
           <AnimatePresence>

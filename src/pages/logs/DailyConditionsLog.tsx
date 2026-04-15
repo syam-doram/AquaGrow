@@ -11,6 +11,7 @@ import { NoPondState } from '../../components/NoPondState';
 import { calculateDOC } from '../../utils/pondUtils';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
+import { CriticalWaterAlert, CriticalWaterBanner, buildCriticals } from '../../components/CriticalWaterAlert';
 
 // ─── PARAMETER DEFINITIONS ────────────────────────────────────────────────────
 interface FormData {
@@ -285,6 +286,8 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const [saved, setSaved]                 = useState(false);
   const [expandedTip, setExpandedTip]     = useState<string | null>(null);
   const [loading, setLoading]             = useState(false);
+  const [showCriticalModal, setShowCriticalModal] = useState(false);
+  const [criticalAcked, setCriticalAcked]         = useState(false);
 
   // Pre-fill if edit mode
   useEffect(() => {
@@ -318,6 +321,27 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const hasAnyValue = Object.values(form).some(v => v !== '');
   const hasDanger   = actions.some(a => a.severity === 'danger');
   const canSave     = hasAnyValue && !!pond && !(isExisting && !isModified);
+
+  // ── Critical water analysis from current form input ──
+  const waterCriticals = useMemo(() => {
+    if (!hasAnyValue) return [];
+    return buildCriticals({
+      ph:          parseFloat(form.ph),
+      do:          parseFloat(form.do),
+      temperature: parseFloat(form.temperature),
+      salinity:    parseFloat(form.salinity),
+      ammonia:     parseFloat(form.ammonia),
+      mortality:   parseFloat(form.mortality),
+    });
+  }, [form, hasAnyValue]);
+
+  // ── Auto-show critical modal when dangerous readings are entered ──
+  // Re-arms on each save (farmer logs new entry, might need fresh guidance)
+  useEffect(() => {
+    if (waterCriticals.some(c => c.status === 'critical') && !criticalAcked) {
+      setShowCriticalModal(true);
+    }
+  }, [waterCriticals, criticalAcked]);
 
   // Score visuals
   const scoreGrade = healthScore >= 80 ? 'Healthy' : healthScore >= 60 ? 'Monitor' : 'Act Now';
@@ -360,6 +384,22 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
 
   return (
     <div className={cn('min-h-screen pb-40', isDark ? 'bg-[#070D12]' : 'bg-[#F0F4F8]')}>
+
+      {/* ── CRITICAL WATER ALERT MODAL ── */}
+      <AnimatePresence>
+        {showCriticalModal && waterCriticals.length > 0 && (
+          <CriticalWaterAlert
+            criticals={waterCriticals}
+            pondName={pond?.name ?? 'Pond'}
+            isDark={isDark}
+            onAcknowledge={(resp) => {
+              setShowCriticalModal(false);
+              setCriticalAcked(true);
+              // Re-arm if farmer logs again (new session)
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── SUCCESS OVERLAY ── */}
       <AnimatePresence>
@@ -433,6 +473,19 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
             )}>Already Logged</span>
           )}
         </motion.div>
+
+        {/* ── CRITICAL WATER BANNER (inline, non-modal) ── */}
+        <AnimatePresence>
+          {waterCriticals.length > 0 && !showCriticalModal && criticalAcked && (
+            <CriticalWaterBanner
+              criticals={waterCriticals}
+              pondName={pond?.name ?? 'Pond'}
+              isDark={isDark}
+              onExpand={() => { setShowCriticalModal(true); setCriticalAcked(false); }}
+              onAcknowledge={() => setCriticalAcked(true)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* ── LIVE HEALTH SCORE ── */}
         <AnimatePresence>

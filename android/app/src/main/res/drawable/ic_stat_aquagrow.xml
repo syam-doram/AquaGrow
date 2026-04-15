@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AquaGrow notification small icon.
+  Android requires notification icons to be:
+    - A single flat WHITE shape on transparent background
+    - Vector drawable (works at all screen densities without separate PNGs)
+    - Referenced as android:icon in notification builders
+
+  This icon is a water-drop / shrimp silhouette that renders cleanly
+  at 24×24dp (the notification icon slot size on Android).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!--
+      Water drop shape — universally recognized symbol for aqua/water management.
+      Single path, solid white fill, transparent background.
+    -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2
+            C12,2 4,10.5 4,15
+            C4,19.4 7.6,23 12,23
+            C16.4,23 20,19.4 20,15
+            C20,10.5 12,2Z
+            M12,21
+            C8.7,21 6,18.3 6,15
+            C6,12.1 9.5,7.3 12,4.5
+            C14.5,7.3 18,12.1 18,15
+            C18,18.3 15.3,21 12,21Z" />
+
+    <!-- Inner highlight: smaller filled drop to suggest AquaGrow branding -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M12,8
+            C12,8 8,13 8,15.5
+            C8,17.9 9.8,19.5 12,19.5
+            C14.2,19.5 16,17.9 16,15.5
+            C16,13 12,8 12,8Z" />
+
+</vector>

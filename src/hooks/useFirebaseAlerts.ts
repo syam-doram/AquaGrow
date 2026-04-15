@@ -117,6 +117,12 @@ export const useFirebaseAlerts = (userLanguage: string) => {
           description: 'Live harvest tracking and payment notifications',
           importance: 5, visibility: 1, vibration: true,
         });
+        await PushNotifications.createChannel({
+          id: 'aquagrow-weather',
+          name: 'AquaGrow Weather Alerts',
+          description: 'Real-time weather alerts for pond management',
+          importance: 5, visibility: 1, vibration: true,
+        });
 
         let perm = await PushNotifications.checkPermissions();
         if (perm.receive !== 'granted') perm = await PushNotifications.requestPermissions();
@@ -199,6 +205,10 @@ export const useFirebaseAlerts = (userLanguage: string) => {
           ? { type: 'harvest', color: '#10B981', channelId: 'aquagrow-harvest' }
           : data.type === 'aerator_check'
           ? { type: 'aerator', color: '#3B82F6', channelId: 'aquagrow-aerator' }
+          : data.type === 'weather_alert'
+          ? { type: 'weather', color: data.alertType === 'critical' ? '#EF4444' : '#F59E0B', channelId: 'aquagrow-weather' }
+          : data.type === 'iot_alert'
+          ? { type: 'iot',     color: '#8B5CF6', channelId: 'aquagrow-premium' }
           : { type: 'general', color: '#6366F1', channelId: 'aquagrow-premium' };
 
         // Show real OS notification even while app is open
@@ -210,8 +220,12 @@ export const useFirebaseAlerts = (userLanguage: string) => {
               body: notification.body || '',
               channelId: meta.channelId,
               extra: data,
-              smallIcon: 'ic_launcher',
+              // ic_stat_aquagrow is a white vector drawable in res/drawable/
+              // ic_launcher is NOT a valid notification icon — it causes silent drop
+              smallIcon: 'ic_stat_aquagrow',
               iconColor: meta.color,
+              // Show on lock screen
+              schedule: undefined,
             }],
           });
         } catch (e) {
@@ -278,6 +292,31 @@ export const useFirebaseAlerts = (userLanguage: string) => {
         });
       } catch { /* silent */ }
       setAlertHistory([]);
+    },
+    /**
+     * requestBatteryOptimizationExemption
+     * Opens the Android "Battery Optimization" settings screen directly so the
+     * farmer can set AquaGrow to "Unrestricted" / "Not optimized".
+     *
+     * WHY: MIUI (Xiaomi/Redmi), One UI (Samsung), and OxygenOS (OnePlus) all
+     * aggressively kill background processes — even high-priority FCM messages
+     * are silently dropped when the screen is locked unless the app is explicitly
+     * whitelisted. This is the #1 root cause of missed locked-screen alerts.
+     *
+     * Uses window.open with Android intent URI to open the system dialog.
+     * The REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission is in AndroidManifest.xml.
+     */
+    requestBatteryOptimizationExemption: () => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+        // Opens the per-app battery optimization exemption dialog directly
+        window.open(
+          'intent:#Intent;action=android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS;data=package:com.aquagrow.app;end',
+          '_system',
+        );
+      } catch (e) {
+        console.warn('[Battery] Could not open battery optimization settings:', e);
+      }
     },
   };
 };

@@ -215,3 +215,57 @@ export const fetchWeatherData = async (location: string = 'Hyderabad'): Promise<
     return getFallbackData();
   }
 };
+
+// ─── Get farmer's saved location (fallback: Nellore) ──────────────────────────
+export const getUserLocation = (): string => {
+  try {
+    const raw = localStorage.getItem('aqua_user');
+    if (!raw) return 'Nellore';
+    const u = JSON.parse(raw);
+    return u?.location || 'Nellore';
+  } catch { return 'Nellore'; }
+};
+
+// ─── Client-side weather push trigger ────────────────────────────────────────
+// Called from WeatherAlerts.tsx when critical/warning weather is detected.
+// Posts to POST /api/push/weather-alert → server fires FCM immediately.
+// Cools down using sessionStorage to avoid re-triggering on every re-render.
+export const sendWeatherPushAlert = async (
+  alert: { title: string; desc: string; aqAction: string; type: 'critical' | 'warning' | 'info' },
+  weather: WeatherData,
+): Promise<void> => {
+  // 3-hour suppress key per alert title per session
+  const suppressKey = `wx_push_${alert.title.replace(/\s+/g, '_')}`;
+  const lastSent = Number(sessionStorage.getItem(suppressKey) || '0');
+  if (Date.now() - lastSent < 3 * 60 * 60 * 1000) return; // already sent in last 3h
+
+  try {
+    const raw = localStorage.getItem('aqua_tokens');
+    if (!raw) return;
+    const tokens = JSON.parse(raw);
+    const token = tokens?.access || tokens?.accessToken || '';
+    if (!token) return;
+
+    const apiBase = (window as any).__VITE_API_BASE__ || 'https://aquagrow.onrender.com/api';
+    const res = await fetch(`${apiBase}/push/weather-alert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        alertTitle:    alert.title,
+        alertBody:     alert.desc,
+        aqAction:      alert.aqAction,
+        alertType:     alert.type,
+        location:      weather.location,
+        conditionCode: weather.conditionCode,
+        temp:          weather.temp,
+        rainPct:       weather.rainChance,
+      }),
+    });
+    if (res.ok) {
+      sessionStorage.setItem(suppressKey, String(Date.now()));
+      console.log(`[WeatherPush] Triggered FCM for: ${alert.title}`);
+    }
+  } catch (e) {
+    console.warn('[WeatherPush] Failed to trigger FCM:', e);
+  }
+};

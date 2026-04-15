@@ -18,7 +18,8 @@ package="com.aquagrow.app">
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:exported="true">
+            android:exported="true"
+            android:showOnLockScreen="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -53,6 +54,7 @@ package="com.aquagrow.app">
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
         <!-- ── FCM Background Message Service ──────────────────────────────────
              Declaring FirebaseMessagingService explicitly tells the Android OS
              to keep the Firebase channel alive even when battery optimisation
@@ -60,7 +62,7 @@ package="com.aquagrow.app">
              notifications on Xiaomi / Samsung / OnePlus (MIUI, One UI, OxygenOS)
              are silently dropped.
              priority="-500" lets the Capacitor plugin intercept first.
-        ──────────────────────────────────────────────────────────────────── -->
+        ──────────────────────────────────────────────────────────────────────── -->
         <service
             android:name="com.google.firebase.messaging.FirebaseMessagingService"
             android:exported="false">
@@ -68,6 +70,23 @@ package="com.aquagrow.app">
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- ── FCM Default Notification Icon ─────────────────────────────────
+             Tells FCM which drawable to use as the small icon when no icon is
+             specified in the notification payload.  Must be a single-color
+             white drawable (ic_stat_aquagrow.xml in res/drawable/).
+             Without this, FCM on Android 5+ may silently drop notifications.
+        ──────────────────────────────────────────────────────────────────── -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_aquagrow" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorPrimary" />
+        <!-- Default channel for FCM messages that dont specify a channelId -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="aquagrow-premium" />
 
     </application>
 
@@ -91,5 +110,11 @@ package="com.aquagrow.app">
     <!-- Allows prompting user to exclude app from battery optimisation
          (critical for reliable background FCM on MIUI / One UI / OxygenOS) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Required to show notifications in background/foreground services on Android 9+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Required for exact-time LocalNotifications on Android 12+ (API 31+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Allows notification to appear on lock screen (keyguard) -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
 </manifest>

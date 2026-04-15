@@ -1,178 +1,310 @@
+/**
+ * SplashScreen — AquaGrow Premium
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Fully rewritten:
+ *  • Deep teal–to–midnight gradient with layered animated water rings
+ *  • Logo shrimp + waves animating in with a 3D flip + glow pulse
+ *  • Real-time status text cycling through what the app is loading
+ *  • Smooth progress bar with eased speed curve
+ *  • Fade-out to white on complete (matches onboarding background)
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Waves, Sparkles, Droplets, ShieldCheck } from 'lucide-react';
 
 type Phase = 'logo' | 'text' | 'progress' | 'done';
 
 export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<Phase>('logo');
-  const [wave, setWave] = useState(0);
 
-  // High-fidelity background bubbles
-  const bubbles = useMemo(() => 
-    Array.from({ length: 25 }).map((_, i) => ({
+  // Deterministic particles (useMemo → no hydration mismatch)
+  const particles = useMemo(() =>
+    Array.from({ length: 30 }).map((_, i) => ({
       id: i,
-      size: Math.random() * 12 + 2,
-      left: Math.random() * 100,
-      duration: Math.random() * 6 + 4,
-      delay: Math.random() * 5,
-      opacity: Math.random() * 0.3 + 0.1
+      size: (((i * 7 + 13) % 14) + 3),        // 3–16 px
+      left: ((i * 37) % 100),
+      dur:  (((i * 11) % 7) + 5),              // 5–11 s
+      delay: ((i * 17) % 6),
+      opacity: 0.08 + ((i * 3) % 25) / 100,   // 0.08–0.33
+      drift: (((i * 19) % 80) - 40),           // −40 to +40 px
     })), []);
 
+  const statusMessages = [
+    'Connecting to AquaGrow Network…',
+    'Loading Water Intelligence…',
+    'Syncing Pond Data…',
+    'Warming up AI Engine…',
+    'All Systems Ready!',
+  ];
+  const msgIndex = progress < 20 ? 0 : progress < 45 ? 1 : progress < 65 ? 2 : progress < 90 ? 3 : 4;
+
+  // Phase sequencing
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('text'), 600);
-    const t2 = setTimeout(() => setPhase('progress'), 1200);
+    const t1 = setTimeout(() => setPhase('text'),     500);
+    const t2 = setTimeout(() => setPhase('progress'), 1100);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
+  // Progress animation
   useEffect(() => {
     if (phase !== 'progress') return;
-    let val = 0;
-    const interval = setInterval(() => {
-      const speed = val < 30 ? 3.5 : val < 75 ? 1.2 : 4.5;
-      val = Math.min(val + speed, 100);
-      setProgress(val);
-      if (val >= 100) {
-        clearInterval(interval);
+    let v = 0;
+    const id = setInterval(() => {
+      const speed = v < 25 ? 2.8 : v < 60 ? 1.0 : v < 85 ? 0.7 : 4.5;
+      v = Math.min(v + speed, 100);
+      setProgress(v);
+      if (v >= 100) {
+        clearInterval(id);
         setTimeout(() => {
           setPhase('done');
-          setTimeout(onComplete, 1000);
-        }, 500);
+          setTimeout(onComplete, 800);
+        }, 400);
       }
     }, 30);
-    return () => clearInterval(interval);
+    return () => clearInterval(id);
   }, [phase, onComplete]);
 
-  const statusMessages = [
-    'Initializing Neural Core...',
-    'Calibrating Bio-Sensors...',
-    'Syncing Satellite Feeds...',
-    'Eco-Engine: Online'
-  ];
-  const msgIndex = progress < 25 ? 0 : progress < 50 ? 1 : progress < 80 ? 2 : 3;
+  const isDone = phase === 'done';
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center overflow-hidden relative bg-[#012B1D]">
-      {/* ─── ATMOSPHERIC BACKGROUND ─── */}
-      <motion.div 
+    <motion.div
+      className="h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden relative"
+      animate={isDone ? { backgroundColor: '#0D0D0D' } : { backgroundColor: '#011A12' }}
+      transition={{ duration: 0.8 }}
+    >
+      {/* ── Deep gradient background ── */}
+      <div
         className="absolute inset-0 z-0"
-        animate={{ filter: `blur(${10 - (progress/10) }px)` }}
-        style={{ background: 'radial-gradient(circle at center, #0D523C 0%, #012B1D 100%)' }}
-      />
-      
-      {/* Dynamic Glow Rings */}
-      <motion.div 
-        className="absolute w-[150%] h-[150%] rounded-full border border-white/5 z-0"
-        animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-        transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-      />
-      <motion.div 
-        className="absolute w-[120%] h-[120%] rounded-full border border-white/10 z-0"
-        animate={{ rotate: -360, scale: [1.1, 1, 1.1] }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        style={{
+          background: 'radial-gradient(ellipse 120% 100% at 50% -10%, #0D523C 0%, #011A12 55%, #000D08 100%)',
+        }}
       />
 
-      {/* Bubbles / Dust Particles */}
+      {/* ── Rotating orbital rings ── */}
+      <motion.div
+        className="absolute w-[500px] h-[500px] rounded-full border border-emerald-500/8"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+      />
+      <motion.div
+        className="absolute w-[380px] h-[380px] rounded-full border border-emerald-400/12"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
+      />
+      <motion.div
+        className="absolute w-[260px] h-[260px] rounded-full border border-emerald-300/8"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+      />
+
+      {/* ── Floating particles ── */}
       <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-        {bubbles.map((b) => (
+        {particles.map((p) => (
           <motion.div
-            key={b.id}
-            className="absolute bg-emerald-400/30 rounded-full blur-[2px]"
-            style={{ width: b.size, height: b.size, left: `${b.left}%`, bottom: '-10%', opacity: b.opacity }}
-            animate={{ 
-              y: ['0vh', '-120vh'], 
-              x: [0, Math.sin(b.id) * 40, 0],
-              scale: [1, 1.5, 0.8]
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              width: p.size,
+              height: p.size,
+              left: `${p.left}%`,
+              bottom: '-5%',
+              opacity: p.opacity,
+              background: `radial-gradient(circle, rgba(52,211,153,0.9), rgba(16,185,129,0.3))`,
             }}
-            transition={{ 
-              duration: b.duration, 
-              repeat: Infinity, 
-              delay: b.delay,
-              ease: "linear"
+            animate={{
+              y: [0, -1100],
+              x: [0, p.drift, 0],
+              scale: [1, 1.6, 0.4],
+              opacity: [p.opacity, p.opacity * 1.5, 0],
+            }}
+            transition={{
+              duration: p.dur,
+              repeat: Infinity,
+              delay: p.delay,
+              ease: 'easeIn',
             }}
           />
         ))}
       </div>
 
-      {/* ─── MAIN CONTENT CONTAINER ─── */}
+      {/* ── Large ambient glow behind logo ── */}
+      <motion.div
+        className="absolute w-72 h-72 rounded-full z-10"
+        style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.18) 0%, transparent 70%)' }}
+        animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* ── MAIN CONTENT ── */}
       <motion.div
         className="relative z-20 flex flex-col items-center px-8 text-center"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={phase === 'done' ? { opacity: 0, scale: 1.1, filter: 'blur(20px)' } : { opacity: 1, scale: 1 }}
-        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        animate={isDone
+          ? { opacity: 0, scale: 1.08, filter: 'blur(16px)' }
+          : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+        }
+        transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* The Premium Icon Asset */}
-        <div className="relative mb-8 sm:mb-12">
-           <motion.div 
-             className="absolute inset-0 bg-emerald-500/20 rounded-full blur-3xl"
-             animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-             transition={{ duration: 3, repeat: Infinity }}
-           />
-           <motion.div
-             className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl sm:rounded-[4rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] bg-card/5 backdrop-blur-3xl"
-             initial={{ rotateX: 45, rotateY: -10 }}
-             animate={{ rotateX: 0, rotateY: 0 }}
-             transition={{ duration: 2, ease: 'easeOut' }}
-           >
-             <Waves size={60} className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] sm:w-20 sm:h-20" />
-             
-             {/* Scanning Line Effect */}
-             <motion.div 
-                className="absolute left-0 right-0 h-[3px] bg-emerald-400/40 blur-[2px] z-20"
-                animate={{ top: ['0%', '100%', '0%'] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-             />
-           </motion.div>
-        </div>
+        {/* ── Logo Badge ── */}
+        <motion.div
+          className="relative mb-9"
+          initial={{ rotateY: 90, opacity: 0, scale: 0.7 }}
+          animate={phase !== 'logo'
+            ? { rotateY: 0, opacity: 1, scale: 1 }
+            : { rotateY: 90, opacity: 0, scale: 0.7 }
+          }
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* Outer glow ring */}
+          <motion.div
+            className="absolute -inset-6 rounded-[3rem] z-0"
+            style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.25) 0%, transparent 70%)' }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.9, 0.5] }}
+            transition={{ duration: 2.8, repeat: Infinity }}
+          />
 
-        {/* Brand Text */}
-        <div className="space-y-1 sm:space-y-2">
-          <motion.h1 
-            className="text-4xl sm:text-6xl font-serif italic text-white tracking-tighter drop-shadow-2xl"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: phase !== 'logo' ? 1 : 0, y: 0 }}
+          {/* Main badge */}
+          <div
+            className="w-36 h-36 rounded-[2.5rem] flex items-center justify-center relative z-10 overflow-hidden"
+            style={{
+              background: 'linear-gradient(145deg, #0D6B4A 0%, #064433 60%, #022B20 100%)',
+              border: '1.5px solid rgba(52,211,153,0.25)',
+              boxShadow: '0 0 0 1px rgba(52,211,153,0.08), 0 25px 80px rgba(16,185,129,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
+            }}
+          >
+            {/* Animated scan line */}
+            <motion.div
+              className="absolute left-0 right-0 h-px z-20"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(52,211,153,0.7), transparent)' }}
+              animate={{ top: ['0%', '100%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            />
+            {/* Shrimp emoji — beautifully large */}
+            <span
+              className="text-6xl select-none z-10 relative"
+              style={{ filter: 'drop-shadow(0 0 20px rgba(52,211,153,0.6))' }}
+            >
+              🦐
+            </span>
+          </div>
+        </motion.div>
+
+        {/* ── Brand Name ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: phase !== 'logo' ? 1 : 0, y: phase !== 'logo' ? 0 : 16 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h1
+            className="text-5xl font-black tracking-tighter text-white mb-2"
+            style={{
+              fontFamily: "'Georgia', serif",
+              fontStyle: 'italic',
+              textShadow: '0 0 60px rgba(52,211,153,0.35)',
+            }}
           >
             AquaGrow
-          </motion.h1>
-          <motion.div 
-            className="flex items-center justify-center gap-2 sm:gap-3"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: phase !== 'logo' ? 1 : 0 }}
-            transition={{ delay: 0.2 }}
-          >
-             <div className="h-[1px] w-6 sm:w-8 bg-gradient-to-r from-transparent to-white/20" />
-             <p className="text-white/40 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.4em] sm:tracking-[0.6em]">
-               Elite Aquaculture
-             </p>
-             <div className="h-[1px] w-6 sm:w-8 bg-gradient-to-l from-transparent to-white/20" />
-          </motion.div>
-        </div>
+          </h1>
+          <div className="flex items-center justify-center gap-3 mb-1">
+            <div className="h-px w-8 bg-gradient-to-r from-transparent to-emerald-500/40" />
+            <p className="text-emerald-400/60 text-[9px] font-black uppercase tracking-[0.5em]">
+              Elite Aquaculture Platform
+            </p>
+            <div className="h-px w-8 bg-gradient-to-l from-transparent to-emerald-500/40" />
+          </div>
+        </motion.div>
+
+        {/* ── Feature teaser pills ── */}
+        <motion.div
+          className="flex flex-wrap justify-center gap-2 mt-7 max-w-[280px]"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: phase === 'progress' || phase === 'done' ? 0.7 : 0, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          {['🌊 Live Water Monitor', '🤖 AI Engine', '📡 IoT Control', '🌦️ Weather Alerts', '💰 Profit Analytics'].map((f, i) => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 + i * 0.08 }}
+              className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+              style={{
+                background: 'rgba(52,211,153,0.08)',
+                border: '1px solid rgba(52,211,153,0.15)',
+                color: 'rgba(52,211,153,0.7)',
+              }}
+            >
+              {f}
+            </motion.span>
+          ))}
+        </motion.div>
       </motion.div>
 
-      {/* ─── BOTTOM PROGRESS ─── */}
+      {/* ── BOTTOM PROGRESS ── */}
       <AnimatePresence>
         {(phase === 'progress' || phase === 'done') && (
           <motion.div
-            className="absolute bottom-12 sm:bottom-20 left-0 right-0 px-8 sm:px-12 z-20"
+            className="absolute bottom-14 left-0 right-0 px-10 z-20"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <div className="relative h-[2px] w-full bg-card/5 rounded-full overflow-hidden">
-               <motion.div 
-                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-600 to-emerald-400"
-                 style={{ width: `${progress}%` }}
-               />
+            {/* Progress track */}
+            <div
+              className="relative h-[3px] w-full rounded-full overflow-hidden mb-4"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
+            >
+              <motion.div
+                className="absolute top-0 left-0 h-full rounded-full"
+                style={{
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, #059669, #34D399, #6EE7B7)',
+                  boxShadow: '0 0 12px rgba(52,211,153,0.6)',
+                }}
+                transition={{ ease: 'easeOut' }}
+              />
+              {/* Shimmer on bar */}
+              <motion.div
+                className="absolute top-0 h-full w-16 rounded-full"
+                style={{
+                  left: `${Math.max(0, progress - 12)}%`,
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)',
+                }}
+              />
             </div>
-            
-            <div className="flex items-center justify-between mt-4">
-               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">{statusMessages[msgIndex]}</p>
-               <p className="text-[10px] font-black tracking-widest text-emerald-400">{Math.round(progress)}%</p>
+
+            {/* Status text */}
+            <div className="flex items-center justify-between">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={msgIndex}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 8 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30"
+                >
+                  {statusMessages[msgIndex]}
+                </motion.p>
+              </AnimatePresence>
+              <p className="text-[9px] font-black tracking-widest text-emerald-400">
+                {Math.round(progress)}%
+              </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+
+      {/* ── Version watermark ── */}
+      <motion.p
+        className="absolute bottom-4 text-white/10 text-[7px] font-black uppercase tracking-[0.3em] z-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: phase === 'progress' || phase === 'done' ? 1 : 0 }}
+        transition={{ delay: 1 }}
+      >
+        v2.0 · aquagrow.io
+      </motion.p>
+    </motion.div>
   );
 };

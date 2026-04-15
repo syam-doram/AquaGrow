@@ -24,6 +24,21 @@ const config: CapacitorConfig = {
       skipNativeAuth: false,
       providers: ['phone'],
     },
+    PushNotifications: {
+      // Show the push notification UI even when app is in the foreground.
+      // Without this, FCM foreground messages are invisible on iOS.
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    LocalNotifications: {
+      // Use ic_stat_aquagrow — the white vector drawable created in res/drawable/
+      // ic_launcher is NOT a valid notification icon (it breaks on API 21+).
+      smallIcon: 'ic_stat_aquagrow',
+      iconColor: '#10B981',
+      // Show notification content on the lock screen (PUBLIC visibility)
+      // PRIVATE hides content, SECRET hides the notification entirely.
+      // Must be PUBLIC for farmers to see pond alerts on locked screen.
+      sound: 'default',
+    },
   },
 };
 

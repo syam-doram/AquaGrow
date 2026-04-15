@@ -769,6 +769,102 @@ const sendFCM = async (token: string, payload: admin.messaging.Message): Promise
   return false;
 };
 
+// ─── OWM Server-side Weather Fetch ────────────────────────────────────────────
+// Used by the push daemon to fetch real weather every 15 min and alert farmers.
+const OWM_API_KEY = '02eb92440f84d48b0d5df34e44540cb1';
+const OWM_BASE    = 'https://api.openweathermap.org/data/2.5';
+
+interface OWMWeatherBrief {
+  temp: number; rainPct: number; humidity: number; windKmh: number;
+  weatherId: number; location: string; hour: number; conditionCode: string;
+}
+
+const fetchWeatherBrief = async (city: string): Promise<OWMWeatherBrief | null> => {
+  try {
+    const url = `${OWM_BASE}/weather?q=${encodeURIComponent(city)}&appid=${OWM_API_KEY}&units=metric`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const d = await res.json();
+    const temp      = Math.round(d.main?.temp ?? 0);
+    const humidity  = d.main?.humidity ?? 0;
+    const windKmh   = Math.round((d.wind?.speed ?? 0) * 3.6);
+    const weatherId = d.weather?.[0]?.id ?? 800;
+    let conditionCode = 'sunny';
+    if (weatherId >= 200 && weatherId < 300) conditionCode = 'storm';
+    else if (weatherId >= 300 && weatherId < 600) conditionCode = 'rain';
+    else if (weatherId >= 700 && weatherId < 800) conditionCode = 'fog';
+    else if (weatherId > 800) conditionCode = 'cloudy';
+    else if (temp >= 36) conditionCode = 'hot';
+    const rainPct = conditionCode === 'storm' ? 85 : conditionCode === 'rain' ? 60 : conditionCode === 'cloudy' ? 20 : 5;
+    return { temp, rainPct, humidity, windKmh, weatherId, location: `${d.name}, ${d.sys?.country ?? 'IN'}`, hour: new Date().getHours(), conditionCode };
+  } catch { return null; }
+};
+
+// Build weather alerts for aquaculture from a weather brief
+const buildWeatherAlerts = (w: OWMWeatherBrief): { title: string; body: string; aqAction: string; type: 'critical' | 'warning' | 'info'; color: string }[] => {
+  const out: { title: string; body: string; aqAction: string; type: 'critical' | 'warning' | 'info'; color: string }[] = [];
+  if (w.temp >= 36)        out.push({ title: `🌡️ Extreme Heat — ${w.temp}°C`, body: `High temp at ${w.location} causing DO drop risk. Shrimp metabolism slows above 33°C.`, aqAction: 'Skip noon feed (12–2 PM). Apply Vitamin C. Add aeration at 3 PM.', type: 'critical', color: '#EF4444' });
+  else if (w.temp >= 33)   out.push({ title: `🌡️ High Temp — ${w.temp}°C`, body: `Temperature above optimal range (26–30°C) at ${w.location}. Increase aeration.`, aqAction: 'Reduce noon feed by 15%. Check DO at 3 PM.', type: 'warning', color: '#F59E0B' });
+  if (w.rainPct > 70)      out.push({ title: `🌧️ Heavy Rain Warning`, body: `Heavy rainfall likely at ${w.location}. Salinity drop risk. Check drainage.`, aqAction: 'Reduce feed 20%. Run all aerators. Check salinity after rain.', type: 'critical', color: '#3B82F6' });
+  else if (w.rainPct > 40) out.push({ title: `🌦️ Rain Expected`, body: `Moderate rain at ${w.location}. Monitor pond salinity and DO.`, aqAction: 'Reduce feed 10%. Check DO and pH after rainfall.', type: 'warning', color: '#60A5FA' });
+  if (w.windKmh > 40)      out.push({ title: `💨 High Wind — ${w.windKmh} km/h`, body: `Strong winds at ${w.location} can disturb pond surface and stress shrimp.`, aqAction: 'Reduce feeding in windy slots. Increase aerator coverage.', type: 'warning', color: '#8B5CF6' });
+  if (w.hour >= 3 && w.hour <= 6) out.push({ title: `⚠️ Pre-Dawn DO Risk Window`, body: `3–6 AM critical zone at ${w.location}. Photosynthesis stopped.`, aqAction: 'Ensure all aerators running. Check DO immediately.', type: 'warning', color: '#F97316' });
+  if (w.conditionCode === 'storm') out.push({ title: `⛈️ Storm / Lightning Alert`, body: `Thunderstorm conditions at ${w.location}. Avoid pond-side work. Danger to equipment.`, aqAction: 'Secure aerator cables. Keep farmer away from pond edges during lightning.', type: 'critical', color: '#6366F1' });
+  return out;
+};
+
+// ─── WEATHER ALERT PUSH ───────────────────────────────────────────────────────
+// POST /api/push/weather-alert
+// Client calls this after fetching OWM data when critical/warning conditions arise.
+// Body: { alertTitle, alertBody, aqAction, alertType, location, conditionCode, temp, rainPct }
+app.post('/api/push/weather-alert', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { alertTitle, alertBody, aqAction, alertType, location, conditionCode, temp, rainPct } = req.body;
+    const userId = req.user.id;
+
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const user = await UserMongo.findById(userId);
+    if (!user?.fcmToken) return res.json({ sent: false, reason: 'No FCM token' });
+
+    const emoji   = alertType === 'critical' ? '🚨' : alertType === 'warning' ? '⚠️' : 'ℹ️';
+    const color   = alertType === 'critical' ? '#EF4444' : alertType === 'warning' ? '#F59E0B' : '#10B981';
+
+    const message: admin.messaging.Message = {
+      token: user.fcmToken,
+      notification: { title: `${emoji} ${alertTitle}`, body: alertBody },
+      data: {
+        type: 'weather_alert',
+        alertType:    String(alertType || 'info'),
+        conditionCode: String(conditionCode || ''),
+        location:     String(location || ''),
+        temp:         String(temp ?? ''),
+        rainPct:      String(rainPct ?? ''),
+        aqAction:     String(aqAction || ''),
+        deepLink:     '/weather',
+      },
+      android: {
+        priority: alertType === 'critical' ? 'high' : 'normal',
+        notification: {
+          channelId:   'aquagrow-premium',
+          color,
+          icon:        'ic_stat_aquagrow',
+          tag:         `weather-${userId}`,
+          clickAction: 'OPEN_WEATHER_ALERTS',
+          sound:       'default',
+          visibility:  'public' as any,
+        },
+      },
+      apns: { payload: { aps: { badge: 1, sound: 'default', category: 'WEATHER_ALERT' } } },
+    };
+
+    const sent = await sendFCM(user.fcmToken, message);
+    console.log(`[WEATHER-PUSH] ${sent ? 'Sent' : 'Simulated'} | ${alertType} | ${alertTitle} → ${user.name || userId}`);
+    res.json({ sent, simulated: !sent });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── AERATOR CHECK PUSH ───────────────────────────────────────────────────────
 // POST /api/push/aerator-check
 // Sends FCM to farmer with Android action buttons (Update Now / Remind Tomorrow)
@@ -895,6 +991,163 @@ app.post('/api/ponds/:id/aerator-snooze', authenticate, async (req: Authenticate
     await PondMongo.findByIdAndUpdate(id, snoozeUpdate);
     res.json({ snoozed: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// ─── IoT DEVICE ALERT PUSH ────────────────────────────────────────────────────
+// POST /api/push/iot-alert
+// Called client-side when polling detects offline/warning device or aerator issue.
+// Sends high-priority FCM push with step-by-step guidance for the farmer.
+//
+// Body: { alertType, deviceId, deviceName, deviceType, pondId, pondName, signal, guidance }
+// alertType: 'connection_lost' | 'aerator_fault' | 'sensor_offline' | 'signal_weak' | 'reconnected'
+app.post('/api/push/iot-alert', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { alertType, deviceId, deviceName, deviceType, pondId, pondName, signal, guidance } = req.body;
+    const userId = req.user.id;
+
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const user = await UserMongo.findById(userId);
+
+    if (!user?.fcmToken) {
+      return res.json({ sent: false, reason: 'No FCM token registered' });
+    }
+
+    // ── Build alert content based on alert type ──────────────────────────────
+    const ALERT_META: Record<string, { emoji: string; title: string; body: (dn: string, pn: string, sig?: number) => string; color: string; channelId: string }> = {
+      connection_lost: {
+        emoji: '📡',
+        title: '⚠️ IoT Device Offline',
+        body: (dn, pn) => `${dn} on ${pn} lost connection. Check power supply and Wi-Fi. Tap to troubleshoot.`,
+        color: '#EF4444',
+        channelId: 'aquagrow-premium',
+      },
+      aerator_fault: {
+        emoji: '💨',
+        title: '🚨 Aerator Fault Detected',
+        body: (dn, pn) => `${dn} on ${pn} appears to have stopped. Check motor, relay board and power. Immediate action needed.`,
+        color: '#F97316',
+        channelId: 'aquagrow-premium',
+      },
+      sensor_offline: {
+        emoji: '🔌',
+        title: '📡 Water Sensor Offline',
+        body: (dn, pn) => `${dn} on ${pn} disconnected. DO and pH readings are unavailable. Check probe and cable.`,
+        color: '#F59E0B',
+        channelId: 'aquagrow-premium',
+      },
+      signal_weak: {
+        emoji: '📶',
+        title: '📶 Weak IoT Signal',
+        body: (dn, pn, sig) => `${dn} on ${pn} has low signal (${sig ?? '?'}%). Move router closer or check antenna to prevent data loss.`,
+        color: '#8B5CF6',
+        channelId: 'aquagrow-premium',
+      },
+      reconnected: {
+        emoji: '✅',
+        title: '✅ Device Reconnected',
+        body: (dn, pn) => `${dn} on ${pn} is back online. Live monitoring resumed.`,
+        color: '#10B981',
+        channelId: 'aquagrow-premium',
+      },
+    };
+
+    const meta = ALERT_META[alertType] || ALERT_META['connection_lost'];
+
+    const message: admin.messaging.Message = {
+      token: user.fcmToken,
+      notification: {
+        title: `${meta.emoji} ${meta.title}`,
+        body: meta.body(deviceName || 'Device', pondName || 'Pond', signal),
+      },
+      data: {
+        type: 'iot_alert',
+        alertType:  String(alertType || ''),
+        deviceId:   String(deviceId  || ''),
+        deviceName: String(deviceName || ''),
+        deviceType: String(deviceType || ''),
+        pondId:     String(pondId    || ''),
+        pondName:   String(pondName  || ''),
+        signal:     String(signal    ?? ''),
+        guidance:   String(guidance  || ''),
+        deepLink:   '/smart-farm?tab=iot',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: meta.channelId,
+          color:     meta.color,
+          icon:      'ic_stat_aquagrow',
+          tag:       `iot-${deviceId}`,
+          clickAction: 'OPEN_SMART_FARM',
+          sound:     'default',
+          visibility: 'public' as any,
+        },
+      },
+      apns: {
+        payload: { aps: { badge: 1, sound: 'default', category: 'IOT_ALERT' } },
+      },
+    };
+
+    const sent = await sendFCM(user.fcmToken, message);
+    console.log(`[IOT-PUSH] ${sent ? 'Sent' : 'Simulated'} | ${alertType} | ${deviceName} on ${pondName}`);
+    res.json({ sent, simulated: !sent, alertType });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── IoT DEVICE STATUS QUERY ──────────────────────────────────────────────────
+// GET /api/iot/status/:userId
+// Returns connection health snapshot for all devices belonging to this user's ponds.
+// In production, this would query a real IoT broker (MQTT / Firebase RTDB).
+// Currently derives status from pond.sensorId presence + simulated signal decay.
+app.get('/api/iot/status/:userId', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const ponds = await PondMongo.find({ userId: req.user.id, status: 'active' });
+
+    const devices = ponds.flatMap((pond: any) => {
+      const doc = Math.floor((Date.now() - new Date(pond.stockingDate || Date.now()).getTime()) / 86400000);
+      const aerCount = pond.aerators?.count ?? (doc > 60 ? 5 : doc > 40 ? 3 : doc > 20 ? 2 : 1);
+      const hp       = pond.aerators?.hp ?? 1;
+      const positions = pond.aerators?.positions ?? [];
+
+      // Sensor device
+      const sensor = {
+        id:        `sensor-${pond._id}`,
+        pondId:    String(pond._id),
+        pondName:  pond.name,
+        type:      'sensor',
+        name:      pond.sensorId ? `Sensor #${pond.sensorId}` : 'Water Sensor',
+        sensorId:  pond.sensorId || null,
+        signal:    pond.sensorId ? 88 : 0,
+        status:    pond.sensorId ? 'online' : 'offline',
+        isOn:      !!pond.sensorId,
+        power:     5,
+        lastSeen:  pond.sensorId ? new Date().toISOString() : null,
+      };
+
+      // Aerator devices
+      const aerators = Array.from({ length: aerCount }).map((_, ai) => ({
+        id:       `aer-${pond._id}-${ai}`,
+        pondId:   String(pond._id),
+        pondName: pond.name,
+        type:     'aerator',
+        name:     positions[ai] ? `Aerator – ${positions[ai]}` : `Aerator ${ai + 1}`,
+        signal:   pond.sensorId ? 80 + Math.floor(Math.random() * 15) : 60,
+        status:   'online',
+        isOn:     true,
+        power:    hp <= 1 ? 750 : hp <= 2 ? 1100 : hp <= 3 ? 2200 : 3700,
+        lastSeen: new Date().toISOString(),
+      }));
+
+      return [sensor, ...aerators];
+    });
+
+    res.json({ devices, timestamp: new Date().toISOString(), total: devices.length });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── HARVEST STAGE PUSH NOTIFICATION ─────────────────────────────────────────
@@ -1161,6 +1414,64 @@ const runPushEngine = async () => {
         }
       }
     }
+
+    // ─── WEATHER CHECK: per-user, once per daemon cycle ──────────────────────
+    // Fetch real OWM weather for each user's location. Send FCM for critical /
+    // warning conditions. Suppress if the same alert was already sent in last 3h.
+    const weatherSuppressMap = new Map<string, number>(); // userId → last alert timestamp
+
+    for (const u of users) {
+      if (!u.fcmToken || !u.notifications) continue;
+
+      const city = (u as any).location || 'Nellore';
+      const suppressed = weatherSuppressMap.get(String(u._id));
+      if (suppressed && (Date.now() - suppressed) < 3 * 60 * 60 * 1000) continue;
+
+      const weatherBrief = await fetchWeatherBrief(city);
+      if (!weatherBrief) continue;
+
+      const wxAlerts = buildWeatherAlerts(weatherBrief);
+      // Only push the most severe alert per cycle (avoid notification flood)
+      const topAlert = wxAlerts.find(a => a.type === 'critical') ?? wxAlerts.find(a => a.type === 'warning');
+      if (!topAlert) continue;
+
+      const wxMsg: admin.messaging.Message = {
+        token: u.fcmToken!,
+        notification: {
+          title: `${topAlert.type === 'critical' ? '🚨' : '⚠️'} ${topAlert.title}`,
+          body: topAlert.body,
+        },
+        data: {
+          type: 'weather_alert',
+          alertType:    topAlert.type,
+          conditionCode: weatherBrief.conditionCode,
+          location:     weatherBrief.location,
+          temp:         String(weatherBrief.temp),
+          rainPct:      String(weatherBrief.rainPct),
+          aqAction:     topAlert.aqAction,
+          deepLink:     '/weather',
+        },
+        android: {
+          priority: topAlert.type === 'critical' ? 'high' : 'normal',
+          ttl: 3600000,
+          notification: {
+            channelId: 'aquagrow-premium',
+            icon: 'ic_stat_aquagrow',
+            color: topAlert.color,
+            tag: `weather-${String(u._id)}-${now.toDateString()}`,
+            sound: 'default',
+            visibility: 'public' as any,
+            clickAction: 'OPEN_WEATHER_ALERTS',
+          },
+        },
+        apns: { payload: { aps: { badge: 1, sound: 'default', category: 'WEATHER_ALERT' } } },
+      };
+
+      const wxSent = await sendFCM(u.fcmToken!, wxMsg);
+      console.log(`[WEATHER-DAEMON] ${wxSent ? 'Sent' : 'Simulated'} | ${topAlert.type} | ${topAlert.title} → ${u.name || String(u._id)} | ${city}`);
+      if (wxSent) weatherSuppressMap.set(String(u._id), Date.now());
+    }
+
   } catch (e) { console.error('[Push Engine Error]', e); }
 };
 

@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle, CloudSun, Droplets, Zap, TrendingUp, RefreshCw,
   Wind, CloudRain, Thermometer, Eye, Sun, Moon, ChevronLeft,
-  ShieldCheck, Activity, Info, CloudLightning,
+  ShieldCheck, Activity, Info, CloudLightning, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Translations } from '../../translations';
 import { cn } from '../../utils/cn';
-import { fetchWeatherData, WeatherData } from '../../services/weatherService';
+import { fetchWeatherData, WeatherData, sendWeatherPushAlert, getUserLocation } from '../../services/weatherService';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
+import { API_BASE_URL } from '../../config';
 
 // ─── Weather condition icon mapper ───────────────────────────────────────────
 const ConditionIcon = ({ code, size = 24, className = '' }: {
@@ -36,27 +37,41 @@ const heroGradient = (code: string) => ({
 
 export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate   = useNavigate();
-  const { theme }  = useData();
+  const { theme, user }  = useData();
   const isDark     = theme === 'dark' || theme === 'midnight';
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [pushSent, setPushSent] = useState<string[]>([]);
+
+  // Derive farmer location from profile → fallback to weatherService helper
+  const farmerCity = (user as any)?.location || getUserLocation();
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchWeatherData('Hyderabad');
+      const data = await fetchWeatherData(farmerCity);
       setWeather(data);
       setLastRefresh(new Date());
+
+      // ── Auto-trigger FCM push for critical/warning alerts ──────────────────
+      // Only sends if not already fired in the last 3h (suppressed by sessionStorage)
+      for (const alert of data.alerts) {
+        if (alert.type === 'critical' || alert.type === 'warning') {
+          sendWeatherPushAlert(alert, data); // fire-and-forget; uses built-in 3h cooldown
+        }
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 300_000);
-    return () => clearInterval(t);
+    const id = setInterval(load, 300_000); // refresh every 5 min
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -77,7 +92,11 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
         <div className="text-center">
           <h1 className={cn('text-xs font-black tracking-tight uppercase', isDark ? 'text-white' : 'text-slate-900')}>{t.weather}</h1>
           <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>
-            {weather?.location ? `📍 ${weather.location}` : 'Live Aquaculture Intelligence'}
+            {weather?.location
+              ? `📍 ${weather.location}`
+              : farmerCity
+              ? `📍 ${farmerCity}`
+              : 'Live Aquaculture Intelligence'}
           </p>
         </div>
 
@@ -196,7 +215,9 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
               </div>
 
               <div className="p-4 space-y-3">
-                {weather.alerts.map((alert, i) => (
+                {weather.alerts
+                  .filter(alert => !dismissedAlerts.has(alert.title))
+                  .map((alert, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
@@ -225,24 +246,53 @@ export const WeatherAlerts = ({ t, onMenuClick }: { t: Translations; onMenuClick
                           isDark ? 'text-white/40' : 'text-slate-600'
                         )}>{alert.desc}</p>
                       </div>
+                      {/* Dismiss button for info and already-read warnings */}
+                      {alert.type !== 'critical' && (
+                        <button
+                          onClick={() => setDismissedAlerts(prev => new Set([...prev, alert.title]))}
+                          className={cn('w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
+                            isDark ? 'bg-white/10 text-white/40' : 'bg-slate-100 text-slate-400'
+                          )}
+                        >
+                          <X size={10} />
+                        </button>
+                      )}
                     </div>
-                    <div className={cn('px-4 pb-3 pt-0 border-t flex items-center gap-2',
+
+                    {/* ── ACTION GUIDE: what the farmer must do right now ── */}
+                    <div className={cn('px-4 pb-4 pt-0 border-t',
                       alert.type === 'critical' ? isDark ? 'border-red-500/10' : 'border-red-100' :
                       alert.type === 'warning'  ? isDark ? 'border-amber-500/10' : 'border-amber-100' :
                       isDark ? 'border-emerald-500/10' : 'border-emerald-100'
                     )}>
-                      <Activity size={11} className={
-                        alert.type === 'critical' ? 'text-red-500' :
-                        alert.type === 'warning'  ? 'text-amber-500' : 'text-emerald-500'
-                      } />
-                      <p className={cn('text-[8px] font-bold',
-                        alert.type === 'critical' ? isDark ? 'text-red-400/70' : 'text-red-700' :
-                        alert.type === 'warning'  ? isDark ? 'text-amber-400/70' : 'text-amber-700' :
-                        isDark ? 'text-emerald-400/70' : 'text-emerald-700'
-                      )}>{alert.aqAction}</p>
+                      <p className={cn('text-[7px] font-black uppercase tracking-widest mt-3 mb-1.5', isDark ? 'text-white/25' : 'text-slate-400')}>Farmer Action Required</p>
+                      <div className={cn('rounded-xl p-3 flex items-start gap-2',
+                        alert.type === 'critical' ? isDark ? 'bg-red-500/10' : 'bg-red-100/60' :
+                        alert.type === 'warning'  ? isDark ? 'bg-amber-500/10' : 'bg-amber-100/60' :
+                        isDark ? 'bg-emerald-500/8' : 'bg-emerald-50'
+                      )}>
+                        <Activity size={11} className={cn('flex-shrink-0 mt-0.5',
+                          alert.type === 'critical' ? 'text-red-500' :
+                          alert.type === 'warning'  ? 'text-amber-500' : 'text-emerald-500'
+                        )} />
+                        <p className={cn('text-[9px] font-bold leading-relaxed',
+                          alert.type === 'critical' ? isDark ? 'text-red-300' : 'text-red-700' :
+                          alert.type === 'warning'  ? isDark ? 'text-amber-300' : 'text-amber-700' :
+                          isDark ? 'text-emerald-300' : 'text-emerald-700'
+                        )}>{alert.aqAction}</p>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
+
+                {/* All alerts dismissed */}
+                {weather.alerts.every(a => dismissedAlerts.has(a.title)) && (
+                  <div className={cn('rounded-2xl p-6 text-center border', isDark ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-emerald-50 border-emerald-100')}>
+                    <ShieldCheck size={28} className={cn('mx-auto mb-2', isDark ? 'text-emerald-400' : 'text-emerald-600')} />
+                    <p className={cn('text-xs font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-800')}>All Clear</p>
+                    <p className={cn('text-[9px] font-medium mt-1', isDark ? 'text-white/30' : 'text-slate-500')}>Conditions are stable. Refreshes every 5 minutes.</p>
+                  </div>
+                )}
               </div>
             </div>
 
