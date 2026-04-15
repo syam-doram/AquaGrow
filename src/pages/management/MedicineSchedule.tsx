@@ -571,10 +571,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
   const situationTag = getSituationTag();
 
   return (
-    <div className="pb-40 bg-transparent min-h-screen text-left relative overflow-hidden">
-      {/* ── Page Accents ── */}
-      <div className="absolute top-10 right-[-10%] w-[70%] h-[30%] bg-purple-100/10 rounded-full blur-[100px] -z-10" />
-      <div className="absolute bottom-[10%] left-[-10%] w-[60%] h-[40%] bg-emerald-50/10 rounded-full blur-[120px] -z-10" />
+    <div className={cn('pb-40 min-h-screen text-left relative overflow-hidden', isDark ? 'bg-[#070D12]' : 'bg-[#F4F7FA]')}>
+      {/* ── Ambient BG ── */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className={cn('absolute top-[-8%] right-[-15%] w-[60%] h-[35%] rounded-full blur-[120px]', isDark ? 'bg-purple-700/8' : 'bg-purple-400/6')} />
+        <div className={cn('absolute bottom-[15%] left-[-10%] w-[50%] h-[30%] rounded-full blur-[100px]', isDark ? 'bg-emerald-600/6' : 'bg-emerald-400/6')} />
+      </div>
       {/* Sync Success Overlay */}
       <AnimatePresence>
         {isLogging && (
@@ -622,24 +624,35 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
       <div className="pt-[calc(env(safe-area-inset-top)+6.5rem)] px-5 space-y-5">
         {/* Pond Selector Tabs */}
         {activePonds.length > 0 ? (
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-            {activePonds.map(p => (
-              <button
-                key={p.id}
-                onClick={() => { setSelectedPondId(p.id); setCompletedMeds([]); }}
-                className={cn(
-                  'px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 flex items-center gap-2',
-                  selectedPondId === p.id
-                    ? 'bg-indigo-700 text-white border-indigo-700 shadow-lg'
-                    : p.status === 'harvested'
-                      ? 'bg-card text-ink/20 border-card-border line-through'
-                      : 'bg-card text-ink/40 border-card-border'
-                )}
-              >
-                {p.name}
-                {p.status === 'harvested' && <span className="text-[7px] font-black bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full no-underline">Done</span>}
-              </button>
-            ))}
+          <div className="flex gap-2.5 overflow-x-auto pb-0.5 scrollbar-none">
+            {activePonds.map((p, idx) => {
+              const pdoc = calculateDOC(p.stockingDate);
+              const isSelected = selectedPondId === p.id;
+              const gradColors = [
+                'from-emerald-600 to-teal-700',
+                'from-blue-600 to-indigo-700',
+                'from-purple-600 to-violet-700',
+                'from-amber-600 to-orange-700',
+              ];
+              const grad = gradColors[idx % gradColors.length];
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => { setSelectedPondId(p.id); setCompletedMeds([]); }}
+                  className={cn(
+                    'flex-shrink-0 flex flex-col items-start px-4 py-3 rounded-[1.5rem] text-left transition-all border min-w-[100px]',
+                    isSelected
+                      ? `bg-gradient-to-br ${grad} text-white border-transparent shadow-lg`
+                      : isDark ? 'bg-white/5 border-white/8 text-white/50' : 'bg-white border-slate-100 shadow-sm text-slate-600'
+                  )}
+                >
+                  <p className={cn('text-[10px] font-black tracking-tight leading-none', isSelected ? 'text-white' : isDark ? 'text-white/80' : 'text-slate-800')}>{p.name}</p>
+                  <p className={cn('text-[6.5px] font-black uppercase tracking-widest mt-1', isSelected ? 'text-white/50' : isDark ? 'text-white/30' : 'text-slate-400')}>
+                    {p.status === 'planned' ? `PREP ${Math.abs(pdoc)}d` : `DOC ${pdoc}`}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         ) : (
           /* No Ponds Empty State */
@@ -874,19 +887,19 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
             {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 TAB NAVIGATION — immediately below hero
             â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
               {([
-                { id: 'today', label: "Today's SOP", emoji: '💊' },
-                { id: 'diseases', label: 'Disease', emoji: '🦠' },
-                { id: 'cycle', label: 'Full Cycle', emoji: '📅' },
-                { id: 'lunar', label: 'Lunar', emoji: '🌙' },
-                { id: 'my_sop', label: 'My SOP', emoji: '🧪' },
+                { id: 'today',    label: "Today's SOP", emoji: '💊' },
+                { id: 'diseases', label: 'Disease',     emoji: '🦠' },
+                { id: 'cycle',    label: 'Full Cycle',  emoji: '📅' },
+                { id: 'lunar',    label: 'Lunar',       emoji: '🌙' },
+                { id: 'my_sop',   label: 'My SOP',      emoji: '🧪' },
               ] as const).map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    'flex-shrink-0 flex items-center gap-1 py-2 px-3 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border whitespace-nowrap',
+                    'flex-shrink-0 flex items-center gap-1.5 py-2.5 px-3.5 rounded-2xl text-[7.5px] font-black uppercase tracking-[0.15em] transition-all border whitespace-nowrap',
                     (activeTab as string) === tab.id
                       ? tab.id === 'my_sop'
                         ? 'bg-purple-600 text-white border-purple-600 shadow-lg'
@@ -894,23 +907,23 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                           ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-900/30'
                           : 'bg-indigo-700 text-white border-indigo-700 shadow-lg'
                       : isDark
-                        ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
-                        : 'bg-white text-slate-500 border-slate-200'
+                        ? 'bg-white/5 text-white/40 border-white/8 hover:bg-white/10'
+                        : 'bg-white text-slate-500 border-slate-100 shadow-sm'
                   )}
                 >
-                  <span className="text-[10px]">{tab.emoji}</span>
+                  <span className="text-[10px] leading-none">{tab.emoji}</span>
                   {tab.label}
                   {tab.id === 'diseases' && (diseaseRiskReport.overallRisk === 'CRITICAL' || diseaseRiskReport.overallRisk === 'HIGH') && (
-                    <span className="w-1 h-1 bg-red-400 rounded-full animate-pulse" />
+                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
                   )}
                   {tab.id === 'today' && todayMedLogs.length === 0 && currentDoc > 0 && !isPrestocking && (
-                    <span className="w-1 h-1 bg-amber-400 rounded-full animate-pulse" />
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
                   )}
                   {tab.id === 'lunar' && lunar.phase !== 'NORMAL' && (
-                    <span className="w-1 h-1 bg-indigo-400 rounded-full animate-pulse" />
+                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" />
                   )}
                   {tab.id === 'my_sop' && farmerSOPs.length > 0 && (
-                    <span className="bg-purple-500 text-white text-[6px] font-black px-1 py-0.5 rounded-full">{farmerSOPs.length}</span>
+                    <span className="bg-purple-400 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full">{farmerSOPs.length}</span>
                   )}
                 </button>
               ))}
@@ -1085,12 +1098,12 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                               transition={{ delay: i * 0.04 }}
                               onClick={() => !isAlreadyInHistory && item.type === 'MEDICINE' && toggleMed(item.title)}
                               className={cn(
-                                'rounded-2xl border transition-all overflow-hidden',
-                                (item.type === 'MEDICINE' && !isAlreadyInHistory) ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default',
+                                'rounded-[1.6rem] border transition-all overflow-hidden',
+                                (item.type === 'MEDICINE' && !isAlreadyInHistory) ? 'cursor-pointer active:scale-[0.985]' : 'cursor-default',
                                 isCompleted
-                                  ? isDark ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
+                                  ? isDark ? 'bg-emerald-500/10 border-emerald-500/25 shadow-sm' : 'bg-emerald-50 border-emerald-200 shadow-sm'
                                   : item.priority === 'HIGH' || item.type === 'ALERT'
-                                    ? isDark ? 'bg-red-500/5 border-red-500/12' : 'bg-white border-red-100 shadow-sm'
+                                    ? isDark ? 'bg-red-500/6 border-red-500/15' : 'bg-white border-red-100 shadow-md shadow-red-50'
                                     : isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-100 shadow-sm'
                               )}
                             >
@@ -1214,61 +1227,65 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                         </div>
                       )}
 
-                      {/* -- COST ESTIMATION SUMMARY -- */}
+                      {/* ── COST CARD ── */}
                       {completedMeds.length > 0 && (
                         <motion.div
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="bg-gradient-to-br from-indigo-950 to-indigo-900 rounded-2xl p-4 border border-indigo-800/40 shadow-xl"
+                          className="rounded-[1.8rem] overflow-hidden border border-white/10"
+                          style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="text-indigo-300/60 text-[7px] font-black uppercase tracking-widest">Estimated Cost</p>
-                              <p className="text-white text-lg font-black tracking-tight mt-0.5">₹{totalEstimatedCost.toLocaleString()}</p>
-                            </div>
-                            <div className="w-9 h-9 bg-indigo-800/40 rounded-xl flex items-center justify-center border border-indigo-700/30">
-                              <Pill size={16} className="text-indigo-300" />
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            {selectedCosts.map((sc, i) => (
-                              <div key={i} className="flex items-center justify-between">
-                                <p className="text-indigo-200/60 text-[9px] font-bold truncate flex-1 mr-3">{sc.name}</p>
-                                <p className="text-indigo-200 text-[9px] font-black flex-shrink-0">₹{sc.cost}</p>
+                          <div className="px-4 pt-4 pb-3">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <p className="text-indigo-300/50 text-[6.5px] font-black uppercase tracking-[0.3em]">Estimated Cost Today</p>
+                                <p className="text-white text-2xl font-black tracking-tighter leading-none mt-0.5">₹{totalEstimatedCost.toLocaleString()}</p>
                               </div>
-                            ))}
+                              <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
+                                <Pill size={18} className="text-indigo-300" />
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              {selectedCosts.map((sc, i) => (
+                                <div key={i} className="flex items-center justify-between">
+                                  <p className="text-indigo-200/50 text-[8.5px] font-bold truncate flex-1 mr-3">{sc.name}</p>
+                                  <p className="text-indigo-200/80 text-[9px] font-black flex-shrink-0">₹{sc.cost}</p>
+                                </div>
+                              ))}
+                            </div>
+                            {pondAcreage > 1 && (
+                              <p className="text-indigo-400/30 text-[6px] font-black uppercase tracking-widest mt-2 pt-2 border-t border-white/10">
+                                Scaled for {pondAcreage} acres
+                              </p>
+                            )}
                           </div>
-                          {pondAcreage > 1 && (
-                            <p className="text-indigo-400/40 text-[6px] font-black uppercase tracking-widest mt-2 border-t border-indigo-800/40 pt-1.5">
-                              Scaled for {pondAcreage} acres
-                            </p>
-                          )}
                         </motion.div>
                       )}
 
-                      {/* Log Button */}
+                      {/* ── LOG BUTTON ── */}
                       <motion.button
-                        whileTap={{ scale: 0.97 }}
+                        whileTap={{ scale: 0.96 }}
                         onClick={handleLog}
                         disabled={completedMeds.length === 0 || selectedPond.status === 'harvested'}
                         className={cn(
-                          'w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-md',
+                          'w-full py-5 rounded-[1.6rem] font-black text-[10px] uppercase tracking-[0.25em] transition-all flex items-center justify-center gap-2.5',
                           completedMeds.length > 0 && selectedPond.status !== 'harvested'
-                            ? 'bg-[#0D523C] text-white shadow-emerald-900/30 active:scale-95'
-                            : isDark ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/10' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                            ? 'text-white shadow-2xl shadow-indigo-900/40 active:scale-[0.97]'
+                            : isDark ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/8' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
                         )}
+                        style={completedMeds.length > 0 && selectedPond.status !== 'harvested' ? { background: 'linear-gradient(135deg, #3730a3, #4f46e5)' } : undefined}
                       >
                         {isLogging
-                          ? <><Waves size={14} className="animate-spin" /> Syncing...</>
+                          ? <><Waves size={15} className="animate-spin" /> Syncing…</>
                           : selectedDate.toDateString() === new Date().toDateString()
-                            ? <><ShieldCheck size={14} /> {t.logDailyProtocol || 'Log Protocol'}
+                            ? <><ShieldCheck size={15} /> {t.logDailyProtocol || 'Log Protocol'}
                                 {completedMeds.length > 0 && (
-                                  <span className="bg-white/20 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">
+                                  <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full ml-0.5">
                                     {completedMeds.length}
                                   </span>
                                 )}
                               </>
-                            : <><Calendar size={14} /> Planning Mode</>}
+                            : <><Calendar size={15} /> Planning Mode</>}
                       </motion.button>
                       {selectedDate.toDateString() !== new Date().toDateString() && (
                         <button

@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -316,13 +316,13 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
   // ── Scan Quota per Plan ──
   const getScanLimit = () => {
     const s = user.subscriptionStatus;
-    // Diamond = unlimited (Aqua 9)
+    // Diamond = unlimited (Aqua 6)
     if (s === 'pro_diamond') return Infinity;
-    // Gold = 60/month (Aqua 6)
+    // Gold = 60/month (Aqua 3)
     if (s === 'pro_gold')    return 60;
-    // Silver = 25/month (Aqua 3)
+    // Silver = 25/month (Aqua 1)
     if (s === 'pro_silver')  return 25;
-    // Base Pro = 10/month (Aqua 1)
+    // Base Pro = 10/month (Legacy)
     if (s === 'pro')         return 10;
     // Free = 3/month
     return 3;
@@ -761,10 +761,10 @@ export const DiseaseDetection = ({ user, t }: { user: User; t: Translations }) =
                 const remaining = isUnlimited ? '∞' : Math.max(0, scanLimit - scansUsedForPond);
                 const isExhausted = !isUnlimited && scansUsedForPond >= scanLimit;
                 const barColor = isExhausted ? '#EF4444' : pct >= 80 ? '#F59E0B' : '#10B981';
-                const planLabel = user.subscriptionStatus === 'pro_gold' ? 'Pro Gold'
-                  : user.subscriptionStatus === 'pro_diamond' ? 'Pro Diamond'
-                  : user.subscriptionStatus === 'pro_silver' ? 'Pro Silver'
-                  : user.subscriptionStatus === 'pro' ? 'Pro'
+                const planLabel = user.subscriptionStatus === 'pro_gold' ? 'Aqua Gold · 3 Ponds'
+                  : user.subscriptionStatus === 'pro_diamond' ? 'Aqua Diamond · 6 Ponds'
+                  : user.subscriptionStatus === 'pro_silver' ? 'Aqua Silver · 1 Pond'
+                  : user.subscriptionStatus === 'pro' ? 'Aqua Pro'
                   : 'Free';
                 return (
                   <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}

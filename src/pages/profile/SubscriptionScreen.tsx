@@ -24,9 +24,39 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
   const { upgradePlan, user, isPro } = useData();
   
   const PLANS = [
-    { id: 'pro_silver',  label: 'Aqua 3 (Silver)', price: '₹ 2,999', priceNum: 2999, ponds: 3, color: 'bg-slate-400', desc: 'Ideal for small-scale pilot crops', rank: 1 },
-    { id: 'pro_gold',    label: 'Aqua 6 (Gold)',   price: '₹ 4,999', priceNum: 4999, ponds: 6, color: 'bg-[#C78200]', desc: 'The perfect balance for growing farms', rank: 2 },
-    { id: 'pro_diamond', label: 'Aqua 9 (Diamond)', price: '₹ 6,999', priceNum: 6999, ponds: 9, color: 'bg-blue-500', desc: 'Maximum scale for professional operations', rank: 3 },
+    {
+      id: 'pro_silver',
+      label: 'Aqua 1 (Silver)',
+      price: '₹ 5,999',
+      priceNum: 5999,
+      monthly: '₹ 500',
+      ponds: 1,
+      color: 'bg-slate-400',
+      desc: 'Perfect starter plan for a single pond',
+      rank: 1,
+    },
+    {
+      id: 'pro_gold',
+      label: 'Aqua 3 (Gold)',
+      price: '₹ 11,999',
+      priceNum: 11999,
+      monthly: '₹ 999',
+      ponds: 3,
+      color: 'bg-[#C78200]',
+      desc: 'Best value for growing multi-pond farms',
+      rank: 2,
+    },
+    {
+      id: 'pro_diamond',
+      label: 'Aqua 6 (Diamond)',
+      price: '₹ 17,999',
+      priceNum: 17999,
+      monthly: '₹ 1,499',
+      ponds: 6,
+      color: 'bg-blue-500',
+      desc: 'Maximum capacity for professional operations',
+      rank: 3,
+    },
   ];
 
   const getPlanRank = (id: string | undefined) => {
@@ -213,7 +243,7 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
               <span className="text-3xl font-black tracking-tighter">{plan.price}</span>
               <div className="flex flex-col">
                 <span className={cn("text-[7px] font-black uppercase tracking-widest", selectedPlan === plan.id ? "opacity-40" : "text-white/40")}>/year</span>
-                <span className={cn("text-[6px] font-bold uppercase tracking-widest text-[#C78200]")}>365 Days Validity</span>
+                <span className={cn("text-[6px] font-bold uppercase tracking-widest text-[#C78200]")}>{plan.monthly}/month</span>
               </div>
             </div>
           </div>

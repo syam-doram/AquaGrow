@@ -714,10 +714,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const getPondLimit = () => {
     if (!isPro) return 1;
     const status = user?.subscriptionStatus;
-    if (status === 'pro_silver') return 3;
-    if (status === 'pro_gold') return 6;
-    if (status === 'pro_diamond') return 9;
-    if (status === 'pro') return 3; // Legacy pro default
+    if (status === 'pro_silver') return 1;   // ₹500/mo — 1 pond
+    if (status === 'pro_gold')   return 3;   // ₹999/mo — 3 ponds
+    if (status === 'pro_diamond') return 6;  // ₹1,499/mo — 6 ponds
+    if (status === 'pro') return 1; // Legacy
     return 1;
   };
 

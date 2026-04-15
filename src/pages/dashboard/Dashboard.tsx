@@ -279,33 +279,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
   // ── On-enter: notification permission banner + sync progress ──────────────────
   const [showPermBanner, setShowPermBanner] = useState(false);
-  const [showSyncBanner, setShowSyncBanner] = useState(true);
-  const [syncStep, setSyncStep] = useState(0);  // 0-100%
+  const [showSyncBanner, setShowSyncBanner] = useState(false); // disabled
+  const [syncStep, setSyncStep] = useState(100);
   const [serverPingMs, setServerPingMs] = useState<number | null>(null);
 
   useEffect(() => {
-    // ── 1. Sync progress (show every time dashboard mounts) ─────────────────────
-    let frame: ReturnType<typeof setTimeout>;
-    const pingStart = Date.now();
-    // Kick a lightweight health ping to measure server latency
-    fetch(`${API_BASE_URL}/health`)
-      .then(() => setServerPingMs(Date.now() - pingStart))
-      .catch(() => setServerPingMs(null));
-
-    // Animate progress 0 → 100 over ~2s
-    let pct = 0;
-    const tick = () => {
-      pct = Math.min(100, pct + (pct < 60 ? 4 : pct < 90 ? 2 : 1));
-      setSyncStep(pct);
-      if (pct < 100) frame = setTimeout(tick, 40);
-      else setTimeout(() => setShowSyncBanner(false), 600);
-    };
-    frame = setTimeout(tick, 80);
-
-    // ── 2. Permission check (once per session) ───────────────────────────────────
+    // ── 1. Permission check (once per session) ───────────────────────────────────
     const permKey = 'aqua_notif_perm_asked';
     if (!sessionStorage.getItem(permKey) && Capacitor.isNativePlatform()) {
-      // Check if already granted — show banner only if not
       import('@capacitor/push-notifications').then(({ PushNotifications }) => {
         PushNotifications.checkPermissions().then(s => {
           if (s.receive !== 'granted') setShowPermBanner(true);
@@ -313,8 +294,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         }).catch(() => setShowPermBanner(true));
       });
     }
-
-    return () => clearTimeout(frame);
   }, []); // run once on mount
 
   // ── Foreground harvest notification toast (when app is open) ──
@@ -969,7 +948,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             // Use a ref-based auto-advance banner slider
             const [bannerIdx, setBannerIdx] = React.useState(0);
             React.useEffect(() => {
-              const t = setInterval(() => setBannerIdx(i => (i + 1) % BANNER_ADS.length), 4200);
+              const t = setInterval(() => setBannerIdx(i => (i + 1) % BANNER_ADS.length), 8000);
               return () => clearInterval(t);
             }, []);
 

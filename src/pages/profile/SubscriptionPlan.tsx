@@ -31,7 +31,11 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
     if (expiry <= now) return 0;
     const diffMs = expiry.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    const dailyRate = user.subscriptionStatus === 'pro_silver' ? 8.21 : 13.69;
+    // Daily rates based on new pricing (annual / 365)
+    const dailyRate = user.subscriptionStatus === 'pro_silver' ? 16.43   // 5999/365
+                    : user.subscriptionStatus === 'pro_gold'   ? 32.87   // 11999/365
+                    : user.subscriptionStatus === 'pro_diamond'? 49.31   // 17999/365
+                    : 16.43;
     return Math.floor(diffDays * dailyRate);
   };
 
@@ -42,23 +46,23 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
     { 
       id: 'TXN_A827H921K',
       date: new Date('2026-04-02'),
-      amount: '₹ 2,999',
-      status: 'Upgraded',
-      plan: 'Aqua 3 (Silver)'
+      amount: '₹ 5,999',
+      status: 'Activated',
+      plan: 'Aqua 1 (Silver)'
     },
     { 
       id: 'TXN_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       date: new Date(),
-      amount: user.subscriptionStatus === 'pro_gold' ? `₹ ${4999 - existingCredit}` : user.subscriptionStatus === 'pro_diamond' ? `₹ ${6999 - existingCredit}` : '₹ 0',
+      amount: user.subscriptionStatus === 'pro_gold' ? `₹ ${11999 - existingCredit}` : user.subscriptionStatus === 'pro_diamond' ? `₹ ${17999 - existingCredit}` : '₹ 0',
       refund: `₹ ${existingCredit}`,
       status: 'Success',
-      plan: user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua 9 (Diamond)' : 'N/A'
+      plan: user.subscriptionStatus === 'pro_gold' ? 'Aqua 3 (Gold)' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua 6 (Diamond)' : 'N/A'
     }
-  ].filter(t => t.plan !== 'N/A' && (t.plan === 'Aqua 3 (Silver)' || user.subscriptionStatus !== 'pro_silver')) : [];
+  ].filter(t => t.plan !== 'N/A' && (t.plan === 'Aqua 1 (Silver)' || user.subscriptionStatus !== 'pro_silver')) : [];
 
   const planName = isPro 
-    ? (user.subscriptionStatus === 'pro_silver' ? 'Aqua Silver' : user.subscriptionStatus === 'pro_gold' ? 'Aqua Gold' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua Diamond' : 'Aqua Pro') 
-    : 'Aqua Standard';
+    ? (user.subscriptionStatus === 'pro_silver' ? 'Aqua Silver · 1 Pond' : user.subscriptionStatus === 'pro_gold' ? 'Aqua Gold · 3 Ponds' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua Diamond · 6 Ponds' : 'Aqua Pro') 
+    : 'Aqua Standard (Free)';
 
   const containerVariants = {
     hidden: { opacity: 0 },
