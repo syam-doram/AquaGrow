@@ -92,54 +92,13 @@ export const runScheduleEngine = (
    }
    const isUnderTreatment = medicineStatus === 'applied';
 
-   const weather = fetchCurrentConditions();
-   const alerts: ScheduleAlert[] = [];
-   
-   // 1. Water Quality & Real-time Sensor Alerts
-   if (latestWater && !isUnderTreatment) {
-      if (latestWater.do < 4.0) {
-        alerts.push({ title: 'CRITICAL: DO Level Dangerous', trigger: `DO at ${latestWater.do} mg/L (Min 4.0)`, type: 'critical' });
-      } else if (latestWater.do < 5.0) {
-        alerts.push({ title: 'Low Oxygen Warning', trigger: `DO at ${latestWater.do} mg/L`, type: 'warning' });
-      }
+    const weather = fetchCurrentConditions();
+    const alerts: ScheduleAlert[] = [];
+    
+    // Legacy alerts removed: Unified into analyzePondSituation (situationEngine)
+    // to prevent duplicate notifications and user irritation.
 
-      if (latestWater.ph < 7.5 || latestWater.ph > 8.5) {
-        alerts.push({ title: 'pH Instability Detected', trigger: `pH at ${latestWater.ph} (Optimum: 7.5-8.2)`, type: 'warning' });
-      }
-
-      if (latestWater.ammonia > 0.5) {
-        alerts.push({ title: 'CRITICAL: Ammonia Toxicity', trigger: `Ammonia at ${latestWater.ammonia} ppm`, type: 'critical' });
-      }
-   } else {
-     // Fallback to weather-based environmental alerts if no sensor data
-     if (weather.doLevel < 5) alerts.push({ title: 'Low DO Environment Forecast', trigger: `Est. DO < 5 (${weather.doLevel} ppm)`, type: 'warning' });
-   }
-
-   // 2. SOP & Life-cycle Criticality
-   if (pondDoc >= 32 && pondDoc <= 48 && !isUnderTreatment) {
-     alerts.push({ title: 'CRITICAL PHASE: White Spot Risk', trigger: `DOC ${pondDoc} (Peak Risk Window)`, type: 'critical' });
-   }
-
-   // 3. Environment & Weather
-   if (weather.isRaining) {
-     alerts.push({ title: 'Heavy Rain: Adjust Ration', trigger: 'Rainfall detected', type: 'critical' });
-   }
-
-   if (weather.temp > 33) {
-     alerts.push({ title: 'High Temp Stress', trigger: `Temp ${weather.temp}°C`, type: 'warning' });
-   }
-
-   // 4. Time-Based Consumption Windows
-   const currentHour = new Date().getHours();
-   if (currentHour >= 9 && currentHour <= 11) {
-     alerts.push({ 
-       title: 'Check Feed Trays Now!', 
-       trigger: 'Consumption Window (9-11 AM)', 
-       type: 'warning' 
-     });
-   }
-
-   // Get day's exact requirement from the 100-Day Table
+    // Get day's exact requirement from the 100-Day Table
    const todaySOP = sop100Days.find(d => d.doc === pondDoc) || null;
    
    // Apply Farmer Details dynamically: Seed Count determines Feed Multiplier

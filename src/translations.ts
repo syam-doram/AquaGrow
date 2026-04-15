@@ -614,6 +614,12 @@ export interface Translations {
   marketConditionsMsg: string;
   forgotPassword: string;
   noWaterData: string;
+  expensesLabel: string;
+  pondwiseReport: string;
+  premiumROIDetail: (count: number) => string;
+  goodROIDetail: (count: number) => string;
+  lowROIDetail: string;
+  lossROIDetail: string;
 
   // Pond Status Labels
   statusActive: string;
@@ -887,6 +893,22 @@ export interface Translations {
   delivery: string;
   subtotal: string;
   addMoreForFreeDelivery: (amount: string) => string;
+
+  // Dashboard UI
+  enablePushAlerts: string;
+  pushAlertsDesc: string;
+  harvestUpdate: string;
+  doc45Special: string;
+  aquaCalc: string;
+  sopHub: string;
+  seeAll: string;
+  clear: string;
+  viewMore: string;
+  aeratorCheckDue: string;
+  downloadingTelemetry: string;
+  noPondsPrompt: string;
+  biomassCap: string;
+  awaitingMetrics: string;
 }
 
 // Privacy Policy — English
@@ -1822,6 +1844,28 @@ const English: Translations = {
   delivery: 'Delivery',
   subtotal: 'Subtotal',
   addMoreForFreeDelivery: (amount) => `Add ₹${amount} more for free delivery`,
+  expensesLabel: 'Expense Breakdown',
+  pondwiseReport: 'Pond-wise Report',
+  premiumROIDetail: (count) => `Excellent ROI across ${count} cycle${count !== 1 ? 's' : ''}. Keep it up!`,
+  goodROIDetail: (count) => `Solid returns across ${count} cycle${count !== 1 ? 's' : ''}. Room to improve.`,
+  lowROIDetail: 'Low profit margin. Review feed, medicine & operational costs.',
+  lossROIDetail: 'Net loss detected. Check if all revenue was logged correctly.',
+  
+  // Dashboard UI
+  enablePushAlerts: 'Enable Push Alerts',
+  pushAlertsDesc: 'Get critical DO drops, harvest updates & feeding reminders — even when the app is closed.',
+  harvestUpdate: 'Harvest Update',
+  doc45Special: 'DOC 45 Special',
+  aquaCalc: 'AquaCalc',
+  sopHub: 'SOP Hub',
+  seeAll: 'See All',
+  clear: 'Clear',
+  viewMore: 'View More',
+  aeratorCheckDue: 'Aerator Check Due',
+  downloadingTelemetry: 'Downloading Realtime Telemetry',
+  noPondsPrompt: 'Deploy your first pond to unlock real-time monitoring, SOP alerts, and AI-powered intelligence.',
+  biomassCap: 'Biomass Cap',
+  awaitingMetrics: 'Awaiting Metrics',
 };
 
 // Privacy Policy — Telugu
@@ -1881,8 +1925,8 @@ const ppTelugu = {
 };
 
 const Telugu: Translations = {
-  ...ppTelugu,
   ...English,
+  ...ppTelugu,
   dashboard: 'అక్వాగ్రో',
   home: 'హోమ్',
   ponds: 'చెరువులు',
@@ -2534,6 +2578,12 @@ const Telugu: Translations = {
   feedMedLogsReviewMsg: 'మేత మరియు మందుల ఖర్చులు డైలీ లాగ్స్ నుండి తీసుకోబడ్డాయి. సమీక్షించి మార్చుకోండి.',
   enterAllCostsMsg: 'ఖచ్చితమైన ROI కోసం అన్ని పెట్టుబడి ఖర్చులను నమోదు చేయండి',
   marketConditionsMsg: 'మార్కెట్ పరిస్థితులు, తగ్గింపులు, వ్యాఖ్యలు...',
+  expensesLabel: 'ఖర్చుల విభజన',
+  pondwiseReport: 'చెరువు వారీగా నివేదిక',
+  premiumROIDetail: (count) => `${count} సాగులలో అద్భుతమైన ROI లభించింది. ఇదే కొనసాగించండి!`,
+  goodROIDetail: (count) => `${count} సాగులలో మంచి ఫలితాలు వచ్చాయి. మెరుగుపరచడానికి అవకాశం ఉంది.`,
+  lowROIDetail: 'తక్కువ లాభం. మేత, మందులు మరియు నిర్వహణ ఖర్చులను సమీక్షించండి.',
+  lossROIDetail: 'నికర నష్టం గుర్తించబడింది. ఆదాయం సరిగ్గా నమోదు చేయబడిందో లేదో తనిఖీ చేయండి.',
 
   // System
   systemHealthOptimal: 'సిస్టమ్ ఆరోగ్యం: అద్భుతం',
@@ -2771,6 +2821,22 @@ const Telugu: Translations = {
   delivery: 'డెలివరీ',
   subtotal: 'మొత్తం',
   addMoreForFreeDelivery: (amount) => `ఉచిత డెలివరీ కోసం మరో ₹${amount} జోడించండి`,
+
+  // Dashboard UI — Telugu
+  enablePushAlerts: 'పుష్ హెచ్చరికలను అనుమతించండి',
+  pushAlertsDesc: 'DO తగ్గడం, పట్టివేత అప్‌డేట్లు మరియు మేత రిమైండర్ల హెచ్చరికలను పొందండి.',
+  harvestUpdate: 'పట్టివేత అప్‌డేట్',
+  doc45Special: 'DOC 45 స్పెషల్',
+  aquaCalc: 'అక్వాక్యాల్క్',
+  sopHub: 'SOP హబ్',
+  seeAll: 'అన్నీ చూడు',
+  clear: 'క్లియర్/తుడిచివేయి',
+  viewMore: 'మరిన్ని చూడు',
+  aeratorCheckDue: 'ఎరేటర్ తనిఖీ సమయం',
+  downloadingTelemetry: 'రియల్-టైమ్ డేటాను డౌన్‌లోడ్ చేస్తోంది',
+  noPondsPrompt: 'రియల్-టైమ్ మానిటరింగ్ మరియు AI హెచ్చరికల కోసం మీ మొదటి చెరువును జోడించండి.',
+  biomassCap: 'బయోమాస్ పరిమితి',
+  awaitingMetrics: 'గణాంకాల కోసం వేచి ఉంది',
 };
 
 export const translations: Record<Language, Translations> = {

@@ -14,7 +14,7 @@ import { ServerErrorState } from '../../components/ServerErrorState';
 import type { Translations } from '../../translations';
 
 // ─── Subscription Gate Banner ─────────────────────────────────────────────────
-const SubGateBanner = ({ isDark, navigate }: { isDark: boolean; navigate: ReturnType<typeof useNavigate> }) => (
+const SubGateBanner = ({ isDark, navigate, t }: { isDark: boolean; navigate: ReturnType<typeof useNavigate>; t: Translations }) => (
   <motion.div
     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
     className={cn(
@@ -102,7 +102,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
       id: 'expenses',
       route: '/expense-report',
       icon: Receipt,
-      label: t.expensesLabel || 'Expense Breakdown',
+      label: t.expensesLabel,
       sub: t.trackReturnsDesc,
       color: '#f59e0b',
       bg: isDark ? 'rgba(245,158,11,0.1)' : '#fffbeb',
@@ -226,7 +226,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
         ) : (
           <>
             {/* ── SUBSCRIPTION BANNER (free plan) ── */}
-            {!isPro && <SubGateBanner isDark={isDark} navigate={navigate} />}
+            {!isPro && <SubGateBanner isDark={isDark} navigate={navigate} t={t} />}
 
             {/* ── ROI Performance Badge (when data exists) ── */}
             {hasROIData && (
@@ -257,12 +257,12 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                 </div>
                     <p className={cn('text-[8px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>
                       {avgROI >= 30
-                        ? `Excellent ROI across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Keep it up!`
+                        ? t.premiumROIDetail(totalCycles)
                         : avgROI >= 15
-                        ? `Solid returns across ${totalCycles} cycle${totalCycles !== 1 ? 's' : ''}. Room to improve.`
+                        ? t.goodROIDetail(totalCycles)
                         : avgROI >= 0
-                        ? `Low profit margin. Review feed, medicine & operational costs.`
-                        : `Net loss detected. Check if all revenue was logged correctly.`}
+                        ? t.lowROIDetail
+                        : t.lossROIDetail}
                     </p>
                   </div>
                 <ArrowUpRight size={14} className={isDark ? 'text-white/20' : 'text-slate-300'} />
@@ -357,7 +357,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                       {/* Icon */}
                       <div
                         className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border"
-                        style={{ background: s.bg, borderColor: s.border }}
+                        style={{ background: s.bg, borderColor: s.color + '30' }}
                       >
                         <s.icon size={18} style={{ color: isLocked ? (isDark ? '#ffffff25' : '#94a3b8') : s.color }} />
                       </div>
@@ -375,7 +375,7 @@ export const ProfitROI = ({ t, onMenuClick }: { t: Translations; onMenuClick?: (
                           {s.badge && !isLocked && (
                             <span
                               className="text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border"
-                              style={{ background: s.bg, borderColor: s.border, color: s.color }}
+                              style={{ background: s.bg, borderColor: s.color + '30', color: s.color }}
                             >
                               {s.badge}
                             </span>

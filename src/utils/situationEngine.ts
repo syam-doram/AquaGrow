@@ -42,6 +42,8 @@ export interface PondSituationInput {
   feedLogsCount: number;
   lastFeedDate?: string;
   todayFeedKg?: number;
+  todayFeedCount?: number;
+  todayMedCount?: number;
   expectedFeedKg?: number;
   totalFeedKg: number;
   estimatedBiomassKg: number;
@@ -118,6 +120,10 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   const isNoon      = inWindow(hour, 11, 15);  // 11 AM–3 PM — heat stress
   const isDusk      = inWindow(hour, 16, 20);  // 4–8 PM — dusk DO monitoring
   const isNightfall = inWindow(hour, 20, 24);  // 8 PM–12 — aeration reminder
+  
+  const loggedToday = pond.lastWaterLogDate === now.toISOString().split('T')[0];
+  const fedToday = (pond.todayFeedCount || 0) > 0;
+  const medsToday = (pond.todayMedCount || 0) > 0;
 
   // ─── PLANNED POND — PRE-STOCKING PREP ───────────────────────────────────────
   if (pond.status === 'planned') {
@@ -322,17 +328,17 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   }
 
   // ─── NO WATER LOG ALERT ─────────────────────────────────────────────────────
-  if (pond.doc > 0 && pond.status === 'active') {
+  if (pond.doc > 0 && pond.status === 'active' && !loggedToday) {
     const lastLog = pond.lastWaterLogDate ? new Date(pond.lastWaterLogDate) : null;
     const hoursWithoutLog = lastLog ? (now.getTime() - lastLog.getTime()) / (1000 * 60 * 60) : 999;
-    if (hoursWithoutLog > 26) {
+    if (hoursWithoutLog > 22) {
       alerts.push({
         id: `no-water-log-${pond.pondId}`,
         type: 'warning',
         category: 'water',
         emoji: '📊',
         title: `No Water Log: ${pond.pondName}`,
-        body: `Water quality not logged in ${Math.round(hoursWithoutLog)} hours. Daily monitoring is critical for SOP compliance and early disease detection.`,
+        body: `Water quality not logged today. Daily monitoring is critical for SOP compliance and early disease detection.`,
         action: 'Log Water Quality',
         actionPath: `/ponds/${pond.pondId}/water-log`,
         urgency: 7,
@@ -412,7 +418,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
     });
   }
 
-  if (isMorning && pond.doc > 0 && pond.status === 'active') {
+  if (isMorning && pond.doc > 0 && pond.status === 'active' && !fedToday) {
     alerts.push({
       id: `morning-feed-${pond.pondId}`,
       type: 'info',
@@ -428,7 +434,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
     });
   }
 
-  if (isTrayCheck && pond.doc > 0 && pond.status === 'active') {
+  if (isTrayCheck && pond.doc > 0 && pond.status === 'active' && (pond.todayFeedCount || 0) < 2) {
     alerts.push({
       id: `tray-check-${pond.pondId}`,
       type: 'info',
@@ -493,16 +499,19 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   }
 
   if (isPreDawn && pond.doc > 0 && pond.status === 'active') {
+    const isCriticalPreDawn = pond.latestDO !== undefined && pond.latestDO < 4.5;
     alerts.push({
       id: `predawn-do-${pond.pondId}`,
-      type: 'critical',
+      type: isCriticalPreDawn ? 'critical' : 'info',
       category: 'water',
       emoji: '🌑',
-      title: `Pre-Dawn DO Alert — ${timeLabel(hour)}`,
-      body: `${pond.pondName}: This is the highest-risk window (3–6 AM). Photosynthesis has stopped; respiration is at max. Run all aerators. If DO drops below 4, EMERGENCY: add extra paddle aerators immediately.`,
+      title: `${isCriticalPreDawn ? 'URGENT: ' : ''}Pre-Dawn DO Alert — ${timeLabel(hour)}`,
+      body: isCriticalPreDawn 
+        ? `${pond.pondName}: DO is dropping (${pond.latestDO}). Run all aerators immediately. High mortality risk.`
+        : `${pond.pondName}: This is the highest-risk window (3–6 AM). Ensure all aerators are running.`,
       action: 'Log Water Now',
       actionPath: `/ponds/${pond.pondId}/water-log`,
-      urgency: 9,
+      urgency: isCriticalPreDawn ? 10 : 6,
       timestamp: ts,
       scheduledFor: '04:00 AM',
     });
@@ -569,7 +578,7 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
     });
   }
 
-  if (pond.doc >= 48 && pond.doc <= 52 && pond.medicineLogs7Days < 2) {
+  if (pond.doc >= 48 && pond.doc <= 52 && (pond.todayMedCount || 0) === 0) {
     alerts.push({
       id: `liver-tonic-${pond.pondId}`,
       type: 'info',
@@ -698,6 +707,11 @@ export const buildSituationInputs = (
       const avgWeight = Math.min(35, doc * 0.38);
       const biomassKg = (Number(p.seedCount || 0) * survivalRate * avgWeight) / 1000;
 
+      const today = new Date().toISOString().split('T')[0];
+      const todayFeed = pondFeed.filter(f => f.date === today);
+      const todayFeedKg = todayFeed.reduce((acc, f) => acc + (f.quantity || 0), 0);
+      const todayMeds = medicineLogs.filter(m => m.pondId === p.id && m.date === today).length;
+
       return {
         pondId: p.id,
         pondName: p.name,
@@ -713,6 +727,9 @@ export const buildSituationInputs = (
         lastWaterLogDate: latest?.date || latest?.timestamp,
         feedLogsCount: pondFeed.length,
         lastFeedDate: pondFeed[pondFeed.length - 1]?.date,
+        todayFeedKg: todayFeedKg,
+        todayFeedCount: todayFeed.length,
+        todayMedCount: todayMeds,
         totalFeedKg: totalFeed,
         estimatedBiomassKg: biomassKg,
         medicineLogs7Days: pondMeds7,

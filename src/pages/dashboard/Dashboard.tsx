@@ -41,6 +41,7 @@ import {
   BookOpen,
   GraduationCap,
   Package,
+  CircuitBoard,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -257,14 +258,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const [showLunarAlert, setShowLunarAlert] = useState(true);
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [selectedPondId, setSelectedPondId] = useState<string>('');
-  const [dismissedAlerts, setDismissedAlerts] = useState<Record<string, { count: number, lastDismissed: number }>>(() => {
-    const saved = localStorage.getItem('aqua_dismissed_engine_alerts');
-    return saved ? JSON.parse(saved) : {};
-  });
   const [isSyncingPush, setIsSyncingPush] = useState(false);
-  const [dismissedSituationIds, setDismissedSituationIds] = useState<string[]>(() => {
-    const s = localStorage.getItem('dismissed_situation_ids');
-    return s ? JSON.parse(s) : [];
+  const [dismissedSituations, setDismissedSituations] = useState<Record<string, number>>(() => {
+    const s = localStorage.getItem('dismissed_situation_state');
+    return s ? JSON.parse(s) : {};
   });
   const { requestNotificationPermission, fcmToken, deepLinkUrl, clearDeepLink, incomingAlert, clearAlert } = useFirebaseAlerts(user.language);
 
@@ -392,39 +389,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     setIsSyncingPush(false);
   };
 
-  const shouldShowAlert = (key: string) => {
-    const record = dismissedAlerts[key];
-    if (!record) return true;
-
-    const now = Date.now();
-    const isSameDay = new Date(record.lastDismissed).toDateString() === new Date(now).toDateString();
-
-    if (!isSameDay) return true; // Reset daily
-    if (record.count >= 2) return false; // Max 2 times per day
-
-    // If dismissed once, hide for 8 hours (half-day requirement)
-    if (record.count === 1 && (now - record.lastDismissed) < 8 * 60 * 60 * 1000) return false;
-
-    return true;
-  };
-
-  const handleDismiss = (key: string) => {
-    const now = Date.now();
-    setDismissedAlerts(prev => {
-      const current = prev[key] || { count: 0, lastDismissed: 0 };
-      const isSameDay = new Date(current.lastDismissed).toDateString() === new Date(now).toDateString();
-      const updated = {
-        ...prev,
-        [key]: {
-          count: isSameDay ? current.count + 1 : 1,
-          lastDismissed: now
-        }
-      };
-      localStorage.setItem('aqua_dismissed_engine_alerts', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
   const activePonds = useMemo(() => ponds.filter(p => p.status === 'active' || p.status === 'planned'), [ponds]);
 
   const pondsReadyToStock = useMemo(() => {
@@ -481,100 +445,79 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     return week.map(f => safeNum(f.quantity, 0));
   }, [feedLogs, selectedPond, refreshTs]);
 
-  // ── SOP Engine ──
-  const engineAlerts = useMemo(() =>
-    activePonds.flatMap(p => {
-      const doc = calculateDOC(p.stockingDate);
-      const lastW = waterRecords
-        .filter(w => w.pondId === p.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  // ── Situation Analysis (all active ponds) ──
+  const situationAlerts = useMemo<SituationAlert[]>(() => {
+    const inputs = buildSituationInputs(activePonds, waterRecords, feedLogs, medicineLogs, calculateDOC);
+    const all = inputs.flatMap(inp => analyzePondSituation(inp));
+    const now = Date.now();
+    return all
+      .filter(a => {
+        const dismissedAt = dismissedSituations[a.id];
+        if (!dismissedAt) return true;
+        // Expire dismissal after 8 hours (half-day check)
+        return (now - dismissedAt) > 8 * 60 * 60 * 1000;
+      })
+      .slice(0, 8);
+  }, [activePonds, waterRecords, feedLogs, medicineLogs, dismissedSituations]);
 
-      const result = runScheduleEngine(
-        doc,
-        Number(p.seedCount) || 200000,
-        p.status === 'harvested',
-        lastW ? { do: lastW.do, ph: lastW.ph, temp: lastW.temperature, ammonia: lastW.ammonia } : undefined,
-        p.customData?.medicineStatus
-      );
-      const rawAlerts = result?.activeAlerts || [];
-
-      // ── Filter alerts based on user preferences ──
-      const userPrefs = user?.notifications || { water: true, feed: true, market: false, expert: true, security: true };
-
-      return rawAlerts
-        .map(a => ({ ...a, pondName: p.name, pondId: p.id, alertKey: `${p.id}-${a.title}` }))
-        .filter(a => {
-          // 1. Keyword Categorization
-          const title = a.title.toLowerCase();
-          const isWater = title.includes('do') || title.includes('ph') || title.includes('temp') || title.includes('ammonia') || title.includes('rain');
-          const isFeed = title.includes('feed') || title.includes('tray') || title.includes('ration');
-          const isExpert = title.includes('risk') || title.includes('white spot') || title.includes('disease');
-
-          // 2. Preference Check
-          if (isWater && !userPrefs.water) return false;
-          if (isFeed && !userPrefs.feed) return false;
-          if (isExpert && !userPrefs.expert) return false;
-
-          // 3. Dismissal Check
-          return shouldShowAlert(a.alertKey);
-        });
-    }), [activePonds, waterRecords, dismissedAlerts, user.notifications]);
+  const dismissSituation = (id: string) => {
+    setDismissedSituations(prev => {
+      const next = { ...prev, [id]: Date.now() };
+      localStorage.setItem('dismissed_situation_state', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // ── PUSH TO LOCAL NOTIFICATIONS & HISTORY EFFECT ──
   useEffect(() => {
     const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // 1. Log Engine Alerts — only once per day per alert key
-    if (engineAlerts.length > 0) {
-      engineAlerts.forEach(async (alert) => {
-        const dailyKey = `added_to_history_${alert.alertKey}_${todayKey}`;
-        const alreadyInHistory = localStorage.getItem(dailyKey);
-        if (!alreadyInHistory) {
-          addNotification(`${t.sopEngineAlert} · ${alert.pondName}`, alert.title, alert.type);
-          localStorage.setItem(dailyKey, 'true');
+    // 1. Process Situation Intelligence Alerts (unified for cards & notifications)
+    if (situationAlerts.length > 0) {
+      situationAlerts.forEach(async (alert) => {
+        const alertId = alert.id;
+        const dailyHistoryKey = `history_notif_${alertId}_${todayKey}`;
+        const dailyPushKey = `push_notif_${alertId}_${todayKey}`;
+
+        // Add to persistent notification history list once per day
+        if (!localStorage.getItem(dailyHistoryKey)) {
+          addNotification(alert.title, alert.body, alert.type);
+          localStorage.setItem(dailyHistoryKey, 'true');
         }
 
-        // Only fire OS push for critical/warning — not every time app opens
+        // Trigger OS Push Notification for critical/warning alerts once per day
         if (Capacitor.isNativePlatform() && (alert.type === 'critical' || alert.type === 'warning')) {
-          const pushKey = `notified_eng_${alert.alertKey}_${todayKey}`;
-          const notifiedToday = localStorage.getItem(pushKey);
-          if (!notifiedToday) {
+          if (!localStorage.getItem(dailyPushKey)) {
             try {
               await LocalNotifications.schedule({
                 notifications: [{
-                  id: Math.floor(Math.random() * 100000),
-                  title: `${t.sopEngineAlert} · ${alert.pondName}`,
-                  body: alert.title,
+                  id: Math.floor(Math.random() * 1000000),
+                  title: alert.title,
+                  body: alert.body,
                   smallIcon: 'ic_stat_name',
                   largeIcon: 'res://icon',
                   sound: 'default'
                 }]
               });
-              localStorage.setItem(pushKey, 'true');
+              localStorage.setItem(dailyPushKey, 'true');
             } catch (err) {
-              console.error('Failed to trigger local notification:', err);
+              console.error('Failed to trigger OS notification:', err);
             }
           }
         }
       });
-
-      // Auto-dismiss engine alerts after 10 seconds locally
-      const timer = setTimeout(() => {
-        engineAlerts.forEach(alert => handleDismiss(alert.alertKey));
-      }, 10000);
-      return () => clearTimeout(timer);
     }
 
     // 2. Log Lunar Alerts — once per phase per day
     const lunarPhases = ['AMAVASYA', 'POURNAMI', 'ASHTAMI', 'NAVAMI'];
     if (lunarPhases.includes(lunar.phase)) {
       const lunarKey = `lunar_${lunar.phase}_${todayKey}`;
-      if (!localStorage.getItem(`added_to_history_${lunarKey}`)) {
+      if (!localStorage.getItem(`history_notif_${lunarKey}`)) {
         addNotification(t.moonPhaseTitle || 'Lunar Cycle Alert', `${lunar.phase} Phase Detected - Check SOP`, 'warning');
-        localStorage.setItem(`added_to_history_${lunarKey}`, 'true');
+        localStorage.setItem(`history_notif_${lunarKey}`, 'true');
       }
     }
-  }, [engineAlerts, lunar, t, addNotification]);
+  }, [situationAlerts, lunar, t, addNotification]);
 
   const pondTasks = useMemo(() => {
     if (!selectedPond) return [];
@@ -631,25 +574,8 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
       m.pondId === selectedPond?.id && new Date(m.date) >= weekAgo).length;
   }, [medicineLogs, selectedPond]);
 
-  // ── Water quality status bar gauge ──
+  // Water quality status bar gauge 
   const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-  // ── Situation Analysis (all active ponds) ──
-  const situationAlerts = useMemo<SituationAlert[]>(() => {
-    const inputs = buildSituationInputs(activePonds, waterRecords, feedLogs, medicineLogs, calculateDOC);
-    const all = inputs.flatMap(inp => analyzePondSituation(inp));
-    return all
-      .filter(a => !dismissedSituationIds.includes(a.id))
-      .slice(0, 8);
-  }, [activePonds, waterRecords, feedLogs, medicineLogs, dismissedSituationIds]);
-
-  const dismissSituation = (id: string) => {
-    setDismissedSituationIds(prev => {
-      const next = [...prev, id];
-      localStorage.setItem('dismissed_situation_ids', JSON.stringify(next));
-      return next;
-    });
-  };
 
   return (
     <>
@@ -749,10 +675,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   </div>
                   <div className="flex-1">
                     <p className={cn("text-[10px] font-black uppercase tracking-widest mb-0.5", isDark ? "text-white" : "text-slate-900")}>
-                      Enable Push Alerts
+                      {t.enablePushAlerts}
                     </p>
                     <p className={cn("text-[8px] font-medium leading-snug", isDark ? "text-white/40" : "text-slate-500")}>
-                      Get critical DO drops, harvest updates & feeding reminders — even when the app is closed.
+                      {t.pushAlertsDesc}
                     </p>
                     <div className="flex gap-2 mt-3">
                       <button
@@ -812,7 +738,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                         {meta.title}
                       </p>
                       <p className={cn('text-[9px] font-medium truncate mt-0.5', isDark ? 'text-white/60' : 'text-slate-600')}>
-                        {harvestToast.pondName} · Harvest Update
+                        {harvestToast.pondName} · {t.harvestUpdate}
                       </p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
@@ -851,9 +777,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               <h2 className={cn("text-[8px] font-black uppercase tracking-[0.4em] mb-1", isDark ? "text-indigo-400" : "text-indigo-600")}>
                 {(() => {
                   const hour = new Date().getHours();
-                  if (hour < 12) return t.goodMorning || 'Good Morning';
-                  if (hour < 17) return t.goodAfternoon || 'Good Afternoon';
-                  return t.goodEvening || 'Good Evening';
+                  if (hour < 12) return t.goodMorning;
+                  if (hour < 17) return t.goodAfternoon;
+                  return t.goodEvening;
                 })()}
               </h2>
               <p className={cn("text-3xl font-black tracking-tighter leading-none", isDark ? "text-white" : "text-slate-900")}>
@@ -862,7 +788,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               <div className="flex items-center gap-2 mt-2">
                 <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}>
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className={cn("text-[7.5px] font-black uppercase tracking-[0.2em]", isDark ? "text-emerald-400" : "text-emerald-600")}>{t.systemLive || 'Sys Live'}</p>
+                  <p className={cn("text-[7.5px] font-black uppercase tracking-[0.2em]", isDark ? "text-emerald-400" : "text-emerald-600")}>{t.systemLive}</p>
                 </div>
                 <p className={cn("text-[8px] font-bold uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
                   {new Date().toLocaleDateString(user.language === 'English' ? 'en-US' : 'te-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -921,12 +847,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   { emoji: '💊', title: t.medicineSale, sub: t.medicineSaleDesc, color: 'text-purple-400' },
                   { emoji: '🌾', title: t.bulkFeedDeal, sub: t.bulkFeedDealDesc, color: 'text-emerald-400' },
                   { emoji: '🚚', title: t.freeDelivery, sub: t.freeDeliveryDesc, color: 'text-blue-400' },
-                  { emoji: '🔬', title: t.wssvKit, sub: 'DOC 45 Special', color: 'text-red-400' },
+                  { emoji: '🔬', title: t.wssvKit, sub: t.doc45Special, color: 'text-red-400' },
                   // Duplicated array for seamless infinite loop effect
                   { emoji: '💊', title: t.medicineSale, sub: t.medicineSaleDesc, color: 'text-purple-400' },
                   { emoji: '🌾', title: t.bulkFeedDeal, sub: t.bulkFeedDealDesc, color: 'text-emerald-400' },
                   { emoji: '🚚', title: t.freeDelivery, sub: t.freeDeliveryDesc, color: 'text-blue-400' },
-                  { emoji: '🔬', title: t.wssvKit, sub: 'DOC 45 Special', color: 'text-red-400' },
+                  { emoji: '🔬', title: t.wssvKit, sub: t.doc45Special, color: 'text-red-400' },
                 ].map((ad, i) => (
                 <div key={i} className="flex items-center gap-2.5 active:opacity-50 transition-opacity">
                   <div className="w-7 h-7 rounded-none bg-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
@@ -951,11 +877,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 { label: t.disease,     icon: HeartPulse,     path: '/disease-detection',     from: '#f87171', to: '#dc2626' },
                 { label: t.market,      icon: TrendingUp,     path: '/market',                from: '#34d399', to: '#059669' },
                 { label: t.weather,     icon: Wind,           path: '/weather',               from: '#818cf8', to: '#4f46e5' },
-                { label: 'AquaCalc',    icon: Calculator,     path: '/aqua-calc',             from: '#10b981', to: '#059669' },
-                { label: 'SOP Hub',     icon: FileText,       path: '/sop-library',           from: '#e879f9', to: '#c026d3' },
-                { label: 'Learnings',   icon: GraduationCap,  path: '/learn',                 from: '#f59e0b', to: '#d97706' },
-                { label: 'Expert',      icon: BookOpen,       path: '/expert-consultations',  from: '#ec4899', to: '#db2777' },
-                { label: '🛒 Shop',     icon: ShoppingBag,    path: '/shop',                  from: '#C78200', to: '#92400E' },
+                { label: t.aquaCalc,    icon: Calculator,     path: '/aqua-calc',             from: '#10b981', to: '#059669' },
+                { label: t.sopHub,      icon: FileText,       path: '/sop-library',           from: '#e879f9', to: '#c026d3' },
+                { label: t.learn,       icon: GraduationCap,  path: '/learn',                 from: '#f59e0b', to: '#d97706' },
+                { label: t.expert,      icon: BookOpen,       path: '/expert-consultations',  from: '#ec4899', to: '#db2777' },
+                { label: `🛒 ${t.market.split(' ')[0]}`, icon: ShoppingBag,    path: '/shop',                  from: '#C78200', to: '#92400E' },
+                { label: 'Smart Farm',  icon: CircuitBoard,   path: '/smart-farm',            from: '#06b6d4', to: '#0284c7' },
               ].map((n, i) => (
                 <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none">
                   <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
@@ -982,7 +909,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                     <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
                       See All →
                     </button>
-                    <button onClick={() => setDismissedSituationIds(prev => { const n = [...prev, ...situationAlerts.map(a => a.id)]; localStorage.setItem('dismissed_situation_ids', JSON.stringify(n)); return n; })} className="text-[8px] font-black uppercase tracking-widest text-red-400">
+                    <button onClick={() => setDismissedSituations(prev => { 
+                      const next = { ...prev };
+                      situationAlerts.forEach(a => next[a.id] = Date.now());
+                      localStorage.setItem('dismissed_situation_state', JSON.stringify(next));
+                      return next;
+                    })} className="text-[8px] font-black uppercase tracking-widest text-red-400">
                       Clear
                     </button>
                   </div>
@@ -993,9 +925,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   const alertColors = {
                     critical: { bg: isDark ? 'bg-red-500/12 border-red-500/40' : 'bg-red-50 border-red-300', text: 'text-red-500', badge: 'bg-red-500', label: t.critical },
                     warning:  { bg: isDark ? 'bg-amber-500/12 border-amber-500/40' : 'bg-amber-50 border-amber-300', text: 'text-amber-500', badge: 'bg-amber-500', label: t.warning },
-                    info:     { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: (t as any).info || 'INFO' },
+                    info:     { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: t.info },
                     success:  { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500', label: t.good },
-                    lunar:    { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: (t as any).lunar || 'LUNAR' },
+                    lunar:    { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: t.lunar },
                   };
                   const c = alertColors[alert.type as keyof typeof alertColors] || alertColors.info;
                   return (
@@ -1089,7 +1021,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-blue-400' : 'text-blue-700')}>
-                      Aerator Check Due · DOC {doc}
+                      {t.aeratorCheckDue} · {t.doc} {doc}
                     </p>
                     <p className={cn('text-[8px] font-medium truncate', isDark ? 'text-white/40' : 'text-slate-600')}>
                       {pond.name} · {getAeratorStageLabel(doc)}
@@ -1101,7 +1033,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                       isDark ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-blue-600 text-white shadow-sm'
                     )}
                   >
-                    Update →
+                    {t.viewMore} →
                   </button>
                 </motion.div>
               );
@@ -1118,7 +1050,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 <RefreshCw size={28} className={isDark ? "text-indigo-400 animate-spin" : "text-indigo-600 animate-spin"} />
               </div>
               <h3 className={cn("font-black text-sm uppercase tracking-widest mb-1", isDark ? "text-white" : "text-slate-900")}>{t.syncingData || 'Syncing Cloud'}</h3>
-              <p className={cn("text-[9px] font-black uppercase tracking-[0.2em] mb-4", isDark ? "text-white/30" : "text-slate-400")}>Downloading Realtime Telemetry</p>
+              <p className={cn("text-[9px] font-black uppercase tracking-[0.2em] mb-4", isDark ? "text-white/30" : "text-slate-400")}>{t.downloadingTelemetry}</p>
             </div>
           ) : activePonds.length === 0 ? (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-6">
@@ -1127,7 +1059,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               ) : (
                 <NoPondState
                   isDark={isDark}
-                  subtitle="Deploy your first pond to unlock real-time monitoring, SOP alerts, and AI-powered intelligence."
+                  subtitle={t.noPondsPrompt}
                 />
               )}
             </motion.div>
@@ -1196,7 +1128,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                             <div className="flex items-center gap-2">
                               <span className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border", isDark ? "bg-white/5 border-white/20 text-white/70" : "bg-slate-100 border-slate-200 text-slate-600")}>{p.species}</span>
                               <span className={cn("text-[9px] font-black uppercase tracking-widest", p.status === 'planned' ? "text-blue-500" : isDark ? "text-emerald-400" : "text-emerald-600")}>
-                                {p.status === 'planned' ? (t.planned || 'Planned') : `${t.doc || 'DOC'} ${doc}`}
+                                {p.status === 'planned' ? t.planned : `${t.doc} ${doc}`}
                               </span>
                             </div>
                           </div>
@@ -1211,7 +1143,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                         {/* Premium Growth Bar Component */}
                         <div className="mb-4 relative z-10">
                           <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] mb-1.5">
-                            <span className={cn(isDark ? "text-white/40" : "text-slate-400")}>{t.growthStage || 'Biomass Cap'}</span>
+                            <span className={cn(isDark ? "text-white/40" : "text-slate-400")}>{t.growthStage || t.biomassCap}</span>
                             <span className={isDark ? "text-blue-400" : "text-blue-600"}>{growth}%</span>
                           </div>
                           <div className={cn("h-1.5 rounded-full overflow-hidden shadow-inner", isDark ? "bg-white/5" : "bg-slate-100")}>
@@ -1238,7 +1170,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                           ) : (
                             <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border", isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200")}>
                               <AlertTriangle size={10} className="text-amber-500" />
-                              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">{t.noWaterData || 'Awaiting Metrics'}</span>
+                              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">{t.noWaterData || t.awaitingMetrics}</span>
                             </div>
                           )}
                         </div>
