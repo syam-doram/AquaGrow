@@ -5,7 +5,7 @@ import {
   History, AlertTriangle, TrendingUp, Calendar,
   Bluetooth, Wifi, RefreshCcw, X, ShieldCheck,
   Activity, FlaskConical, Waves, Zap, Wind,
-  Thermometer, Droplets, Plus, Camera,
+  Thermometer, Droplets, Plus, Camera, Scan, ChevronRight,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import {
@@ -300,21 +300,39 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           )}
         </motion.div>
 
-        {/* ── 4. AI SCANNER CTA (slim single row) ──────────────── */}
+        {/* ── 4. SCAN WATER LAB REPORT CTA ── */}
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => navigate('/water-test-scanner')}
-            className="w-full rounded-2xl overflow-hidden border border-emerald-900/40 text-left"
-            style={{ background: 'linear-gradient(135deg,#022b1e 0%,#011a12 100%)' }}>
-            <div className="px-4 py-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                <Camera size={17} className="text-emerald-400" />
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/monitor/scan')}
+            className="w-full rounded-2xl overflow-hidden border text-left relative"
+            style={{
+              background: 'linear-gradient(135deg, rgba(6,182,212,0.12) 0%, rgba(59,130,246,0.08) 100%)',
+              borderColor: 'rgba(6,182,212,0.3)',
+              boxShadow: '0 0 24px rgba(6,182,212,0.08)',
+            }}
+          >
+            {/* Glow blob */}
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background: '#06b6d4' }} />
+            <div className="px-4 py-3.5 flex items-center gap-3 relative z-10">
+              {/* Pulsing scan icon */}
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.18)', border: '1.5px solid rgba(6,182,212,0.35)' }}>
+                  <Scan size={18} style={{ color: '#06b6d4' }} />
+                </div>
+                <motion.div
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute inset-0 rounded-xl border-2 pointer-events-none"
+                  style={{ borderColor: '#06b6d4' }}
+                />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-emerald-400 text-[5px] font-black uppercase tracking-[0.3em]">✨ AI Lab Scanner</p>
-                <p className="text-white font-black text-[11px] tracking-tight">Water Quality Test Scanner</p>
-                <p className="text-white/35 text-[7px] font-medium">Photo → AI reads pH · DO · Ammonia · Colour</p>
+                <p className="text-[8px] font-black uppercase tracking-[0.25em] mb-0.5" style={{ color: '#06b6d4' }}>📄 AI Lab Report Scanner</p>
+                <p className="font-black text-[12px] tracking-tight" style={{ color: '#0f172a' }}>Scan Water Test Report</p>
+                <p className="text-[7px] font-medium mt-0.5" style={{ color: 'rgba(15,23,42,0.45)' }}>Camera or PDF → AI reads pH · DO · Ammonia · Salinity instantly</p>
               </div>
-              <span className="text-emerald-400 text-sm font-black flex-shrink-0">→</span>
+              <ChevronRight size={16} style={{ color: '#06b6d4', flexShrink: 0 }} />
             </div>
           </motion.button>
         </motion.div>

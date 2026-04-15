@@ -20,7 +20,7 @@ import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 export const Profile = ({ t, onMenuClick }: { t: Translations; onMenuClick: () => void }) => {
   const navigate = useNavigate();
-  const { user, setUser, isPro, theme, setAppTheme, ponds, feedLogs, waterRecords, medicineLogs } = useData();
+  const { user, setUser, updateUser, isPro, theme, setAppTheme, ponds, feedLogs, waterRecords, medicineLogs } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
   // ── Live farm metrics ──

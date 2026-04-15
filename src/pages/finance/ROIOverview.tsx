@@ -16,7 +16,7 @@ import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
 
 // ─── Entry Card ────────────────────────────────────────────────────────────────
-const EntryCard = ({ entry, onClick, isDark, t }: { entry: any; onClick: () => void; isDark: boolean; t: Translations }) => {
+const EntryCard = ({ entry, onClick, isDark, t }: { entry: any; onClick: () => void; isDark: boolean; t: Translations; key?: React.Key }) => {
   const roi = entry.roi ?? 0;
   const roiColor =
     roi >= 40 ? 'text-emerald-500' :

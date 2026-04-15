@@ -608,6 +608,7 @@ export interface Translations {
   enterSaleAmountError: string;
   enterPricePerKgError: string;
   abwTooSmallError: (weight: string) => string;
+  harvestNotListed: string;
   autoFilledMsg: string;
   feedMedLogsReviewMsg: string;
   enterAllCostsMsg: string;
@@ -1587,6 +1588,7 @@ const English: Translations = {
   enterSaleAmountError: 'Enter total sale amount',
   enterPricePerKgError: 'Enter price per kg',
   abwTooSmallError: (weight: string) => `Body weight ${weight}g is below minimum 10g`,
+  harvestNotListed: 'Harvest Not Allowed',
   autoFilledMsg: 'Auto-Filled from Logs',
   feedMedLogsReviewMsg: 'Feed & medicine pulled from daily logs. Review & adjust.',
   enterAllCostsMsg: 'Enter all investment costs for accurate ROI',
@@ -2574,6 +2576,7 @@ const Telugu: Translations = {
   enterSaleAmountError: 'మొత్తం అమ్మకం ధరను నమోదు చేయండి',
   enterPricePerKgError: 'కిలో ధరను నమోదు చేయండి',
   abwTooSmallError: (weight: string) => `శరీర బరువు ${weight}g కనీస బరువు 10g కంటే తక్కువగా ఉంది`,
+  harvestNotListed: 'పంట అనుమతించబడలేదు',
   autoFilledMsg: 'లాగ్స్ నుండి ఆటో-ఫిల్ చేయబడింది',
   feedMedLogsReviewMsg: 'మేత మరియు మందుల ఖర్చులు డైలీ లాగ్స్ నుండి తీసుకోబడ్డాయి. సమీక్షించి మార్చుకోండి.',
   enterAllCostsMsg: 'ఖచ్చితమైన ROI కోసం అన్ని పెట్టుబడి ఖర్చులను నమోదు చేయండి',

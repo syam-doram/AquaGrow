@@ -836,39 +836,48 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             ))}
           </AnimatePresence>
 
-          {/* ── AUTO-SCROLLING TICKER MARQUEE ── */}
-          <div className="relative -mx-5 mb-2 mt-[-10px] sm:mt-0 bg-[#0A0A0A] border-y border-white/5 overflow-hidden flex items-center h-12 shadow-inner cursor-pointer" onClick={() => navigate('/shop')}>
+          {/* ── PREMIUM DEALS STRIP ── */}
+          <div
+            className="relative -mx-5 overflow-hidden cursor-pointer mb-2 mt-[-10px] sm:mt-0"
+            style={{ height: 52 }}
+            onClick={() => navigate('/shop')}
+          >
+            <div className={cn('absolute inset-0', isDark ? 'bg-gradient-to-r from-[#080D18] via-[#0C1422] to-[#080D18]' : 'bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800')} />
+            <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none" style={{ background: isDark ? 'linear-gradient(90deg,#080D18,transparent)' : 'linear-gradient(90deg,#1e293b,transparent)' }} />
+            <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none" style={{ background: isDark ? 'linear-gradient(270deg,#080D18,transparent)' : 'linear-gradient(270deg,#1e293b,transparent)' }} />
             <motion.div
-              animate={{ x: [0, -1000] }}
-              transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-              className="flex items-center gap-8 whitespace-nowrap min-w-max px-4"
+              animate={{ x: ['0%', '-50%'] }}
+              transition={{ repeat: Infinity, duration: 22, ease: 'linear' }}
+              className="flex items-center gap-3 h-full px-6 whitespace-nowrap w-max"
             >
-                {[
-                  { emoji: '💊', title: t.medicineSale, sub: t.medicineSaleDesc, color: 'text-purple-400' },
-                  { emoji: '🌾', title: t.bulkFeedDeal, sub: t.bulkFeedDealDesc, color: 'text-emerald-400' },
-                  { emoji: '🚚', title: t.freeDelivery, sub: t.freeDeliveryDesc, color: 'text-blue-400' },
-                  { emoji: '🔬', title: t.wssvKit, sub: t.doc45Special, color: 'text-red-400' },
-                  // Duplicated array for seamless infinite loop effect
-                  { emoji: '💊', title: t.medicineSale, sub: t.medicineSaleDesc, color: 'text-purple-400' },
-                  { emoji: '🌾', title: t.bulkFeedDeal, sub: t.bulkFeedDealDesc, color: 'text-emerald-400' },
-                  { emoji: '🚚', title: t.freeDelivery, sub: t.freeDeliveryDesc, color: 'text-blue-400' },
-                  { emoji: '🔬', title: t.wssvKit, sub: t.doc45Special, color: 'text-red-400' },
-                ].map((ad, i) => (
-                <div key={i} className="flex items-center gap-2.5 active:opacity-50 transition-opacity">
-                  <div className="w-7 h-7 rounded-none bg-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-sm leading-none drop-shadow-sm">{ad.emoji}</span>
-                  </div>
-                  <div className="flex items-baseline gap-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/90 drop-shadow-sm">{ad.title}</p>
-                    <span className="text-white/20 text-[10px]">|</span>
-                    <p className={cn("text-[8.5px] font-bold uppercase tracking-widest drop-shadow-sm", ad.color)}>{ad.sub}</p>
-                  </div>
+              {[
+                { emoji: '💊', title: t.medicineSale,  sub: t.medicineSaleDesc,       color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
+                { emoji: '🌾', title: t.bulkFeedDeal,  sub: t.bulkFeedDealDesc,       color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
+                { emoji: '🚚', title: t.freeDelivery,  sub: t.freeDeliveryDesc,       color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+                { emoji: '🔬', title: t.wssvKit,       sub: t.doc45Special,           color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+                { emoji: '⚡', title: 'Smart Farm',    sub: 'IoT · Aerators · Bills', color: '#06b6d4', bg: 'rgba(6,182,212,0.12)'  },
+                { emoji: '💊', title: t.medicineSale,  sub: t.medicineSaleDesc,       color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
+                { emoji: '🌾', title: t.bulkFeedDeal,  sub: t.bulkFeedDealDesc,       color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
+                { emoji: '🚚', title: t.freeDelivery,  sub: t.freeDeliveryDesc,       color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+                { emoji: '🔬', title: t.wssvKit,       sub: t.doc45Special,           color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+                { emoji: '⚡', title: 'Smart Farm',    sub: 'IoT · Aerators · Bills', color: '#06b6d4', bg: 'rgba(6,182,212,0.12)'  },
+              ].map((ad, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl flex-shrink-0"
+                  style={{ background: ad.bg, border: `1px solid ${ad.color}35` }}
+                >
+                  <span className="text-sm leading-none">{ad.emoji}</span>
+                  <span className="text-[10px] font-black text-white/90 tracking-wide">{ad.title}</span>
+                  <span className="text-white/20 text-[8px]">·</span>
+                  <span className="text-[8px] font-bold tracking-widest" style={{ color: ad.color }}>{ad.sub}</span>
                 </div>
               ))}
             </motion.div>
           </div>
 
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
+
           {ponds.length > 0 && (
             <div className="grid grid-cols-5 gap-2">
               {[
