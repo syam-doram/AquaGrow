@@ -136,8 +136,11 @@ export const FarmerCommunity = () => {
   const [error, setError]         = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  // Track visible viewport height (shrinks when keyboard opens on Android)
-  const [vhPx, setVhPx] = useState(() => window.visualViewport?.height ?? window.innerHeight);
+  // Track visible viewport height + offset (shrinks/shifts when keyboard opens on Android)
+  const [vpState, setVpState] = useState(() => ({
+    height: window.visualViewport?.height ?? window.innerHeight,
+    offsetTop: window.visualViewport?.offsetTop ?? 0,
+  }));
 
   // Height measurement refs (unused now but kept for ResizeObserver on search toggle)
   const topRef      = useRef<HTMLDivElement>(null);
@@ -153,7 +156,7 @@ export const FarmerCommunity = () => {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setVhPx(vv.height);
+    const update = () => setVpState({ height: vv.height, offsetTop: vv.offsetTop });
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
     return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
@@ -422,10 +425,14 @@ export const FarmerCommunity = () => {
   const pinnedMsg = filteredMessages.find(m => m.isPinned);
 
   return (
-    // Root: uses visualViewport height so it always equals visible area (keyboard-aware)
+    // Root: tracks visualViewport exactly — height shrinks with keyboard, offsetTop repositions
     <div
       className={cn('fixed top-0 left-0 right-0 flex flex-col font-sans overflow-hidden', isDark ? 'bg-[#060A10]' : 'bg-[#F0F4FF]')}
-      style={{ height: vhPx }}
+      style={{
+        height: vpState.height,
+        transform: `translateY(${vpState.offsetTop}px)`,
+        willChange: 'transform, height',
+      }}
     >
 
       {/* Ambient blobs */}
