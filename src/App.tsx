@@ -347,7 +347,6 @@ const AppContent = () => {
     '/roi/pond-wise',
     '/roi/year-wise',
     '/smart-farm',
-    '/community',
   ].some(path => location.pathname.startsWith(path));
 
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
