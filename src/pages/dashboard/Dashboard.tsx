@@ -1061,7 +1061,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                       <n.icon size={18} className="drop-shadow-sm" style={{ color: n.from }} />
                       
                       {/* Community/Notification Badge */}
-                      {n.badge && n.badge > 0 && (
+                      {n.badge !== undefined && n.badge > 0 && (
                         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-lg shadow-red-500/20">
                           <span className="text-[7px] font-black text-white">{n.badge > 9 ? '9+' : n.badge}</span>
                         </motion.div>
