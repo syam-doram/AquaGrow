@@ -141,6 +141,18 @@ const AppContent = () => {
   const appUpdate = useAppUpdate();
   const isDark = theme === 'dark' || theme === 'midnight';
 
+  // Hide native splash immediately when React mounts — prevents white screen
+  // between native splash timeout and React SplashScreen rendering
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      // Small delay ensures our React SplashScreen is painted before native hides
+      const timer = setTimeout(() => {
+        CapSplash.hide({ fadeOutDuration: 400 });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const handleLanguageChange = (l: Language) => {
     setLang(l);
     localStorage.setItem('aqua_lang', l);

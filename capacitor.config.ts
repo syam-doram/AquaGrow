@@ -6,16 +6,19 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     SplashScreen: {
-      // Keep the native Android splash visible until we manually hide it
-      launchShowDuration: 0,
+      // Keep the native Android splash visible until we manually hide it.
+      // 2500ms covers the time needed for lazy JS chunks to load on first launch.
+      launchShowDuration: 2500,
       launchAutoHide: false,
-      // Match the AquaGrow amber brand color so there's zero white flash
-      backgroundColor: '#C78200',
+      // Match the new dark icon background — no jarring color flash
+      backgroundColor: '#1A1A1A',
       androidSplashResourceName: 'splash',
       // Smooth fade out transition
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,
+      fadeInDuration: 200,
+      fadeOutDuration: 400,
     },
     FirebaseAuthentication: {
       // List every sign-in provider you use.
