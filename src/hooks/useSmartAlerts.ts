@@ -9,21 +9,36 @@ import {
   PRIORITY_CONFIG,
 } from '../services/notificationEngine';
 
-const STORAGE_KEY     = 'aquagrow_smart_alerts_v1';
-const PREFS_KEY       = 'aquagrow_alert_prefs_v1';
-const SUPPRESSED_KEY  = 'aquagrow_suppressed_alerts_v1';
+// ─── Get current logged-in user ID ───────────────────────────────────────────
+const getCurrentUserId = (): string => {
+  try {
+    const u = localStorage.getItem('aqua_user');
+    if (u) {
+      const parsed = JSON.parse(u);
+      const id = parsed?.id || parsed?._id || '';
+      if (id) return id;
+    }
+  } catch { /* */ }
+  return 'anonymous';
+};
+
+// User-scoped key builders — ensures no cross-farmer data leakage
+const storageKey    = (uid: string) => `aquagrow_smart_alerts_v1_${uid}`;
+const prefsKey      = (uid: string) => `aquagrow_alert_prefs_v1_${uid}`;
+const suppressedKey = (uid: string) => `aquagrow_suppressed_alerts_v1_${uid}`;
+
 const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
 // ─── Helpers for persisted suppression list ──────────────────────────────────
-const loadSuppressed = (): Set<string> => {
+const loadSuppressed = (uid: string): Set<string> => {
   try {
-    const raw = localStorage.getItem(SUPPRESSED_KEY);
+    const raw = localStorage.getItem(suppressedKey(uid));
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch { return new Set(); }
 };
 
-const saveSuppressed = (s: Set<string>) => {
-  try { localStorage.setItem(SUPPRESSED_KEY, JSON.stringify([...s])); } catch {}
+const saveSuppressed = (s: Set<string>, uid: string) => {
+  try { localStorage.setItem(suppressedKey(uid), JSON.stringify([...s])); } catch {}
 };
 
 // ─── HOOK ─────────────────────────────────────────────────────────────────────
@@ -37,44 +52,46 @@ export const useSmartAlerts = (params: {
 }) => {
   const { ponds, waterRecords, feedRecords, marketPrices, enabled, language } = params;
 
+  // Resolve user ID once (stable for the lifetime of the hook session)
+  const uid = getCurrentUserId();
+
   const [alerts, setAlerts] = useState<SmartAlert[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey(uid));
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(() => {
     try {
-      const saved = localStorage.getItem(PREFS_KEY);
+      const saved = localStorage.getItem(prefsKey(uid));
       return saved ? { ...DEFAULT_PREFS, ...JSON.parse(saved) } : DEFAULT_PREFS;
     } catch { return DEFAULT_PREFS; }
   });
 
-  const lastRunRef     = useRef<number>(0);
-  const suppressedIds  = useRef<Set<string>>(loadSuppressed());
+  const lastRunRef    = useRef<number>(0);
+  const suppressedIds = useRef<Set<string>>(loadSuppressed(uid));
   const alertsRef      = useRef<SmartAlert[]>(alerts);
 
   // Keep alertsRef in sync with state
   useEffect(() => { alertsRef.current = alerts; }, [alerts]);
 
-  // ── Save to localStorage whenever alerts change ──
+  // ── Save to localStorage whenever alerts change (user-scoped) ──
   useEffect(() => {
     try {
-      // Only keep last 100 alerts to avoid storage overflow
       const trimmed = alerts.slice(0, 100);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      localStorage.setItem(storageKey(uid), JSON.stringify(trimmed));
     } catch { /**/ }
-  }, [alerts]);
+  }, [alerts, uid]);
 
-  // ── Persist preferences ──
+  // ── Persist preferences (user-scoped) ──
   const updatePrefs = useCallback((newPrefs: Partial<NotificationPrefs>) => {
     setPrefs(prev => {
       const updated = { ...prev, ...newPrefs };
-      try { localStorage.setItem(PREFS_KEY, JSON.stringify(updated)); } catch { /**/ }
+      try { localStorage.setItem(prefsKey(uid), JSON.stringify(updated)); } catch { /**/ }
       return updated;
     });
-  }, []);
+  }, [uid]);
 
   // ── Fire a local OS-level notification (browser or native) ──
   const fireLocalNotification = useCallback(async (alert: SmartAlert) => {
@@ -256,45 +273,43 @@ export const useSmartAlerts = (params: {
   const markRead = useCallback((id: string) => {
     setAlerts(prev => {
       const alert = prev.find(a => a.id === id);
-      // Suppress this alert title from re-appearing as a banner
       if (alert && !suppressedIds.current.has(alert.title)) {
         suppressedIds.current.add(alert.title);
-        saveSuppressed(suppressedIds.current);
+        saveSuppressed(suppressedIds.current, uid);
       }
       return prev.map(a => a.id === id ? { ...a, isRead: true } : a);
     });
-  }, []);
+  }, [uid]);
 
   const markAllRead = useCallback(() => {
     setAlerts(prev => {
-      // Suppress ALL alert titles so none re-appear as banners
       prev.forEach(a => {
         if (!suppressedIds.current.has(a.title)) suppressedIds.current.add(a.title);
       });
-      saveSuppressed(suppressedIds.current);
+      saveSuppressed(suppressedIds.current, uid);
       return prev.map(a => ({ ...a, isRead: true }));
     });
-  }, []);
+  }, [uid]);
 
   const dismissAlert = useCallback((id: string) => {
     setAlerts(prev => {
       const alert = prev.find(a => a.id === id);
       if (alert) {
         suppressedIds.current.add(alert.title);
-        saveSuppressed(suppressedIds.current);
+        saveSuppressed(suppressedIds.current, uid);
       }
       const updated = prev.filter(a => a.id !== id);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(storageKey(uid), JSON.stringify(updated)); } catch {}
       return updated;
     });
-  }, []);
+  }, [uid]);
 
   const clearAll = useCallback(() => {
     setAlerts([]);
     suppressedIds.current.clear();
-    saveSuppressed(suppressedIds.current);
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
-  }, []);
+    saveSuppressed(suppressedIds.current, uid);
+    try { localStorage.removeItem(storageKey(uid)); } catch {}
+  }, [uid]);
 
   const forceRun = useCallback(() => {
     lastRunRef.current = 0;

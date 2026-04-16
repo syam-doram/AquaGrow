@@ -43,21 +43,13 @@ export const Header = ({ title, showBack = false, onBack, rightElement, onMenuCl
       
       <div className="flex items-center justify-center">
         {showLogo ? (
-          <div className="flex items-center gap-2">
-            <img
-              src="/app_icon.png"
-              alt="AquaGrow"
-              className="w-8 h-8 rounded-xl object-cover shadow-lg shadow-emerald-500/20"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-            <div className="flex flex-col items-start leading-tight">
-              <span className={cn('font-black text-base tracking-tight leading-none', isDark ? 'text-white' : 'text-slate-900')}>
-                AquaGrow
-              </span>
-              <span className={cn('text-[7px] font-black uppercase tracking-[0.2em]', isDark ? 'text-emerald-400' : 'text-emerald-600')}>
-                Smart Farm
-              </span>
-            </div>
+          <div className="flex flex-col items-center leading-tight">
+            <span className={cn('font-black text-base tracking-tight leading-none', isDark ? 'text-white' : 'text-slate-900')}>
+              AquaGrow
+            </span>
+            <span className={cn('text-[7px] font-black uppercase tracking-[0.2em]', isDark ? 'text-emerald-400' : 'text-emerald-600')}>
+              Smart Farm
+            </span>
           </div>
         ) : (
           <h1 className="text-ink font-black text-lg tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{title}</h1>

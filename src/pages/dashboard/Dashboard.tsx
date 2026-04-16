@@ -1050,7 +1050,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   { label: t.sopHub, icon: FileText, path: '/sop-library', from: '#e879f9', to: '#c026d3' },
                   { label: t.learn, icon: GraduationCap, path: '/learn', from: '#f59e0b', to: '#d97706' },
                   { label: t.expert, icon: BookOpen, path: '/expert-consultations', from: '#ec4899', to: '#db2777' },
-                  { label: `🛒 ${t.market.split(' ')[0]}`, icon: ShoppingBag, path: '/shop', from: '#C78200', to: '#92400E' },
+                  { label: `🛒 ${t.shopTitle.split(' ')[0]}`, icon: ShoppingBag, path: '/shop', from: '#C78200', to: '#92400E' },
                   { label: 'Smart Farm', icon: CircuitBoard, path: '/smart-farm', from: '#06b6d4', to: '#0284c7' },
                   { label: 'Orders', icon: Package, path: '/orders', from: '#f59e0b', to: '#d97706' },
                   { label: 'Community', icon: Users, path: '/community', from: '#10b981', to: '#059669' },
