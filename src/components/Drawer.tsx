@@ -31,7 +31,7 @@ export const Drawer = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser } = useData();
+  const { setUser, communityUnreadCount } = useData();
 
   const farmerSections: NavSection[] = [
     {
@@ -47,6 +47,7 @@ export const Drawer = ({
     {
       title: 'Tools & Learn',
       items: [
+        { icon: Users,        label: 'Farmer Community',   path: '/community', badge: communityUnreadCount > 0 ? communityUnreadCount.toString() : undefined },
         { icon: BookOpen,     label: t.learningCenter,     path: '/learn' },
         { icon: Stethoscope,  label: t.expertConsultations, path: '/expert-consultations' },
         { icon: Bell,         label: t.notifications,      path: '/notifications' },

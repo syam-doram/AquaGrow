@@ -6,7 +6,7 @@ import {
   Bluetooth, Wifi, RefreshCcw, X, ShieldCheck,
   Activity, FlaskConical, Waves, Zap, Wind,
   Thermometer, Droplets, Plus, ChevronLeft,
-  ChevronRight, CheckCircle2, Circle,
+  ChevronRight, CheckCircle2, Circle, Camera, ScanLine,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import {
@@ -221,8 +221,23 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
           <h1 className={cn('text-[11px] font-black tracking-widest uppercase', isDark ? 'text-white' : 'text-slate-900')}>Water Intelligence</h1>
           <p className={cn('text-[7.5px] font-black uppercase tracking-[0.2em] mt-0.5', isDark ? 'text-teal-400/70' : 'text-teal-600')}>DOC Auto-Tracked • SOP Benchmarked</p>
         </div>
-        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center border', isDark ? 'bg-teal-500/10 border-teal-500/20' : 'bg-teal-50 border-teal-200')}>
-          <Droplets size={14} className={isDark ? 'text-teal-400' : 'text-teal-600'} />
+        <div className="flex items-center gap-1.5">
+          {/* Water Test Scanner */}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => navigate('/water-test-scanner')}
+            title="Water Test Scanner"
+            className={cn('w-9 h-9 rounded-xl flex items-center justify-center border transition-all', isDark ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' : 'bg-teal-50 border-teal-200 text-teal-600 shadow-sm')}>
+            <Camera size={14} />
+          </motion.button>
+          {/* Water Report Scanner */}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => navigate('/monitor/scan')}
+            title="Water Report Scanner"
+            className={cn('w-9 h-9 rounded-xl flex items-center justify-center border transition-all', isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm')}>
+            <ScanLine size={14} />
+          </motion.button>
         </div>
       </header>
 

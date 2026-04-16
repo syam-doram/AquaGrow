@@ -136,6 +136,13 @@ export const FarmerCommunity = () => {
   const [error, setError]         = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
+  // Unread badge tracking — stores unread *count* per channel
+  const [readMarkers, setReadMarkers] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('community_read_markers') || '{}'); }
+    catch { return {}; }
+  });
+  const [unreads, setUnreads] = useState<Record<string, number>>({}); // count per channel
+
   // Track visible viewport height + offset (shrinks/shifts when keyboard opens on Android)
   const [vpState, setVpState] = useState(() => ({
     height: window.visualViewport?.height ?? window.innerHeight,
@@ -222,6 +229,49 @@ export const FarmerCommunity = () => {
 
     return () => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } };
   }, [activeChannel]);
+
+  // Update read marker for active channel — reset unread count to 0
+  useEffect(() => {
+    if (messages.length > 0) {
+      const latestId = messages[messages.length - 1].id;
+      const next = { ...readMarkers, [activeChannel]: latestId };
+      setReadMarkers(next);
+      localStorage.setItem('community_read_markers', JSON.stringify(next));
+      setUnreads(prev => ({ ...prev, [activeChannel]: 0 }));
+      // Notify DataContext so the Dashboard badge updates immediately
+      window.dispatchEvent(new Event('communityMarkedRead'));
+    }
+  }, [messages, activeChannel]);
+
+  // Background listener — counts unread messages per inactive channel
+  useEffect(() => {
+    const unsubs: (() => void)[] = [];
+    CHANNELS.forEach(ch => {
+      if (ch.id === activeChannel) return; // handled by main listener
+      // Fetch last 20 messages to count unread ones
+      const q = query(collection(db, 'community_messages', ch.id, 'messages'), orderBy('createdAt', 'desc'), limit(20));
+      unsubs.push(onSnapshot(q, (snap) => {
+        if (!snap.empty) {
+          const markers = JSON.parse(localStorage.getItem('community_read_markers') || '{}');
+          const lastReadId = markers[ch.id];
+          if (!lastReadId) {
+            // Never read — all are unread
+            setUnreads(prev => ({ ...prev, [ch.id]: snap.docs.length }));
+            return;
+          }
+          // Count how many messages arrived after the last-read marker
+          let count = 0;
+          for (const d of snap.docs) {
+            if (d.id === lastReadId) break;
+            count++;
+          }
+          setUnreads(prev => ({ ...prev, [ch.id]: count }));
+        }
+      }, (err) => console.error(`[Community badge] ${ch.id}:`, err)));
+    });
+    return () => unsubs.forEach(u => u());
+  }, [activeChannel, readMarkers]);
+
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -503,10 +553,27 @@ export const FarmerCommunity = () => {
               return (
                 <motion.button key={ch.id} whileTap={{ scale: 0.95 }}
                   onClick={() => { setActiveChannel(ch.id as ChannelId); setSearchQuery(''); setShowSearch(false); }}
-                  className={cn('flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border text-[8px] font-black uppercase tracking-widest transition-all',
+                  className={cn('flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border text-[8px] font-black uppercase tracking-widest transition-all relative',
                     isActive ? 'text-white' : isDark ? 'bg-white/5 text-white/40 border-white/8' : 'bg-white text-slate-500 border-slate-100 shadow-sm')}
                   style={isActive ? { background: ch.color, borderColor: ch.color, boxShadow: `0 4px 14px ${ch.color}40` } : {}}>
                   <span>{ch.emoji}</span>{ch.label}
+                  
+                  {/* UNREAD COUNT BADGE */}
+                  <AnimatePresence>
+                    {!isActive && unreads[ch.id] > 0 && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center px-1 shadow-lg shadow-red-500/30 ring-1 ring-red-400/50"
+                        style={{ border: `1.5px solid ${isDark ? '#060A10' : '#f8fafc'}` }}
+                      >
+                        <span className="text-[7px] font-black text-white leading-none">
+                          {unreads[ch.id] > 9 ? '9+' : unreads[ch.id]}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
               );
             })}

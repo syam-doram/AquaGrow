@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { DataProvider, useData } from './context/DataContext';
@@ -14,7 +14,7 @@ import { SplashScreen as CapSplash } from '@capacitor/splash-screen';
 import { Capacitor } from '@capacitor/core';
 import { cn } from './utils/cn';
 
-// Components
+// Components (always needed — keep static)
 import { BottomNav } from './components/BottomNav';
 import { ProviderBottomNav } from './components/ProviderBottomNav';
 import { PushSyncManager } from './components/PushSyncManager';
@@ -23,72 +23,93 @@ import { WifiOff, Wifi } from 'lucide-react';
 import { useAppUpdate } from './hooks/useAppUpdate';
 import { AppUpdateModal } from './components/AppUpdateModal';
 
-// Pages
-import { Dashboard } from './pages/dashboard/Dashboard';
-import { PondManagement } from './pages/ponds/PondManagement';
-import { PondEntry } from './pages/ponds/PondEntry';
-import { PondDetail } from './pages/ponds/PondDetail';
-import { WaterMonitoring } from './pages/monitoring/WaterMonitoring';
-import { MarketPrices } from './pages/market/MarketPrices';
-import { Profile } from './pages/profile/Profile';
-import { EditProfile } from './pages/profile/EditProfile';
-import { SecurityPrivacy } from './pages/profile/SecurityPrivacy';
-import { PrivacyPolicy } from './pages/profile/PrivacyPolicy';
-import { BankPayment } from './pages/profile/BankPayment';
-import { SubscriptionPlan } from './pages/profile/SubscriptionPlan';
-import { SystemSettings } from './pages/profile/SystemSettings';
+// Auth pages (needed on first load — keep static)
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
 import { SplashScreen } from './pages/auth/SplashScreen';
 import { OnboardingScreen } from './pages/auth/OnboardingScreen';
-import { FeedManagement } from './pages/management/FeedManagement';
-import { DiseaseDetection } from './pages/monitoring/DiseaseDetection';
-import { LiveMonitor } from './pages/monitoring/LiveMonitor';
-import { WaterTestScanner } from './pages/monitoring/WaterTestScanner';
-import { SubscriptionScreen } from './pages/profile/SubscriptionScreen';
-import { ExpertConsultations } from './pages/tools/ExpertConsultations';
-import { LanguageSettings } from './pages/profile/LanguageSettings';
-import { MedicineSchedule } from './pages/management/MedicineSchedule';
-import { WeatherFeedAlert } from './pages/tools/WeatherFeedAlert';
-import { WeatherAlerts } from './pages/tools/WeatherAlerts';
-import { LearningCenter } from './pages/tools/LearningCenter';
-import { Notifications } from './pages/tools/Notifications';
-import { ProfitROI }    from './pages/finance/ProfitROI';
-import { ROIOverview }  from './pages/finance/ROIOverview';
-import { ROIPondWise }  from './pages/finance/ROIPondWise';
-import { ROIYearWise }  from './pages/finance/ROIYearWise';
-import { ExportMarketTrends } from './pages/market/ExportMarketTrends';
-import { AdminDashboard } from './pages/dashboard/AdminDashboard';
-import { PondMonitor } from './pages/ponds/PondMonitor';
-import { PondHarvest } from './pages/ponds/PondHarvest';
-import { HarvestTracking } from './pages/ponds/HarvestTracking';
-import { PondFeedingLog } from './pages/ponds/PondFeedingLog';
-import { CultureSOP } from './pages/logs/CultureSOP';
-import { DailySOPLog } from './pages/logs/DailySOPLog';
-import { DailyConditionsLog } from './pages/logs/DailyConditionsLog';
-import { DailyExpenseLog } from './pages/logs/DailyExpenseLog';
-import { WaterLogDetail } from './pages/monitoring/WaterLogDetail';
-import { WaterReportDetail } from './pages/monitoring/WaterReportDetail';
-import { WaterReportScanner } from './pages/monitoring/WaterReportScanner';
-import { HarvestRevenue } from './pages/finance/HarvestRevenue';
-import { ExpenseReport } from './pages/finance/ExpenseReport';
-import { ROIEntry } from './pages/finance/ROIEntry';
-import { SOPLibrary } from './pages/management/SOPLibrary';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
-import { AquaCalc } from './pages/tools/AquaCalc';
-import { AquaShop } from './pages/shop/AquaShop';
-import { FarmerOrders } from './pages/orders/FarmerOrders';
-import { SmartFarmHub } from './pages/tools/SmartFarmHub';
-import { FarmerCommunity } from './pages/community/FarmerCommunity';
 
-// Provider Pages
-import { ProviderDashboard } from './pages/provider/ProviderDashboard';
-import { ProviderInventory } from './pages/provider/ProviderInventory';
-import { ProviderOrders }   from './pages/provider/ProviderOrders';
-import { ProviderRates }    from './pages/provider/ProviderRates';
-import { ProviderChat }     from './pages/provider/ProviderChat';
-import { ProviderLedger }   from './pages/provider/ProviderLedger';
-import { ProviderFarmers }  from './pages/provider/ProviderFarmers';
+// Core pages (keep static — used immediately after login)
+import { Dashboard } from './pages/dashboard/Dashboard';
+
+// ── Lazy-loaded pages ─────────────────────────────────────────────────────────
+const PondManagement    = lazy(() => import('./pages/ponds/PondManagement').then(m => ({ default: m.PondManagement })));
+const PondEntry         = lazy(() => import('./pages/ponds/PondEntry').then(m => ({ default: m.PondEntry })));
+const PondDetail        = lazy(() => import('./pages/ponds/PondDetail').then(m => ({ default: m.PondDetail })));
+const PondMonitor       = lazy(() => import('./pages/ponds/PondMonitor').then(m => ({ default: m.PondMonitor })));
+const PondHarvest       = lazy(() => import('./pages/ponds/PondHarvest').then(m => ({ default: m.PondHarvest })));
+const HarvestTracking   = lazy(() => import('./pages/ponds/HarvestTracking').then(m => ({ default: m.HarvestTracking })));
+const PondFeedingLog    = lazy(() => import('./pages/ponds/PondFeedingLog').then(m => ({ default: m.PondFeedingLog })));
+
+const WaterMonitoring   = lazy(() => import('./pages/monitoring/WaterMonitoring').then(m => ({ default: m.WaterMonitoring })));
+const DiseaseDetection  = lazy(() => import('./pages/monitoring/DiseaseDetection').then(m => ({ default: m.DiseaseDetection })));
+const LiveMonitor       = lazy(() => import('./pages/monitoring/LiveMonitor').then(m => ({ default: m.LiveMonitor })));
+const WaterTestScanner  = lazy(() => import('./pages/monitoring/WaterTestScanner').then(m => ({ default: m.WaterTestScanner })));
+const WaterReportScanner= lazy(() => import('./pages/monitoring/WaterReportScanner').then(m => ({ default: m.WaterReportScanner })));
+const WaterLogDetail    = lazy(() => import('./pages/monitoring/WaterLogDetail').then(m => ({ default: m.WaterLogDetail })));
+const WaterReportDetail = lazy(() => import('./pages/monitoring/WaterReportDetail').then(m => ({ default: m.WaterReportDetail })));
+
+const MarketPrices      = lazy(() => import('./pages/market/MarketPrices').then(m => ({ default: m.MarketPrices })));
+const ExportMarketTrends= lazy(() => import('./pages/market/ExportMarketTrends').then(m => ({ default: m.ExportMarketTrends })));
+
+const Profile           = lazy(() => import('./pages/profile/Profile').then(m => ({ default: m.Profile })));
+const EditProfile       = lazy(() => import('./pages/profile/EditProfile').then(m => ({ default: m.EditProfile })));
+const SecurityPrivacy   = lazy(() => import('./pages/profile/SecurityPrivacy').then(m => ({ default: m.SecurityPrivacy })));
+const PrivacyPolicy     = lazy(() => import('./pages/profile/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const BankPayment       = lazy(() => import('./pages/profile/BankPayment').then(m => ({ default: m.BankPayment })));
+const SubscriptionPlan  = lazy(() => import('./pages/profile/SubscriptionPlan').then(m => ({ default: m.SubscriptionPlan })));
+const SystemSettings    = lazy(() => import('./pages/profile/SystemSettings').then(m => ({ default: m.SystemSettings })));
+const SubscriptionScreen= lazy(() => import('./pages/profile/SubscriptionScreen').then(m => ({ default: m.SubscriptionScreen })));
+const LanguageSettings  = lazy(() => import('./pages/profile/LanguageSettings').then(m => ({ default: m.LanguageSettings })));
+
+const FeedManagement    = lazy(() => import('./pages/management/FeedManagement').then(m => ({ default: m.FeedManagement })));
+const MedicineSchedule  = lazy(() => import('./pages/management/MedicineSchedule').then(m => ({ default: m.MedicineSchedule })));
+const SOPLibrary        = lazy(() => import('./pages/management/SOPLibrary').then(m => ({ default: m.SOPLibrary })));
+
+const ExpertConsultations= lazy(() => import('./pages/tools/ExpertConsultations').then(m => ({ default: m.ExpertConsultations })));
+const WeatherFeedAlert  = lazy(() => import('./pages/tools/WeatherFeedAlert').then(m => ({ default: m.WeatherFeedAlert })));
+const WeatherAlerts     = lazy(() => import('./pages/tools/WeatherAlerts').then(m => ({ default: m.WeatherAlerts })));
+const LearningCenter    = lazy(() => import('./pages/tools/LearningCenter').then(m => ({ default: m.LearningCenter })));
+const Notifications     = lazy(() => import('./pages/tools/Notifications').then(m => ({ default: m.Notifications })));
+const AquaCalc          = lazy(() => import('./pages/tools/AquaCalc').then(m => ({ default: m.AquaCalc })));
+const SmartFarmHub      = lazy(() => import('./pages/tools/SmartFarmHub').then(m => ({ default: m.SmartFarmHub })));
+
+const ProfitROI         = lazy(() => import('./pages/finance/ProfitROI').then(m => ({ default: m.ProfitROI })));
+const ROIOverview       = lazy(() => import('./pages/finance/ROIOverview').then(m => ({ default: m.ROIOverview })));
+const ROIPondWise       = lazy(() => import('./pages/finance/ROIPondWise').then(m => ({ default: m.ROIPondWise })));
+const ROIYearWise       = lazy(() => import('./pages/finance/ROIYearWise').then(m => ({ default: m.ROIYearWise })));
+const HarvestRevenue    = lazy(() => import('./pages/finance/HarvestRevenue').then(m => ({ default: m.HarvestRevenue })));
+const ExpenseReport     = lazy(() => import('./pages/finance/ExpenseReport').then(m => ({ default: m.ExpenseReport })));
+const ROIEntry          = lazy(() => import('./pages/finance/ROIEntry').then(m => ({ default: m.ROIEntry })));
+
+const CultureSOP        = lazy(() => import('./pages/logs/CultureSOP').then(m => ({ default: m.CultureSOP })));
+const DailySOPLog       = lazy(() => import('./pages/logs/DailySOPLog').then(m => ({ default: m.DailySOPLog })));
+const DailyConditionsLog= lazy(() => import('./pages/logs/DailyConditionsLog').then(m => ({ default: m.DailyConditionsLog })));
+const DailyExpenseLog   = lazy(() => import('./pages/logs/DailyExpenseLog').then(m => ({ default: m.DailyExpenseLog })));
+
+const AquaShop          = lazy(() => import('./pages/shop/AquaShop').then(m => ({ default: m.AquaShop })));
+const FarmerOrders      = lazy(() => import('./pages/orders/FarmerOrders').then(m => ({ default: m.FarmerOrders })));
+const FarmerCommunity   = lazy(() => import('./pages/community/FarmerCommunity').then(m => ({ default: m.FarmerCommunity })));
+const AdminDashboard    = lazy(() => import('./pages/dashboard/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+
+// Provider Pages (lazy — only loaded by provider accounts)
+const ProviderDashboard = lazy(() => import('./pages/provider/ProviderDashboard').then(m => ({ default: m.ProviderDashboard })));
+const ProviderInventory = lazy(() => import('./pages/provider/ProviderInventory').then(m => ({ default: m.ProviderInventory })));
+const ProviderOrders    = lazy(() => import('./pages/provider/ProviderOrders').then(m => ({ default: m.ProviderOrders })));
+const ProviderRates     = lazy(() => import('./pages/provider/ProviderRates').then(m => ({ default: m.ProviderRates })));
+const ProviderChat      = lazy(() => import('./pages/provider/ProviderChat').then(m => ({ default: m.ProviderChat })));
+const ProviderLedger    = lazy(() => import('./pages/provider/ProviderLedger').then(m => ({ default: m.ProviderLedger })));
+const ProviderFarmers   = lazy(() => import('./pages/provider/ProviderFarmers').then(m => ({ default: m.ProviderFarmers })));
+
+// Lazy-load fallback spinner
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[#060A10]">
+    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+  </div>
+);
+
+
 
 export default function App() {
   return (
@@ -512,6 +533,7 @@ const AppContent = () => {
               }}
               className="w-full min-h-[100dvh] relative z-10 overflow-x-hidden"
             >
+              <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
                 {/* Farmer Routes */}
                 <Route path="/dashboard" element={
@@ -583,6 +605,7 @@ const AppContent = () => {
 
                 <Route path="*" element={<Navigate to={isProvider ? "/provider/dashboard" : "/dashboard"} replace />} />
               </Routes>
+              </Suspense>
             </motion.div>
           </AnimatePresence>
 

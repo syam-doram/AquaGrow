@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { Preferences } from '@capacitor/preferences';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { User, Pond, WaterQualityRecord, MarketPrice, FeedRecord, MedicineRecord } from '../types';
 import { API_BASE_URL } from '../config';
 import { translations } from '../translations';
@@ -51,6 +53,7 @@ interface DataContextType {
   updateHarvestRequest: (requestId: string, updates: any) => Promise<void>;
   sendHarvestMessage: (requestId: string, message: string, proposedPrice?: number) => Promise<any>;
   harvestRequests: any[];
+  communityUnreadCount: number;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -106,6 +109,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [completedReminderIds, setCompletedReminderIds] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [harvestRequests, setHarvestRequests] = useState<any[]>(() => readCache('aqua_cache_harvest', []));
+  const [communityUnreadCount, setCommunityUnreadCount] = useState(0);
 
   const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(() => {
     const saved = localStorage.getItem('aqua_tokens');
@@ -389,7 +393,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('[Network] Failed to parse saved user on reconnect:', e);
       }
     };
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -397,8 +400,58 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Community Unread Tracking (Global) — total unread message count
+  useEffect(() => {
+    if (!user || user.role === 'provider') {
+      setCommunityUnreadCount(0);
+      return;
+    }
+
+    const CHANNELS = ['general', 'market', 'medicine', 'feed', 'water', 'aerator'];
+    const unsubs: (() => void)[] = [];
+    // Store latest snapshot docs per channel so we can recount without a new snapshot
+    const snapshotCache: Record<string, string[]> = {};
+
+    const recount = () => {
+      const markers = JSON.parse(localStorage.getItem('community_read_markers') || '{}');
+      let total = 0;
+      for (const chId of CHANNELS) {
+        const docs = snapshotCache[chId] || [];
+        if (!docs.length) continue;
+        const lastReadId = markers[chId];
+        if (!lastReadId) {
+          total += docs.length;
+        } else {
+          for (const docId of docs) {
+            if (docId === lastReadId) break;
+            total++;
+          }
+        }
+      }
+      setCommunityUnreadCount(total);
+    };
+
+    CHANNELS.forEach(chId => {
+      const q = query(collection(db, 'community_messages', chId, 'messages'), orderBy('createdAt', 'desc'), limit(20));
+      unsubs.push(onSnapshot(q, (snap) => {
+        // Cache doc IDs (newest-first) for this channel
+        snapshotCache[chId] = snap.docs.map(d => d.id);
+        recount();
+      }, (err) => console.error(`[CommunityUnread] ${chId} fail:`, err)));
+    });
+
+    // When FarmerCommunity marks a channel as read, recount immediately
+    const handleMarkedRead = () => recount();
+    window.addEventListener('communityMarkedRead', handleMarkedRead);
+
+    return () => {
+      unsubs.forEach(u => u());
+      window.removeEventListener('communityMarkedRead', handleMarkedRead);
+    };
+  }, [user]);
+
 
   useEffect(() => {
     const init = async () => {
@@ -1117,6 +1170,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       addNotification,
       markNotificationsRead,
       unreadCount,
+      communityUnreadCount,
       resetPassword,
       loginWithFirebaseToken: loginWithFirebaseToken as any,
       registerWithFirebaseToken: registerWithFirebaseToken as any,

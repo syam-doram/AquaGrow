@@ -250,6 +250,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     apiFetch,
     addNotification,
     unreadCount,
+    communityUnreadCount,
     reminders,
     feedLogs,
     medicineLogs,
@@ -1053,11 +1054,18 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   { label: `🛒 ${t.shopTitle.split(' ')[0]}`, icon: ShoppingBag, path: '/shop', from: '#C78200', to: '#92400E' },
                   { label: 'Smart Farm', icon: CircuitBoard, path: '/smart-farm', from: '#06b6d4', to: '#0284c7' },
                   { label: 'Orders', icon: Package, path: '/orders', from: '#f59e0b', to: '#d97706' },
-                  { label: 'Community', icon: Users, path: '/community', from: '#10b981', to: '#059669' },
+                   { label: 'Community', icon: Users, path: '/community', from: '#10b981', to: '#059669', badge: communityUnreadCount },
                 ].map((n, i) => (
-                  <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none">
-                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
+                  <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none relative">
+                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110 relative", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
                       <n.icon size={18} className="drop-shadow-sm" style={{ color: n.from }} />
+                      
+                      {/* Community/Notification Badge */}
+                      {n.badge && n.badge > 0 && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-lg shadow-red-500/20">
+                          <span className="text-[7px] font-black text-white">{n.badge > 9 ? '9+' : n.badge}</span>
+                        </motion.div>
+                      )}
                     </div>
                     <span className={cn("text-[7px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
                   </motion.button>
