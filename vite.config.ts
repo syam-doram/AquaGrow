@@ -26,11 +26,25 @@ export default defineConfig(({ mode }) => {
       drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
     build: {
-      chunkSizeWarningLimit: 1500,
-      minify: 'esbuild',
-      target: 'es2020',
-      assetsInlineLimit: 4096,
-      // Let Vite auto-chunk — manualChunks caused circular dep crash
+      chunkSizeWarningLimit: 2000,
+      minify: 'esbuild', // esbuild is extremely fast and effective
+      target: 'es2022',  // modern target reduces polyfill bloat
+      cssMinify: true,
+      cssCodeSplit: true,
+      assetsInlineLimit: 10240, // inline small assets to reduce requests
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              // Group common libs into stable buckets to avoid circular dep crashes
+              if (id.includes('react') || id.includes('router') || id.includes('framer-motion') || id.includes('motion')) return 'vendor-core';
+              if (id.includes('firebase')) return 'vendor-fb';
+              if (id.includes('recharts') || id.includes('d3')) return 'vendor-viz';
+              return 'vendor-libs';
+            }
+          }
+        }
+      }
     },
   };
 });

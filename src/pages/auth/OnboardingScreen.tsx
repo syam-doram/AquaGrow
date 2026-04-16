@@ -36,7 +36,8 @@ interface OnboardingScreenProps {
 
 interface Slide {
   id: number;
-  emoji: string;
+  emoji?: string;
+  imageUrl?: string;
   icon: React.ElementType;
   gradient: string;
   bgGlow: string;
@@ -51,16 +52,16 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    emoji: '🦐',
+    imageUrl: '/app_icon_3d.png',
     icon: Waves,
-    gradient: 'from-[#C78200] to-[#F59E0B]',
-    bgGlow: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(199,130,0,0.38) 0%, transparent 70%)',
+    gradient: 'from-[#FF6B00] to-[#FF9000]',
+    bgGlow: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(255,107,0,0.45) 0%, transparent 70%)',
     title: 'Welcome to AquaGrow',
     subtitle: 'India\'s #1 Smart Shrimp Platform',
     description:
       'An end-to-end aquaculture command centre built for Telugu & coastal farmers. Manage every pond, every device, every rupee — from one app.',
     badge: 'Smart Farming',
-    badgeColor: '#C78200',
+    badgeColor: '#FF6B00',
     features: [
       { icon: MapPin,      label: 'Multi-pond dashboard with live DOC tracking' },
       { icon: Bell,        label: 'Push alerts even when your phone is locked' },
@@ -330,10 +331,14 @@ export const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
                   animate={{ opacity: [0.6, 1, 0.6] }}
                   transition={{ duration: 2.5, repeat: Infinity }}
                 />
-                {/* Big emoji */}
-                <span className="text-5xl z-10 relative select-none" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}>
-                  {slide.emoji}
-                </span>
+                {/* Big emoji or 3D image */}
+                {slide.imageUrl ? (
+                  <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover z-10 relative" />
+                ) : (
+                  <span className="text-5xl z-10 relative select-none" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}>
+                    {slide.emoji}
+                  </span>
+                )}
               </div>
             </motion.div>
 
