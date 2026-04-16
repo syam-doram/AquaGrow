@@ -336,12 +336,14 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   }, [form, hasAnyValue]);
 
   // ── Auto-show critical modal when dangerous readings are entered ──
-  // Re-arms on each save (farmer logs new entry, might need fresh guidance)
+  // RE-ARMED ON EACH SAVE: Disabled per user request to avoid interrupting the logging flow.
+  /*
   useEffect(() => {
     if (waterCriticals.some(c => c.status === 'critical') && !criticalAcked) {
       setShowCriticalModal(true);
     }
   }, [waterCriticals, criticalAcked]);
+  */
 
   // Score visuals
   const scoreGrade = healthScore >= 80 ? 'Healthy' : healthScore >= 60 ? 'Monitor' : 'Act Now';
