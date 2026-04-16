@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, Users, Send, Hash, TrendingUp,
   Pill, Utensils, Droplets, Wind,
-  ThumbsUp, Search, X, Pin, Loader2, AlertCircle,
+  ThumbsUp, Search, X, Pin, Loader2, AlertCircle, Image as ImageIcon, Camera,
 } from 'lucide-react';
 import {
   collection, addDoc, query, orderBy, limit,
   onSnapshot, serverTimestamp, updateDoc, doc,
   increment, Timestamp,
 } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../lib/firebase';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 
@@ -34,6 +35,7 @@ interface CommunityMessage {
   loc: string;
   likes: number;
   isPinned?: boolean;
+  imageUrl?: string;
   createdAt: Timestamp | null;
 }
 
@@ -127,6 +129,8 @@ export const FarmerCommunity = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError]         = useState<string | null>(null);
   // Track visible viewport height (shrinks when keyboard opens on Android)
   const [vhPx, setVhPx] = useState(() => window.visualViewport?.height ?? window.innerHeight);
@@ -139,6 +143,7 @@ export const FarmerCommunity = () => {
   const unsubRef          = useRef<(() => void) | null>(null);
   const prevCountRef       = useRef(0);
   const initialLoadDoneRef = useRef(false); // prevents sound on first batch load
+  const fileInputRef       = useRef<HTMLInputElement>(null);
 
   // ─── Track visualViewport to handle keyboard open/close ───────────────────
   useEffect(() => {
@@ -225,17 +230,21 @@ export const FarmerCommunity = () => {
   }, [messages, searchQuery]);
 
   // ─── Send ─────────────────────────────────────────────────────────────────
-  const handleSend = async () => {
-    const text = inputText.trim();
-    if (!text || isSending) return;
+  const handleSend = async (textOverride?: string, urlOverride?: string) => {
+    const text = textOverride ?? inputText.trim();
+    const imageUrl = urlOverride || undefined;
+
+    if ((!text && !imageUrl) || isSending) return;
     setIsSending(true);
-    setInputText('');
+    if (!textOverride) setInputText('');
     playChatSound('send');
+
     try {
       await addDoc(
         collection(db, 'community_messages', activeChannel, 'messages'),
         {
           text,
+          imageUrl,
           author:   user?.name || 'Farmer',
           authorId: (user as any)?._id || (user as any)?.id || 'anon',
           loc:      (user as any)?.location || 'My Farm',
@@ -243,13 +252,86 @@ export const FarmerCommunity = () => {
           createdAt: serverTimestamp(),
         }
       );
-    } catch {
-      setInputText(text);
+    } catch (err) {
+      if (!textOverride) setInputText(text);
       setError('Message not sent. Please try again.');
     } finally {
       setIsSending(false);
       textInputRef.current?.focus();
     }
+  };
+
+  // ─── Image Upload (see uploadBlob below) ──────────────────────────────────
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset value immediately so the same photo can be selected again later
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are supported.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError('Image too large (max 8 MB). Please pick a smaller photo.');
+      return;
+    }
+
+    // Read file as ArrayBuffer NOW — before any await gap —
+    // because Capacitor WebView can lose the File reference after an async switch.
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      const blob = new Blob([uint8], { type: file.type });
+      uploadBlob(blob, file.name, file.type);
+    } catch (readErr: any) {
+      console.error('[Community] File read error:', readErr);
+      setError('Could not read the selected image. Please try again.');
+    }
+  };
+
+  const uploadBlob = (blob: Blob, originalName: string, mimeType: string) => {
+    if (isUploading) return;
+    setIsUploading(true);
+    setUploadProgress(0);
+    setError(null);
+
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const safeName = originalName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '') || `photo.${ext}`;
+    const fileName = `${Date.now()}_${safeName}`;
+    const storageRef = ref(storage, `community_images/${activeChannel}/${fileName}`);
+    const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: mimeType });
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(pct);
+      },
+      (err: any) => {
+        console.error('[Community] Upload error:', err?.code, err?.message, err);
+        let msg = `Upload failed (${err?.code || 'unknown'}).`;
+        if (err?.code === 'storage/unauthorized') msg = 'Storage permission denied. Please update Firebase Storage Rules to allow writes.';
+        else if (err?.code === 'storage/canceled') msg = 'Upload was canceled.';
+        else if (err?.code === 'storage/retry-limit-exceeded') msg = 'Connection timed out. Check your internet and try again.';
+        setError(msg);
+        setIsUploading(false);
+        setUploadProgress(0);
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          setIsUploading(false);
+          setUploadProgress(0);
+          handleSend('', downloadURL);
+        } catch (urlErr: any) {
+          console.error('[Community] getDownloadURL error:', urlErr);
+          setError('Upload succeeded but could not get image link. Try again.');
+          setIsUploading(false);
+        }
+      },
+    );
   };
 
   // ─── Like ─────────────────────────────────────────────────────────────────
@@ -373,15 +455,24 @@ export const FarmerCommunity = () => {
          ══════════════════════════════════════════════════════════ */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pt-3 pb-3 space-y-2 relative z-10">
 
-        {/* Error */}
         <AnimatePresence>
           {error && (
-            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className={cn('rounded-2xl border px-3 py-2.5 flex items-center gap-2.5 mb-2',
-                isDark ? 'bg-red-500/8 border-red-500/20' : 'bg-red-50 border-red-200')}>
-              <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
-              <p className={cn('text-[8px] font-medium flex-1', isDark ? 'text-red-400' : 'text-red-600')}>{error}</p>
-              <button onClick={() => setError(null)} className="text-[7px] font-black text-red-400">✕</button>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+              className={cn('rounded-2xl border px-3.5 py-3 mb-4 space-y-1.5',
+                isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200')}>
+              <div className="flex items-center gap-2.5">
+                <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                <p className={cn('text-[9px] font-black uppercase tracking-widest flex-1', isDark ? 'text-red-400' : 'text-red-700')}>
+                  Upload Error
+                </p>
+                <button onClick={() => setError(null)} className="text-[8px] font-black text-red-400">✕</button>
+              </div>
+              <p className={cn('text-[9.5px] font-medium leading-relaxed', isDark ? 'text-red-300' : 'text-red-600')}>{error}</p>
+              {error.includes('Permission') && (
+                <p className={cn('text-[7.5px] font-bold uppercase tracking-[0.05em] py-1 px-2 rounded-lg', isDark ? 'bg-red-500/20 text-red-200' : 'bg-red-100 text-red-800')}>
+                  Tip: Enable "Storage" in Firebase Console and set rules to public.
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -438,10 +529,19 @@ export const FarmerCommunity = () => {
                     <span className={cn('text-[6px]', isDark ? 'text-white/15' : 'text-slate-300')}>· {fmtTime(msg.createdAt)}</span>
                   </div>
                 )}
-                <div className={cn('rounded-2xl px-3.5 py-2.5 shadow-sm',
+                <div className={cn('rounded-2xl px-3.5 py-2.5 shadow-sm overflow-hidden',
                   isMe ? 'bg-emerald-500 rounded-tr-sm' : isDark ? 'bg-white/[0.07] border border-white/8 rounded-tl-sm' : 'bg-white border border-slate-100 rounded-tl-sm')}>
-                  <p className={cn('text-[9px] font-medium leading-relaxed', isMe ? 'text-white' : isDark ? 'text-white/80' : 'text-slate-700')}>{msg.text}</p>
-                  {isMe && <p className="text-[6px] text-white/50 text-right mt-0.5">{fmtTime(msg.createdAt)}</p>}
+                  {msg.imageUrl && (
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-2 -mx-1 -mt-1">
+                      <img src={msg.imageUrl} alt="chat" className="w-full h-auto max-h-[300px] object-cover rounded-xl" loading="lazy" />
+                    </motion.div>
+                  )}
+                  {msg.text && (
+                    <p className={cn('text-[9.5px] font-medium leading-relaxed break-words', isMe ? 'text-white' : isDark ? 'text-white/80' : 'text-slate-700')}>
+                      {msg.text}
+                    </p>
+                  )}
+                  {isMe && <p className="text-[6px] text-white/50 text-right mt-1">{fmtTime(msg.createdAt)}</p>}
                 </div>
                 {!isMe && (
                   <motion.button whileTap={{ scale: 0.85 }} onClick={() => toggleLike(msg.id)}
@@ -466,30 +566,50 @@ export const FarmerCommunity = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-          INPUT BAR — sticks above keyboard at all times
-         ══════════════════════════════════════════════════════════ */}
       <div ref={inputRef} className={cn(
         'flex-shrink-0 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 border-t z-40',
         isDark ? 'bg-[#060A10] border-white/5' : 'bg-white border-slate-100 shadow-sm'
       )}>
-        <div className={cn('flex items-center gap-2 rounded-[1.6rem] border px-3 py-2',
+        <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileSelect} />
+
+        {/* Progress Bar */}
+        <AnimatePresence>
+          {isUploading && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mb-3">
+              <div className="flex items-center justify-between mb-1.5 px-1">
+                <span className="text-[7.5px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1.5">
+                  <Loader2 size={10} className="animate-spin" /> Uploading Photo...
+                </span>
+                <span className="text-[8px] font-black text-emerald-500">{Math.round(uploadProgress)}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden">
+                <motion.div className="h-full bg-emerald-500" initial={{ width: 0 }} animate={{ width: `${uploadProgress}%` }} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className={cn('flex items-center gap-2 rounded-[1.6rem] border px-2 py-2',
           isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')}>
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
-            style={{ background: `${currentChannel.color}20` }}>
-            {currentChannel.emoji}
-          </div>
+
+          <motion.button whileTap={{ scale: 0.88 }} onClick={() => fileInputRef.current?.click()}
+            className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all border',
+              isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-white border-slate-100 text-slate-400')}>
+            <Camera size={14} />
+          </motion.button>
+
           <input ref={textInputRef} value={inputText}
             onChange={e => setInputText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={`Message #${currentChannel.label}...`}
             className={cn('flex-1 bg-transparent text-[9.5px] font-medium outline-none py-1',
               isDark ? 'text-white placeholder:text-white/20' : 'text-slate-800 placeholder:text-slate-400')} />
-          <motion.button whileTap={{ scale: 0.88 }} onClick={handleSend}
-            disabled={!inputText.trim() || isSending}
+
+          <motion.button whileTap={{ scale: 0.88 }} onClick={() => handleSend()}
+            disabled={(!inputText.trim() && !isUploading) || isSending}
             className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
-              inputText.trim() && !isSending ? 'text-white shadow-lg' : isDark ? 'bg-white/5 text-white/15' : 'bg-slate-100 text-slate-300')}
-            style={inputText.trim() && !isSending ? { background: currentChannel.color, boxShadow: `0 4px 12px ${currentChannel.color}40` } : {}}>
+              (inputText.trim() && !isSending) ? 'text-white shadow-lg' : isDark ? 'bg-white/5 text-white/15' : 'bg-slate-100 text-slate-300')}
+            style={(inputText.trim() && !isSending) ? { background: currentChannel.color, boxShadow: `0 4px 12px ${currentChannel.color}40` } : {}}>
             {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
           </motion.button>
         </div>

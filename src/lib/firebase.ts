@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import { getFunctions } from 'firebase/functions';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider, CustomProvider } from 'firebase/app-check';
 
 const firebaseConfig = {
@@ -99,6 +100,8 @@ export const onMessageListener = async (): Promise<unknown> => {
   });
 };
 
+// Initialize Storage
+export const storage = getStorage(app);
+
 // Legacy sync export — kept for any imports that reference `messaging` directly.
-// Always null because initialization is now async; use requestFcmToken instead.
 export const messaging = null;

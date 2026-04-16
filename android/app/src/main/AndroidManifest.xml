@@ -98,6 +98,15 @@ package="com.aquagrow.app">
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Photo / Gallery access -->
+    <!-- Android 13+ (API 33) — granular media permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Android 12 and below -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
     <!-- ── Push Notification permissions ── -->
     <!-- Required on Android 13+ (API 33) — without this notifications are silently blocked -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
