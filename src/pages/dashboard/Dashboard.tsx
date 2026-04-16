@@ -64,6 +64,7 @@ import { triggerAeratorCheckPush, snoozeAeratorCheck, parseAeratorNotification }
 import { sendHarvestStagePush, HARVEST_STAGE_META, parseHarvestNotification } from '../../services/harvestPushService';
 import { CriticalWaterAlert, CriticalWaterBanner, buildCriticals } from '../../components/CriticalWaterAlert';
 import { BatteryOptimizationPrompt } from '../../components/BatteryOptimizationPrompt';
+import { DailyFarmAdvisor } from '../../components/DailyFarmAdvisor';
 // import { useFirebaseAlerts } from '../../hooks/useFirebaseAlerts';
 
 
@@ -506,16 +507,23 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
       });
     }
 
-    // 2. Log Lunar Alerts — once per phase per day
+    // 2. Log Lunar Alerts — once per phase per day (central handler, not per-pond)
     const lunarPhases = ['AMAVASYA', 'POURNAMI', 'ASHTAMI', 'NAVAMI'];
     if (lunarPhases.includes(lunar.phase)) {
       const lunarKey = `lunar_${lunar.phase}_${todayKey}`;
+      // Use localStorage (not sessionStorage) so it persists across app restarts today
       if (!localStorage.getItem(`history_notif_${lunarKey}`)) {
-        addNotification(t.moonPhaseTitle || 'Lunar Cycle Alert', `${lunar.phase} Phase Detected - Check SOP`, 'warning');
+        addNotification(
+          t.moonPhaseTitle || 'Lunar Cycle Alert',
+          `${lunar.phase} tonight: Reduce feed, increase aeration, apply minerals. Check SOP for details.`,
+          'warning'
+        );
         localStorage.setItem(`history_notif_${lunarKey}`, 'true');
+        // Also suppress the OS push for today
+        localStorage.setItem(`push_notif_${lunarKey}`, 'true');
       }
     }
-  }, [situationAlerts, lunar, t, addNotification]);
+  }, [situationAlerts, lunar, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pondTasks = useMemo(() => {
     if (!selectedPond) return [];
@@ -1029,6 +1037,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             );
           })()}
 
+          {/* ── DAILY FARM ADVISOR – Seasonal guidance, cautions & tips ── */}
+          <DailyFarmAdvisor
+            isDark={isDark}
+            ponds={ponds}
+            waterRecords={waterRecords}
+          />
 
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
 

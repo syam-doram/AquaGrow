@@ -14,8 +14,11 @@ export const triggerAeratorCheckPush = async (
     const token = getAccessToken();
     if (!token) return { sent: false };
 
-    const sentKey = `aerator_push_sent_${pondId}_stage${Math.ceil(doc / 20)}`;
-    if (sessionStorage.getItem(sentKey)) return { sent: false };
+    // Use localStorage + daily date stamp so the push fires at most ONCE per stage per day,
+    // even if the farmer restarts the app multiple times (sessionStorage was clearing on restart).
+    const todayDate = new Date().toISOString().split('T')[0];
+    const sentKey = `aerator_push_sent_${pondId}_stage${Math.ceil(doc / 20)}_${todayDate}`;
+    if (localStorage.getItem(sentKey)) return { sent: false };
 
     const stageLabel = getAeratorStageLabel(doc);
     const res = await fetch(`${API_BASE_URL}/push/aerator-check`, {
@@ -25,7 +28,7 @@ export const triggerAeratorCheckPush = async (
     });
 
     const data = await res.json();
-    if (data.sent || data.simulated) sessionStorage.setItem(sentKey, '1');
+    if (data.sent || data.simulated) localStorage.setItem(sentKey, '1');
     return data;
   } catch (err) {
     console.warn('[AeratorPush] Failed:', err);

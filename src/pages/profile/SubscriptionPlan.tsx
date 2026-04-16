@@ -32,10 +32,10 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
     const diffMs = expiry.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     // Daily rates based on new pricing (annual / 365)
-    const dailyRate = user.subscriptionStatus === 'pro_silver' ? 16.43   // 5999/365
-                    : user.subscriptionStatus === 'pro_gold'   ? 32.87   // 11999/365
-                    : user.subscriptionStatus === 'pro_diamond'? 49.31   // 17999/365
-                    : 16.43;
+    const dailyRate = user.subscriptionStatus === 'pro_silver' ? (500 / 365)      // 500/year
+                    : user.subscriptionStatus === 'pro_gold'   ? (1200 / 365)     // 1200/year
+                    : user.subscriptionStatus === 'pro_diamond'? (2000 / 365)     // 2000/year
+                    : (500 / 365);
     return Math.floor(diffDays * dailyRate);
   };
 
@@ -46,14 +46,14 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
     { 
       id: 'TXN_A827H921K',
       date: new Date('2026-04-02'),
-      amount: '₹ 5,999',
+      amount: '₹ 500',
       status: 'Activated',
       plan: 'Aqua 1 (Silver)'
     },
     { 
       id: 'TXN_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       date: new Date(),
-      amount: user.subscriptionStatus === 'pro_gold' ? `₹ ${11999 - existingCredit}` : user.subscriptionStatus === 'pro_diamond' ? `₹ ${17999 - existingCredit}` : '₹ 0',
+      amount: user.subscriptionStatus === 'pro_gold' ? `₹ ${1200 - existingCredit}` : user.subscriptionStatus === 'pro_diamond' ? `₹ ${2000 - existingCredit}` : '₹ 0',
       refund: `₹ ${existingCredit}`,
       status: 'Success',
       plan: user.subscriptionStatus === 'pro_gold' ? 'Aqua 3 (Gold)' : user.subscriptionStatus === 'pro_diamond' ? 'Aqua 6 (Diamond)' : 'N/A'

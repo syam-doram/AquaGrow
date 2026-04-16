@@ -112,7 +112,12 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   const airTemp  = baseTemp - (hour < 6 || hour > 19 ? 5 : hour < 9 ? 2 : 0);
   // Rain probability peaks monsoon June–Sep, higher at noon+
   const rainProb = month >= 6 && month <= 9 ? (hour >= 12 && hour <= 18 ? 0.45 : 0.25) : 0.05;
-  const isRaining   = Math.random() < rainProb;
+  // Use a stable daily seed (day-of-year + pondId hash) so isRaining doesn't
+  // flip on every render and cause repeated duplicate notifications.
+  const _daySeed  = now.getFullYear() * 1000 + (now.getMonth() * 31 + now.getDate());
+  const _pondHash = pond.pondId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const _stableRng = ((_daySeed * 9301 + _pondHash * 49297) % 233280) / 233280;
+  const isRaining   = _stableRng < rainProb;
   const isHeatWave  = airTemp >= 36;
   const isPreDawn   = inWindow(hour, 3, 6);    // 3–6 AM — DO crash risk
   const isMorning   = inWindow(hour, 5, 9);    // 5–9 AM — morning feed window
@@ -184,10 +189,10 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
     return alerts.sort((a, b) => b.urgency - a.urgency);
   }
 
-  // ─── STOCKING DAY (DOC 0 or 1) ──────────────────────────────────────────────
-  if (pond.doc === 0 || pond.doc === 1) {
+  // ─── STOCKING DAY (DOC 0) ───────────────────────────────────────────────────
+  if (pond.doc === 0) {
     alerts.push({
-      id: `stocking-day-${pond.pondId}`,
+      id: `stocking-day-doc0-${pond.pondId}`,
       type: 'critical',
       category: 'medicine',
       emoji: '🐟',
@@ -198,20 +203,35 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
       urgency: 10,
       timestamp: ts,
     });
+    return alerts.sort((a, b) => b.urgency - a.urgency);
+  }
 
+  // ─── DAY 1 — FIRST FEED PROTOCOL ────────────────────────────────────────────
+  if (pond.doc === 1) {
     alerts.push({
-      id: `feed-stocking-${pond.pondId}`,
+      id: `stocking-day-doc1-${pond.pondId}`,
+      type: 'critical',
+      category: 'medicine',
+      emoji: '🐟',
+      title: `Stocking Day Protocol — ${species}`,
+      body: `${pond.pondName}: CRITICAL first 24 hours. Acclimate seed for 30 min (temperature match). Apply Stress Booster immediately (Vit C + Betaine in water). Keep aerators at 100%. ${isTiger ? 'Tiger PL: extra sensitivity — monitor for 48hrs, watch for red gill signs.' : 'Vannamei PL: apply gut probiotic in water within first 6 hrs.'}`,
+      action: 'Log Medicine',
+      actionPath: '/medicine',
+      urgency: 10,
+      timestamp: ts,
+    });
+    alerts.push({
+      id: `feed-stocking-doc1-${pond.pondId}`,
       type: 'warning',
       category: 'feed',
       emoji: '🌱',
       title: `Day 1 Feed Protocol — ${species}`,
-      body: `Start BLIND FEEDING at DOC 1–3: Broadcast ${isTiger ? '1.2 kg/acre/day' : '1.0 kg/acre/day'} of Crumble No.1 evenly across pond. DO NOT use feed trays on Day 1. Feed 4x daily (6 AM, 10 AM, 2 PM, 6 PM). Increase 10% each day if no residue.`,
+      body: `Start BLIND FEEDING: Broadcast ${isTiger ? '1.2 kg/acre/day' : '1.0 kg/acre/day'} of Crumble No.1 evenly across pond. DO NOT use feed trays on Day 1. Feed 4x daily (6 AM, 10 AM, 2 PM, 6 PM). Increase 10% each day if no residue.`,
       action: 'Log Feed',
       actionPath: '/feed',
       urgency: 8,
       timestamp: ts,
     });
-
     return alerts.sort((a, b) => b.urgency - a.urgency);
   }
 
@@ -615,29 +635,10 @@ export const analyzePondSituation = (pond: PondSituationInput): SituationAlert[]
   }
 
   // ─── LUNAR ALERTS ────────────────────────────────────────────────────────────
-  if (lunar.phase !== 'NORMAL' && pond.doc > 0) {
-    const lunarMessages: Record<string, string> = {
-      AMAVASYA: `🌑 Amavasya tonight! HIGH mass molting in ${pond.pondName}. Reduce feed ${isTiger ? '30%' : '25%'}, run ALL aerators all night, apply Mineral Mix ${profile.mineralDose}.`,
-      POURNAMI: `🌕 Pournami! High biological activity. Increase aeration to 100% for ${pond.pondName}. Monitor DO at midnight. ${isVannamei ? 'Apply water probiotic this evening.' : ''}`,
-      ASHTAMI: `🌓 Ashtami: Molting initiation begins. Reduce feed ${isTiger ? '15%' : '10%'} for ${pond.pondName}. Apply minerals (evening). Watch soft-shells.`,
-      NAVAMI: `🌙 Navami: Peak molting recovery night. Reduce feed ${isTiger ? '20%' : '15%'} for ${pond.pondName}. Maintain max aeration until 2 AM.`,
-    };
-
-    if (lunarMessages[lunar.phase]) {
-      alerts.push({
-        id: `lunar-${lunar.phase}-${pond.pondId}`,
-        type: lunar.phase === 'AMAVASYA' ? 'critical' : 'warning',
-        category: 'medicine',
-        emoji: lunar.phase === 'AMAVASYA' ? '🌑' : lunar.phase === 'POURNAMI' ? '🌕' : '🌙',
-        title: `${lunar.phase} Lunar Alert — ${pond.pondName}`,
-        body: lunarMessages[lunar.phase],
-        action: 'View SOP',
-        actionPath: '/medicine',
-        urgency: lunar.phase === 'AMAVASYA' ? 9 : 7,
-        timestamp: ts,
-      });
-    }
-  }
+  // NOTE: Lunar alerts are handled centrally in Dashboard.tsx with its own
+  // dedup key. We do NOT emit them here to avoid double-firing (one per pond
+  // from here + one central from Dashboard = N+1 duplicates).
+  // The per-pond detail body is still surfaced on the SOP card shown in the UI.
 
   // ─── NEXT MILESTONE APPROACH ─────────────────────────────────────────────────
   const milestones = isTiger

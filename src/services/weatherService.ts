@@ -234,9 +234,11 @@ export const sendWeatherPushAlert = async (
   alert: { title: string; desc: string; aqAction: string; type: 'critical' | 'warning' | 'info' },
   weather: WeatherData,
 ): Promise<void> => {
-  // 3-hour suppress key per alert title per session
-  const suppressKey = `wx_push_${alert.title.replace(/\s+/g, '_')}`;
-  const lastSent = Number(sessionStorage.getItem(suppressKey) || '0');
+  // Per-alert suppress: localStorage with today's date + 3-hour window
+  // Using localStorage (not sessionStorage) so it survives app restarts during the same day.
+  const todayDate = new Date().toISOString().split('T')[0];
+  const suppressKey = `wx_push_${todayDate}_${alert.title.replace(/\s+/g, '_')}`;
+  const lastSent = Number(localStorage.getItem(suppressKey) || '0');
   if (Date.now() - lastSent < 3 * 60 * 60 * 1000) return; // already sent in last 3h
 
   try {
@@ -262,7 +264,7 @@ export const sendWeatherPushAlert = async (
       }),
     });
     if (res.ok) {
-      sessionStorage.setItem(suppressKey, String(Date.now()));
+      localStorage.setItem(suppressKey, String(Date.now()));
       console.log(`[WeatherPush] Triggered FCM for: ${alert.title}`);
     }
   } catch (e) {
