@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -286,6 +286,40 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
           ))}
         </motion.div>
 
+
+        {/* ── IoT DEVICE SYNC STATUS (above Live Farm Load) ── */}
+        {devices.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+            <p className={cn('text-[7px] font-black uppercase tracking-widest px-1 mb-1.5', isDark ? 'text-white/25' : 'text-slate-400')}>
+              IoT Device Sync
+            </p>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {devices.map(dev => {
+                const statusColor = dev.status === 'online' ? '#10b981' : dev.status === 'warning' ? '#f59e0b' : '#ef4444';
+                const statusLabel = dev.status === 'online' ? 'Synced' : dev.status === 'warning' ? 'Warning' : 'Offline';
+                const typeIcon = dev.type === 'aerator' ? '🌀' : dev.type === 'sensor' ? '📡' : '💧';
+                return (
+                  <div key={dev.id} className={cn('flex-shrink-0 flex flex-col gap-1 px-3 py-2.5 rounded-2xl border min-w-[100px] relative', isDark ? 'bg-white/4 border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+                    <div className="absolute top-2 right-2">
+                      <span className={cn('w-1.5 h-1.5 rounded-full block', dev.status === 'warning' && 'animate-pulse')} style={{ background: statusColor }} />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">{typeIcon}</span>
+                      <div className="flex items-end gap-[1.5px]">
+                        {[25, 50, 75, 100].map((t, i) => (
+                          <div key={i} style={{ width: 2.5, height: 3 + i * 2.5, borderRadius: 1, background: dev.signal >= t ? statusColor : isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0' }} />
+                        ))}
+                      </div>
+                    </div>
+                    <p className={cn('text-[8px] font-black tracking-tight leading-tight line-clamp-1', isDark ? 'text-white/80' : 'text-slate-800')}>{dev.name}</p>
+                    <p className="text-[7px] font-black uppercase tracking-wider" style={{ color: statusColor }}>{statusLabel}</p>
+                    <p className={cn('text-[6.5px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>{dev.isOn ? '⚡ On' : '⏹ Off'} · {dev.lastSeen}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
         {/* Ã¢â€â‚¬Ã¢â€â‚¬ LIVE POWER INDICATOR Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -392,35 +426,6 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 </motion.div>
               ) : (
                 <>
-                  {/* Ã¢â€â‚¬Ã¢â€â‚¬ POND FILTER CHIPS Ã¢â€â‚¬Ã¢â€â‚¬ */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-                    <button
-                      onClick={() => setSelectedPondId('all')}
-                      className={cn(
-                        'flex-shrink-0 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all',
-                        selectedPondId === 'all'
-                          ? 'bg-cyan-500 text-white border-cyan-500'
-                          : isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-white border-slate-200 text-slate-500'
-                      )}
-                    >
-                      All Ponds
-                    </button>
-                    {ponds.filter(p => p.status === 'active').map(pond => (
-                      <button
-                        key={pond.id}
-                        onClick={() => setSelectedPondId(pond.id)}
-                        className={cn(
-                          'flex-shrink-0 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all',
-                          selectedPondId === pond.id
-                            ? 'bg-cyan-500 text-white border-cyan-500'
-                            : isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-white border-slate-200 text-slate-500'
-                        )}
-                      >
-                        {pond.name}
-                      </button>
-                    ))}
-                  </div>
-
                   {/* Ã¢â€â‚¬Ã¢â€â‚¬ AERATOR COMPLIANCE SUMMARY Ã¢â€â‚¬Ã¢â€â‚¬ */}
                   {(() => {
                     const activePonds = ponds.filter(p => p.status === 'active' && (selectedPondId === 'all' || p.id === selectedPondId));

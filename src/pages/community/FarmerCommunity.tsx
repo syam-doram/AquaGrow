@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, Users, Send, Hash, TrendingUp,
   Pill, Utensils, Droplets, Wind,
   ThumbsUp, Heart, Search,
-  X, Pin,
+  X, Pin, RefreshCw, AlertCircle, Loader2,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
+import { API_BASE_URL } from '../../config';
 
 // ─── CHANNEL CONFIG ────────────────────────────────────────────────────────────
 const CHANNELS = [
@@ -21,64 +22,18 @@ const CHANNELS = [
 ] as const;
 type ChannelId = typeof CHANNELS[number]['id'];
 
-// ─── SEEDED REALISTIC DEMO MESSAGES ───────────────────────────────────────────
-const DEMO_MESSAGES: Record<ChannelId, Array<{
-  id: string; author: string; loc: string; text: string; time: string;
-  likes: number; hearts: number; isPinned?: boolean;
-}>> = {
-  general: [
-    { id: 'g1', author: 'Ravi Kumar', loc: 'Nellore', text: 'Andaru ela unnaru? Meeru DOC ela manage chestunnaru? 👋', time: '2h', likes: 4, hearts: 2 },
-    { id: 'g2', author: 'Suresh Reddy', loc: 'Vijayawada', text: 'Nenu DOC 35 lo unna. Water quality chala kashtanga undi. Salinity crash aindi. Eppudu idi recover avutundo? 😔', time: '1h 45m', likes: 2, hearts: 5 },
-    { id: 'g3', author: 'Lakshmi Naidu', loc: 'Bhimavaram', text: 'Mineral mix apply cheyyandi. Zeolite 50 kg/acre evening lo. Rendu rojula lo recover avutundi. 👍', time: '1h 30m', likes: 9, hearts: 3 },
-    { id: 'g4', author: 'Ramesh Varma', loc: 'Kakinada', text: 'Nenu annual harvest plan chesukunnanu. This year FCR 1.4 vasindi. Chala happy 🎉', time: '45m', likes: 12, hearts: 8, isPinned: true },
-    { id: 'g5', author: 'Srinivas Rao', loc: 'Bapatla', text: 'Congratulations Ramesh bhai! Meeru ela manage chesaru? Feed brand enti?', time: '30m', likes: 3, hearts: 1 },
-    { id: 'g6', author: 'Ramesh Varma', loc: 'Kakinada', text: 'CP Prima use chestunnanu. Tray la 3-4% residue maintain chesanu. DOC 50 nunchi biomass sampling every week chesanu.', time: '28m', likes: 7, hearts: 4 },
-    { id: 'g7', author: 'Nagarjuna Goud', loc: 'Guntur', text: 'Enni acres meeru farm chestunnaru? Maa farm 5 acres undi. Oka season lo 8 tons target pettukunnamu.', time: '10m', likes: 2, hearts: 0 },
-  ],
-  market: [
-    { id: 'm1', author: 'Prasad Yadav', loc: 'Nellore', text: '🔴 Nellore market today: 40 count — ₹220/kg. 50 count — ₹190/kg. 60 count — ₹165/kg. Market down ga undi.', time: '3h', likes: 18, hearts: 5, isPinned: true },
-    { id: 'm2', author: 'Venkat Rao', loc: 'Vijayawada', text: 'Vijayawada centre: 50 count ₹195 vasindi. Export demand pickup avutundi ani agents cheptunnaru. Next week improve avutundo?', time: '2h 30m', likes: 11, hearts: 2 },
-    { id: 'm3', author: 'Balu Reddy', loc: 'Bhimavaram', text: 'Bhimavaram APMC: 40 count ₹225 ki settle aindi. Export buyers direct ga vacharu. Good sign! 📊', time: '2h', likes: 15, hearts: 7 },
-    { id: 'm4', author: 'Krishna Murthy', loc: 'Amalapuram', text: 'Mana shrimp quality chala important. Residue testing cheyyandi. Export market lo certification demand penchindi.', time: '1h', likes: 8, hearts: 3 },
-    { id: 'm5', author: 'Chandu Verma', loc: 'Gudivada', text: 'Bangalore market lo 50 count ₹210 ki pampinchamu. Transport ₹15/kg poyindi. Net ₹195 vasindi. 🚚', time: '40m', likes: 6, hearts: 2 },
-    { id: 'm6', author: 'Satyam Naik', loc: 'Tadepalligudem', text: 'Local market vs export market — mee experience share cheyyandi. Ela decide chestaru?', time: '15m', likes: 4, hearts: 1 },
-  ],
-  medicine: [
-    { id: 'med1', author: 'Dr. Suresh Kiran', loc: 'Nellore Vet', text: '⚕️ DOC 25 lo mandatory immunity booster reminder: Beta-glucan + Vitamin C combo today give cheyyandi. WSSV window start avutundi.', time: '4h', likes: 24, hearts: 9, isPinned: true },
-    { id: 'med2', author: 'Govind Sharma', loc: 'Bapatla', text: 'Gut probiotic enta dose use chestunnaru? Nenu 5g/kg feed use chestunaanu. Correct aa?', time: '3h', likes: 6, hearts: 2 },
-    { id: 'med3', author: 'Padma Rana', loc: 'Krishna Dist', text: 'Yes! 5g/kg correct. Water probiotic separate ga 250g/acre every 5 days use cheyyandi. Water colour maintain avutundi.', time: '2h 45m', likes: 14, hearts: 6 },
-    { id: 'med4', author: 'Anil Pasupati', loc: 'Guntur', text: 'Maa pond lo DOC 35 lo shrimp tails redness vasindi. Emi cheyyali? Vibriosis ani doubt ga undi. 😰', time: '1h 30m', likes: 3, hearts: 5 },
-    { id: 'med5', author: 'Dr. Suresh Kiran', loc: 'Nellore Vet', text: '@Anil - Turant feed 30% teeyandi. Water exchange 15% ipping cheyyandi. Water probiotic (pathogen control) 400g/acre tonight. Probiotic + Vitamin C morning lo give cheyyandi. 2 rojula lo monitor cheyyandi.', time: '1h 20m', likes: 31, hearts: 15 },
-    { id: 'med6', author: 'Anil Pasupati', loc: 'Guntur', text: 'Thank you Doctor garu! Follow chesamu. Improvement vasindi 🙏', time: '10m', likes: 8, hearts: 6 },
-  ],
-  feed: [
-    { id: 'f1', author: 'Kishore Babu', loc: 'Nellore', text: 'Tray management tips share cheyyandi. Nenu 4 trays/acre use chestunnaanu. Feeding slots: 6AM, 9AM, 12PM, 3PM, 6PM, 9PM.', time: '5h', likes: 19, hearts: 7, isPinned: true },
-    { id: 'f2', author: 'Jagan Reddy', loc: 'Ongole', text: '20% residue tray lo untే emi cheyyali?', time: '4h', likes: 5, hearts: 2 },
-    { id: 'f3', author: 'Kishore Babu', loc: 'Nellore', text: 'Next feeding slot skip cheyyandi. DO check cheyyandi. 4 mg/L kinda unte aerators full run cheyyandi. Overfeeding biggest loss.', time: '3h 45m', likes: 22, hearts: 11 },
-    { id: 'f4', author: 'Sirisha Devi', loc: 'West Godavari', text: 'CP Prima vs Growel — meeru eentoni better ani cheptunnaru? Price difference chala undi. 🤔', time: '2h', likes: 9, hearts: 3 },
-    { id: 'f5', author: 'Hari Narayana', loc: 'Rajahmundry', text: 'CP Prima quality better. Pellet size uniform. Water stability chala good. Slightly expensive kani FCR improve avutundi. Worth it.', time: '1h 30m', likes: 17, hearts: 5 },
-    { id: 'f6', author: 'Manohar Lal', loc: 'Srikakulam', text: 'Amavasya/Pournami nights lo feed teeyatam mandatory ani nenu feel avutunnanu. Meeru emi chestunnaru?', time: '45m', likes: 8, hearts: 4 },
-    { id: 'f7', author: 'Kishore Babu', loc: 'Nellore', text: '100% correct! Lunar nights lo 25-30% feed reduce cheyyandi + maximum aeration. Molting time shrimp digest cheyyadam taggutundi.', time: '30m', likes: 13, hearts: 8 },
-  ],
-  water: [
-    { id: 'w1', author: 'Madhavi Reddy', loc: 'Krishna Dist', text: '📊 Daily morning readings track cheyyatam mandatory — DO min 5 mg/L. pH 7.8-8.2. Ammonia 0.05 below. Intraday variations chudandi.', time: '6h', likes: 28, hearts: 12, isPinned: true },
-    { id: 'w2', author: 'Chandra Sekhar', loc: 'Bhimavaram', text: 'Maa pond lo ammonia 0.12 vasindi. Emi cheyyali? Shrimp stress ga unnayye 😟', time: '4h', likes: 4, hearts: 6 },
-    { id: 'w3', author: 'Madhavi Reddy', loc: 'Krishna Dist', text: '@Chandra - Zeolite 60 kg/acre immediately apply cheyyandi. Feed 30% teeyandi. Partial water exchange (20%) afternoon cheyyandi. Probiotic evening lo add cheyyandi.', time: '3h 45m', likes: 19, hearts: 8 },
-    { id: 'w4', author: 'Ranga Rao', loc: 'Palakol', text: 'Salinity sudden ga drop aindi rain valla. 8 ppt ki vasindi. Mineral mix enta dose?', time: '2h', likes: 7, hearts: 3 },
-    { id: 'w5', author: 'Annapurna Devi', loc: 'Eluru', text: 'Light rain: 15 kg mineral mix/acre immediately. Heavy rain: 20-25 kg. 2-3 days lo stabilize avutundi. Feed teeyandi ammavaram lo.', time: '1h 45m', likes: 16, hearts: 7 },
-    { id: 'w6', author: 'Naresh Kumar', loc: 'Narsapur', text: 'DO afternoon lo chala taggipotundi (3.5 to 4.0). Night aerators full run cheystunaanu. Normal aa?', time: '30m', likes: 5, hearts: 2 },
-    { id: 'w7', author: 'Madhavi Reddy', loc: 'Krishna Dist', text: 'Afternoon DO drop normal — photosynthesis peak time. But 3.5 low. Add 1 more aerator afternoon only. Morning 6AM and 6PM mandatory check.', time: '15m', likes: 11, hearts: 4 },
-  ],
-  aerator: [
-    { id: 'a1', author: 'Venkatesh Babu', loc: 'Guntur', text: '⚡ Stage 2 aerator update (DOC 21-40): Base 4 aerators/acre. Increase 25%. My 5 acre pond = 25 aerators minimum. 1HP each at poles + 2HP center.', time: '8h', likes: 22, hearts: 9, isPinned: true },
-    { id: 'a2', author: 'Pavan Kumar', loc: 'Tenali', text: 'Chinese aerators vs Indian brands — meeru eentoni long-lasting ani experience undi?', time: '5h', likes: 11, hearts: 3 },
-    { id: 'a3', author: 'Venkatesh Babu', loc: 'Guntur', text: 'Indian brands (Kirloskar, etc.) motor quality better. Chinese paddlewheel design good but maintenance problem. Mix recommend chestanu — Indian motor + Chinese paddle.', time: '4h 30m', likes: 18, hearts: 7 },
-    { id: 'a4', author: 'Sudhakar Rao', loc: 'Repalle', text: 'Power consumption enta unnaadu? Generator vs EB connection comparison share cheyyandi.', time: '3h', likes: 8, hearts: 2 },
-    { id: 'a5', author: 'Rajendra Prasad', loc: 'Narasaraopet', text: 'EB direct best. Generator diesel cost = ₹8/unit approx. EB cost = ₹4-5/unit (agriculture tariff). Night 8PM-6AM lo EB load shedding risk manage cheyyali.', time: '2h', likes: 14, hearts: 5 },
-    { id: 'a6', author: 'Mahesh Nair', loc: 'Chirala', text: 'Solar aerator feasible aa? Initial cost chala undi kaabeetti long term savings cheyyadama?', time: '1h', likes: 9, hearts: 4 },
-    { id: 'a7', author: 'Venkatesh Babu', loc: 'Guntur', text: 'Solar viable only for < 2HP per unit. Larger ponds need grid. Hybrid system (solar + EB backup) best for small farmers. ₹3-4L setup, 5yr payback.', time: '20m', likes: 16, hearts: 6 },
-  ],
-};
+// ─── MESSAGE TYPE ──────────────────────────────────────────────────────────────
+interface CommunityMessage {
+  id: string;
+  author: string;
+  loc: string;
+  text: string;
+  time: string;
+  likes: number;
+  hearts: number;
+  isPinned?: boolean;
+  createdAt?: string;
+}
 
 // ─── AVATAR COLORS ────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -91,74 +46,132 @@ const getAvatarColor = (name: string) =>
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export const FarmerCommunity = () => {
   const navigate = useNavigate();
-  const { user, theme } = useData();
+  const { user, theme, apiFetch } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
   const [activeChannel, setActiveChannel] = useState<ChannelId>('general');
-  const [messages, setMessages] = useState(DEMO_MESSAGES);
+  const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [showChannelDrawer, setShowChannelDrawer] = useState(false);
   const [likedMessages, setLikedMessages] = useState<Set<string>>(new Set());
-  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [onlineCount, setOnlineCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentChannel = CHANNELS.find(c => c.id === activeChannel)!;
-  const currentMessages = messages[activeChannel] || [];
 
-  // Auto-scroll to bottom
+  // ─── Fetch messages from API ───────────────────────────────────────────────
+  const fetchMessages = useCallback(async (showLoader = false) => {
+    if (showLoader) setIsLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch(`/community/messages?channel=${activeChannel}&limit=60`);
+      if (Array.isArray(data?.messages)) {
+        setMessages(data.messages);
+      }
+      if (typeof data?.onlineCount === 'number') {
+        setOnlineCount(data.onlineCount);
+      }
+    } catch (err: any) {
+      setError('Could not load messages. Check your connection.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeChannel, apiFetch]);
+
+  // Load messages when channel changes
+  useEffect(() => {
+    setMessages([]);
+    fetchMessages(true);
+  }, [activeChannel]);
+
+  // Poll every 8 seconds for new messages
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => fetchMessages(false), 8000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [fetchMessages]);
+
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeChannel, currentMessages.length]);
+  }, [messages.length, activeChannel]);
 
   const filteredMessages = useMemo(() => {
-    if (!searchQuery.trim()) return currentMessages;
-    return currentMessages.filter(m =>
+    if (!searchQuery.trim()) return messages;
+    return messages.filter(m =>
       m.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.author.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [currentMessages, searchQuery]);
+  }, [messages, searchQuery]);
 
-  const handleSend = () => {
+  // ─── Send message ──────────────────────────────────────────────────────────
+  const handleSend = async () => {
     const text = inputText.trim();
-    if (!text || !user) return;
-    const id = Date.now().toString();
-    setSendingId(id);
-    const newMsg = {
-      id, text,
+    if (!text || !user || isSending) return;
+    setIsSending(true);
+
+    // Optimistic insert
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: CommunityMessage = {
+      id: tempId,
+      text,
       author: user.name || 'Farmer',
       loc: (user as any).location || 'My Farm',
       time: 'now',
-      likes: 0, hearts: 0,
+      likes: 0,
+      hearts: 0,
+      createdAt: new Date().toISOString(),
     };
-    setMessages(prev => ({
-      ...prev,
-      [activeChannel]: [...prev[activeChannel], newMsg],
-    }));
+    setMessages(prev => [...prev, optimistic]);
     setInputText('');
-    setTimeout(() => setSendingId(null), 800);
+
+    try {
+      await apiFetch('/community/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          channel: activeChannel,
+          text,
+          author: user.name || 'Farmer',
+          loc: (user as any).location || 'My Farm',
+        }),
+      });
+      // Refresh to get server-assigned ID + timestamp
+      fetchMessages(false);
+    } catch {
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setInputText(text); // restore text
+      setError('Failed to send. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const toggleLike = (msgId: string) => {
+  // ─── Like a message ────────────────────────────────────────────────────────
+  const toggleLike = async (msgId: string) => {
+    const alreadyLiked = likedMessages.has(msgId);
     setLikedMessages(prev => {
       const next = new Set(prev);
-      if (next.has(msgId)) next.delete(msgId);
-      else next.add(msgId);
+      alreadyLiked ? next.delete(msgId) : next.add(msgId);
       return next;
     });
-    setMessages(prev => ({
-      ...prev,
-      [activeChannel]: prev[activeChannel].map(m =>
-        m.id === msgId
-          ? { ...m, likes: likedMessages.has(msgId) ? m.likes - 1 : m.likes + 1 }
-          : m
-      ),
-    }));
+    setMessages(prev => prev.map(m =>
+      m.id === msgId ? { ...m, likes: m.likes + (alreadyLiked ? -1 : 1) } : m
+    ));
+    try {
+      await apiFetch(`/community/messages/${msgId}/like`, {
+        method: alreadyLiked ? 'DELETE' : 'POST',
+      });
+    } catch { /* optimistic — ignore */ }
   };
 
-  const totalOnline = 847 + Math.floor(Math.random() * 50);
+  const pinnedMsg = filteredMessages.find(m => m.isPinned);
 
   return (
     <div className={cn('flex flex-col h-[100dvh] font-sans relative overflow-hidden transition-colors duration-500',
@@ -195,12 +208,17 @@ export const FarmerCommunity = () => {
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <p className={cn('text-[7.5px] font-black uppercase tracking-[0.2em]',
                 isDark ? 'text-emerald-400/70' : 'text-emerald-600')}>
-                {totalOnline.toLocaleString()} farmers online
+                {onlineCount > 0 ? `${onlineCount.toLocaleString()} farmers online` : 'Live Community'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
+            <motion.button whileTap={{ scale: 0.88 }} onClick={() => fetchMessages(true)}
+              className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
+                isDark ? 'bg-white/5 border-white/10 text-white/60' : 'bg-white border-slate-200 text-slate-500 shadow-sm')}>
+              <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
+            </motion.button>
             <motion.button whileTap={{ scale: 0.88 }}
               onClick={() => { setShowSearch(s => !s); if (showSearch) setSearchQuery(''); }}
               className={cn('w-9 h-9 rounded-xl flex items-center justify-center border',
@@ -268,7 +286,7 @@ export const FarmerCommunity = () => {
             #{currentChannel.label}
           </p>
           <p className={cn('text-[7px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>
-            {currentMessages.length} messages · discuss freely
+            {messages.length} messages · discuss freely
           </p>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 rounded-xl"
@@ -282,34 +300,69 @@ export const FarmerCommunity = () => {
 
       {/* ─── MESSAGES ─── */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 relative z-10">
-        {/* Pinned message */}
-        {(() => {
-          const pinned = filteredMessages.find(m => m.isPinned);
-          if (!pinned) return null;
-          return (
-            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-              className={cn('rounded-2xl border px-3 py-2.5 flex items-center gap-2.5 mb-3',
-                isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200')}>
-              <Pin size={11} className="text-amber-500 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/60' : 'text-amber-600')}>
-                  Pinned · {pinned.author}
-                </p>
-                <p className={cn('text-[8.5px] font-medium leading-snug truncate', isDark ? 'text-white/60' : 'text-slate-600')}>
-                  {pinned.text}
-                </p>
-              </div>
-            </motion.div>
-          );
-        })()}
 
+        {/* Error banner */}
+        <AnimatePresence>
+          {error && (
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className={cn('rounded-2xl border px-3 py-2.5 flex items-center gap-2.5 mb-2',
+                isDark ? 'bg-red-500/8 border-red-500/20' : 'bg-red-50 border-red-200')}>
+              <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
+              <p className={cn('text-[8px] font-medium flex-1', isDark ? 'text-red-400' : 'text-red-600')}>{error}</p>
+              <button onClick={() => setError(null)}
+                className={cn('text-[7px] font-black uppercase', isDark ? 'text-red-400' : 'text-red-500')}>✕</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Loading skeleton */}
+        {isLoading && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 size={24} className="text-emerald-500 animate-spin" />
+            <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+              Loading #{currentChannel.label}...
+            </p>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && messages.length === 0 && !error && (
+          <div className="flex flex-col items-center justify-center py-14 gap-3">
+            <div className="text-3xl">{currentChannel.emoji}</div>
+            <p className={cn('text-[10px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+              No messages yet
+            </p>
+            <p className={cn('text-[8px] font-medium', isDark ? 'text-white/15' : 'text-slate-300')}>
+              Be the first to start the conversation!
+            </p>
+          </div>
+        )}
+
+        {/* Pinned message */}
+        {pinnedMsg && !searchQuery && (
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+            className={cn('rounded-2xl border px-3 py-2.5 flex items-center gap-2.5 mb-3',
+              isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200')}>
+            <Pin size={11} className="text-amber-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/60' : 'text-amber-600')}>
+                Pinned · {pinnedMsg.author}
+              </p>
+              <p className={cn('text-[8.5px] font-medium leading-snug truncate', isDark ? 'text-white/60' : 'text-slate-600')}>
+                {pinnedMsg.text}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Messages */}
         <AnimatePresence>
           {filteredMessages.map((msg, i) => {
-            const isMe = msg.author === (user?.name || 'Farmer') && msg.time === 'now';
+            const isMe = msg.author === (user?.name || 'Farmer') && (msg.id?.startsWith('temp-') || false);
             const avatarColor = getAvatarColor(msg.author);
             const initials = msg.author.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
             const isLiked = likedMessages.has(msg.id);
-            const isSending = sendingId === msg.id;
+            const isTemp = msg.id?.startsWith('temp-');
 
             return (
               <motion.div
@@ -317,7 +370,7 @@ export const FarmerCommunity = () => {
                 initial={{ opacity: 0, y: 8, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i < 4 ? i * 0.03 : 0 }}
+                transition={{ delay: i < 5 ? i * 0.02 : 0 }}
                 className={cn('flex gap-2.5', isMe ? 'flex-row-reverse' : 'flex-row')}
               >
                 {/* Avatar */}
@@ -333,9 +386,11 @@ export const FarmerCommunity = () => {
                   {!isMe && (
                     <div className="flex items-center gap-2 px-1">
                       <span className="text-[8px] font-black" style={{ color: avatarColor }}>{msg.author}</span>
-                      <span className={cn('text-[6.5px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
-                        📍 {msg.loc}
-                      </span>
+                      {msg.loc && (
+                        <span className={cn('text-[6.5px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+                          📍 {msg.loc}
+                        </span>
+                      )}
                       <span className={cn('text-[6.5px]', isDark ? 'text-white/15' : 'text-slate-300')}>· {msg.time}</span>
                     </div>
                   )}
@@ -343,21 +398,19 @@ export const FarmerCommunity = () => {
                   {/* Bubble */}
                   <div className={cn(
                     'rounded-2xl px-3.5 py-2.5 shadow-sm relative',
-                    msg.isPinned && !isMe ? 'ring-1' : '',
                     isMe
                       ? 'bg-emerald-500 text-white rounded-tr-sm'
                       : isDark
                         ? 'bg-white/[0.07] border border-white/8 rounded-tl-sm'
-                        : 'bg-white border border-slate-100 rounded-tl-sm'
-                  )}
-                    style={msg.isPinned && !isMe ? { ringColor: currentChannel.color } : {}}
-                  >
+                        : 'bg-white border border-slate-100 rounded-tl-sm',
+                    isTemp ? 'opacity-70' : ''
+                  )}>
                     <p className={cn('text-[9px] font-medium leading-relaxed',
                       isMe ? 'text-white' : isDark ? 'text-white/80' : 'text-slate-700')}>
                       {msg.text}
                     </p>
 
-                    {isSending && (
+                    {isTemp && (
                       <div className="flex items-center gap-1 mt-1">
                         {[0, 0.15, 0.3].map((delay, i) => (
                           <motion.div key={i} className="w-1 h-1 rounded-full bg-white/60"
@@ -381,7 +434,7 @@ export const FarmerCommunity = () => {
                               : isDark ? 'bg-white/5 border-white/8 text-white/30' : 'bg-slate-50 border-slate-100 text-slate-400'
                           )}>
                           <ThumbsUp size={8} className={isLiked ? 'fill-current' : ''} />
-                          {msg.likes + (isLiked && !likedMessages.has(msg.id) ? 1 : 0)}
+                          {msg.likes}
                         </motion.button>
                       )}
                       {msg.hearts > 0 && (
@@ -419,7 +472,6 @@ export const FarmerCommunity = () => {
         <div className={cn('flex items-end gap-2 rounded-[1.6rem] border px-3 py-2',
           isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')}>
 
-          {/* Channel emoji */}
           <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
             style={{ background: `${currentChannel.color}20` }}>
             {currentChannel.emoji}
@@ -440,19 +492,18 @@ export const FarmerCommunity = () => {
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={handleSend}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || isSending}
             className={cn(
               'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
-              inputText.trim()
+              inputText.trim() && !isSending
                 ? 'text-white shadow-lg'
                 : isDark ? 'bg-white/5 text-white/15' : 'bg-slate-100 text-slate-300'
             )}
-            style={inputText.trim() ? { background: currentChannel.color, boxShadow: `0 4px 12px ${currentChannel.color}40` } : {}}>
-            <Send size={13} />
+            style={inputText.trim() && !isSending ? { background: currentChannel.color, boxShadow: `0 4px 12px ${currentChannel.color}40` } : {}}>
+            {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
           </motion.button>
         </div>
 
-        {/* Community disclaimer */}
         <p className={cn('text-center text-[6.5px] font-black uppercase tracking-widest mt-2',
           isDark ? 'text-white/10' : 'text-slate-300')}>
           🤝 Community discussion · Be respectful · No misleading advice

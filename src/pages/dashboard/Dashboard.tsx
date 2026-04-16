@@ -42,6 +42,7 @@ import {
   GraduationCap,
   Package,
   CircuitBoard,
+  Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -259,6 +260,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const isDark = theme === 'dark' || theme === 'midnight';
   const [showWeatherAlert, setShowWeatherAlert] = useState(true);
   const [showLunarAlert, setShowLunarAlert] = useState(true);
+
+  // ── Tray confirmation state (DOC 20+ prompt) ──────────────────────────────
+  const [confirmedTrayPondIds, setConfirmedTrayPondIds] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('aqua_tray_confirmed') || '{}'); } catch { return {}; }
+  });
+  const [showTrayGuide, setShowTrayGuide] = useState<string | null>(null);
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [selectedPondId, setSelectedPondId] = useState<string>('');
   const [isSyncingPush, setIsSyncingPush] = useState(false);
@@ -270,7 +277,7 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
 
   // ── Dashboard critical water modal state ──
   const [showDashCriticalModal, setShowDashCriticalModal] = useState(false);
-  const [dashCriticalAcked, setDashCriticalAcked]         = useState(() =>
+  const [dashCriticalAcked, setDashCriticalAcked] = useState(() =>
     sessionStorage.getItem('dashboard_critical_acked') === 'true'
   );
 
@@ -584,12 +591,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   const dashboardCriticals = useMemo(() => {
     if (!latestWater) return [];
     return buildCriticals({
-      ph:          latestWater.ph,
-      do:          latestWater.do,
+      ph: latestWater.ph,
+      do: latestWater.do,
       temperature: latestWater.temperature,
-      salinity:    latestWater.salinity,
-      ammonia:     latestWater.ammonia,
-      mortality:   latestWater.mortality,
+      salinity: latestWater.salinity,
+      ammonia: latestWater.ammonia,
+      mortality: latestWater.mortality,
     });
   }, [latestWater]);
 
@@ -843,9 +850,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
               className={cn("flex flex-col items-center px-3 py-2 rounded-xl border shadow-sm", isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-200")}
             >
-               <span className="text-base leading-none">🦐</span>
-               <span className={cn("text-lg font-black tracking-tighter leading-none mt-0.5", isDark ? "text-emerald-400" : "text-emerald-600")}>{activePonds.length}</span>
-               <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/60" : "text-emerald-600/60")}>{t.activePondsLabel}</span>
+              <span className="text-base leading-none">🦐</span>
+              <span className={cn("text-lg font-black tracking-tighter leading-none mt-0.5", isDark ? "text-emerald-400" : "text-emerald-600")}>{activePonds.length}</span>
+              <span className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/60" : "text-emerald-600/60")}>{t.activePondsLabel}</span>
             </motion.div>
           </motion.div>
 
@@ -868,9 +875,9 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                         {t.stockDayDesc}
                       </p>
                       <div className="flex gap-2">
-                         <button onClick={() => updatePond(p.id, { status: 'active' })} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-center gap-2 uppercase tracking-[0.1em] text-[10px] active:scale-95 transition-all outline-none">
-                           <Fish size={14} /> {t.confirmStock}
-                         </button>
+                        <button onClick={() => updatePond(p.id, { status: 'active' })} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-center gap-2 uppercase tracking-[0.1em] text-[10px] active:scale-95 transition-all outline-none">
+                          <Fish size={14} /> {t.confirmStock}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1031,28 +1038,163 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
 
           {ponds.length > 0 && (
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                { label: t.monitor,     icon: Activity,       path: '/monitor',               from: '#38bdf8', to: '#0284c7' },
-                { label: t.liveMonitor, icon: Eye,            path: '/live-monitor',          from: '#22d3ee', to: '#0891b2' },
-                { label: t.disease,     icon: HeartPulse,     path: '/disease-detection',     from: '#f87171', to: '#dc2626' },
-                { label: t.market,      icon: TrendingUp,     path: '/market',                from: '#34d399', to: '#059669' },
-                { label: t.weather,     icon: Wind,           path: '/weather',               from: '#818cf8', to: '#4f46e5' },
-                { label: t.aquaCalc,    icon: Calculator,     path: '/aqua-calc',             from: '#10b981', to: '#059669' },
-                { label: t.sopHub,      icon: FileText,       path: '/sop-library',           from: '#e879f9', to: '#c026d3' },
-                { label: t.learn,       icon: GraduationCap,  path: '/learn',                 from: '#f59e0b', to: '#d97706' },
-                { label: t.expert,      icon: BookOpen,       path: '/expert-consultations',  from: '#ec4899', to: '#db2777' },
-                { label: `🛒 ${t.market.split(' ')[0]}`, icon: ShoppingBag,    path: '/shop',                  from: '#C78200', to: '#92400E' },
-                { label: 'Smart Farm',  icon: CircuitBoard,   path: '/smart-farm',            from: '#06b6d4', to: '#0284c7' },
-              ].map((n, i) => (
-                <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none">
-                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
-                    <n.icon size={18} className="drop-shadow-sm" style={{ color: n.from }} />
-                  </div>
-                  <span className={cn("text-[7px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
-                </motion.button>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-5 gap-2">
+                {[
+                  { label: t.monitor, icon: Activity, path: '/monitor', from: '#38bdf8', to: '#0284c7' },
+                  { label: t.liveMonitor, icon: Eye, path: '/live-monitor', from: '#22d3ee', to: '#0891b2' },
+                  { label: t.disease, icon: HeartPulse, path: '/disease-detection', from: '#f87171', to: '#dc2626' },
+                  { label: t.market, icon: TrendingUp, path: '/market', from: '#34d399', to: '#059669' },
+                  { label: t.weather, icon: Wind, path: '/weather', from: '#818cf8', to: '#4f46e5' },
+                  { label: t.aquaCalc, icon: Calculator, path: '/aqua-calc', from: '#10b981', to: '#059669' },
+                  { label: t.sopHub, icon: FileText, path: '/sop-library', from: '#e879f9', to: '#c026d3' },
+                  { label: t.learn, icon: GraduationCap, path: '/learn', from: '#f59e0b', to: '#d97706' },
+                  { label: t.expert, icon: BookOpen, path: '/expert-consultations', from: '#ec4899', to: '#db2777' },
+                  { label: `🛒 ${t.market.split(' ')[0]}`, icon: ShoppingBag, path: '/shop', from: '#C78200', to: '#92400E' },
+                  { label: 'Smart Farm', icon: CircuitBoard, path: '/smart-farm', from: '#06b6d4', to: '#0284c7' },
+                  { label: 'Orders', icon: Package, path: '/orders', from: '#f59e0b', to: '#d97706' },
+                  { label: 'Community', icon: Users, path: '/community', from: '#10b981', to: '#059669' },
+                ].map((n, i) => (
+                  <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none">
+                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
+                      <n.icon size={18} className="drop-shadow-sm" style={{ color: n.from }} />
+                    </div>
+                    <span className={cn("text-[7px] font-black uppercase tracking-widest text-center leading-tight transition-colors", isDark ? "text-white/40 group-hover:text-white" : "text-slate-500 group-hover:text-slate-900")}>{n.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* ── TRAY CONFIRMATION BANNERS (DOC 20+) ── */}
+              <AnimatePresence>
+                {activePonds
+                  .filter(p => {
+                    const doc = calculateDOC(p.stockingDate);
+                    return doc >= 20 && !confirmedTrayPondIds[p.id];
+                  })
+                  .slice(0, 1)
+                  .map(p => {
+                    const doc = calculateDOC(p.stockingDate);
+                    return (
+                      <motion.div
+                        key={`tray-${p.id}`}
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className={cn(
+                          'rounded-2xl border p-4 relative overflow-hidden',
+                          isDark ? 'bg-amber-500/8 border-amber-500/30' : 'bg-amber-50 border-amber-300'
+                        )}>
+                          <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-20 bg-amber-400 pointer-events-none" />
+                          <div className="flex items-start gap-3 relative z-10">
+                            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg border', isDark ? 'bg-amber-500/15 border-amber-500/25' : 'bg-amber-100 border-amber-200')}>
+                              🔲
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn('text-[8px] font-black uppercase tracking-[0.25em] mb-0.5', isDark ? 'text-amber-400' : 'text-amber-700')}>
+                                🍽️ Tray Feeding · DOC {doc} — Confirmation Required
+                              </p>
+                              <p className={cn('font-black text-[11px] tracking-tight mb-1', isDark ? 'text-white' : 'text-slate-800')}>
+                                {p.name} — Have you started tray feeding?
+                              </p>
+                              <p className={cn('text-[8px] font-medium leading-snug mb-3', isDark ? 'text-white/45' : 'text-slate-500')}>
+                                Shrimp at DOC 20+ require tray-based feeding to track residue accurately and avoid overfeeding. Please confirm tray placement.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    const next = { ...confirmedTrayPondIds, [p.id]: true };
+                                    setConfirmedTrayPondIds(next);
+                                    localStorage.setItem('aqua_tray_confirmed', JSON.stringify(next));
+                                    setShowTrayGuide(p.id);
+                                  }}
+                                  className="flex-1 bg-amber-500 text-white font-black py-2.5 rounded-xl text-[9px] uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                                >
+                                  ✅ Yes, Trays Are Placed
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const next = { ...confirmedTrayPondIds, [p.id]: true };
+                                    setConfirmedTrayPondIds(next);
+                                    localStorage.setItem('aqua_tray_confirmed', JSON.stringify(next));
+                                    navigate('/feed');
+                                  }}
+                                  className={cn('px-3 py-2.5 rounded-xl text-[8px] font-black uppercase tracking-wider border active:scale-95 transition-all',
+                                    isDark ? 'border-amber-500/30 text-amber-400 bg-amber-500/5' : 'border-amber-300 text-amber-700 bg-white'
+                                  )}
+                                >
+                                  Not Yet →
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </AnimatePresence>
+
+              {/* ── TRAY GUIDE MODAL (shown after confirmation) ── */}
+              <AnimatePresence>
+                {showTrayGuide && (() => {
+                  const pond = ponds.find(p => p.id === showTrayGuide);
+                  if (!pond) return null;
+                  const doc = calculateDOC(pond.stockingDate);
+                  return (
+                    <motion.div
+                      key="tray-guide"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[200] flex items-end justify-center"
+                    >
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowTrayGuide(null)} />
+                      <motion.div
+                        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                        className={cn('relative w-full max-w-[420px] rounded-t-[2.5rem] p-6 pb-10 overflow-hidden',
+                          isDark ? 'bg-[#0D1B17]' : 'bg-white'
+                        )}
+                      >
+                        {/* Handle */}
+                        <div className={cn('w-10 h-1 rounded-full mx-auto mb-5', isDark ? 'bg-white/15' : 'bg-slate-200')} />
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-2xl">🔲</div>
+                          <div>
+                            <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-amber-400/70' : 'text-amber-600')}>Tray Feeding Guide · DOC {doc}</p>
+                            <h3 className={cn('font-black text-base tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{pond.name}</h3>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {[
+                            { step: '1', title: 'Tray Placement', desc: '4 trays per acre minimum. Place at pond sides (not center). Trays at 40–60 cm depth. Check every feeding slot.', icon: '📍' },
+                            { step: '2', title: 'Feed Amount per Tray', desc: 'Calculate: Total feed ÷ (No. of trays × 4). Each tray gets ~25% of one feeding slot. Adjust based on residue.', icon: '⚖️' },
+                            { step: '3', title: 'Residue Rules', desc: 'Ideal: 3–5% residue after 1.5 hrs. >10% residue → reduce next feed by 15%. 0% → increase by 5%. Record daily.', icon: '📊' },
+                            { step: '4', title: 'DOC 20–40 Alert Window', desc: 'This is peak WSSV/EHP risk window. Night tray checks mandatory. Reduce feed 25% at lunar peaks. Full aerators at night.', icon: '⚠️' },
+                          ].map(item => (
+                            <div key={item.step} className={cn('flex gap-3 p-3 rounded-2xl border',
+                              isDark ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-100'
+                            )}>
+                              <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black',
+                                isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-700'
+                              )}>{item.step}</div>
+                              <div className="flex-1">
+                                <p className={cn('text-[9px] font-black uppercase tracking-wider mb-0.5', isDark ? 'text-white' : 'text-slate-800')}>{item.icon} {item.title}</p>
+                                <p className={cn('text-[8px] font-medium leading-snug', isDark ? 'text-white/45' : 'text-slate-500')}>{item.desc}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <motion.button whileTap={{ scale: 0.97 }}
+                          onClick={() => { setShowTrayGuide(null); navigate('/feed'); }}
+                          className="w-full mt-5 bg-amber-500 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/25"
+                        >
+                          📋 Open Feed Management →
+                        </motion.button>
+                      </motion.div>
+                    </motion.div>
+                  );
+                })()}
+              </AnimatePresence>
+            </>
           )}
 
           {/* ── CRITICAL WATER DATA BANNER (dashboard, from latest saved log) ── */}
@@ -1076,14 +1218,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 <div className="flex items-center justify-between px-1">
                   <h2 className={cn("text-xs font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
                     <Bell size={13} className="text-red-500 animate-bounce" />
-                     {t.smartAlerts}
-                     <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full bg-red-500 text-white">{situationAlerts.length}</span>
+                    {t.smartAlerts}
+                    <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full bg-red-500 text-white">{situationAlerts.length}</span>
                   </h2>
                   <div className="flex items-center gap-3">
                     <button onClick={() => navigate('/notifications')} className={cn("text-[8px] font-black uppercase tracking-widest", isDark ? "text-white/30" : "text-slate-400")}>
                       See All →
                     </button>
-                    <button onClick={() => setDismissedSituations(prev => { 
+                    <button onClick={() => setDismissedSituations(prev => {
                       const next = { ...prev };
                       situationAlerts.forEach(a => next[a.id] = Date.now());
                       localStorage.setItem('dismissed_situation_state', JSON.stringify(next));
@@ -1098,10 +1240,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 {situationAlerts.slice(0, 3).map((alert, i) => {
                   const alertColors = {
                     critical: { bg: isDark ? 'bg-red-500/12 border-red-500/40' : 'bg-red-50 border-red-300', text: 'text-red-500', badge: 'bg-red-500', label: t.critical },
-                    warning:  { bg: isDark ? 'bg-amber-500/12 border-amber-500/40' : 'bg-amber-50 border-amber-300', text: 'text-amber-500', badge: 'bg-amber-500', label: t.warning },
-                    info:     { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: t.info },
-                    success:  { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500', label: t.good },
-                    lunar:    { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: t.lunar },
+                    warning: { bg: isDark ? 'bg-amber-500/12 border-amber-500/40' : 'bg-amber-50 border-amber-300', text: 'text-amber-500', badge: 'bg-amber-500', label: t.warning },
+                    info: { bg: isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200', text: 'text-blue-500', badge: 'bg-blue-500', label: t.info },
+                    success: { bg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-500', badge: 'bg-emerald-500', label: t.good },
+                    lunar: { bg: isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200', text: 'text-indigo-500', badge: 'bg-indigo-500', label: t.lunar },
                   };
                   const c = alertColors[alert.type as keyof typeof alertColors] || alertColors.info;
                   return (
@@ -1246,33 +1388,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 ponds={ponds}
                 waterRecords={waterRecords}
               />
-
-              {/* ══ ORDERS QUICK ACCESS ══ */}
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/orders')}
-                  className="w-full rounded-2xl overflow-hidden relative text-left"
-                  style={{ background: isDark ? 'linear-gradient(135deg,rgba(199,130,0,0.18),rgba(180,83,9,0.12))' : 'linear-gradient(135deg,#fffbeb,#fef3c7)', border: isDark ? '1px solid rgba(199,130,0,0.3)' : '1px solid #fde68a' }}
-                >
-                  <div className="absolute top-0 right-0 w-28 h-28 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background: '#C78200' }} />
-                  <div className="flex items-center gap-4 px-4 py-3.5 relative z-10">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
-                      style={{ background: 'rgba(199,130,0,0.25)', border: '1.5px solid rgba(199,130,0,0.4)' }}>
-                      <Package size={18} style={{ color: '#C78200' }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[7px] font-black uppercase tracking-[0.25em] mb-0.5" style={{ color: '#C78200' }}>📦 My Orders</p>
-                      <p className={cn('font-black text-[13px] tracking-tight leading-tight', isDark ? 'text-white' : 'text-slate-900')}>Track & Manage Orders</p>
-                      <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>Feed · Medicine · Lab kits · Delivery status</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                      <span className="text-[6px] font-black px-2 py-0.5 rounded-full bg-red-500 text-white uppercase tracking-widest">New</span>
-                      <ChevronRight size={14} style={{ color: '#C78200' }} />
-                    </div>
-                  </div>
-                </motion.button>
-              </motion.div>
 
               {/* ══ DYNAMIC TASK QUEUE ══ */}
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
