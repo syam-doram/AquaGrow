@@ -1,0 +1,20 @@
+[
+  {
+    "origin": [
+      "https://aqua-grow.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "capacitor://localhost",
+      "https://localhost"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "x-goog-resumable",
+      "x-firebase-appcheck"
+    ]
+  }
+]

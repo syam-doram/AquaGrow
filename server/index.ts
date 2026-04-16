@@ -1281,7 +1281,9 @@ app.post('/api/push/harvest-update', authenticate, async (req: AuthenticatedRequ
 
 import admin from 'firebase-admin';
 
-// ─── Firebase Admin Setup (for Push Notification Engine) ────────────────────
+let adminStorage: ReturnType<typeof admin.storage> | null = null;
+
+// ─── Firebase Admin Setup (for Push Notifications + Storage uploads) ─────────
 // Note: In Production, set FIREBASE_SERVICE_ACCOUNT_KEY in .env
 try {
   const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
@@ -1290,9 +1292,12 @@ try {
 
   if (serviceAccount) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: 'aquagrow-37a3e.firebasestorage.app',
     });
+    adminStorage = admin.storage();
     console.log('[FCM Engine] Initialized Successfully');
+    console.log('[Storage] Admin Storage ready for community image uploads');
   } else {
     console.warn('[FCM Engine] No service account found. Push notifications will be simulated/logged only.');
   }
@@ -1830,6 +1835,44 @@ app.patch('/api/shop/orders/:id/assign', authenticate, requireRole('admin'), asy
     if (!order) return res.status(404).json({ error: 'Order not found' });
     res.json(order);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Community Image Upload Proxy ──────────────────────────────────────────────
+// Client sends base64 → server uploads to Firebase Storage → returns public URL.
+// This BYPASSES the CORS issue entirely since the upload happens server-to-server.
+app.post('/api/community/upload-image', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { base64Image, channel = 'general', mimeType = 'image/jpeg' } = req.body;
+    if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
+
+    // Strip data URL prefix if present
+    const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    if (buffer.length > 8 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Image too large (max 8 MB)' });
+    }
+
+    // Use Firebase Admin Storage to upload
+    const bucket = adminStorage.bucket();
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const fileName = `community_images/${channel}/${Date.now()}_${req.user.id}.${ext}`;
+    const file = bucket.file(fileName);
+
+    await file.save(buffer, {
+      metadata: { contentType: mimeType },
+      resumable: false,
+    });
+
+    // Make the file publicly readable and get the URL
+    await file.makePublic();
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+    res.json({ url: publicUrl });
+  } catch (e: any) {
+    console.error('[CommunityUpload] Error:', e.message);
+    res.status(500).json({ error: e.message || 'Upload failed' });
+  }
 });
 
 export default app;

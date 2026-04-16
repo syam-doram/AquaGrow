@@ -18,36 +18,44 @@ const firebaseConfig = {
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
 
-// ── App Check (web/browser path only) ──────────────────────────────────────
-// On native Android/iOS, App Check is handled automatically by the
-// @capacitor-firebase/authentication plugin via Play Integrity / SafetyNet.
-// This block only activates for the web/browser OTP fallback path.
-//
-// DEBUG MODE: When running on localhost or in a Capacitor WebView during dev,
-// App Check generates a debug token you can whitelist in Firebase Console:
-//   Firebase Console → App Check → Apps → overflow menu → "Manage debug tokens"
-//
-const IS_WEB = !('Capacitor' in window && (window as any).Capacitor?.isNativePlatform?.());
-if (IS_WEB) {
+// ── App Check ───────────────────────────────────────────────────────────────
+// ON NATIVE ANDROID: App Check is handled automatically by Play Integrity
+//   via the @capacitor-firebase/authentication plugin — no code needed here.
+// ON WEB (localhost): Enable debug mode so Storage/Firestore calls work during dev.
+// ON WEB (production / Vercel): Skip App Check — the demo reCAPTCHA key
+//   (6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI) is Google's test-only key and
+//   returns 400 in production, causing an infinite throttle loop that blocks
+//   Storage uploads. Replace this with a real reCAPTCHA v3 key registered for
+//   your domain in Google reCAPTCHA admin console, then un-comment the else branch.
+const IS_NATIVE = 'Capacitor' in window && (window as any).Capacitor?.isNativePlatform?.();
+const IS_LOCALHOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+if (!IS_NATIVE && IS_LOCALHOST) {
+  // Dev-only: enable App Check debug mode.
+  // A debug token is printed in the browser console — add it in:
+  // Firebase Console → App Check → Apps → Manage debug tokens
   try {
-    const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (isDev) {
-      // Enable debug mode — prints a debug token in the browser console.
-      // Copy that token and add it in Firebase Console > App Check > Debug tokens.
-      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
+    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
     initializeAppCheck(app, {
-      provider: isDev
-        ? new CustomProvider({ getToken: async () => ({ token: 'debug', expireTimeMillis: Date.now() + 3600000 }) })
-        : new ReCaptchaV3Provider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // replace with your reCAPTCHA v3 site key
+      provider: new CustomProvider({
+        getToken: async () => ({ token: 'debug', expireTimeMillis: Date.now() + 3600000 }),
+      }),
       isTokenAutoRefreshEnabled: true,
     });
-    console.log('[AppCheck] Initialized —', isDev ? 'DEBUG mode' : 'production');
+    console.log('[AppCheck] Debug mode active (localhost)');
   } catch (e) {
-    // App Check init failure should never block auth — log and continue
     console.warn('[AppCheck] init skipped:', e);
   }
 }
+// NOTE: To enable App Check in Vercel production, register a real reCAPTCHA v3
+// site key at https://www.google.com/recaptcha/admin and replace the block above with:
+//
+// if (!IS_NATIVE) {
+//   initializeAppCheck(app, {
+//     provider: new ReCaptchaV3Provider('YOUR_REAL_RECAPTCHA_V3_SITE_KEY'),
+//     isTokenAutoRefreshEnabled: true,
+//   });
+// }
 
 
 // Initialize Firestore

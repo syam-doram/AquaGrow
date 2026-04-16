@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, Users, Send, Hash, TrendingUp,
   Pill, Utensils, Droplets, Wind,
-  ThumbsUp, Search, X, Pin, Loader2, AlertCircle, Image as ImageIcon, Camera,
+  ThumbsUp, Search, X, Pin, Loader2, AlertCircle, Camera as CameraIcon,
 } from 'lucide-react';
 import {
   collection, addDoc, query, orderBy, limit,
   onSnapshot, serverTimestamp, updateDoc, doc,
   increment, Timestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
+import { API_BASE_URL } from '../../config';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 
@@ -132,6 +134,8 @@ export const FarmerCommunity = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError]         = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   // Track visible viewport height (shrinks when keyboard opens on Android)
   const [vhPx, setVhPx] = useState(() => window.visualViewport?.height ?? window.innerHeight);
 
@@ -231,108 +235,175 @@ export const FarmerCommunity = () => {
 
   // ─── Send ─────────────────────────────────────────────────────────────────
   const handleSend = async (textOverride?: string, urlOverride?: string) => {
-    const text = textOverride ?? inputText.trim();
-    const imageUrl = urlOverride || undefined;
+    const text     = (textOverride !== undefined ? textOverride : inputText).trim();
+    const imageUrl = urlOverride ?? null;   // null is safe in Firestore; undefined is NOT
 
     if ((!text && !imageUrl) || isSending) return;
     setIsSending(true);
-    if (!textOverride) setInputText('');
+    if (textOverride === undefined) setInputText('');
     playChatSound('send');
 
     try {
+      const msgData: Record<string, any> = {
+        text,
+        author:   user?.name || 'Farmer',
+        authorId: (user as any)?._id || (user as any)?.id || 'anon',
+        loc:      (user as any)?.location || 'My Farm',
+        likes: 0,
+        isPinned: false,
+        createdAt: serverTimestamp(),
+      };
+      if (imageUrl) msgData.imageUrl = imageUrl;   // only add when present
+
       await addDoc(
         collection(db, 'community_messages', activeChannel, 'messages'),
-        {
-          text,
-          imageUrl,
-          author:   user?.name || 'Farmer',
-          authorId: (user as any)?._id || (user as any)?.id || 'anon',
-          loc:      (user as any)?.location || 'My Farm',
-          likes: 0, isPinned: false,
-          createdAt: serverTimestamp(),
-        }
+        msgData,
       );
-    } catch (err) {
-      if (!textOverride) setInputText(text);
-      setError('Message not sent. Please try again.');
+    } catch (err: any) {
+      console.error('[Community] Send error:', err?.code, err?.message);
+      if (textOverride === undefined) setInputText(text);
+      if (err?.code === 'permission-denied') {
+        setError('Permission denied. Please update Firestore Security Rules.');
+      } else {
+        setError('Message not sent. Check your connection and try again.');
+      }
     } finally {
       setIsSending(false);
       textInputRef.current?.focus();
     }
   };
 
-  // ─── Image Upload (see uploadBlob below) ──────────────────────────────────
+  // ─── Platform detection ────────────────────────────────────────────────────
+  const isNative = typeof (window as any).Capacitor !== 'undefined' &&
+    (window as any).Capacitor?.isNativePlatform?.();
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    // Reset value immediately so the same photo can be selected again later
-    e.target.value = '';
-    if (!file) return;
+  // ─── Camera button handler ─────────────────────────────────────────────────
+  // NATIVE (Android): Capacitor Camera → file:// URI → Blob → Firebase Storage direct
+  // WEB (Vercel):     <input type=file> → base64 → server proxy (bypasses CORS)
+  const handleCameraButton = async () => {
+    if (isNative) {
+      try {
+        const photo = await Camera.getPhoto({
+          quality: 75,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,   // gives file:// or blob: URI
+          source: CameraSource.Prompt,         // shows Camera / Gallery sheet
+          width: 1280,
+        });
 
-    if (!file.type.startsWith('image/')) {
-      setError('Only image files are supported.');
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      setError('Image too large (max 8 MB). Please pick a smaller photo.');
-      return;
-    }
+        const imageUri = photo.webPath || photo.path;
+        if (!imageUri) { setError('Could not get image path.'); return; }
 
-    // Read file as ArrayBuffer NOW — before any await gap —
-    // because Capacitor WebView can lose the File reference after an async switch.
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8 = new Uint8Array(arrayBuffer);
-      const blob = new Blob([uint8], { type: file.type });
-      uploadBlob(blob, file.name, file.type);
-    } catch (readErr: any) {
-      console.error('[Community] File read error:', readErr);
-      setError('Could not read the selected image. Please try again.');
-    }
-  };
+        setIsUploading(true);
+        setUploadProgress(20);
+        setError(null);
 
-  const uploadBlob = (blob: Blob, originalName: string, mimeType: string) => {
-    if (isUploading) return;
-    setIsUploading(true);
-    setUploadProgress(0);
-    setError(null);
+        // Convert file:// URI → Blob (fetch works in Capacitor WebView)
+        const fetchResp = await fetch(imageUri);
+        const blob = await fetchResp.blob();
+        const mimeType = blob.type || 'image/jpeg';
 
-    const ext = mimeType.split('/')[1] || 'jpg';
-    const safeName = originalName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '') || `photo.${ext}`;
-    const fileName = `${Date.now()}_${safeName}`;
-    const storageRef = ref(storage, `community_images/${activeChannel}/${fileName}`);
-    const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: mimeType });
+        if (blob.size > 8 * 1024 * 1024) {
+          setError('Image too large (max 8 MB).');
+          setIsUploading(false);
+          return;
+        }
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(pct);
-      },
-      (err: any) => {
-        console.error('[Community] Upload error:', err?.code, err?.message, err);
-        let msg = `Upload failed (${err?.code || 'unknown'}).`;
-        if (err?.code === 'storage/unauthorized') msg = 'Storage permission denied. Please update Firebase Storage Rules to allow writes.';
-        else if (err?.code === 'storage/canceled') msg = 'Upload was canceled.';
-        else if (err?.code === 'storage/retry-limit-exceeded') msg = 'Connection timed out. Check your internet and try again.';
-        setError(msg);
+        // Upload directly to Firebase Storage — no CORS on native WebView!
+        const ext = mimeType.split('/')[1] || 'jpg';
+        const filePath = `community_images/${activeChannel}/${Date.now()}.${ext}`;
+        const sRef = storageRef(storage, filePath);
+
+        setUploadProgress(50);
+        await uploadBytes(sRef, blob, { contentType: mimeType });
+        setUploadProgress(85);
+
+        const downloadURL = await getDownloadURL(sRef);
+        const capturedText = inputText.trim();
         setIsUploading(false);
         setUploadProgress(0);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        setInputText('');
+        handleSend(capturedText, downloadURL);
+
+      } catch (err: any) {
+        // User tapped cancel — silent exit
+        if (err?.message?.includes('cancel') || err?.message?.includes('dismiss')) {
           setIsUploading(false);
-          setUploadProgress(0);
-          handleSend('', downloadURL);
-        } catch (urlErr: any) {
-          console.error('[Community] getDownloadURL error:', urlErr);
-          setError('Upload succeeded but could not get image link. Try again.');
-          setIsUploading(false);
+          return;
         }
-      },
-    );
+        console.error('[Community] Native upload error:', err);
+        setError(`Upload failed: ${err.message || 'Unknown error'}`);
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
+    } else {
+      // Web — trigger file input
+      fileInputRef.current?.click();
+    }
   };
+
+  // ─── Web: file input handler → server proxy ───────────────────────────────
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Only image files are supported.'); return; }
+    if (file.size > 8 * 1024 * 1024) { setError('Image too large (max 8 MB).'); return; }
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const blob = new Blob([new Uint8Array(arrayBuffer)], { type: file.type });
+      uploadViaProxy(blob, file.type);
+    } catch {
+      setError('Could not read the selected image.');
+    }
+  };
+
+  const uploadViaProxy = async (blob: Blob, mimeType: string) => {
+    if (isUploading) return;
+    setIsUploading(true);
+    setUploadProgress(10);
+    setError(null);
+    try {
+      const reader = new FileReader();
+      const base64: string = await new Promise((resolve, reject) => {
+        reader.onload  = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(blob);
+      });
+      setUploadProgress(40);
+
+      const token = localStorage.getItem('token');
+      const resp = await fetch(`${API_BASE_URL}/community/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ base64Image: base64, channel: activeChannel, mimeType }),
+      });
+      setUploadProgress(90);
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData?.error || `Server error ${resp.status}`);
+      }
+      const { url } = await resp.json();
+      if (!url) throw new Error('No URL returned from server');
+
+      const capturedText = inputText.trim();
+      setIsUploading(false);
+      setUploadProgress(0);
+      setInputText('');
+      handleSend(capturedText, url);
+    } catch (err: any) {
+      console.error('[Community] Proxy upload error:', err);
+      setError(`Upload failed: ${err.message || 'Unknown error'}`);
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
 
   // ─── Like ─────────────────────────────────────────────────────────────────
   const toggleLike = async (msgId: string) => {
@@ -521,7 +592,7 @@ export const FarmerCommunity = () => {
                 <div className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1 text-[9px] font-black text-white shadow-sm"
                   style={{ background: avatarColor }}>{initials}</div>
               )}
-              <div className={cn('max-w-[82%] space-y-1', isMe ? 'items-end flex flex-col' : '')}>
+              <div className={cn('max-w-[78%] space-y-1', isMe ? 'items-end flex flex-col' : '')}>
                 {!isMe && (
                   <div className="flex items-center gap-2 px-1">
                     <span className="text-[8px] font-black" style={{ color: avatarColor }}>{msg.author}</span>
@@ -529,19 +600,28 @@ export const FarmerCommunity = () => {
                     <span className={cn('text-[6px]', isDark ? 'text-white/15' : 'text-slate-300')}>· {fmtTime(msg.createdAt)}</span>
                   </div>
                 )}
-                <div className={cn('rounded-2xl px-3.5 py-2.5 shadow-sm overflow-hidden',
+                <div className={cn('rounded-2xl shadow-sm overflow-hidden',
                   isMe ? 'bg-emerald-500 rounded-tr-sm' : isDark ? 'bg-white/[0.07] border border-white/8 rounded-tl-sm' : 'bg-white border border-slate-100 rounded-tl-sm')}>
                   {msg.imageUrl && (
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-2 -mx-1 -mt-1">
-                      <img src={msg.imageUrl} alt="chat" className="w-full h-auto max-h-[300px] object-cover rounded-xl" loading="lazy" />
-                    </motion.div>
+                    <motion.img
+                      src={msg.imageUrl}
+                      alt="photo"
+                      loading="lazy"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      onClick={() => setLightboxUrl(msg.imageUrl!)}
+                      className="w-full max-w-[240px] max-h-48 object-cover cursor-pointer active:opacity-75 transition-opacity block"
+                      style={{ borderRadius: msg.text ? '16px 16px 0 0' : '16px' }}
+                    />
                   )}
                   {msg.text && (
-                    <p className={cn('text-[9.5px] font-medium leading-relaxed break-words', isMe ? 'text-white' : isDark ? 'text-white/80' : 'text-slate-700')}>
+                    <p className={cn('text-[9.5px] font-medium leading-relaxed break-words px-3.5 py-2.5',
+                      isMe ? 'text-white' : isDark ? 'text-white/80' : 'text-slate-700')}>
                       {msg.text}
                     </p>
                   )}
-                  {isMe && <p className="text-[6px] text-white/50 text-right mt-1">{fmtTime(msg.createdAt)}</p>}
+                  {!msg.text && isMe && <p className="text-[6px] text-white/50 text-right px-3 pb-2">{fmtTime(msg.createdAt)}</p>}
+                  {msg.text && isMe && <p className="text-[6px] text-white/50 text-right px-3.5 pb-2 -mt-1">{fmtTime(msg.createdAt)}</p>}
                 </div>
                 {!isMe && (
                   <motion.button whileTap={{ scale: 0.85 }} onClick={() => toggleLike(msg.id)}
@@ -592,10 +672,13 @@ export const FarmerCommunity = () => {
         <div className={cn('flex items-center gap-2 rounded-[1.6rem] border px-2 py-2',
           isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')}>
 
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => fileInputRef.current?.click()}
+          <motion.button whileTap={{ scale: 0.88 }} onClick={handleCameraButton}
+            disabled={isUploading}
             className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all border',
-              isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-white border-slate-100 text-slate-400')}>
-            <Camera size={14} />
+              isUploading
+                ? 'opacity-40 cursor-not-allowed'
+                : isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-white border-slate-100 text-slate-400')}>
+            {isUploading ? <Loader2 size={13} className="animate-spin text-emerald-500" /> : <CameraIcon size={14} />}
           </motion.button>
 
           <input ref={textInputRef} value={inputText}
@@ -605,8 +688,8 @@ export const FarmerCommunity = () => {
             className={cn('flex-1 bg-transparent text-[9.5px] font-medium outline-none py-1',
               isDark ? 'text-white placeholder:text-white/20' : 'text-slate-800 placeholder:text-slate-400')} />
 
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => handleSend()}
-            disabled={(!inputText.trim() && !isUploading) || isSending}
+        <motion.button whileTap={{ scale: 0.88 }} onClick={() => handleSend()}
+            disabled={(!inputText.trim()) || isSending}
             className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
               (inputText.trim() && !isSending) ? 'text-white shadow-lg' : isDark ? 'bg-white/5 text-white/15' : 'bg-slate-100 text-slate-300')}
             style={(inputText.trim() && !isSending) ? { background: currentChannel.color, boxShadow: `0 4px 12px ${currentChannel.color}40` } : {}}>
@@ -618,6 +701,45 @@ export const FarmerCommunity = () => {
           🤝 Community discussion · Be respectful · No misleading advice
         </p>
       </div>
+
+      {/* ── Full-screen Image Lightbox ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {lightboxUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxUrl(null)}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(16px)' }}
+          >
+            {/* Close button */}
+            <motion.button
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-12 right-4 w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center z-10 backdrop-blur-sm"
+            >
+              <X size={18} className="text-white" />
+            </motion.button>
+
+            {/* Image */}
+            <motion.img
+              src={lightboxUrl}
+              alt="Full view"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+              onClick={e => e.stopPropagation()}
+              className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl select-none"
+              style={{ boxShadow: '0 30px 80px rgba(0,0,0,0.9)' }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
+
 };
