@@ -108,9 +108,17 @@ export const FarmerCommunity = () => {
           setIsLoading(false);
           setError(null);
         },
-        (err) => {
-          console.error('[Community] Firestore error:', err);
-          setError('Could not connect to chat. Check your internet connection.');
+        (err: any) => {
+          console.error('[Community] Firestore error code:', err?.code, err);
+          if (err?.code === 'permission-denied' || err?.code === 'PERMISSION_DENIED') {
+            setError('Chat not activated yet. Go to Firebase Console → Firestore → Rules and add the community_messages rule.');
+          } else if (err?.code === 'unauthenticated') {
+            setError('Login session expired. Please log out and log back in.');
+          } else if (err?.code === 'unavailable') {
+            setError('Firestore service is temporarily unavailable. Try again in a moment.');
+          } else {
+            setError(`Chat error (${err?.code || 'unknown'}). Check console for details.`);
+          }
           setIsLoading(false);
         }
       );
@@ -190,7 +198,7 @@ export const FarmerCommunity = () => {
 
   return (
     <div className={cn(
-      'flex flex-col h-[100dvh] font-sans relative overflow-hidden transition-colors duration-500',
+      'flex flex-col h-[100dvh] font-sans relative overflow-hidden overscroll-none transition-colors duration-500',
       isDark ? 'bg-[#060A10]' : 'bg-[#F0F4FF]'
     )}>
       {/* Ambient blobs */}
@@ -285,7 +293,7 @@ export const FarmerCommunity = () => {
       </div>
 
       {/* ─── MESSAGES ─── */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 relative z-10">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-2 relative z-10">
 
         {/* Error */}
         <AnimatePresence>
