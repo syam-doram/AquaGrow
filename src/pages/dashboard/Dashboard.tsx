@@ -641,15 +641,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
         <Header title={t.dashboard} showBack={false} onMenuClick={onMenuClick} showLogo
           rightElement={
             <div className="flex items-center gap-1.5">
-              {/* Orders icon */}
-              <button
-                onClick={() => navigate('/orders')}
-                className="relative w-9 h-9 rounded-2xl flex items-center justify-center"
-                style={{ background: isDark ? 'rgba(199,130,0,0.12)' : 'rgba(199,130,0,0.10)' }}
-              >
-                <Package size={16} style={{ color: '#C78200' }} />
-                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 text-white text-[5px] font-black rounded-full flex items-center justify-center">!</span>
-              </button>
               {/* Bell / Notifications icon */}
               <button
                 onClick={() => navigate('/notifications')}
@@ -1256,37 +1247,95 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                 waterRecords={waterRecords}
               />
 
+              {/* ══ ORDERS QUICK ACCESS ══ */}
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/orders')}
+                  className="w-full rounded-2xl overflow-hidden relative text-left"
+                  style={{ background: isDark ? 'linear-gradient(135deg,rgba(199,130,0,0.18),rgba(180,83,9,0.12))' : 'linear-gradient(135deg,#fffbeb,#fef3c7)', border: isDark ? '1px solid rgba(199,130,0,0.3)' : '1px solid #fde68a' }}
+                >
+                  <div className="absolute top-0 right-0 w-28 h-28 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background: '#C78200' }} />
+                  <div className="flex items-center gap-4 px-4 py-3.5 relative z-10">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
+                      style={{ background: 'rgba(199,130,0,0.25)', border: '1.5px solid rgba(199,130,0,0.4)' }}>
+                      <Package size={18} style={{ color: '#C78200' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[7px] font-black uppercase tracking-[0.25em] mb-0.5" style={{ color: '#C78200' }}>📦 My Orders</p>
+                      <p className={cn('font-black text-[13px] tracking-tight leading-tight', isDark ? 'text-white' : 'text-slate-900')}>Track & Manage Orders</p>
+                      <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>Feed · Medicine · Lab kits · Delivery status</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span className="text-[6px] font-black px-2 py-0.5 rounded-full bg-red-500 text-white uppercase tracking-widest">New</span>
+                      <ChevronRight size={14} style={{ color: '#C78200' }} />
+                    </div>
+                  </div>
+                </motion.button>
+              </motion.div>
+
               {/* ══ DYNAMIC TASK QUEUE ══ */}
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                {/* Header */}
                 <div className="flex items-center justify-between mb-3 px-1">
-                  <h2 className={cn("text-lg font-black tracking-tighter flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
-                    <Clock size={18} className="text-amber-500" />{t.todaysTasks}
+                  <h2 className={cn("text-base font-black tracking-tight flex items-center gap-2", isDark ? "text-white" : "text-slate-900")}>
+                    <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)' }}>
+                      <Clock size={13} className="text-amber-500" />
+                    </div>
+                    {t.todaysTasks}
+                    {pondTasks.length > 0 && (
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/25">
+                        {pondTasks.length}
+                      </span>
+                    )}
                   </h2>
-                  <button onClick={() => navigate('/medicine')} className={cn("text-[9px] font-black uppercase tracking-widest flex items-center gap-0.5", isDark ? "text-amber-400" : "text-amber-600")}>
-                    {t.viewSchedule} <ChevronRight size={12} />
+                  <button onClick={() => navigate('/medicine')} className={cn("text-[8px] font-black uppercase tracking-widest flex items-center gap-0.5 px-2.5 py-1 rounded-xl border", isDark ? "text-amber-400 border-amber-500/20 bg-amber-500/8" : "text-amber-700 border-amber-200 bg-amber-50")}>
+                    {t.viewSchedule} <ChevronRight size={10} />
                   </button>
                 </div>
+
+                {/* Task cards */}
                 <div className="space-y-2">
                   {pondTasks.length > 0 ? pondTasks.map((task, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }} className={cn("rounded-xl p-3 border shadow-sm flex items-center justify-between", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shadow-inner relative overflow-hidden" style={{ background: `${task.color}20` }}>
-                          <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at top right, ${task.color}, transparent)` }} />
-                          <task.icon size={18} style={{ color: task.color }} className="relative z-10" />
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }}
+                      className={cn("rounded-2xl overflow-hidden border flex items-stretch", isDark ? "bg-white/[0.04] border-white/8" : "bg-white border-slate-100 shadow-sm")}
+                    >
+                      {/* Left accent bar */}
+                      <div className="w-1 flex-shrink-0 rounded-l-2xl" style={{ background: `linear-gradient(180deg, ${task.color}, ${task.color}60)` }} />
+
+                      <div className="flex items-center gap-3 px-3 py-3.5 flex-1 min-w-0">
+                        {/* Icon */}
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 relative overflow-hidden"
+                          style={{ background: `${task.color}18`, border: `1px solid ${task.color}30` }}>
+                          <task.icon size={16} style={{ color: task.color }} />
                         </div>
-                        <div>
-                          <h3 className={cn("font-black text-xs tracking-tight", isDark ? "text-white" : "text-slate-800")}>{task.title}</h3>
-                          <p className={cn("font-black text-[9px] uppercase tracking-widest mt-0.5", isDark ? "text-white/40" : "text-slate-400")}>{task.time}</p>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className={cn("font-black text-[11px] tracking-tight leading-tight", isDark ? "text-white" : "text-slate-800")}>{task.title}</h3>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className={cn("text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full", isDark ? "bg-white/8 text-white/40" : "bg-slate-100 text-slate-500")}>
+                              {task.time}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Tag */}
+                        <span className="text-[7px] font-black px-2 py-1 rounded-xl flex-shrink-0"
+                          style={{ background: `${task.color}15`, color: task.color, border: `1px solid ${task.color}25` }}>
+                          {task.tag}
+                        </span>
                       </div>
-                      <span className="text-[8px] font-black px-2 py-1 rounded-[6px] border shadow-sm backdrop-blur-md" style={{ background: `${task.color}15`, color: task.color, borderColor: `${task.color}30` }}>
-                        {task.tag}
-                      </span>
                     </motion.div>
                   )) : (
                     <div className={cn("p-6 rounded-2xl border text-center relative overflow-hidden", isDark ? "bg-emerald-500/5 border-emerald-500/10" : "bg-emerald-50 border-emerald-100")}>
-                      <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2 drop-shadow-lg" />
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto mb-3">
+                        <CheckCircle2 size={24} className="text-emerald-500" />
+                      </div>
                       <p className={cn("text-[10px] font-black uppercase tracking-widest", isDark ? "text-emerald-400/80" : "text-emerald-600")}>{t.allTasksDone}</p>
+                      <p className={cn("text-[8px] font-medium mt-1", isDark ? "text-white/25" : "text-slate-400")}>All pond tasks are up to date</p>
                     </div>
                   )}
                 </div>

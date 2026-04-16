@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Wind, Plus, Minus, CheckCircle2, X, MapPin, ChevronRight, Zap } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -54,6 +54,12 @@ export const AeratorPopup = ({ pond, doc, isDark, onClose, onSaved }: AeratorPop
 
   const togglePosition = (pos: string) =>
     setPositions(p => p.includes(pos) ? p.filter(x => x !== pos) : [...p, pos]);
+
+  // Hide BottomNav while aerator sheet is open
+  useEffect(() => {
+    document.body.classList.add('aerator-sheet-open');
+    return () => document.body.classList.remove('aerator-sheet-open');
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -246,7 +252,7 @@ export const AeratorPopup = ({ pond, doc, isDark, onClose, onSaved }: AeratorPop
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleSave}
-              disabled={saving || positions.length === 0}
+              disabled={saving}
               className="w-full py-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl disabled:opacity-50"
             >
               {saving

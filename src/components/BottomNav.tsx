@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Waves, Pill, Utensils, Calculator } from 'lucide-react';
@@ -11,6 +11,18 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   const location = useLocation();
   const { theme } = useData();
 
+  // Hide BottomNav when any full-screen sheet is open (e.g. aerator log)
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsSheetOpen(document.body.classList.contains('aerator-sheet-open'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  if (isSheetOpen) return null;
+
   const navItems = [
     { icon: Home,       label: t.home,     path: '/dashboard', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
     { icon: Waves,      label: t.ponds,    path: '/ponds',     color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.1)' },
@@ -22,7 +34,7 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   const activeItem = navItems.find(item => location.pathname === item.path) || navItems[0];
   
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] sm:max-w-[420px] z-50">
+    <div className="bottom-nav-pill fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] sm:max-w-[420px] z-50 transition-all duration-200">
       <nav 
         className="premium-glass px-2 py-3 flex justify-around items-center rounded-[2.5rem] border border-card-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] relative overflow-hidden transition-all duration-700 ease-in-out"
         style={{ backgroundColor: activeItem.bg }}

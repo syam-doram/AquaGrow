@@ -5,7 +5,7 @@ import {
   History, AlertTriangle, TrendingUp, Calendar,
   Bluetooth, Wifi, RefreshCcw, X, ShieldCheck,
   Activity, FlaskConical, Waves, Zap, Wind,
-  Thermometer, Droplets, Plus, Camera, Scan, ChevronLeft,
+  Thermometer, Droplets, Plus, ChevronLeft,
   ChevronRight, CheckCircle2, Circle,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
@@ -400,27 +400,7 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
               </div>
             </div>
 
-            {/* ─── AI SCAN CTA ─── */}
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate('/monitor/scan')}
-              className="w-full rounded-2xl overflow-hidden border text-left relative"
-              style={{ background: 'linear-gradient(135deg,rgba(6,182,212,0.12),rgba(59,130,246,0.08))', borderColor: 'rgba(6,182,212,0.3)' }}>
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background: '#06b6d4' }} />
-              <div className="px-4 py-3.5 flex items-center gap-3 relative z-10">
-                <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.18)', border: '1.5px solid rgba(6,182,212,0.35)' }}>
-                    <Scan size={18} style={{ color: '#06b6d4' }} />
-                  </div>
-                  <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                    className="absolute inset-0 rounded-xl border-2 pointer-events-none" style={{ borderColor: '#06b6d4' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] font-black uppercase tracking-[0.25em] mb-0.5" style={{ color: '#06b6d4' }}>📄 AI Lab Report Scanner</p>
-                  <p className={cn('font-black text-[12px] tracking-tight', isDark ? 'text-white' : 'text-slate-800')}>Scan Water Test Report</p>
-                  <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>Camera or PDF → AI reads pH · DO · Ammonia instantly</p>
-                </div>
-                <ChevronRight size={16} style={{ color: '#06b6d4', flexShrink: 0 }} />
-              </div>
-            </motion.button>
+
 
             {/* ═══════════════════════════════════════════════════
                 PARAMETER GRID
@@ -578,23 +558,17 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
               </motion.button>
             )}
 
-            {/* ─── LOG / SCAN BUTTONS ─── */}
+            {/* ─── LOG BUTTON ─── */}
             {selectedPond?.status === 'harvested' ? (
               <div className={cn('w-full rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 border', isDark ? 'bg-white/5 border-white/10 text-white/25' : 'bg-slate-100 border-slate-200 text-slate-400')}>
                 🏁 Pond Harvested — No Logging Required
               </div>
             ) : (
-              <div className="flex gap-2.5">
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate('/monitor/scan')}
-                  className={cn('flex-1 rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg border', isDark ? 'bg-white/8 border-white/10 text-white/70' : 'bg-slate-800 border-transparent text-white shadow-slate-900/20')}>
-                  <Camera size={14} className="text-teal-400" /> Scan
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.97 }}
-                  onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
-                  className="flex-[2.5] bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-2xl py-3.5 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30">
-                  <Plus size={14} /> Log Water Parameters
-                </motion.button>
-              </div>
+              <motion.button whileTap={{ scale: 0.97 }}
+                onClick={() => selectedPond && navigate(`/ponds/${selectedPond.id}/water-log/${dateStr}`)}
+                className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-2xl py-4 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30">
+                <Plus size={15} /> Log Water Parameters
+              </motion.button>
             )}
 
           </motion.div>

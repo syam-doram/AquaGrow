@@ -167,9 +167,9 @@ export const SubscriptionScreen = ({ t }: { t: Translations }) => {
                <div>
                   <p className="text-[#C78200] text-[7.5px] font-black uppercase tracking-[0.4em] mb-1.5">Current Status</p>
                   <h3 className="text-xl font-black tracking-tighter">
-                    {user.subscriptionStatus === 'pro_silver' ? 'Aqua 3 (Silver)' : 
-                     user.subscriptionStatus === 'pro_gold' ? 'Aqua 6 (Gold)' : 
-                     user.subscriptionStatus === 'pro_diamond' ? 'Aqua 9 (Diamond)' : 'Aqua Pro'}
+                    {user.subscriptionStatus === 'pro_silver' ? 'Aqua 1 (Silver)' : 
+                     user.subscriptionStatus === 'pro_gold' ? 'Aqua 3 (Gold)' : 
+                     user.subscriptionStatus === 'pro_diamond' ? 'Aqua 6 (Diamond)' : 'Aqua Pro'}
                   </h3>
                </div>
                <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">

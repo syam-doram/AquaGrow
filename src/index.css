@@ -178,3 +178,11 @@ nav.fixed {
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
 }
+
+/* Hide BottomNav when aerator bottom sheet is open */
+body.aerator-sheet-open .bottom-nav-pill {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20px);
+  transition: opacity 0.2s, transform 0.2s;
+}

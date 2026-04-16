@@ -79,6 +79,7 @@ import { AquaCalc } from './pages/tools/AquaCalc';
 import { AquaShop } from './pages/shop/AquaShop';
 import { FarmerOrders } from './pages/orders/FarmerOrders';
 import { SmartFarmHub } from './pages/tools/SmartFarmHub';
+import { FarmerCommunity } from './pages/community/FarmerCommunity';
 
 // Provider Pages
 import { ProviderDashboard } from './pages/provider/ProviderDashboard';
@@ -208,7 +209,7 @@ const AppContent = () => {
       '/dashboard', '/ponds', '/monitor', '/feed', '/medicine',
       '/roi', '/harvest-revenue', '/expense-report', '/roi-entry',
       '/daily-expense', '/market', '/live-monitor', '/water-test-scanner',
-      '/disease-detection', '/aqua-calc', '/sop-library', '/smart-farm',
+      '/disease-detection', '/aqua-calc', '/sop-library', '/smart-farm', '/community',
     ];
     if (isProviderUser && farmerOnlyPaths.some(p => path.startsWith(p))) {
       navigate('/provider/dashboard', { replace: true });
@@ -346,6 +347,7 @@ const AppContent = () => {
     '/roi/pond-wise',
     '/roi/year-wise',
     '/smart-farm',
+    '/community',
   ].some(path => location.pathname.startsWith(path));
 
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
@@ -568,6 +570,7 @@ const AppContent = () => {
                 <Route path="/shop" element={<AquaShop />} />
                 <Route path="/orders" element={<FarmerOrders />} />
                 <Route path="/smart-farm" element={<SmartFarmHub t={t} />} />
+                <Route path="/community" element={<FarmerCommunity />} />
                 <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
 
                 {/* Provider Routes */}

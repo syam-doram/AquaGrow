@@ -190,7 +190,9 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
   const today = new Date().toISOString().split('T')[0];
   const lunar = useMemo(() => getLunarStatus(new Date()), []);
-  const lunarForecast = useMemo(() => getLunarForecast(new Date(), 32), []);
+  const lunarForecast = useMemo(() =>
+    getLunarForecast(new Date(), 90).map(d => ({ date: d.date, phase: d.status.phase })),
+  []);
   const moonMeta = MOON_META[lunar.phase] ?? MOON_META['NORMAL'];
 
   const pondWater = useMemo(() =>
@@ -808,7 +810,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
 
                   {/* ── UPCOMING SPECIAL DAYS WITH CAUTIONS ── */}
                   {(() => {
-                    const specialDays = lunarForecast.slice(0, 32)
+                    const specialDays = lunarForecast
                       .map((day, i) => ({ ...day, idx: i }))
                       .filter(d => d.phase !== 'NORMAL');
                     if (specialDays.length === 0) return null;
@@ -912,40 +914,138 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                     );
                   })()}
 
-                  {/* 30-day calendar grid */}
-                  <div>
-                    <p className={cn('text-[8px] font-black uppercase tracking-widest px-1 mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
-                      30-Day Calendar
-                    </p>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {lunarForecast.slice(0, 30).map((day, i) => {
-                        const isToday = i === 0;
-                        const isRisk = day.phase !== 'NORMAL';
-                        const docForDay = selectedPond?.stockingDate ? calculateDOC(selectedPond.stockingDate, day.date.toISOString()) : 0;
-                        const phaseColor = ({ AMAVASYA: '#a855f7', POURNAMI: '#6366f1', ASHTAMI: '#C78200', NAVAMI: '#10b981' } as Record<string,string>)[day.phase] ?? '';
-                        return (
-                          <div key={i} className={cn('rounded-xl p-2 text-center border relative overflow-hidden',
-                            isToday ? 'border-purple-500/60' : isDark ? 'border-white/6' : 'border-slate-100',
-                            isToday ? isDark ? 'bg-purple-500/15' : 'bg-purple-50'
-                              : isRisk ? isDark ? 'bg-white/[0.04]' : 'bg-white'
-                              : isDark ? 'bg-white/[0.02]' : 'bg-slate-50/70')}>
-                            {isRisk && <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ background: phaseColor }} />}
-                            <p className="text-sm leading-none mb-0.5">{MOON_META[day.phase]?.emoji ?? '·'}</p>
-                            <p className={cn('text-[6.5px] font-black', isDark ? 'text-white/50' : 'text-slate-600')}>{day.date.getDate()}</p>
-                            <p className={cn('text-[5.5px] font-black uppercase tracking-widest', isRisk ? 'text-indigo-400' : isDark ? 'text-white/15' : 'text-slate-300')}>D{docForDay}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-2 px-1">
-                      {[{ emoji: '🌑', label: 'Amavasya', color: '#a855f7' }, { emoji: '🌕', label: 'Pournami', color: '#6366f1' }, { emoji: '🌓', label: 'Ashtami', color: '#C78200' }, { emoji: '🌙', label: 'Navami', color: '#10b981' }].map(l => (
-                        <div key={l.label} className="flex items-center gap-1">
-                          <span className="text-[9px]">{l.emoji}</span>
-                          <span className="text-[6.5px] font-black uppercase tracking-widest" style={{ color: l.color }}>{l.label}</span>
+                  {/* 90-day scroll calendar */}
+                  {(() => {
+                    const PHASE_COLORS: Record<string, { border: string; glow: string; text: string; name: string; bg: string }> = {
+                      AMAVASYA: { border: '#a855f7', glow: 'rgba(168,85,247,0.20)', text: '#a855f7', name: 'Amavasya', bg: 'rgba(168,85,247,0.12)' },
+                      POURNAMI: { border: '#6366f1', glow: 'rgba(99,102,241,0.20)',  text: '#6366f1', name: 'Pournami', bg: 'rgba(99,102,241,0.12)'  },
+                      ASHTAMI:  { border: '#C78200', glow: 'rgba(199,130,0,0.20)',   text: '#C78200', name: 'Ashtami',  bg: 'rgba(199,130,0,0.12)'   },
+                      NAVAMI:   { border: '#10b981', glow: 'rgba(16,185,129,0.20)',  text: '#10b981', name: 'Navami',   bg: 'rgba(16,185,129,0.12)'  },
+                    };
+
+                    // Group days by month for section headers
+                    let lastMonth = -1;
+
+                    return (
+                      <div>
+                        <div className="flex items-center justify-between px-1 mb-2">
+                          <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+                            90-Day Lunar Calendar
+                          </p>
+                          <p className={cn('text-[7px] font-black px-2 py-0.5 rounded-full', isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-50 text-purple-600')}>
+                            ← scroll →
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+
+                        <div className="overflow-x-auto no-scrollbar pb-2">
+                          <div className="flex items-end gap-1.5" style={{ width: 'max-content' }}>
+                            {lunarForecast.map((day, i) => {
+                              const isToday  = i === 0;
+                              const isRisk   = day.phase !== 'NORMAL';
+                              const pc       = PHASE_COLORS[day.phase];
+                              const docForDay = selectedPond?.stockingDate
+                                ? calculateDOC(selectedPond.stockingDate, day.date.toISOString()) : 0;
+                              const monthNum = day.date.getMonth();
+                              const showMonthLabel = monthNum !== lastMonth;
+                              if (showMonthLabel) lastMonth = monthNum;
+                              const monthLabel = day.date.toLocaleDateString('en-IN', { month: 'short' });
+
+                              return (
+                                <div key={i} className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                                  {/* Month label */}
+                                  {showMonthLabel && (
+                                    <p className={cn('text-[6px] font-black uppercase tracking-widest mb-0.5 self-start', isDark ? 'text-white/20' : 'text-slate-300')}>
+                                      {monthLabel}
+                                    </p>
+                                  )}
+
+                                  {isRisk && pc ? (
+                                    /* ── SPECIAL DAY — tall highlighted pill ── */
+                                    <div className="relative flex flex-col items-center rounded-xl overflow-hidden"
+                                      style={{
+                                        width: 44,
+                                        border: `1.5px solid ${pc.border}`,
+                                        background: pc.bg,
+                                        boxShadow: `0 0 12px ${pc.border}30, 0 2px 8px ${pc.border}20`,
+                                      }}>
+                                      {/* Top gradient stripe */}
+                                      <div className="w-full h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${pc.border}, transparent)` }} />
+
+                                      <div className="px-1 pt-1.5 pb-2 flex flex-col items-center gap-0.5 w-full">
+                                        {/* Phase emoji */}
+                                        <span className="text-xl leading-none">{MOON_META[day.phase]?.emoji}</span>
+
+                                        {/* Date */}
+                                        <p className="text-[10px] font-black leading-none" style={{ color: pc.text }}>
+                                          {day.date.getDate()}
+                                        </p>
+
+                                        {/* Phase name */}
+                                        <p className="text-[5px] font-black uppercase tracking-widest leading-none text-center" style={{ color: pc.text }}>
+                                          {pc.name}
+                                        </p>
+
+                                        {/* DOC */}
+                                        <span className="text-[5px] font-black px-1 py-0.5 rounded-full leading-none"
+                                          style={{ background: `${pc.border}25`, color: pc.text }}>
+                                          D{docForDay}
+                                        </span>
+                                      </div>
+
+                                      {/* Pulsing ring for today */}
+                                      {isToday && (
+                                        <motion.div
+                                          animate={{ scale: [1, 1.08, 1], opacity: [0.7, 0.2, 0.7] }}
+                                          transition={{ duration: 1.8, repeat: Infinity }}
+                                          className="absolute inset-0 rounded-xl pointer-events-none"
+                                          style={{ border: `2px solid ${pc.border}` }}
+                                        />
+                                      )}
+                                    </div>
+                                  ) : (
+                                    /* ── NORMAL DAY — short subtle chip ── */
+                                    <div className={cn('rounded-lg flex flex-col items-center justify-center relative overflow-hidden',
+                                      isToday
+                                        ? isDark ? 'border border-purple-500/50 bg-purple-500/12' : 'border border-purple-300 bg-purple-50'
+                                        : isDark ? 'border border-white/5 bg-white/[0.02]' : 'border border-slate-100 bg-slate-50/50'
+                                    )} style={{ width: 28, height: 36 }}>
+                                      <p className={cn('text-[7.5px] font-black leading-none', isDark ? 'text-white/35' : 'text-slate-500')}>
+                                        {day.date.getDate()}
+                                      </p>
+                                      {isToday && (
+                                        <div className="w-1 h-1 rounded-full bg-purple-500 mt-0.5" />
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 px-1">
+                          {[
+                            { emoji: '🌑', label: 'Amavasya', color: '#a855f7', sub: 'Highest Risk' },
+                            { emoji: '🌕', label: 'Pournami', color: '#6366f1', sub: 'Full Moon'    },
+                            { emoji: '🌓', label: 'Ashtami',  color: '#C78200', sub: 'Molting'      },
+                            { emoji: '🌙', label: 'Navami',   color: '#10b981', sub: 'Recovery'     },
+                          ].map(l => (
+                            <div key={l.label} className="flex items-center gap-1.5">
+                              <div className="w-4 h-4 rounded-md flex items-center justify-center text-[9px]"
+                                style={{ background: `${l.color}18`, border: `1px solid ${l.color}50` }}>
+                                {l.emoji}
+                              </div>
+                              <div>
+                                <p className="text-[6.5px] font-black uppercase tracking-widest leading-none" style={{ color: l.color }}>{l.label}</p>
+                                <p className={cn('text-[5.5px] font-medium leading-none', isDark ? 'text-white/20' : 'text-slate-400')}>{l.sub}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </motion.div>
               )}
 

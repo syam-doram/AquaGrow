@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Calendar, CheckCircle2, ChevronRight, Zap, Target, TrendingUp, Users, ShieldCheck, Crown, Receipt, ExternalLink, X, Headphones } from 'lucide-react';
+import { Sparkles, Calendar, CheckCircle2, ChevronRight, Zap, Target, TrendingUp, Users, ShieldCheck, Crown, Receipt, ExternalLink, X, Headphones, ChevronLeft } from 'lucide-react';
 import { Header } from '../../components/Header';
 import type { Translations } from '../../translations';
 import { useData } from '../../context/DataContext';
@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export const SubscriptionPlan = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { user, isPro } = useData();
+  const { user, isPro, theme } = useData();
+  const isDark = theme === 'dark' || theme === 'midnight';
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [policyType, setPolicyType] = useState<'refund' | 'terms' | null>(null);
 
@@ -78,7 +79,9 @@ export const SubscriptionPlan = ({ t }: { t: Translations }) => {
   };
 
   return (
-    <div className="pb-32 bg-[#FBFBFE] min-h-screen relative overflow-hidden text-left font-sans">
+    <div className={cn("pb-32 min-h-screen relative overflow-hidden text-left font-sans transition-colors duration-500",
+      isDark ? "bg-[#060A10]" : "bg-[#FBFBFE]"
+    )}>
       {/* ── Page Accents ── */}
       <div className="absolute top-0 right-0 w-[80%] h-[25%] bg-[#C78200]/5 rounded-full blur-[100px] -z-10" />
       <div className="absolute bottom-[20%] left-0 w-[60%] h-[35%] bg-emerald-500/10 rounded-full blur-[120px] -z-10" />

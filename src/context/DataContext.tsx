@@ -723,7 +723,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const addPond = async (pond: Omit<Pond, 'id'>) => {
     const limit = getPondLimit();
-    const activePondsCount = ponds.filter(p => p.status === 'active').length;
+    const activePondsCount = ponds.filter(p => p.status === 'active' || p.status === 'planned').length;
     
     const t = translations[user?.language as keyof typeof translations || 'English'];
     if (activePondsCount >= limit) {
