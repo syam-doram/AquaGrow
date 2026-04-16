@@ -1037,13 +1037,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             );
           })()}
 
-          {/* ── DAILY FARM ADVISOR – Seasonal guidance, cautions & tips ── */}
-          <DailyFarmAdvisor
-            isDark={isDark}
-            ponds={ponds}
-            waterRecords={waterRecords}
-          />
-
           {/* ── DAZZLING DYNAMIC COMMAND GRID ── */}
 
           {ponds.length > 0 && (
@@ -1255,6 +1248,13 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             </motion.div>
           ) : (
             <div className="space-y-6">
+
+              {/* ══ FARM INTELLIGENCE BANNER ══ */}
+              <DailyFarmAdvisor
+                isDark={isDark}
+                ponds={ponds}
+                waterRecords={waterRecords}
+              />
 
               {/* ══ DYNAMIC TASK QUEUE ══ */}
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>

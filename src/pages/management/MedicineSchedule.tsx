@@ -519,7 +519,7 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
                                   <span className="text-[6.5px] font-black px-1.5 py-0.5 rounded-full" style={{ background: ps.bg, color: ps.color }}>{ps.label}</span>
                                 </div>
                                 <p className={cn('text-[8px] font-medium leading-snug', isDark ? 'text-white/35' : 'text-slate-500')}>
-                                  {item.dose}{item.freq ? ` • ${item.freq}` : ''}
+                                  {item.dose ?? item.description?.slice(0, 60)}{item.applicationType ? ` • ${item.applicationType === 'FEED' ? 'In feed' : 'In water'}` : ''}
                                 </p>
                               </div>
                               {/* Cost */}
@@ -749,58 +749,201 @@ export const MedicineSchedule = ({ t, onMenuClick }: { t: Translations; onMenuCl
               {activeTab === 'lunar' && (
                 <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
 
-                  {/* Tonight's moon card */}
-                  <div className="rounded-2xl overflow-hidden"
-                    style={{ background: lunar.phase === 'AMAVASYA' ? 'linear-gradient(135deg,#0a0a0a,#1a0a2e)'
-                      : lunar.phase === 'POURNAMI' ? 'linear-gradient(135deg,#0D0E2E,#1A1C3E)'
-                      : 'linear-gradient(135deg,#0B1A2E,#121F35)' }}>
+                  {/* Tonight's moon hero card */}
+                  <div className="rounded-[1.8rem] overflow-hidden shadow-xl"
+                    style={{ background:
+                      lunar.phase === 'AMAVASYA' ? 'linear-gradient(150deg,#0a0005,#1a0a2e,#2D0259,#4C0875)'
+                      : lunar.phase === 'POURNAMI' ? 'linear-gradient(150deg,#050B28,#0D1850,#1A2E8C,#2563eb)'
+                      : lunar.phase === 'ASHTAMI'  ? 'linear-gradient(150deg,#1C1200,#3B2600,#7C5200,#C78200)'
+                      : lunar.phase === 'NAVAMI'   ? 'linear-gradient(150deg,#001C12,#003D28,#047857,#10b981)'
+                      : 'linear-gradient(150deg,#0B1A2E,#121F35,#1a3046)' }}>
                     <div className="p-5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-4xl">{moonMeta.emoji}</span>
-                        <div>
-                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-0.5">Tonight</p>
-                          <p className="text-base font-black text-white">{moonMeta.label}</p>
-                          <span className="text-[7.5px] font-black px-2 py-0.5 rounded-full text-white"
-                            style={{ background: moonMeta.badge }}>{moonMeta.badgeText}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        {moonMeta.rules.map((rule, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            <div className="w-1 h-1 rounded-full bg-white/40 mt-1.5 flex-shrink-0" />
-                            <p className="text-[8px] font-medium text-white/60 leading-snug">{rule}</p>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-5xl leading-none">{moonMeta.emoji}</span>
+                          <div>
+                            <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/30 mb-1">Tonight</p>
+                            <p className="text-lg font-black text-white">{moonMeta.label}</p>
+                            <span className="text-[7.5px] font-black px-2 py-0.5 rounded-full text-white"
+                              style={{ background: moonMeta.badge }}>{moonMeta.badgeText}</span>
                           </div>
-                        ))}
+                        </div>
+                        {lunar.phase !== 'NORMAL' && (
+                          <span className="text-[6.5px] font-black px-2 py-0.5 rounded-full bg-white/10 text-white/60 uppercase tracking-widest mt-1">
+                            ⚠ Medicine timing critical
+                          </span>
+                        )}
                       </div>
+                      <div className="space-y-2 mb-3">
+                        {moonMeta.rules.map((rule, i) => {
+                          const isCaution = rule.startsWith('Do NOT') || rule.startsWith('Watch') || rule.startsWith('Reduce');
+                          const isDo = rule.startsWith('Apply') || rule.startsWith('Run') || rule.startsWith('Increase') || rule.startsWith('Start') || rule.startsWith('Maintain') || rule.startsWith('Maximum');
+                          return (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                                style={{ background: isCaution ? 'rgba(239,68,68,0.2)' : isDo ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.08)' }}>
+                                <span className="text-[9px]">{isCaution ? '⚠' : isDo ? '✓' : '·'}</span>
+                              </div>
+                              <p className="text-[8.5px] font-medium text-white/70 leading-snug">{rule}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {lunar.phase !== 'NORMAL' && (
+                        <div className="rounded-xl bg-white/8 border border-white/12 p-3 flex items-center gap-2.5">
+                          <span className="text-lg">💊</span>
+                          <div>
+                            <p className="text-[7px] font-black uppercase tracking-widest text-white/40 mb-0.5">Medicine Timing Rule</p>
+                            <p className="text-[8.5px] font-black text-white/80">
+                              {lunar.phase === 'AMAVASYA' ? 'Apply ALL medicines before 9 AM only. Zero treatments after 6 PM.'
+                              : lunar.phase === 'POURNAMI' ? 'Mineral application allowed in evening. Probiotics in morning feed only.'
+                              : lunar.phase === 'ASHTAMI'  ? 'Apply Mineral Mix 4–6 PM for shell hardening. No antibiotics today.'
+                              : 'Immunity boosters morning only. Avoid pond disturbance after 8 PM.'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* 32-day forecast grid */}
+                  {/* ── UPCOMING SPECIAL DAYS WITH CAUTIONS ── */}
+                  {(() => {
+                    const specialDays = lunarForecast.slice(0, 32)
+                      .map((day, i) => ({ ...day, idx: i }))
+                      .filter(d => d.phase !== 'NORMAL');
+                    if (specialDays.length === 0) return null;
+
+                    type PhaseKey = 'AMAVASYA' | 'POURNAMI' | 'ASHTAMI' | 'NAVAMI';
+                    const PHASE_DETAIL: Record<PhaseKey, { title: string; color: string; bg: string; border: string; severity: string; severityColor: string; cautions: string[]; dos: string[]; medicineTip: string; }> = {
+                      AMAVASYA: {
+                        title: 'Amavasya — New Moon', color: '#a855f7',
+                        bg: isDark ? 'rgba(168,85,247,0.08)' : 'rgba(168,85,247,0.05)',
+                        border: isDark ? 'rgba(168,85,247,0.25)' : 'rgba(168,85,247,0.18)',
+                        severity: 'HIGHEST RISK', severityColor: '#EF4444',
+                        cautions: ['Shrimp undergo mass molting — immunity is at its lowest', 'DO levels can crash rapidly after midnight', 'Vibrio and WSSV spread fastest during Amavasya', 'Ammonia spikes from uneaten feed are dangerous tonight'],
+                        dos: ['Reduce feed by 25–30% for today\'s slots', 'Run ALL aerators at 100% through the night', 'Apply Mineral Mix in the morning (before 9 AM only)', 'Apply Vitamin C / Immunity booster in morning feed'],
+                        medicineTip: 'Apply ALL medicines before 9 AM only. ZERO treatments after 6 PM.',
+                      },
+                      POURNAMI: {
+                        title: 'Pournami — Full Moon', color: '#6366f1',
+                        bg: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.05)',
+                        border: isDark ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.18)',
+                        severity: 'HIGH ACTIVITY', severityColor: '#6366F1',
+                        cautions: ['Plankton blooms can crash overnight causing DO drop', 'Partial molting — monitor tray residue at every slot', 'DO can drop unexpectedly at 2–4 AM', 'Overfeeding risk is high as shrimp may refuse trays'],
+                        dos: ['Increase aeration to 100% from evening', 'Monitor DO at midnight and 4 AM', 'Apply Mineral Mix for shell hardening (evening)', 'Reduce feed 10% if tray shows > 15% residue'],
+                        medicineTip: 'Probiotics in morning feed only. Minerals can be applied in evening.',
+                      },
+                      ASHTAMI: {
+                        title: 'Ashtami — Molting Begins', color: '#C78200',
+                        bg: isDark ? 'rgba(199,130,0,0.08)' : 'rgba(199,130,0,0.05)',
+                        border: isDark ? 'rgba(199,130,0,0.25)' : 'rgba(199,130,0,0.18)',
+                        severity: 'MOLTING DAY', severityColor: '#F59E0B',
+                        cautions: ['Soft-shell shrimp are vulnerable to cannibalism', 'Crowding near aerators can damage molting shrimp', 'Do NOT handle or net the pond — severe stress', 'Low mineral levels worsen shell hardening time'],
+                        dos: ['Reduce feed by 10–15% for today', 'Apply Mineral Mix in evening for shell hardening', 'Start intensive aeration both morning and night', 'Watch trays closely for high residue (sign of molting)'],
+                        medicineTip: 'Apply Mineral Mix 4–6 PM for calcium support. No antibiotics today.',
+                      },
+                      NAVAMI: {
+                        title: 'Navami — Peak Molting Recovery', color: '#10b981',
+                        bg: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.05)',
+                        border: isDark ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.18)',
+                        severity: 'VIGILANCE', severityColor: '#10B981',
+                        cautions: ['Shells still soft — vulnerability window open', 'Slow feeders or floating shrimp = poor molting recovery', 'Oxygen demand is highest as shrimp rebuild shells', 'No sampling or netting today — avoid stress'],
+                        dos: ['Maintain max aeration through 2 AM tonight', 'Apply Immunity Boosters in morning feed', 'Reduce feed 15% if any mortality observed', 'Check tray residue every slot — act if > 20%'],
+                        medicineTip: 'Immunity boosters morning only. Avoid pond disturbance after 8 PM.',
+                      },
+                    };
+
+                    return (
+                      <div>
+                        <p className={cn('text-[8px] font-black uppercase tracking-widest px-1 mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
+                          ⚠️ Special Days with Cautions — {specialDays.length} upcoming events
+                        </p>
+                        <div className="space-y-2">
+                          {specialDays.map((day, si) => {
+                            const detail = PHASE_DETAIL[day.phase as PhaseKey];
+                            if (!detail) return null;
+                            const docForDay = selectedPond?.stockingDate ? calculateDOC(selectedPond.stockingDate, day.date.toISOString()) : 0;
+                            const isToday = day.idx === 0;
+                            const dateLabel = day.date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+                            return (
+                              <div key={si} className="rounded-2xl border overflow-hidden"
+                                style={{ background: detail.bg, borderColor: detail.border }}>
+                                <div className="flex items-center justify-between px-4 py-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="text-2xl leading-none">{MOON_META[day.phase]?.emoji ?? '🌙'}</span>
+                                    <div>
+                                      <p className="text-[10px] font-black" style={{ color: detail.color }}>{detail.title}</p>
+                                      <p className={cn('text-[7.5px] font-medium', isDark ? 'text-white/40' : 'text-slate-500')}>
+                                        {isToday ? '🔴 Tonight' : `${day.idx} days away`} · {dateLabel} · DOC {docForDay}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="text-[6.5px] font-black px-2 py-1 rounded-full text-white"
+                                    style={{ background: detail.severityColor }}>{detail.severity}</span>
+                                </div>
+                                <div className="px-4 pb-1">
+                                  <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1.5', isDark ? 'text-red-400/70' : 'text-red-600')}>⚠ Cautions</p>
+                                  {detail.cautions.map((c, ci) => (
+                                    <div key={ci} className="flex items-start gap-2 mb-1">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0 opacity-80" />
+                                      <p className={cn('text-[8px] font-medium leading-snug', isDark ? 'text-white/55' : 'text-slate-600')}>{c}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="px-4 pb-1 pt-1">
+                                  <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1.5', isDark ? 'text-emerald-400/70' : 'text-emerald-700')}>✓ What To Do</p>
+                                  {detail.dos.map((d, di) => (
+                                    <div key={di} className="flex items-start gap-2 mb-1">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
+                                      <p className={cn('text-[8px] font-medium leading-snug', isDark ? 'text-white/55' : 'text-slate-600')}>{d}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="mx-4 mb-3 mt-1 rounded-xl p-2.5 flex items-start gap-2"
+                                  style={{ background: `${detail.color}12`, border: `1px solid ${detail.color}25` }}>
+                                  <span className="text-base flex-shrink-0">💊</span>
+                                  <p className={cn('text-[8px] font-black leading-snug', isDark ? 'text-white/70' : 'text-slate-700')}>{detail.medicineTip}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 30-day calendar grid */}
                   <div>
                     <p className={cn('text-[8px] font-black uppercase tracking-widest px-1 mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
-                      30-Day Lunar Forecast
+                      30-Day Calendar
                     </p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {lunarForecast.slice(0, 32).map((day, i) => {
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {lunarForecast.slice(0, 30).map((day, i) => {
                         const isToday = i === 0;
-                        const docForDay = selectedPond?.stockingDate
-                          ? calculateDOC(selectedPond.stockingDate, day.date.toISOString()) : 0;
                         const isRisk = day.phase !== 'NORMAL';
+                        const docForDay = selectedPond?.stockingDate ? calculateDOC(selectedPond.stockingDate, day.date.toISOString()) : 0;
+                        const phaseColor = ({ AMAVASYA: '#a855f7', POURNAMI: '#6366f1', ASHTAMI: '#C78200', NAVAMI: '#10b981' } as Record<string,string>)[day.phase] ?? '';
                         return (
-                          <div key={i} className={cn('rounded-2xl p-2.5 border text-center',
-                            isToday ? 'border-purple-500/50' : isDark ? 'border-white/8' : 'border-slate-100',
-                            isRisk ? isDark ? 'bg-indigo-500/8' : 'bg-indigo-50/80' : isDark ? 'bg-white/[0.03]' : 'bg-white',
-                          )}>
-                            <p className="text-base leading-none mb-0.5">{MOON_META[day.phase]?.emoji ?? '🌤️'}</p>
-                            <p className={cn('text-[7px] font-black', isDark ? 'text-white/60' : 'text-slate-700')}>
-                              {day.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                            </p>
-                            <p className={cn('text-[6px] font-black uppercase tracking-widest', isRisk ? 'text-indigo-400' : isDark ? 'text-white/20' : 'text-slate-400')}>
-                              D{docForDay}
-                            </p>
+                          <div key={i} className={cn('rounded-xl p-2 text-center border relative overflow-hidden',
+                            isToday ? 'border-purple-500/60' : isDark ? 'border-white/6' : 'border-slate-100',
+                            isToday ? isDark ? 'bg-purple-500/15' : 'bg-purple-50'
+                              : isRisk ? isDark ? 'bg-white/[0.04]' : 'bg-white'
+                              : isDark ? 'bg-white/[0.02]' : 'bg-slate-50/70')}>
+                            {isRisk && <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ background: phaseColor }} />}
+                            <p className="text-sm leading-none mb-0.5">{MOON_META[day.phase]?.emoji ?? '·'}</p>
+                            <p className={cn('text-[6.5px] font-black', isDark ? 'text-white/50' : 'text-slate-600')}>{day.date.getDate()}</p>
+                            <p className={cn('text-[5.5px] font-black uppercase tracking-widest', isRisk ? 'text-indigo-400' : isDark ? 'text-white/15' : 'text-slate-300')}>D{docForDay}</p>
                           </div>
                         );
                       })}
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-2 px-1">
+                      {[{ emoji: '🌑', label: 'Amavasya', color: '#a855f7' }, { emoji: '🌕', label: 'Pournami', color: '#6366f1' }, { emoji: '🌓', label: 'Ashtami', color: '#C78200' }, { emoji: '🌙', label: 'Navami', color: '#10b981' }].map(l => (
+                        <div key={l.label} className="flex items-center gap-1">
+                          <span className="text-[9px]">{l.emoji}</span>
+                          <span className="text-[6.5px] font-black uppercase tracking-widest" style={{ color: l.color }}>{l.label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </motion.div>
