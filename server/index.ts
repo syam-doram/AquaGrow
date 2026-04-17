@@ -1602,7 +1602,8 @@ const runPushEngine = async () => {
           deepLink:      '/weather',
         },
         android: {
-          priority: topAlert.type === 'critical' ? 'high' : 'normal',
+          // ALWAYS high — 'normal' priority messages are NOT delivered to killed apps
+          priority: 'high',
           ttl: 3600000,
           notification: {
             channelId: 'aquagrow-premium',
@@ -1621,7 +1622,20 @@ const runPushEngine = async () => {
             defaultLightSettings:  true,
           },
         },
-        apns: { payload: { aps: { badge: 1, sound: 'default', category: 'WEATHER_ALERT' } } },
+        apns: {
+          headers: {
+            'apns-priority': '10',          // 10 = immediate, 5 = power-efficient
+            'apns-push-type': 'alert',
+          },
+          payload: {
+            aps: {
+              badge: 1,
+              sound: 'default',
+              category: 'WEATHER_ALERT',
+              'content-available': 1,       // wake iOS background process
+            },
+          },
+        },
       };
 
       const wxSent = await sendFCM(u.fcmToken!, wxMsg);

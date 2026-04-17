@@ -55,18 +55,23 @@ package="com.aquagrow.app">
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- ── FCM Background Message Service ──────────────────────────────────
-             Declaring FirebaseMessagingService explicitly tells the Android OS
-             to keep the Firebase channel alive even when battery optimisation
-             would otherwise kill the process.  Without this, background push
-             notifications on Xiaomi / Samsung / OnePlus (MIUI, One UI, OxygenOS)
-             are silently dropped.
-             priority="-500" lets the Capacitor plugin intercept first.
-        ──────────────────────────────────────────────────────────────────────── -->
+        <!--
+             AquaGrowMessagingService — custom FCM handler.
+
+             Priority 0 means Android routes the MESSAGING_EVENT to our service
+             FIRST, before any Capacitor internal handler (which sits at -500).
+
+             This is the critical piece for killed-state notifications:
+             — With a "notification" payload key, Android auto-displays the
+               notification (system-rendered) without waking Capacitor.
+             — With a DATA-ONLY payload, Android wakes this service and we
+               build+post the notification manually.
+             — Either way the farmer sees the alert even if the app is force-killed.
+        -->
         <service
-            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:name=".AquaGrowMessagingService"
             android:exported="false">
-            <intent-filter android:priority="-500">
+            <intent-filter android:priority="0">
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>

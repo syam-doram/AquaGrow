@@ -212,24 +212,24 @@ export const useFirebaseAlerts = (userLanguage: string) => {
           : { type: 'general', color: '#6366F1', channelId: 'aquagrow-premium' };
 
         // Show real OS notification even while app is open
-        try {
-          await LocalNotifications.schedule({
-            notifications: [{
-              id: Date.now() & 0x7fffffff, // must be positive int32
-              title: notification.title || 'AquaGrow Alert',
-              body: notification.body || '',
-              channelId: meta.channelId,
-              extra: data,
-              // ic_stat_aquagrow is a white vector drawable in res/drawable/
-              // ic_launcher is NOT a valid notification icon — it causes silent drop
-              smallIcon: 'ic_stat_aquagrow',
-              iconColor: meta.color,
-              // Show on lock screen
-              schedule: undefined,
-            }],
-          });
-        } catch (e) {
-          console.warn('[FCM] LocalNotifications.schedule failed:', e);
+        // NOTE: On Android, AquaGrowMessagingService.java ALREADY posts a rich notification
+        // unconditionally. We skip LocalNotifications here on Android to prevent double banners.
+        if (Capacitor.getPlatform() !== 'android') {
+          try {
+            await LocalNotifications.schedule({
+              notifications: [{
+                id: Date.now() & 0x7fffffff, // must be positive int32
+                title: notification.title || 'AquaGrow Alert',
+                body: notification.body || '',
+                channelId: meta.channelId,
+                extra: data,
+                smallIcon: 'ic_stat_aquagrow',
+                iconColor: meta.color,
+              }],
+            });
+          } catch (e) {
+            console.warn('[FCM] LocalNotifications.schedule failed:', e);
+          }
         }
 
         addAlert({

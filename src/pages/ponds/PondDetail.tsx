@@ -190,8 +190,11 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   const effectiveRequest = isCancelledState ? undefined : currentRequest;
   const effectiveStatus = isCancelledState ? 'active' : pond.status;
 
-  const currentDoc = calculateDOC(pond.stockingDate);
   const isPlanned = pond.status === 'planned';
+  const currentDocRaw = calculateDOC(pond.stockingDate);
+  const currentDoc = effectiveStatus === 'harvested' && pond.harvestData?.finalDoc
+    ? Number(pond.harvestData.finalDoc)
+    : currentDocRaw;
   const currentWeight = isPlanned ? 0 : calculateWeight(currentDoc);
   const guidance = getSOPGuidance(isPlanned ? -1 : currentDoc, new Date());
   const today = new Date().toISOString().split('T')[0];
@@ -237,7 +240,9 @@ export const PondDetail = ({ t }: { t: Translations }) => {
   const getTimelineDates = () => {
     const dates = [];
     const start = new Date(pond.stockingDate);
-    const end = new Date();
+    const end = effectiveStatus === 'harvested' && pond.harvestData?.harvestDate
+      ? new Date(pond.harvestData.harvestDate)
+      : new Date();
     let count = 0;
     while (start <= end && count < 200) {
       dates.push(new Date(start));
@@ -656,12 +661,14 @@ export const PondDetail = ({ t }: { t: Translations }) => {
               </div>
               <div className="flex items-center gap-2">
                 <div className={cn("w-2 h-2 rounded-full", hasLoggedToday ? "bg-emerald-500 animate-pulse" : "bg-red-400")} />
-                <button
-                  onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-                  className="px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-[8px] font-black uppercase tracking-widest"
-                >
-                  {hasLoggedToday ? 'Update' : 'Log Now'}
-                </button>
+                {effectiveStatus !== 'harvested' && (
+                  <button
+                    onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
+                    className="px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-[8px] font-black uppercase tracking-widest"
+                  >
+                    {hasLoggedToday ? 'Update' : 'Log Now'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -747,7 +754,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                 </div>
 
                 {/* Harvest CTA */}
-                {effectiveStatus === 'active' && (
+                {effectiveStatus === 'active' && currentWeight >= 10 && (
                   <div
                     onClick={() => navigate(`/ponds/${pond.id}/harvest`)}
                     className={cn(
@@ -769,6 +776,30 @@ export const PondDetail = ({ t }: { t: Translations }) => {
                       </h3>
                     </div>
                     <ChevronRight size={18} className="text-white/40 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                )}
+                {effectiveStatus === 'active' && currentWeight < 10 && (
+                  <div
+                    className={cn(
+                      "rounded-[2rem] p-5 flex items-center gap-4 transition-all border",
+                      isDark ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200"
+                    )}
+                  >
+                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", isDark ? "bg-white/5 text-white/30" : "bg-slate-200 text-slate-400")}>
+                      <ShoppingBag size={22} className="opacity-50" />
+                    </div>
+                    <div className="flex-1 opacity-60">
+                      <p className={cn("text-[8px] font-black uppercase tracking-[0.2em]", isDark ? "text-white/50" : "text-slate-500")}>
+                        Harvest Locked
+                      </p>
+                      <h3 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>
+                        Requires 10g Minimum
+                      </h3>
+                    </div>
+                    <div className="flex flex-col items-center justify-center opacity-50 pl-2 border-l border-current/10">
+                      <span className="text-sm">🔒</span>
+                      <span className="text-[6px] font-black uppercase mt-1 tracking-widest">{currentWeight.toFixed(1)}g</span>
+                    </div>
                   </div>
                 )}
 
@@ -1017,7 +1048,7 @@ export const PondDetail = ({ t }: { t: Translations }) => {
 
             {activeSection === 'aerators' && (
               <motion.div key="aerators" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
-                <AeratorManagement pond={pond} isDark={isDark} />
+                <AeratorManagement pond={pond} isDark={isDark} readOnly={effectiveStatus === 'harvested'} />
               </motion.div>
             )}
 

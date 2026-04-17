@@ -1,21 +1,45 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ─── AquaGrow · ProGuard / R8 Rules ──────────────────────────────────────────
+# Applied for release builds only. R8 full-mode is enabled via
+# proguard-android-optimize.txt in build.gradle.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── Capacitor / WebView JS bridge ───────────────────────────────────────────
+-keep class com.getcapacitor.** { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+-keepclassmembers class * extends com.getcapacitor.Plugin {
+    @com.getcapacitor.annotation.PluginMethod public *;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── Firebase ─────────────────────────────────────────────────────────────────
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── Firebase App Check ────────────────────────────────────────────────────────
+-keep class com.google.firebase.appcheck.** { *; }
+
+# ── AndroidX / Support library ───────────────────────────────────────────────
+-keep class androidx.** { *; }
+-dontwarn androidx.**
+
+# ── Coroutines (used by Firebase internally) ─────────────────────────────────
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-dontwarn kotlinx.coroutines.**
+
+# ── Reflection entrypoints ───────────────────────────────────────────────────
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
+
+# ── Crash / stack trace readability (optional but useful for debugging) ───────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# ── Suppress known-safe warnings ─────────────────────────────────────────────
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
+-dontwarn sun.misc.Unsafe
+-dontwarn java.lang.invoke.**

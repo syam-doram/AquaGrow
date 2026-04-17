@@ -792,6 +792,7 @@ export interface Translations {
   marketPrice: string;
   updatePrice: string;
   recentActivity: string;
+  roiCycle: string;
 
   // Provider Module
   providerDashboard: string;
@@ -1793,6 +1794,7 @@ const English: Translations = {
   marketPrice: 'Market Price',
   updatePrice: 'Update Price',
   recentActivity: 'Recent Activity',
+  roiCycle: 'ROI Cycle',
 
   // Provider Module
   providerDashboard: 'Provider Dashboard',

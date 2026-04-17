@@ -16,9 +16,7 @@ const config: CapacitorConfig = {
       // Smooth fade out transition
       showSpinner: false,
       splashFullScreen: true,
-      splashImmersive: true,
-      fadeInDuration: 200,
-      fadeOutDuration: 400,
+      launchFadeOutDuration: 400,
     },
     FirebaseAuthentication: {
       // List every sign-in provider you use.

@@ -10,9 +10,10 @@ import { calculateDOC } from '../../utils/pondUtils';
 interface AeratorManagementProps {
   pond: Pond;
   isDark: boolean;
+  readOnly?: boolean;
 }
 
-export const AeratorManagement = ({ pond, isDark }: AeratorManagementProps) => {
+export const AeratorManagement = ({ pond, isDark, readOnly = false }: AeratorManagementProps) => {
   const { updatePond } = useData();
   const [showPopup, setShowPopup] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -47,13 +48,15 @@ export const AeratorManagement = ({ pond, isDark }: AeratorManagementProps) => {
                 {getAeratorStageLabel(doc)}
               </p>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowPopup(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest shadow-md"
-            >
-              <Plus size={11} /> Update
-            </motion.button>
+            {!readOnly && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowPopup(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest shadow-md"
+              >
+                <Plus size={11} /> Update
+              </motion.button>
+            )}
           </div>
 
           {/* Stats row */}
@@ -215,13 +218,15 @@ export const AeratorManagement = ({ pond, isDark }: AeratorManagementProps) => {
           <p className={cn('text-[8px] font-medium mt-1', isDark ? 'text-white/20' : 'text-slate-400')}>
             Record your current aerator setup to track compliance across stages.
           </p>
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setShowPopup(true)}
-            className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-xl bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest shadow-md"
-          >
-            <Plus size={11} /> Add First Record
-          </motion.button>
+          {!readOnly && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setShowPopup(true)}
+              className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-xl bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest shadow-md"
+            >
+              <Plus size={11} /> Add First Record
+            </motion.button>
+          )}
         </div>
       )}
 

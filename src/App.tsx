@@ -104,7 +104,7 @@ const ProviderFarmers   = lazy(() => import('./pages/provider/ProviderFarmers').
 
 // Lazy-load fallback spinner
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-[#060A10]">
+  <div className="min-h-screen flex items-center justify-center bg-paper">
     <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
   </div>
 );
@@ -533,28 +533,18 @@ const AppContent = () => {
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ 
-                duration: 0.15, 
-                ease: "linear"
-              }}
-              className="w-full min-h-[100dvh] relative z-10 overflow-x-hidden"
-            >
-              <Suspense fallback={<PageLoader />}>
+          {/* Main App Routes */}
+          <div className="w-full min-h-[100dvh] relative z-10 overflow-x-hidden">
+            {user && (
+              <>
+                <PushSyncManager />
+                <GlobalAlertCenter t={t} />
+              </>
+            )}
+            <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
                 {/* Farmer Routes */}
-                <Route path="/dashboard" element={
-                  <>
-                    <PushSyncManager />
-                    <GlobalAlertCenter t={t} />
-                    <Dashboard user={user} t={t} onMenuClick={() => navigate('/profile')} />
-                  </>
-                } />
+                <Route path="/dashboard" element={<Dashboard user={user} t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/ponds" element={<PondManagement t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/ponds/new" element={<PondEntry t={t} />} />
                 <Route path="/ponds/:id" element={<PondDetail t={t} />} />
@@ -617,9 +607,8 @@ const AppContent = () => {
 
                 <Route path="*" element={<Navigate to={isProvider ? "/provider/dashboard" : "/dashboard"} replace />} />
               </Routes>
-              </Suspense>
-            </motion.div>
-          </AnimatePresence>
+            </Suspense>
+          </div>
 
           {/* Persistent Navigation — hidden when any bottom sheet is open */}
           <AnimatePresence>

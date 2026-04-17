@@ -72,6 +72,7 @@ export const useSmartAlerts = (params: {
   const lastRunRef    = useRef<number>(0);
   const suppressedIds = useRef<Set<string>>(loadSuppressed(uid));
   const alertsRef      = useRef<SmartAlert[]>(alerts);
+  const sessionFiredRef = useRef<Set<string>>(new Set());
 
   // Keep alertsRef in sync with state
   useEffect(() => { alertsRef.current = alerts; }, [alerts]);
@@ -233,6 +234,9 @@ export const useSmartAlerts = (params: {
     const newAlerts: SmartAlert[] = [];
 
     for (const alert of generated) {
+      // Systemic synchronous guard to prevent race-condition duplicates if hook runs back-to-back
+      if (sessionFiredRef.current.has(todayKey + alert.title)) continue;
+
       // Check if a similar alert (same title) was already shown today — use ref for fresh state
       const alreadyShown = alertsRef.current.some(
         a => a.title === alert.title &&
@@ -242,6 +246,7 @@ export const useSmartAlerts = (params: {
       if (alreadyShown) continue;
       if (suppressedIds.current.has(alert.title)) continue;
 
+      sessionFiredRef.current.add(todayKey + alert.title);
       newAlerts.push(alert);
 
       // Fire OS-level push for high+ priority alerts
@@ -255,10 +260,16 @@ export const useSmartAlerts = (params: {
     }
   }, [enabled, ponds, waterRecords, feedRecords, marketPrices, prefs, fireLocalNotification, language]);
 
-  // ── Auto-run on interval ──
+  // When language changes, clear stale cached alerts (stored with old-language titles)
+  // so the engine re-generates fresh Telugu/English alerts without false "alreadyShown" matches
   useEffect(() => {
-    lastRunRef.current = 0; // Force run on language change
-  }, [language]);
+    lastRunRef.current = 0;
+    setAlerts([]);
+    suppressedIds.current.clear();
+    sessionFiredRef.current.clear();
+    try { localStorage.removeItem(storageKey(uid)); } catch {}
+    try { localStorage.removeItem(suppressedKey(uid)); } catch {}
+  }, [language, uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!enabled) return;

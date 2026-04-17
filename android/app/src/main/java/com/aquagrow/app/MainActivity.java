@@ -13,6 +13,10 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Create all FCM notification channels upfront so Android doesn't silently
+        // drop the first notification (channels must exist before first delivery).
+        AquaGrowMessagingService.createNotificationChannels(this);
+
         // Firebase App Check — use Debug provider for debug builds, Play Integrity for release
         FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
         if (BuildConfig.DEBUG) {

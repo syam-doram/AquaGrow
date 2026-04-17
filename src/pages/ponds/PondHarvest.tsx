@@ -77,6 +77,8 @@ export const PondHarvest = ({ t }: { t: Translations }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPartialPopup, setShowPartialPopup] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'market' | 'self' | null>(null);
 
   const toggleBuyer = (buyerName: string) => {
     setFormData(prev => ({
@@ -87,12 +89,23 @@ export const PondHarvest = ({ t }: { t: Translations }) => {
     }));
   };
 
-  // ── Submit: Market Sale ──
-  const handleMarketSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── Execute: Market Sale ──
+  const executeMarketSubmit = async (autoAdjust: boolean) => {
     setLoading(true);
     const isPartial = formData.harvestType === 'partial';
+    
     try {
+      let updatedSeedCount = pond.seedCount;
+      let isPartialAdjustmentDone = false;
+
+      if (isPartial && autoAdjust) {
+        const harvestedBiomass = parseFloat(formData.totalBiomass); // kg
+        const avgWeightKg = parseFloat(formData.avgWeight) / 1000;
+        const harvestedCount = harvestedBiomass / avgWeightKg;
+        updatedSeedCount = Math.max(0, parseFloat(pond.seedCount as any) - harvestedCount).toString();
+        isPartialAdjustmentDone = true;
+      }
+
       await addHarvestRequest({
         pondId: pond.id,
         biomass: parseFloat(formData.totalBiomass),
@@ -101,64 +114,121 @@ export const PondHarvest = ({ t }: { t: Translations }) => {
         targetedBuyers: formData.selectedBuyers,
         broadcastRadius: 150,
         status: 'pending',
-        isPartialHarvest: isPartial,            // ← flag for HarvestTracking
-        harvestType: formData.harvestType,      // 'partial' | 'full'
-        totalSeedCount: parseFloat(pond.seedCount as any), // original seed count for adjustment
+        isPartialHarvest: isPartial,
+        harvestType: formData.harvestType,
+        totalSeedCount: parseFloat(pond.seedCount as any),
       });
+
       await updatePond(pond.id, {
-        // Partial keeps pond active mid-cycle; full moves to harvest_pending
         status: isPartial ? 'active' : 'harvest_pending',
+        seedCount: updatedSeedCount,
         harvestData: {
           ...formData,
           finalDoc: currentDoc,
           harvestStartedAt: new Date().toISOString(),
           isPartialHarvest: isPartial,
+          partialHarvestAdjustmentDone: isPartialAdjustmentDone,
         },
       });
+
       navigate(isPartial ? `/ponds/${pond.id}/tracking` : '/ponds');
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setShowPartialPopup(false);
+      setPendingAction(null);
     }
   };
 
-  // ── Submit: Self Harvest ──
-  const handleSelfSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const reason = selfForm.customReason.trim() || selfForm.selectedReason;
-    if (!reason) return;
+  // ── Execute: Self Harvest ──
+  const executeSelfSubmit = async (autoAdjust: boolean, reasonLabel: string) => {
     setLoading(true);
+    const isPartial = reasonLabel === 'Partial Harvest';
+
     try {
+      let updatedSeedCount = pond.seedCount;
+      let isPartialAdjustmentDone = false;
+
+      if (isPartial && autoAdjust) {
+        const harvestedBiomass = parseFloat(selfForm.totalBiomass);
+        const avgWeightKg = parseFloat(selfForm.avgWeight) / 1000;
+        const harvestedCount = harvestedBiomass / avgWeightKg;
+        updatedSeedCount = Math.max(0, parseFloat(pond.seedCount as any) - harvestedCount).toString();
+        isPartialAdjustmentDone = true;
+      }
+
       await updatePond(pond.id, {
-        status: 'harvested',
+        // Keep active if it's a partial harvest
+        status: isPartial ? 'active' : 'harvested',
+        seedCount: updatedSeedCount,
         harvestData: {
           totalBiomass: selfForm.totalBiomass,
           avgWeight: selfForm.avgWeight,
           marketRate: selfForm.salePrice || '0',
           harvestType: 'self',
-          selfHarvestReason: reason,
+          selfHarvestReason: reasonLabel,
           finalDoc: currentDoc,
           harvestDate: new Date().toISOString(),
           harvestStartedAt: new Date().toISOString(),
+          isPartialHarvest: isPartial,
+          partialHarvestAdjustmentDone: isPartialAdjustmentDone,
         },
       });
 
-      // ── Route to ROI Entry to complete the harvest cycle ──
-      const params = new URLSearchParams({
-        pondId:       pond.id,
-        fromHarvest:  'self',
-        biomass:      selfForm.totalBiomass,
-        avgWeight:    selfForm.avgWeight,
-        salePrice:    selfForm.salePrice || '',
-        doc:          String(currentDoc),
-        reason:       encodeURIComponent(reason),
-      });
-      navigate(`/roi-entry?${params.toString()}`);
+      if (isPartial) {
+        // Return to pond detail immediately for partial self-harvests
+        navigate(`/ponds/${pond.id}`);
+      } else {
+        const params = new URLSearchParams({
+          pondId:       pond.id,
+          fromHarvest:  'self',
+          biomass:      selfForm.totalBiomass,
+          avgWeight:    selfForm.avgWeight,
+          salePrice:    selfForm.salePrice || '',
+          doc:          String(currentDoc),
+          reason:       encodeURIComponent(reasonLabel),
+        });
+        navigate(`/roi-entry?${params.toString()}`);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setShowPartialPopup(false);
+      setPendingAction(null);
+    }
+  };
+
+  const handleMarketSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.harvestType === 'partial') {
+      setPendingAction('market');
+      setShowPartialPopup(true);
+      return;
+    }
+    executeMarketSubmit(false);
+  };
+
+  const handleSelfSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const reason = selfForm.customReason.trim() || selfForm.selectedReason;
+    if (!reason) return;
+
+    if (reason === 'Partial Harvest') {
+      setPendingAction('self');
+      setShowPartialPopup(true);
+      return;
+    }
+    executeSelfSubmit(false, reason);
+  };
+
+  const confirmPartialProcessing = (autoAdjust: boolean) => {
+    if (pendingAction === 'market') {
+      executeMarketSubmit(autoAdjust);
+    } else if (pendingAction === 'self') {
+      const reason = selfForm.customReason.trim() || selfForm.selectedReason;
+      executeSelfSubmit(autoAdjust, reason);
     }
   };
 
@@ -589,6 +659,61 @@ export const PondHarvest = ({ t }: { t: Translations }) => {
             </motion.form>
           )}
         </AnimatePresence>
+
+        {/* ── PARTIAL HARVEST SOP ADJUSTMENT MODAL ── */}
+        <AnimatePresence>
+          {showPartialPopup && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowPartialPopup(false)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className={cn("relative w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border",
+                  isDark ? "bg-[#0A120E] border-white/10" : "bg-white border-slate-100"
+                )}
+              >
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-5 mx-auto">
+                  <Scale size={28} />
+                </div>
+                
+                <h3 className={cn("text-xl font-black text-center mb-2 leading-tight", isDark ? "text-white" : "text-ink")}>
+                  Update SOP parameters?
+                </h3>
+                
+                <p className={cn("text-[11px] font-bold text-center leading-relaxed mb-6", isDark ? "text-white/60" : "text-ink/60")}>
+                  You are harvesting <span className="text-amber-500">{pendingAction === 'market' ? formData.totalBiomass : selfForm.totalBiomass} kg</span>.
+                  Continuing the culture with outdated biomass will break your feeding charts and invalidate certification workflows.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => confirmPartialProcessing(true)}
+                    className="w-full bg-gradient-to-r from-[#C78200] to-[#a06600] text-white font-black py-3.5 rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                  >
+                    <span>Auto Adjust SOP</span>
+                    <span className="text-[8px] bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">Recommended</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => confirmPartialProcessing(false)}
+                    className={cn("w-full py-3.5 rounded-2xl font-black text-[11px] transition-all active:scale-95 border",
+                      isDark ? "bg-white/5 border-white/5 text-white/50 hover:bg-white/10" 
+                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                    )}
+                  >
+                    Manual Adjust / Skip
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </div>
     </div>
   );

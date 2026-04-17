@@ -475,7 +475,6 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     });
   };
 
-  // ── PUSH TO LOCAL NOTIFICATIONS & HISTORY EFFECT ──
   useEffect(() => {
     const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -483,10 +482,10 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     if (situationAlerts.length > 0) {
       situationAlerts.forEach(async (alert) => {
         const alertId = alert.id;
-        const dailyHistoryKey = `history_notif_${alertId}_${todayKey}`;
         const dailyPushKey = `push_notif_${alertId}_${todayKey}`;
 
-        // Add to persistent notification history list once per day
+        // Add to persistent notification history list once per day per alertId
+        const dailyHistoryKey = `history_notif_${alertId}_${todayKey}`;
         if (!localStorage.getItem(dailyHistoryKey)) {
           addNotification(alert.title, alert.body, alert.type);
           localStorage.setItem(dailyHistoryKey, 'true');
@@ -498,12 +497,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
             try {
               await LocalNotifications.schedule({
                 notifications: [{
-                  id: Math.floor(Math.random() * 1000000),
+                  id: Math.abs(alertId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2147483647,
                   title: alert.title,
                   body: alert.body,
-                  smallIcon: 'ic_stat_name',
-                  largeIcon: 'res://icon',
-                  sound: 'default'
+                  // ic_stat_aquagrow is the white vector drawable in res/drawable/
+                  smallIcon: 'ic_stat_aquagrow',
+                  channelId: alert.type === 'critical' ? 'aquagrow-premium' : 'aquagrow-aerator',
+                  iconColor: alert.type === 'critical' ? '#EF4444' : '#F59E0B',
+                  sound: 'default',
                 }]
               });
               localStorage.setItem(dailyPushKey, 'true');
@@ -602,11 +603,14 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
   }, [latestWater]);
 
   // Auto-show dashboard critical modal when critical readings exist and farmer hasn't acked
+  // DISABLED: User request to remove automated interruptions across the application.
+  /*
   useEffect(() => {
     if (dashboardCriticals.some(c => c.status === 'critical') && !dashCriticalAcked) {
       setShowDashCriticalModal(true);
     }
   }, [dashboardCriticals, dashCriticalAcked]);
+  */
 
   // Water quality status bar gauge 
   const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -1054,12 +1058,12 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
                   { label: `🛒 ${t.shopTitle.split(' ')[0]}`, icon: ShoppingBag, path: '/shop', from: '#C78200', to: '#92400E' },
                   { label: 'Smart Farm', icon: CircuitBoard, path: '/smart-farm', from: '#06b6d4', to: '#0284c7' },
                   { label: 'Orders', icon: Package, path: '/orders', from: '#f59e0b', to: '#d97706' },
-                   { label: 'Community', icon: Users, path: '/community', from: '#10b981', to: '#059669', badge: communityUnreadCount },
+                  { label: 'Community', icon: Users, path: '/community', from: '#10b981', to: '#059669', badge: communityUnreadCount > 0 ? communityUnreadCount : undefined },
                 ].map((n, i) => (
                   <motion.button key={n.path} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(n.path)} className="flex flex-col items-center gap-1.5 group outline-none relative">
                     <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-110 relative", isDark ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-xl")} style={{ boxShadow: isDark ? `0 0 12px ${n.from}15` : `0 8px 20px ${n.from}20` }}>
                       <n.icon size={18} className="drop-shadow-sm" style={{ color: n.from }} />
-                      
+
                       {/* Community/Notification Badge */}
                       {n.badge !== undefined && n.badge > 0 && (
                         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-lg shadow-red-500/20">
