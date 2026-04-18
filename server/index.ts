@@ -30,9 +30,12 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 const ALLOWED_ORIGINS = [
   'https://aquagrow.onrender.com',
   'https://aqua-grow.vercel.app',
-  'https://aquagrow-admin.vercel.app',  // Admin panel (production)
+  'https://aquagrow-admin.vercel.app',   // old Vercel URL (keep for safety)
+  'https://aquagrowadmin.vercel.app',    // ✅ actual deployed Vercel URL
+  'http://localhost:3000',               // Admin panel (Vite dev)
   'http://localhost:5173',              // Admin panel (Vite dev)
   'http://localhost:4173',              // Admin panel (Vite preview)
+  'http://localhost:3005',              // Local backend direct
 ];
 
 app.use(cors({
