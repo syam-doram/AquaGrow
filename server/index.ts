@@ -1129,6 +1129,112 @@ app.get('/api/admin/roi', authenticate, requireAnyAdmin, async (_req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── GET /api/admin/subscriptions — all active subscriptions with farmer info ─
+app.get('/api/admin/subscriptions', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const subs = await SubscriptionMongo.find({}).sort({ createdAt: -1 }).lean();
+    const userIds = [...new Set((subs as any[]).map(s => s.userId))];
+    const users = await UserMongo.find({ _id: { $in: userIds } }, 'name phoneNumber location subscriptionStatus').lean();
+    const uMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+    const result = (subs as any[]).map(s => ({ ...s, farmer: uMap[s.userId] || null }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/expenses — all farmer expenses aggregated ─────────────────
+app.get('/api/admin/expenses', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const expenses = await ExpenseMongo.find({}).sort({ createdAt: -1 }).limit(500).lean();
+    const userIds = [...new Set((expenses as any[]).map(e => e.userId))];
+    const users = await UserMongo.find({ _id: { $in: userIds } }, 'name phoneNumber location').lean();
+    const uMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+    const pondIds = [...new Set((expenses as any[]).map(e => e.pondId).filter(Boolean))];
+    const ponds = await PondMongo.find({ _id: { $in: pondIds } }, 'name').lean();
+    const pMap = Object.fromEntries(ponds.map(p => [String(p._id), p]));
+    const result = (expenses as any[]).map(e => ({
+      ...e,
+      farmer: uMap[e.userId] || null,
+      pond: pMap[e.pondId] || null,
+    }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/feed-logs — all feed logs for admin overview ──────────────
+app.get('/api/admin/feed-logs', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const logs = await FeedLogMongo.find({}).sort({ createdAt: -1 }).limit(500).lean();
+    const userIds = [...new Set((logs as any[]).map(l => l.userId))];
+    const users = await UserMongo.find({ _id: { $in: userIds } }, 'name phoneNumber').lean();
+    const uMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+    const pondIds = [...new Set((logs as any[]).map(l => l.pondId).filter(Boolean))];
+    const ponds = await PondMongo.find({ _id: { $in: pondIds } }, 'name').lean();
+    const pMap = Object.fromEntries(ponds.map(p => [String(p._id), p]));
+    const result = (logs as any[]).map(l => ({
+      ...l,
+      farmer: uMap[l.userId] || null,
+      pond: pMap[l.pondId] || null,
+    }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/medicine-logs — all medicine logs for admin overview ───────
+app.get('/api/admin/medicine-logs', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const logs = await MedicineLogMongo.find({}).sort({ createdAt: -1 }).limit(500).lean();
+    const userIds = [...new Set((logs as any[]).map(l => l.userId))];
+    const users = await UserMongo.find({ _id: { $in: userIds } }, 'name phoneNumber').lean();
+    const uMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+    const pondIds = [...new Set((logs as any[]).map(l => l.pondId).filter(Boolean))];
+    const ponds = await PondMongo.find({ _id: { $in: pondIds } }, 'name').lean();
+    const pMap = Object.fromEntries(ponds.map(p => [String(p._id), p]));
+    const result = (logs as any[]).map(l => ({
+      ...l,
+      farmer: uMap[l.userId] || null,
+      pond: pMap[l.pondId] || null,
+    }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/notifications — all platform notifications ────────────────
+app.get('/api/admin/notifications', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const notifs = await NotificationLogMongo.find({}).sort({ createdAt: -1 }).limit(300).lean();
+    const userIds = [...new Set((notifs as any[]).map(n => n.userId))];
+    const users = await UserMongo.find({ _id: { $in: userIds } }, 'name phoneNumber role').lean();
+    const uMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+    const result = (notifs as any[]).map(n => ({ ...n, farmer: uMap[n.userId] || null }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/iot — all IoT / aerator logs aggregated ──────────────────
+app.get('/api/admin/iot', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const logs = await AeratorLogMongo.find({}).sort({ createdAt: -1 }).limit(500).lean();
+    const userIds = [...new Set((logs as any[]).map(l => l.userId))];
+    const users = await UserMongo.find({ _id: { $in: userIds } }, 'name phoneNumber').lean();
+    const uMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+    const pondIds = [...new Set((logs as any[]).map(l => l.pondId).filter(Boolean))];
+    const ponds = await PondMongo.find({ _id: { $in: pondIds } }, 'name').lean();
+    const pMap = Object.fromEntries(ponds.map(p => [String(p._id), p]));
+    const result = (logs as any[]).map(l => ({
+      ...l,
+      farmer: uMap[l.userId] || null,
+      pond: pMap[l.pondId] || null,
+    }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 
 // ─── FCM Helper ───────────────────────────────────────────────────────────────
 const sendFCM = async (token: string, payload: admin.messaging.Message): Promise<boolean> => {
