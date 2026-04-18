@@ -1,4 +1,5 @@
 import express, { Request } from 'express';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,8 +12,8 @@ interface AuthenticatedRequest extends Request {
 }
 import mongoose from 'mongoose';
 import cors from 'cors';
-import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo, AeratorLog as AeratorLogMongo } from './db.js';
-import { apiLimiter, authenticate, requireRole, requireSelf } from './middleware/auth.js';
+import { User as UserMongo, AdminUser as AdminUserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo, AeratorLog as AeratorLogMongo } from './db.js';
+import { apiLimiter, authenticate, requireRole, requireAnyAdmin, requireSuperAdmin, requireSelf, isAdminRole } from './middleware/auth.js';
 import { GoogleGenAI } from "@google/genai";
 import authRoutes    from './routes/auth.js';
 import providerRoutes from './routes/provider.js';
@@ -29,6 +30,9 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 const ALLOWED_ORIGINS = [
   'https://aquagrow.onrender.com',
   'https://aqua-grow.vercel.app',
+  'https://aquagrow-admin.vercel.app',  // Admin panel (production)
+  'http://localhost:5173',              // Admin panel (Vite dev)
+  'http://localhost:4173',              // Admin panel (Vite preview)
 ];
 
 app.use(cors({
@@ -745,13 +749,340 @@ app.post('/api/ai/analyze-live', authenticate, async (req: any, res: any) => {
 });
 
 
-// ─── Admin: list all users ────────────────────────────────────────────────────
-app.get('/api/admin/users', authenticate, requireRole('admin'), async (_req, res) => {
+// ─── GET /api/admin/me — current admin's own profile (from adminusers table) ──
+app.get('/api/admin/me', authenticate, requireAnyAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const admin = await AdminUserMongo.findById(req.user.id, '-password');
+    if (!admin) return res.status(404).json({ error: 'Admin account not found' });
+    res.json(admin);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/users — all users (farmers + providers) in User table ─────
+app.get('/api/admin/users', authenticate, requireAnyAdmin, async (_req, res) => {
   try {
     const users = await UserMongo.find({}, '-password');
     res.json(users);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ADMIN STAFF MANAGEMENT  (adminusers collection)                            
+//  Super Admin only for create/update/delete. Any admin can list.             
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/admin/staff — list all admin staff
+app.get('/api/admin/staff', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const staff = await AdminUserMongo.find({}, '-password').sort({ createdAt: -1 });
+    res.json(staff);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/staff — create new admin user (super_admin only)
+app.post('/api/admin/staff', authenticate, requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const { name, phoneNumber, email, password, role, location } = req.body;
+    if (!name || !phoneNumber || !password || !role)
+      return res.status(400).json({ error: 'name, phoneNumber, password and role are required' });
+
+    const existing = await AdminUserMongo.findOne({ phoneNumber: phoneNumber.replace(/\D/g, '').slice(-10) });
+    if (existing) return res.status(409).json({ error: 'An admin with this phone number already exists' });
+
+    const hash = await bcrypt.hash(password, 12);
+    const newAdmin = await new AdminUserMongo({
+      name,
+      phoneNumber: phoneNumber.replace(/\D/g, '').slice(-10),
+      email,
+      password: hash,
+      role,
+      location,
+      isActive: true,
+      createdBy: req.user.id,
+    }).save();
+
+    const { password: _, ...safeAdmin } = newAdmin.toObject();
+    console.log(`[AdminStaff] Created ${role} account for ${name} by ${req.user.id}`);
+    res.status(201).json(safeAdmin);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// PATCH /api/admin/staff/:id — update role / status (super_admin only)
+app.patch('/api/admin/staff/:id', authenticate, requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const { role, isActive, name, email, location } = req.body;
+    const updates: any = {};
+    if (role     !== undefined) updates.role     = role;
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (name     !== undefined) updates.name     = name;
+    if (email    !== undefined) updates.email    = email;
+    if (location !== undefined) updates.location = location;
+
+    const updated = await AdminUserMongo.findByIdAndUpdate(req.params.id, updates, { new: true, select: '-password' });
+    if (!updated) return res.status(404).json({ error: 'Admin user not found' });
+    res.json(updated);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/staff/:id — remove admin account (super_admin only)
+app.delete('/api/admin/staff/:id', authenticate, requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    if (req.params.id === req.user.id)
+      return res.status(400).json({ error: 'You cannot delete your own admin account' });
+    const deleted = await AdminUserMongo.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Admin user not found' });
+    res.json({ success: true, message: `Admin account for ${deleted.name} removed` });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /api/admin/staff/:id/password — reset another admin's password (super_admin only)
+app.patch('/api/admin/staff/:id/password', authenticate, requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6)
+      return res.status(400).json({ error: 'newPassword must be at least 6 characters' });
+    const hash = await bcrypt.hash(newPassword, 12);
+    const updated = await AdminUserMongo.findByIdAndUpdate(req.params.id, { password: hash }, { new: true, select: '-password' });
+    if (!updated) return res.status(404).json({ error: 'Admin user not found' });
+    res.json({ success: true, message: `Password reset for ${updated.name}` });
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+
+// ══════════════════════════════════════════════════════════════════════════════╗
+//  ADMIN INTELLIGENCE ENDPOINTS                                                 ║
+//  All require: Authorization: Bearer <admin_jwt>                               ║
+// ══════════════════════════════════════════════════════════════════════════════╝
+
+// ─── GET /api/admin/farmers — all farmers with subscription info ──────────────
+app.get('/api/admin/farmers', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const farmers = await UserMongo.find({ role: 'farmer' }, '-password').sort({ createdAt: -1 });
+    const subs = await SubscriptionMongo.find({});
+    const subMap = Object.fromEntries(subs.map(s => [s.userId, s]));
+    const result = farmers.map(f => {
+      const fObj = f.toObject();
+      return { ...fObj, subscription: subMap[String(f._id)] || null };
+    });
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/ponds — all ponds across all farmers, with computed intel ─
+app.get('/api/admin/ponds', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const ponds = await PondMongo.find({}).sort({ createdAt: -1 });
+    const now = Date.now();
+
+    const enriched = await Promise.all(ponds.map(async (pond: any) => {
+      const pObj = pond.toObject();
+      const doc = pond.stockingDate
+        ? Math.floor((now - new Date(pond.stockingDate).getTime()) / 86400000)
+        : 0;
+
+      // Fetch last 3 water logs for quick health summary
+      const recentWater = await WaterLogMongo.find({ pondId: String(pond._id) })
+        .sort({ createdAt: -1 }).limit(3).lean();
+
+      // Fetch last 7 feed logs for FCR/consumption trend
+      const recentFeed = await FeedLogMongo.find({ pondId: String(pond._id) })
+        .sort({ createdAt: -1 }).limit(7).lean();
+
+      const totalFeedKg = recentFeed.reduce((s: number, f: any) => s + (f.quantity || 0), 0);
+      const lastWater = recentWater[0] || null;
+
+      // Auto-detect alerts
+      const alerts: string[] = [];
+      if (lastWater) {
+        if ((lastWater as any).do < 4)    alerts.push('CRITICAL_LOW_DO');
+        if ((lastWater as any).ph < 7 || (lastWater as any).ph > 9) alerts.push('PH_OUT_OF_RANGE');
+        if ((lastWater as any).ammonia > 0.5) alerts.push('HIGH_AMMONIA');
+        if ((lastWater as any).mortality > 100) alerts.push('HIGH_MORTALITY');
+      }
+      if (doc > 83 && pond.status === 'active') alerts.push('HARVEST_READY');
+      if (doc > 45 && doc < 55) alerts.push('PEAK_WSSV_RISK');
+
+      // Stage label
+      const stage = doc <= 20 ? 'Nursery' : doc <= 40 ? 'Early Growth' : doc <= 60 ? 'Mid Growth' : doc <= 80 ? 'Pre-Harvest' : 'Harvest';
+
+      return {
+        ...pObj,
+        doc,
+        stage,
+        alerts,
+        lastWaterLog: lastWater,
+        feedLast7Days: totalFeedKg,
+        feedLogCount: recentFeed.length,
+        farmerName: null, // filled by join below
+      };
+    }));
+
+    // Join farmer names
+    const farmerIds = [...new Set(enriched.map(p => p.userId))];
+    const farmers = await UserMongo.find({ _id: { $in: farmerIds } }, 'name phoneNumber location').lean();
+    const farmerMap = Object.fromEntries(farmers.map(f => [String(f._id), f]));
+    const final = enriched.map(p => ({
+      ...p,
+      farmer: farmerMap[p.userId] || null,
+    }));
+
+    res.json(final);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/intelligence — aggregated business intelligence dashboard ─
+app.get('/api/admin/intelligence', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    const [farmers, ponds, feedLogs, waterLogs, harvestReqs, roiEntries, shopOrders, subs] = await Promise.all([
+      UserMongo.find({ role: 'farmer' }, '_id name location subscriptionStatus createdAt').lean(),
+      PondMongo.find({}).lean(),
+      FeedLogMongo.find({ date: { $gte: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0] } }).lean(),
+      WaterLogMongo.find({ date: { $gte: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0] } }).lean(),
+      HarvestRequest.find({}).lean(),
+      ROIEntryMongo.find({}).lean(),
+      (mongoose.models['ShopOrder'] ?? mongoose.model('ShopOrder', new mongoose.Schema({}, { strict: false }))).find({}).lean(),
+      SubscriptionMongo.find({}).lean(),
+    ]);
+
+    const now = Date.now();
+    const activePonds = ponds.filter((p: any) => p.status === 'active');
+    const harvestedPonds = ponds.filter((p: any) => p.status === 'harvested');
+
+    // Compute DOC for each active pond
+    const pondWithDoc = activePonds.map((p: any) => ({
+      ...p,
+      doc: p.stockingDate ? Math.floor((now - new Date(p.stockingDate).getTime()) / 86400000) : 0,
+    }));
+
+    // Ponds needing harvest (DOC > 83)
+    const harvestReady = pondWithDoc.filter((p: any) => p.doc > 83);
+    // Ponds in critical window (WSSV risk DOC 40-55)
+    const criticalRiskPonds = pondWithDoc.filter((p: any) => p.doc >= 40 && p.doc <= 55);
+    // Ponds with low DO alerts
+    const lowDoPonds = waterLogs.filter((w: any) => (w as any).do < 4 || (w as any).do < 4);
+
+    // Feed demand in next 7 days (farmers with active ponds consuming high feed)
+    const highFeedFarmers = feedLogs.reduce((acc: Record<string, number>, log: any) => {
+      acc[log.userId] = (acc[log.userId] || 0) + (log.quantity || 0);
+      return acc;
+    }, {});
+
+    // Revenue from ROI entries
+    const totalRevenue = roiEntries.reduce((s: number, r: any) => s + (r.totalRevenue || 0), 0);
+    const totalProfit = roiEntries.reduce((s: number, r: any) => s + (r.netProfit || 0), 0);
+    const avgROI = roiEntries.length ? roiEntries.reduce((s: number, r: any) => s + (r.roi || 0), 0) / roiEntries.length : 0;
+
+    // Subscription breakdown
+    const subBreakdown = subs.reduce((acc: Record<string, number>, s: any) => {
+      acc[s.planName] = (acc[s.planName] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Stage distribution
+    const stageDistribution = pondWithDoc.reduce((acc: Record<string, number>, p: any) => {
+      const stage = p.doc <= 20 ? 'Nursery' : p.doc <= 40 ? 'Early Growth' : p.doc <= 60 ? 'Mid Growth' : p.doc <= 80 ? 'Pre-Harvest' : 'Harvest Ready';
+      acc[stage] = (acc[stage] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Pending harvest requests
+    const pendingHarvests = harvestReqs.filter((h: any) => h.status === 'pending');
+    const completedHarvests = harvestReqs.filter((h: any) => h.status === 'completed' || h.status === 'paid');
+    const totalHarvestBiomass = completedHarvests.reduce((s: number, h: any) => s + (h.finalWeight || h.biomass || 0), 0);
+
+    // Shop orders
+    const pendingShopOrders = (shopOrders as any[]).filter((o: any) => ['assigned', 'confirmed'].includes(o.status));
+
+    // Alerts severity list
+    const systemAlerts: { type: string; severity: string; message: string; pondId?: string; farmerId?: string }[] = [];
+    harvestReady.forEach((p: any) => systemAlerts.push({ type: 'HARVEST_READY', severity: 'HIGH', message: `Pond "${p.name}" is DOC ${p.doc} — harvest window open`, pondId: String(p._id), farmerId: p.userId }));
+    criticalRiskPonds.forEach((p: any) => systemAlerts.push({ type: 'WSSV_RISK', severity: 'CRITICAL', message: `Pond "${p.name}" in peak WSSV window (DOC ${p.doc})`, pondId: String(p._id), farmerId: p.userId }));
+
+    res.json({
+      summary: {
+        totalFarmers: farmers.length,
+        activePonds: activePonds.length,
+        harvestedPonds: harvestedPonds.length,
+        totalPonds: ponds.length,
+        harvestReadyCount: harvestReady.length,
+        criticalRiskCount: criticalRiskPonds.length,
+        pendingHarvestRequests: pendingHarvests.length,
+        pendingShopOrders: pendingShopOrders.length,
+        totalFeedKgLast7Days: Object.values(highFeedFarmers).reduce((s: number, v) => s + (v as number), 0),
+        totalRevenue,
+        totalProfit,
+        avgROI: Math.round(avgROI * 10) / 10,
+        totalHarvestBiomassKg: totalHarvestBiomass,
+      },
+      stageDistribution,
+      subscriptionBreakdown: subBreakdown,
+      systemAlerts: systemAlerts.slice(0, 50),
+      harvestReady: harvestReady.slice(0, 20),
+      criticalRiskPonds: criticalRiskPonds.slice(0, 20),
+      pendingHarvestRequests: pendingHarvests.slice(0, 20),
+      topFeedConsumers: Object.entries(highFeedFarmers)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .slice(0, 10)
+        .map(([id, kg]) => ({ farmerId: id, feedKg: kg })),
+      recentROI: roiEntries.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10),
+    });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/water-alerts — cross-pond water quality alerts ────────────
+app.get('/api/admin/water-alerts', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const cutoff = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
+    const logs = await WaterLogMongo.find({ date: { $gte: cutoff } }).sort({ createdAt: -1 }).lean();
+    const alerts = logs.filter((l: any) =>
+      (l as any).do < 4 || (l as any).ph < 7 || (l as any).ph > 9 ||
+      (l as any).ammonia > 0.5 || (l as any).mortality > 50
+    );
+    // Join pond names
+    const pondIds = [...new Set(alerts.map((a: any) => a.pondId))];
+    const ponds = await PondMongo.find({ _id: { $in: pondIds } }, 'name userId').lean();
+    const pondMap = Object.fromEntries(ponds.map(p => [String(p._id), p]));
+    const enriched = alerts.map((a: any) => ({ ...a, pond: pondMap[(a as any).pondId] }));
+    res.json(enriched);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/shop-orders — all shop orders with farmer info ─────────────
+app.get('/api/admin/shop-orders', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const ShopOrderModel = mongoose.models['ShopOrder'];
+    if (!ShopOrderModel) return res.json([]);
+    const orders = await ShopOrderModel.find({}).sort({ createdAt: -1 }).limit(200).lean();
+    res.json(orders);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/roi — all ROI/harvest entries for revenue analytics ────────
+app.get('/api/admin/roi', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    const entries = await ROIEntryMongo.find({}).sort({ createdAt: -1 }).limit(500).lean();
+    // Join farmer names
+    const farmerIds = [...new Set(entries.map((e: any) => e.userId))];
+    const farmers = await UserMongo.find({ _id: { $in: farmerIds } }, 'name location').lean();
+    const fMap = Object.fromEntries(farmers.map(f => [String(f._id), f]));
+    const result = entries.map((e: any) => ({ ...e, farmer: fMap[e.userId] || null }));
+    res.json(result);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 
 // ─── FCM Helper ───────────────────────────────────────────────────────────────
 const sendFCM = async (token: string, payload: admin.messaging.Message): Promise<boolean> => {
@@ -1797,7 +2128,7 @@ app.get('/api/shop/orders', authenticate, async (req: AuthenticatedRequest, res)
 app.patch('/api/shop/orders/:id/claim', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    if (req.user.role !== 'provider' && req.user.role !== 'admin')
+    if (req.user.role !== 'provider' && !isAdminRole(req.user.role))
       return res.status(403).json({ error: 'Only providers can claim orders' });
     const order = await ShopOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
@@ -1840,7 +2171,7 @@ app.patch('/api/shop/orders/:id/status', authenticate, async (req: Authenticated
 });
 
 // ── PATCH /api/shop/orders/:id/assign — admin reassigns to different provider ──
-app.patch('/api/shop/orders/:id/assign', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
+app.patch('/api/shop/orders/:id/assign', authenticate, requireAnyAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     const { providerId, providerName } = req.body;

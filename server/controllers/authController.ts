@@ -2,10 +2,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import admin from 'firebase-admin';
-import { User as UserMongo, Subscription as SubscriptionMongo, RefreshToken } from '../db.js';
+import { User as UserMongo, AdminUser as AdminUserMongo, Subscription as SubscriptionMongo, RefreshToken } from '../db.js';
 import { signAccess, signRefresh, saveRefreshToken, REFRESH_SECRET } from '../utils/auth.js';
 import { isProviderDbReady, ProviderProfile } from '../providerDb.js';
 import { sendOtp as fast2smsSend, verifyOtp as fast2smsVerify } from '../utils/fast2sms.js';
+import { isAdminRole } from '../middleware/auth.js';
 
 const normalizePhone = (p: string) => p ? p.replace(/\D/g, '').slice(-10) : '';
 
@@ -106,48 +107,84 @@ export const login = async (req: any, res: any) => {
   try {
     const { mobile, password, role } = req.body;
     if (!mobile || !password)
-      return res.status(400).json({ error: 'identifier and password are required' });
+      return res.status(400).json({ error: 'mobile and password are required' });
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    const normMobile = normalizePhone(mobile);  // 10-digit e.g. "9876543210"
-    const targetRole = role || 'farmer';
+    const normMobile = normalizePhone(mobile);
+    const requestingAdmin = role === 'admin' || isAdminRole(role);
 
-    // ── Phase 1: find the user by phone (try multiple stored formats for
-    // backward-compatibility with accounts created before normalization).
-    // We do NOT filter by role here — old accounts may not have the role
-    // field stored in the MongoDB document even if the schema has a default.
+    // ───────────────────────────────────────────────────
+    //  ADMIN LOGIN — queries `adminusers` collection ONLY
+    // ───────────────────────────────────────────────────
+    if (requestingAdmin) {
+      const adminUser = await AdminUserMongo.findOne({
+        $or: [
+          { phoneNumber: normMobile },
+          { phoneNumber: `+91${normMobile}` },
+          { email: mobile },
+        ]
+      });
+
+      if (!adminUser)
+        return res.status(401).json({ error: 'No admin account found for this phone. Contact Super Admin.' });
+
+      if (!adminUser.isActive)
+        return res.status(403).json({ error: 'This admin account is disabled. Contact Super Admin.' });
+
+      const passwordValid = await bcrypt.compare(password, adminUser.password);
+      if (!passwordValid)
+        return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+
+      // Update last login timestamp
+      await AdminUserMongo.findByIdAndUpdate(adminUser._id, { lastLogin: new Date() });
+
+      const id = adminUser._id.toString();
+      // JWT carries role + `col:'admin'` so fetchAdminMe knows which table to query
+      const access  = signAccess({ id, role: adminUser.role, col: 'admin', subscriptionStatus: 'n/a' });
+      const refresh = signRefresh({ id, col: 'admin' });
+      await saveRefreshToken(id, refresh);
+
+      return res.json({
+        user: { ...adminUser.toObject(), password: undefined },
+        access_token: access,
+        refresh_token: refresh,
+      });
+    }
+
+    // ───────────────────────────────────────────────────
+    //  FARMER / PROVIDER LOGIN — queries `users` collection ONLY
+    // ───────────────────────────────────────────────────
+    const targetRole = role || 'farmer';
     let user = await UserMongo.findOne({
       $or: [
-        { phoneNumber: normMobile },           // stored as 10-digit
-        { phoneNumber: `+91${normMobile}` },   // stored as +91XXXXXXXXXX
-        { phoneNumber: `+91 ${normMobile}` },  // stored as +91 XXXXXXXXXX
-        { email: mobile },                      // email field match
+        { phoneNumber: normMobile },
+        { phoneNumber: `+91${normMobile}` },
+        { phoneNumber: `+91 ${normMobile}` },
+        { email: mobile },
       ]
     });
 
     if (!user)
       return res.status(401).json({ error: 'Invalid credentials. No account found for this number.' });
 
-    // ── Phase 2: verify password
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid)
       return res.status(401).json({ error: 'Incorrect password. Please try again.' });
 
-    // ── Phase 3: role check — if the account exists but belongs to a DIFFERENT portal
-    const userRole = user.role || 'farmer';  // default for old accounts without role field
-    if (userRole !== targetRole) {
+    const userRole = user.role || 'farmer';
+    if (userRole !== targetRole)
       return res.status(403).json({
         error: `This account is registered as a ${userRole}. Please switch to the ${userRole} portal and try again.`
       });
-    }
 
     const sub = await SubscriptionMongo.findOne({ userId: user._id });
     const id = user._id.toString();
-    const access = signAccess({ id, role: userRole, subscriptionStatus: user.subscriptionStatus });
-    const refresh = signRefresh({ id });
+    const access  = signAccess({ id, role: userRole, col: 'user', subscriptionStatus: user.subscriptionStatus });
+    const refresh = signRefresh({ id, col: 'user' });
     await saveRefreshToken(id, refresh);
-    res.json({ user: { ...user.toObject(), role: userRole }, subscription: sub, access_token: access, refresh_token: refresh });
+    return res.json({ user: { ...user.toObject(), role: userRole }, subscription: sub, access_token: access, refresh_token: refresh });
+
   } catch (e) {
     console.error('[Login Error Detail]', e.message);
     res.status(500).json({ error: 'Internal Server Error: ' + e.message });

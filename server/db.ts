@@ -23,7 +23,9 @@ const UserSchema = new mongoose.Schema({
   farmSize: { type: Number, default: 0 },
   language: { type: String, default: 'English' },
   theme: { type: String, enum: ['light', 'dark', 'midnight'], default: 'dark' },
-  role: { type: String, enum: ['farmer', 'admin', 'provider'], default: 'farmer' },
+  // User collection is ONLY for farmers and service providers.
+  // Admin users live in the separate `adminusers` collection (see AdminUser model below).
+  role: { type: String, enum: ['farmer', 'provider'], default: 'farmer' },
   subscriptionStatus: {
     type: String,
     enum: ['free', 'pro', 'pro_silver', 'pro_gold', 'pro_diamond'],
@@ -272,7 +274,44 @@ const NotificationLogSchema = new mongoose.Schema({
   date:      { type: String },
 }, { timestamps: true });
 
-export const User = mongoose.model('User', UserSchema);
+// ═══════════════════════════════════════════════════════════════
+//  ADMIN USER COLLECTION (separate from farmers & providers)               ║
+//  Collection name: `adminusers`                                            ║
+//  One record = one admin staff member.                                     ║
+//  Never mix with `User` (farmers/providers).                               ║
+// ═══════════════════════════════════════════════════════════════
+export const ADMIN_ROLES_ENUM = [
+  'super_admin',
+  'finance_admin',
+  'operations_admin',
+  'sales_admin',
+  'support_admin',
+  'inventory_admin',
+  'technical_admin',
+  'hr_admin',
+] as const;
+
+export type AdminRoleType = typeof ADMIN_ROLES_ENUM[number];
+
+const AdminUserSchema = new mongoose.Schema({
+  name:        { type: String, required: true },
+  phoneNumber: { type: String, required: true, unique: true },   // phone is globally unique for admins
+  email:       { type: String },
+  password:    { type: String, required: true },
+  role: {
+    type:    String,
+    enum:    ADMIN_ROLES_ENUM,
+    default: 'super_admin',
+  },
+  isActive:    { type: Boolean, default: true },      // soft disable without deleting
+  location:    { type: String },
+  lastLogin:   { type: Date },
+  createdBy:   { type: String },                      // _id of admin who created this row
+  permissions: [String],                              // optional fine-grained overrides
+}, { timestamps: true, collection: 'adminusers' });
+
+export const User      = mongoose.model('User', UserSchema);
+export const AdminUser = mongoose.model('AdminUser', AdminUserSchema);
 export const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 export const Pond = mongoose.model('Pond', PondSchema);
 export const FeedLog = mongoose.model('FeedLog', FeedLogSchema);
