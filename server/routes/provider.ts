@@ -1,13 +1,13 @@
 /**
  * Provider API Routes — /api/provider/*
- * All data reads/writes go to the separate aquagrow_providers database.
+ * All data reads/writes now go to the SHARED `aquagrow` database.
  * Authentication uses the shared JWT from the farmer DB auth flow.
  * Role guard: every route requires req.user.role === 'provider'.
  */
 
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import {
-  isProviderDbReady,
   ProviderProfile,
   ProviderInventory,
   ProviderOrder,
@@ -21,8 +21,10 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 const router = Router();
 
 // ── DB Guard ─────────────────────────────────────────────────────────────────
+// Uses the shared main DB connection — same as all other routes.
+const dbReady = () => mongoose.connection.readyState === 1;
 const dbGuard = (res: any) =>
-  res.status(503).json({ error: 'Provider database unavailable. Please try again.' });
+  res.status(503).json({ error: 'Database unavailable. Please try again.' });
 
 const providerOnly = [authenticate, requireRole('provider')];
 
@@ -32,7 +34,7 @@ const providerOnly = [authenticate, requireRole('provider')];
 
 /** GET /api/provider/profile — fetch or auto-create profile */
 router.get('/profile', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     let profile = await ProviderProfile.findOne({ userId: req.user.id });
     if (!profile) {
@@ -49,7 +51,7 @@ router.get('/profile', ...providerOnly, async (req: any, res) => {
 
 /** PATCH /api/provider/profile — update profile fields */
 router.patch('/profile', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const profile = await ProviderProfile.findOneAndUpdate(
       { userId: req.user.id },
@@ -66,7 +68,7 @@ router.patch('/profile', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/inventory */
 router.get('/inventory', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const items = await ProviderInventory.find({ providerId: req.user.id }).sort({ createdAt: -1 });
     res.json(items);
@@ -75,7 +77,7 @@ router.get('/inventory', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/inventory — add item */
 router.post('/inventory', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const item = await new ProviderInventory({ ...req.body, providerId: req.user.id }).save();
     res.json(item);
@@ -84,7 +86,7 @@ router.post('/inventory', ...providerOnly, async (req: any, res) => {
 
 /** PATCH /api/provider/inventory/:id — update item */
 router.patch('/inventory/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const item = await ProviderInventory.findOneAndUpdate(
       { _id: req.params.id, providerId: req.user.id },
@@ -98,7 +100,7 @@ router.patch('/inventory/:id', ...providerOnly, async (req: any, res) => {
 
 /** DELETE /api/provider/inventory/:id */
 router.delete('/inventory/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     await ProviderInventory.findOneAndDelete({ _id: req.params.id, providerId: req.user.id });
     res.json({ success: true });
@@ -111,7 +113,7 @@ router.delete('/inventory/:id', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/orders?status=pending */
 router.get('/orders', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const filter: any = { providerId: req.user.id };
     if (req.query.status) filter.status = req.query.status;
@@ -122,7 +124,7 @@ router.get('/orders', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/orders — create order (farmers will call this when ordering) */
 router.post('/orders', authenticate, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const order = await new ProviderOrder({
       ...req.body,
@@ -136,7 +138,7 @@ router.post('/orders', authenticate, async (req: any, res) => {
 
 /** PATCH /api/provider/orders/:id — advance status */
 router.patch('/orders/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const order = await ProviderOrder.findOneAndUpdate(
       { _id: req.params.id, providerId: req.user.id },
@@ -154,7 +156,7 @@ router.patch('/orders/:id', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/rates */
 router.get('/rates', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const rates = await ProviderRateCard.find({ providerId: req.user.id }).sort({ createdAt: -1 });
     res.json(rates);
@@ -163,7 +165,7 @@ router.get('/rates', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/rates — add rate */
 router.post('/rates', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const rate = await new ProviderRateCard({ ...req.body, providerId: req.user.id }).save();
     res.json(rate);
@@ -172,7 +174,7 @@ router.post('/rates', ...providerOnly, async (req: any, res) => {
 
 /** PATCH /api/provider/rates/:id — update price / publish */
 router.patch('/rates/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const updates: any = { ...req.body };
     // If publishing, stamp publishedAt
@@ -189,7 +191,7 @@ router.patch('/rates/:id', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/rates/publish-all — mark all rates as published */
 router.post('/rates/publish-all', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     await ProviderRateCard.updateMany(
       { providerId: req.user.id },
@@ -201,7 +203,7 @@ router.post('/rates/publish-all', ...providerOnly, async (req: any, res) => {
 
 /** DELETE /api/provider/rates/:id */
 router.delete('/rates/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     await ProviderRateCard.findOneAndDelete({ _id: req.params.id, providerId: req.user.id });
     res.json({ success: true });
@@ -214,7 +216,7 @@ router.delete('/rates/:id', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/chat — all threads */
 router.get('/chat', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const threads = await ProviderChat.find({ providerId: req.user.id })
       .sort({ lastMessageAt: -1 });
@@ -224,7 +226,7 @@ router.get('/chat', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/chat/:farmerId — single thread */
 router.get('/chat/:farmerId', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     let thread = await ProviderChat.findOne({ providerId: req.user.id, farmerId: req.params.farmerId });
     if (!thread) {
@@ -238,7 +240,7 @@ router.get('/chat/:farmerId', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/chat/:farmerId/message — send message */
 router.post('/chat/:farmerId/message', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required' });
@@ -257,7 +259,7 @@ router.post('/chat/:farmerId/message', ...providerOnly, async (req: any, res) =>
 
 /** PATCH /api/provider/chat/:farmerId/mark-read */
 router.patch('/chat/:farmerId/mark-read', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     await ProviderChat.updateOne(
       { providerId: req.user.id, farmerId: req.params.farmerId },
@@ -274,7 +276,7 @@ router.patch('/chat/:farmerId/mark-read', ...providerOnly, async (req: any, res)
 
 /** GET /api/provider/ledger?type=credit&year=2026 */
 router.get('/ledger', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const filter: any = { providerId: req.user.id };
     if (req.query.type)   filter.type   = req.query.type;
@@ -286,7 +288,7 @@ router.get('/ledger', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/ledger — log new transaction */
 router.post('/ledger', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const entry = await new ProviderLedger({ ...req.body, providerId: req.user.id }).save();
     res.json(entry);
@@ -295,7 +297,7 @@ router.post('/ledger', ...providerOnly, async (req: any, res) => {
 
 /** PATCH /api/provider/ledger/:id — update (e.g. mark settled) */
 router.patch('/ledger/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const entry = await ProviderLedger.findOneAndUpdate(
       { _id: req.params.id, providerId: req.user.id },
@@ -309,7 +311,7 @@ router.patch('/ledger/:id', ...providerOnly, async (req: any, res) => {
 
 /** DELETE /api/provider/ledger/:id */
 router.delete('/ledger/:id', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     await ProviderLedger.findOneAndDelete({ _id: req.params.id, providerId: req.user.id });
     res.json({ success: true });
@@ -322,7 +324,7 @@ router.delete('/ledger/:id', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/farmers — list linked farmers */
 router.get('/farmers', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const farmers = await ProviderFarmerLink.find({ providerId: req.user.id }).sort({ totalSpend: -1 });
     res.json(farmers);
@@ -331,7 +333,7 @@ router.get('/farmers', ...providerOnly, async (req: any, res) => {
 
 /** POST /api/provider/farmers — link a farmer to this provider */
 router.post('/farmers', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const link = await ProviderFarmerLink.findOneAndUpdate(
       { providerId: req.user.id, farmerId: req.body.farmerId },
@@ -344,7 +346,7 @@ router.post('/farmers', ...providerOnly, async (req: any, res) => {
 
 /** PATCH /api/provider/farmers/:farmerId — update notes/tags */
 router.patch('/farmers/:farmerId', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const link = await ProviderFarmerLink.findOneAndUpdate(
       { providerId: req.user.id, farmerId: req.params.farmerId },
@@ -362,7 +364,7 @@ router.patch('/farmers/:farmerId', ...providerOnly, async (req: any, res) => {
 
 /** GET /api/provider/summary — aggregated stats for provider dashboard */
 router.get('/summary', ...providerOnly, async (req: any, res) => {
-  if (!isProviderDbReady()) return dbGuard(res);
+  if (!dbReady()) return dbGuard(res);
   try {
     const pid = req.user.id;
     const [

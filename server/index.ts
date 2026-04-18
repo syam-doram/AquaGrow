@@ -950,7 +950,7 @@ app.get('/api/admin/intelligence', authenticate, requireAnyAdmin, async (_req, r
       WaterLogMongo.find({ date: { $gte: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0] } }).lean(),
       HarvestRequest.find({}).lean(),
       ROIEntryMongo.find({}).lean(),
-      (mongoose.models['ShopOrder'] ?? mongoose.model('ShopOrder', new mongoose.Schema({}, { strict: false }))).find({}).lean(),
+      ((): any => mongoose.models['ShopOrder'] ?? mongoose.model('ShopOrder', new mongoose.Schema({}, { strict: false })))().find({}).lean(),
       SubscriptionMongo.find({}).lean(),
     ]);
 
@@ -1066,6 +1066,49 @@ app.get('/api/admin/shop-orders', authenticate, requireAnyAdmin, async (_req, re
     if (!ShopOrderModel) return res.json([]);
     const orders = await ShopOrderModel.find({}).sort({ createdAt: -1 }).limit(200).lean();
     res.json(orders);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/all-orders — UNIFIED view: ShopOrders + ProviderOrders ────
+// Both collections now live in the same `aquagrow` DB so this is a simple
+// fan-out query — no cross-DB joins needed.
+app.get('/api/admin/all-orders', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    const ShopOrderModel    = mongoose.models['ShopOrder'];
+    const ProviderOrderModel = mongoose.models['ProviderOrder'];
+
+    const [shopOrders, providerOrders] = await Promise.all([
+      ShopOrderModel    ? ShopOrderModel.find({}).sort({ createdAt: -1 }).limit(500).lean()    : [],
+      ProviderOrderModel ? ProviderOrderModel.find({}).sort({ createdAt: -1 }).limit(500).lean() : [],
+    ]);
+
+    // Tag each order with its source so the admin UI can distinguish them
+    const tagged = [
+      ...(shopOrders    as any[]).map(o => ({ ...o, _source: 'shop' })),
+      ...(providerOrders as any[]).map(o => ({ ...o, _source: 'provider' })),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    res.json(tagged);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/admin/providers — all providers from the unified DB ─────────────
+app.get('/api/admin/providers', authenticate, requireAnyAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+    // Providers register in the users collection with role:'provider'
+    const providers = await UserMongo.find({ role: 'provider' }, '-password').sort({ createdAt: -1 }).lean();
+    // Enrich with their extended profile if available
+    const ProviderProfileModel = mongoose.models['ProviderProfile'];
+    if (ProviderProfileModel) {
+      const profiles = await ProviderProfileModel.find({}).lean();
+      const profileMap = Object.fromEntries((profiles as any[]).map(p => [p.userId, p]));
+      const enriched = providers.map(p => ({ ...p, profile: profileMap[String((p as any)._id)] || null }));
+      return res.json(enriched);
+    }
+    res.json(providers);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1984,15 +2027,12 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`[Aqua Server] Port ${PORT} claimed.`);
 
     connectDB().then(async () => {
-      console.log(`[Aqua Server] ✅ Farmer MongoDB (aquagrow) connected. AI: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
+      console.log(`[Aqua Server] ✅ UNIFIED MongoDB (aquagrow) connected — farmers, providers, orders all in ONE DB. AI: ${process.env.GEMINI_API_KEY ? 'READY' : 'MISSING API KEY'}`);
 
-      // Connect to the separate provider database in parallel
-      connectProviderDB().then(() => {
-        console.log('[Aqua Server] ✅ Provider MongoDB (aquagrow_providers) connected.');
-      }).catch(err => {
-        console.error('[Aqua Server] ⚠️  Provider DB connection failed (non-fatal):', err.message);
-        // Non-fatal: provider routes will return 503 if DB is down
-      });
+      // connectProviderDB is now a no-op — all provider models use the shared aquagrow DB.
+      // Calling it here just fires the info log and returns immediately.
+      connectProviderDB().catch(() => {});
+
 
       // ── Push engine: every 15 min is sufficient — 2 min caused duplicate engine-alerts
       setInterval(runPushEngine, 15 * 60 * 1000);

@@ -1,20 +1,25 @@
-import mongoose, { Connection } from 'mongoose';
+/**
+ * providerDb.ts — UNIFIED DATABASE BRIDGE
+ * ─────────────────────────────────────────
+ * All provider collections now live in the SAME `aquagrow` database as
+ * farmers, ponds, orders, etc. There is ONE database, ONE connection.
+ *
+ * This file registers provider models on the default mongoose connection
+ * (shared with db.ts) so every collection is in the same DB and instantly
+ * visible to both the mobile app and the admin panel.
+ *
+ * Migration note: if you previously had an `aquagrow_providers` database,
+ * any existing documents in those collections will need to be migrated into
+ * the main `aquagrow` database (one-time Atlas Data Migration or mongodump/restore).
+ */
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  PROVIDER DATABASE — aquagrow_providers
-//  A completely separate MongoDB database from the farmer DB (aquagrow).
-//  Uses the same Atlas cluster but a different database name so collections
-//  are fully isolated. The only shared identity is the userId (ObjectId string)
-//  which links a ProviderProfile back to the shared User auth record.
-// ─────────────────────────────────────────────────────────────────────────────
+import mongoose from 'mongoose';
 
-let providerConn: Connection | null = null;
+// ── Schemas ───────────────────────────────────────────────────────────────────
 
-// ── Schemas ──────────────────────────────────────────────────────────────────
-
-/** Extended profile for providers — stored in providers DB, not farmer DB */
+/** Extended profile for providers — now in the MAIN aquagrow DB */
 const ProviderProfileSchema = new mongoose.Schema({
-  userId:       { type: String, required: true, unique: true }, // mirrors User._id from farmer DB
+  userId:       { type: String, required: true, unique: true }, // mirrors User._id
   companyName:  { type: String, required: true },
   ownerName:    { type: String },
   phone:        { type: String },
@@ -23,32 +28,35 @@ const ProviderProfileSchema = new mongoose.Schema({
   address:      { type: String },
   gstNumber:    { type: String },
   categories:   [{ type: String }],          // ['seed', 'feed', 'medicine', 'utility']
-  coverageArea: { type: String },            // e.g. "Nellore, Bhimavaram"
+  coverageArea: { type: String },
   isVerified:   { type: Boolean, default: false },
   rating:       { type: Number, default: 0 },
   fcmToken:     { type: String },
   theme:        { type: String, enum: ['light', 'dark', 'midnight'], default: 'dark' },
   language:     { type: String, default: 'English' },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerprofiles' });
 
-/** Inventory items owned by provider */
+/** Inventory items owned by a provider */
 const ProviderInventorySchema = new mongoose.Schema({
   providerId:  { type: String, required: true, index: true },
   name:        { type: String, required: true },
   category:    { type: String, enum: ['seed', 'feed', 'medicine', 'utility'], required: true },
   sku:         { type: String },
   price:       { type: Number, required: true },
-  unit:        { type: String, default: 'per unit' },   // 'per PL' | 'per bag' | 'per kit'
+  unit:        { type: String, default: 'per unit' },
   stock:       { type: Number, default: 0 },
-  minStock:    { type: Number, default: 0 },            // low-stock threshold
+  minStock:    { type: Number, default: 0 },
   description: { type: String },
   isActive:    { type: Boolean, default: true },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerinventories' });
 
-/** Orders placed by farmers (linked to provider) */
+/**
+ * ProviderOrder — orders placed by farmers directly to a provider.
+ * Stored in the SAME database as ShopOrder so admin sees ALL orders in one place.
+ */
 const ProviderOrderSchema = new mongoose.Schema({
   providerId:  { type: String, required: true, index: true },
-  farmerId:    { type: String, required: true },          // User._id of the farmer
+  farmerId:    { type: String, required: true },
   farmerName:  { type: String },
   farmerPhone: { type: String },
   location:    { type: String },
@@ -69,22 +77,22 @@ const ProviderOrderSchema = new mongoose.Schema({
   note:        { type: String },
   deliveredAt: { type: Date },
   cancelReason:{ type: String },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerorders' });
 
-/** Market rate cards posted by provider */
+/** Market rate cards posted by a provider */
 const ProviderRateCardSchema = new mongoose.Schema({
   providerId:  { type: String, required: true, index: true },
-  inventoryId: { type: String },              // optional link to inventory item
+  inventoryId: { type: String },
   item:        { type: String, required: true },
   category:    { type: String, enum: ['seed', 'feed', 'medicine', 'utility'], required: true },
   price:       { type: Number, required: true },
   prevPrice:   { type: Number },
   unit:        { type: String, default: 'per unit' },
   note:        { type: String },
-  effectiveDate: { type: String },            // ISO date string
+  effectiveDate: { type: String },
   isPublished: { type: Boolean, default: false },
   publishedAt: { type: Date },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerratecards' });
 
 /** Chat threads between provider and individual farmers */
 const ProviderChatSchema = new mongoose.Schema({
@@ -99,23 +107,23 @@ const ProviderChatSchema = new mongoose.Schema({
     isRead:   { type: Boolean, default: false },
   }],
   lastMessageAt: { type: Date, default: Date.now },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerchats' });
 
-/** Financial ledger entries for provider */
+/** Financial ledger entries for a provider */
 const ProviderLedgerSchema = new mongoose.Schema({
   providerId: { type: String, required: true, index: true },
   type:       { type: String, enum: ['credit', 'debit'], required: true },
   desc:       { type: String, required: true },
   amount:     { type: Number, required: true },
-  date:       { type: String, required: true },   // ISO date string
+  date:       { type: String, required: true },
   mode:       { type: String, enum: ['UPI', 'Bank', 'Cash', 'COD', 'NEFT', 'Cheque', 'Other'], default: 'UPI' },
-  category:   { type: String },                   // 'seed' | 'feed' | 'medicine' | 'expense' | 'purchase'
-  orderId:    { type: String },                   // link to ProviderOrder if applicable
+  category:   { type: String },
+  orderId:    { type: String },
   status:     { type: String, enum: ['pending', 'settled'], default: 'pending' },
   notes:      { type: String },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerledgers' });
 
-/** Tracked farmers (CRM) linked to provider */
+/** CRM: tracked farmers linked to a provider */
 const ProviderFarmerLinkSchema = new mongoose.Schema({
   providerId: { type: String, required: true, index: true },
   farmerId:   { type: String, required: true },
@@ -123,74 +131,46 @@ const ProviderFarmerLinkSchema = new mongoose.Schema({
   phone:      { type: String },
   location:   { type: String },
   notes:      { type: String },
-  tags:       [String],       // e.g. ['bulk-buyer', 'seed-only']
+  tags:       [String],
   totalOrders:{ type: Number, default: 0 },
   totalSpend: { type: Number, default: 0 },
   addedAt:    { type: Date, default: Date.now },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'providerfarmerlinks' });
 
-// ── Model factories bound to provider connection ──────────────────────────────
-// We use connection.model() instead of mongoose.model() so models are
-// registered on the provider connection (aquagrow_providers DB), not default.
+// ── Register models on the DEFAULT mongoose connection (shared aquagrow DB) ───
+// Using mongoose.models guard to prevent "Cannot overwrite model" errors on hot-reload.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let ProviderProfile:     mongoose.Model<any>;
-let ProviderInventory:   mongoose.Model<any>;
-let ProviderOrder:       mongoose.Model<any>;
-let ProviderRateCard:    mongoose.Model<any>;
-let ProviderChat:        mongoose.Model<any>;
-let ProviderLedger:      mongoose.Model<any>;
-let ProviderFarmerLink:  mongoose.Model<any>;
+export const ProviderProfile    = mongoose.models['ProviderProfile']
+  ?? mongoose.model('ProviderProfile',    ProviderProfileSchema);
 
-// ── Connection ────────────────────────────────────────────────────────────────
+export const ProviderInventory  = mongoose.models['ProviderInventory']
+  ?? mongoose.model('ProviderInventory',  ProviderInventorySchema);
 
-/**
- * Connect to the separate provider database (aquagrow_providers).
- * Uses the same Atlas cluster as the farmer DB but a different database name.
- * Call this once at server startup alongside connectDB().
- */
-export const connectProviderDB = async (): Promise<Connection> => {
-  if (providerConn && providerConn.readyState === 1) return providerConn;
+export const ProviderOrder      = mongoose.models['ProviderOrder']
+  ?? mongoose.model('ProviderOrder',      ProviderOrderSchema);
 
-  // Derive provider DB URI: replace '/aquagrow?' with '/aquagrow_providers?'
-  const farmerUri =
-    process.env.MONGODB_URI ||
-    'mongodb://syamkdoram_db_user:xVMRfYAFMYYZvLzT@ac-k6ux81i-shard-00-00.mongodb.net:27017,ac-k6ux81i-shard-00-01.mongodb.net:27017,ac-k6ux81i-shard-00-02.mongodb.net:27017/aquagrow?ssl=true&replicaSet=atlas-k6ux81i-shard-0&authSource=admin&retryWrites=true&w=majority';
+export const ProviderRateCard   = mongoose.models['ProviderRateCard']
+  ?? mongoose.model('ProviderRateCard',   ProviderRateCardSchema);
 
-  // Override the DB name in the URI
-  const providerUri = farmerUri.replace(/\/aquagrow(\?|$)/, '/aquagrow_providers$1');
+export const ProviderChat       = mongoose.models['ProviderChat']
+  ?? mongoose.model('ProviderChat',       ProviderChatSchema);
 
-  // Use a separate mongoose connection (not the default) so collections don't bleed
-  providerConn = mongoose.createConnection(providerUri, {
-    serverSelectionTimeoutMS: 8000,
-  });
+export const ProviderLedger     = mongoose.models['ProviderLedger']
+  ?? mongoose.model('ProviderLedger',     ProviderLedgerSchema);
 
-  await providerConn.asPromise();
-  console.log('✅ Provider DB Connected — aquagrow_providers');
+export const ProviderFarmerLink = mongoose.models['ProviderFarmerLink']
+  ?? mongoose.model('ProviderFarmerLink', ProviderFarmerLinkSchema);
 
-  // Register models on this connection
-  ProviderProfile    = providerConn.model('ProviderProfile',    ProviderProfileSchema);
-  ProviderInventory  = providerConn.model('ProviderInventory',  ProviderInventorySchema);
-  ProviderOrder      = providerConn.model('ProviderOrder',      ProviderOrderSchema);
-  ProviderRateCard   = providerConn.model('ProviderRateCard',   ProviderRateCardSchema);
-  ProviderChat       = providerConn.model('ProviderChat',       ProviderChatSchema);
-  ProviderLedger     = providerConn.model('ProviderLedger',     ProviderLedgerSchema);
-  ProviderFarmerLink = providerConn.model('ProviderFarmerLink', ProviderFarmerLinkSchema);
-
-  return providerConn;
+// ── Compatibility shims ───────────────────────────────────────────────────────
+// connectProviderDB is no longer needed (we use the shared mongoose connection)
+// but is kept as a no-op so existing import sites don't break.
+export const connectProviderDB = async () => {
+  // No-op: provider models now use the default mongoose connection (aquagrow DB).
+  // The connection is established by connectDB() in db.ts at server startup.
+  console.log('[ProviderDB] Using shared aquagrow DB — no separate connection needed.');
+  return mongoose.connection;
 };
 
-/** Guard: returns true if provider DB is online */
+/** Always returns true when main DB is connected */
 export const isProviderDbReady = () =>
-  providerConn !== null && providerConn.readyState === 1;
-
-// Named exports for use in routes
-export {
-  ProviderProfile,
-  ProviderInventory,
-  ProviderOrder,
-  ProviderRateCard,
-  ProviderChat,
-  ProviderLedger,
-  ProviderFarmerLink,
-};
+  mongoose.connection.readyState === 1;
