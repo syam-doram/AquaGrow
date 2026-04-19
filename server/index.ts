@@ -17,6 +17,7 @@ import { apiLimiter, authenticate, requireRole, requireAnyAdmin, requireSuperAdm
 import { GoogleGenAI } from "@google/genai";
 import authRoutes    from './routes/auth.js';
 import providerRoutes from './routes/provider.js';
+import hrmsRoutes    from './routes/hrms.js';
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
 
 
@@ -30,12 +31,15 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 const ALLOWED_ORIGINS = [
   'https://aquagrow.onrender.com',
   'https://aqua-grow.vercel.app',
-  'https://aquagrow-admin.vercel.app',   // old Vercel URL (keep for safety)
-  'https://aquagrowadmin.vercel.app',    // ✅ actual deployed Vercel URL
-  'http://localhost:3000',               // Admin panel (Vite dev)
-  'http://localhost:5173',              // Admin panel (Vite dev)
-  'http://localhost:4173',              // Admin panel (Vite preview)
-  'http://localhost:3005',              // Local backend direct
+  'https://aquagrow-admin.vercel.app',
+  'https://aquagrowadmin.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3005',
+  'http://localhost:4173',
+  'http://localhost:5173',
+  'http://localhost:5174',   // Employee portal (Vite dev)
+  'http://localhost:5175',   // Employee portal (Vite dev — alt port)
+  'http://localhost:5176',   // Employee portal (Vite dev — alt port)
 ];
 
 app.use(cors({
@@ -63,6 +67,7 @@ app.use(cors({
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/provider', providerRoutes);
+app.use('/api/hrms', hrmsRoutes);   // ← HRMS Employee Portal routes
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) =>
