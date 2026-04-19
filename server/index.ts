@@ -33,6 +33,7 @@ const ALLOWED_ORIGINS = [
   'https://aqua-grow.vercel.app',
   'https://aquagrow-admin.vercel.app',
   'https://aquagrowadmin.vercel.app',
+  'https://aquagrowcompanyportal.vercel.app',   // ✅ Employee portal (Vercel)
   'http://localhost:3000',
   'http://localhost:3005',
   'http://localhost:4173',
