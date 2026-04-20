@@ -14,6 +14,7 @@ import mongoose from 'mongoose';
 import {
   HREmployee, HRAttendance, HRLeave,
   HRPayroll, HRTicket, HRPerformance, HRNotification,
+  HRJob, HRCandidate, HRFnF,
 } from '../hrms.js';
 
 const router = express.Router();
@@ -590,6 +591,230 @@ router.patch('/notifications/mark-read', hrmsAuth, async (req: any, res) => {
     await HRNotification.updateMany({ recipientEmpId: req.hrmsUser.empId, isRead: false }, { isRead: true });
     res.json({ success: true });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  RECRUITMENT — JOB POSTINGS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/hrms/jobs?status=open
+router.get('/jobs', hrmsAuth, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const { status } = req.query as any;
+    const filter: any = {};
+    if (status) filter.status = status;
+    const jobs = await HRJob.find(filter).sort({ createdAt: -1 });
+    res.json(jobs);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/hrms/jobs  (HR only)
+router.post('/jobs', hrmsAuth, requireHR, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const job = await new HRJob({
+      ...req.body,
+      postedBy: req.hrmsUser.empId,
+    }).save();
+    res.status(201).json(job);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// PUT /api/hrms/jobs/:id  (HR only — update status, details)
+router.put('/jobs/:id', hrmsAuth, requireHR, async (req, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const job = await HRJob.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    res.json(job);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// DELETE /api/hrms/jobs/:id  (HR only)
+router.delete('/jobs/:id', hrmsAuth, requireHR, async (req, res) => {
+  try {
+    if (dbCheck(res)) return;
+    await HRJob.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  RECRUITMENT — CANDIDATES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/hrms/candidates?jobId=&status=
+router.get('/candidates', hrmsAuth, requireHR, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const { jobId, status } = req.query as any;
+    const filter: any = {};
+    if (jobId)  filter.jobId = jobId;
+    if (status) filter.status = status;
+    const candidates = await HRCandidate.find(filter).sort({ createdAt: -1 });
+    res.json(candidates);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/hrms/candidates  (HR only)
+router.post('/candidates', hrmsAuth, requireHR, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    // Auto-populate jobRole from the linked job
+    let jobRole = req.body.jobRole;
+    if (!jobRole && req.body.jobId) {
+      const job = await HRJob.findById(req.body.jobId);
+      jobRole = job?.role ?? '';
+    }
+    const candidate = await new HRCandidate({
+      ...req.body,
+      jobRole,
+      status: 'applied',
+      addedBy: req.hrmsUser.empId,
+    }).save();
+    res.status(201).json(candidate);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// PUT /api/hrms/candidates/:id  (move stage, send offer, etc.)
+router.put('/candidates/:id', hrmsAuth, requireHR, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const updates: any = { ...req.body };
+    if (updates.status === 'offered') updates.offerSentAt = new Date();
+    const candidate = await HRCandidate.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    res.json(candidate);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// DELETE /api/hrms/candidates/:id  (HR only)
+router.delete('/candidates/:id', hrmsAuth, requireHR, async (req, res) => {
+  try {
+    if (dbCheck(res)) return;
+    await HRCandidate.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  FULL & FINAL SETTLEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/hrms/fnf?status=&empId=
+router.get('/fnf', hrmsAuth, requireFinance, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const { status, empId } = req.query as any;
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (empId)  filter.empId = empId;
+    const records = await HRFnF.find(filter).sort({ createdAt: -1 });
+    res.json(records);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/hrms/fnf/:id
+router.get('/fnf/:id', hrmsAuth, requireFinance, async (req, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const record = await HRFnF.findById(req.params.id);
+    if (!record) return res.status(404).json({ error: 'F&F record not found' });
+    res.json(record);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/hrms/fnf  (HR initiates F&F)
+router.post('/fnf', hrmsAuth, requireHR, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const { employeeId, ...rest } = req.body;
+    // Fetch employee details to auto-populate name/dept
+    const emp = await HREmployee.findById(employeeId, '-passwordHash');
+    if (!emp) return res.status(404).json({ error: 'Employee not found' });
+
+    // Calculate gratuity: 15/26 * basic * years of service (min 5 years)
+    const joiningDate = emp.joiningDate ? new Date(emp.joiningDate) : new Date();
+    const yearsOfService = (Date.now() - joiningDate.getTime()) / (365.25 * 24 * 3600 * 1000);
+    const gratuityAmount = yearsOfService >= 5
+      ? Math.round((15 / 26) * (emp.salary || 0) * Math.floor(yearsOfService))
+      : 0;
+
+    const record = await new HRFnF({
+      ...rest,
+      employeeId: String(emp._id),
+      employeeName: emp.name,
+      empId: emp.empId,
+      department: emp.department,
+      lastBasicSalary: emp.salary || 0,
+      gratuityAmount,
+      status: 'initiated',
+      initiatedBy: req.hrmsUser.empId,
+    }).save();
+
+    // Mark employee as terminated
+    await HREmployee.findByIdAndUpdate(employeeId, { status: 'terminated' });
+
+    res.status(201).json(record);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// PUT /api/hrms/fnf/:id  (HR updates settlement amounts)
+router.put('/fnf/:id', hrmsAuth, requireHR, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const updates: any = { ...req.body };
+    // Auto-calculate net if amounts are updated
+    if (
+      updates.lastBasicSalary !== undefined ||
+      updates.gratuityAmount !== undefined ||
+      updates.leaveEncashment !== undefined ||
+      updates.bonusAmount !== undefined ||
+      updates.otherEarnings !== undefined ||
+      updates.noticePayDeduction !== undefined ||
+      updates.otherDeductions !== undefined
+    ) {
+      const existing = await HRFnF.findById(req.params.id);
+      if (existing) {
+        const merged = { ...existing.toObject(), ...updates };
+        const gross = (merged.lastBasicSalary || 0) + (merged.gratuityAmount || 0) +
+          (merged.leaveEncashment || 0) + (merged.bonusAmount || 0) + (merged.otherEarnings || 0);
+        const deductions = (merged.noticePayDeduction || 0) + (merged.otherDeductions || 0);
+        updates.netSettlement = Math.max(0, gross - deductions);
+      }
+    }
+    if (updates.status === 'pending_approval') updates.status = 'pending_approval';
+    const record = await HRFnF.findByIdAndUpdate(req.params.id, updates, { new: true });
+    res.json(record);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// PATCH /api/hrms/fnf/:id/approve  (Finance approves)
+router.patch('/fnf/:id/approve', hrmsAuth, requireFinance, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const record = await HRFnF.findByIdAndUpdate(
+      req.params.id,
+      { status: 'approved', approvedBy: req.hrmsUser.empId, approvedAt: new Date() },
+      { new: true }
+    );
+    res.json(record);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// PATCH /api/hrms/fnf/:id/disburse  (Finance marks as disbursed)
+router.patch('/fnf/:id/disburse', hrmsAuth, requireFinance, async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const { paymentMode, transactionRef } = req.body;
+    const record = await HRFnF.findByIdAndUpdate(
+      req.params.id,
+      { status: 'disbursed', paymentMode, transactionRef, settledAt: new Date() },
+      { new: true }
+    );
+    res.json(record);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 export default router;

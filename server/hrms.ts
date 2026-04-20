@@ -125,11 +125,83 @@ const HRNotificationSchema = new mongoose.Schema({
   link:    { type: String },
 }, { timestamps: true, collection: 'hrnotifications' });
 
+// ── Recruitment — Job Postings ────────────────────────────────────────────────
+const HRJobSchema = new mongoose.Schema({
+  role:        { type: String, required: true },
+  department:  { type: String, required: true },
+  skills:      { type: String },
+  salaryMin:   { type: Number, default: 0 },
+  salaryMax:   { type: Number, default: 0 },
+  location:    { type: String, default: 'Nellore, AP' },
+  openings:    { type: Number, default: 1 },
+  status:      { type: String, enum: ['open', 'paused', 'closed'], default: 'open' },
+  postedBy:    { type: String },   // empId of HR who posted
+  description: { type: String },
+}, { timestamps: true, collection: 'hrjobs' });
+
+// ── Recruitment — Candidates ──────────────────────────────────────────────────
+const HRCandidateSchema = new mongoose.Schema({
+  jobId:     { type: mongoose.Schema.Types.ObjectId, ref: 'HRJob', required: true },
+  jobRole:   { type: String },
+  name:      { type: String, required: true },
+  email:     { type: String },
+  phone:     { type: String },
+  source:    { type: String, default: 'Walk-in' },
+  status:    {
+    type: String,
+    enum: ['applied', 'shortlisted', 'interviewed', 'selected', 'offered', 'rejected'],
+    default: 'applied',
+  },
+  resumeUrl:      { type: String },
+  notes:          { type: String },
+  offeredSalary:  { type: Number },
+  joiningDate:    { type: String },
+  offerStatus:    { type: String, enum: ['pending', 'accepted', 'declined'] },
+  offerSentAt:    { type: Date },
+  convertedToEmp: { type: Boolean, default: false },
+  addedBy:        { type: String },   // empId of HR who added candidate
+}, { timestamps: true, collection: 'hrcandidates' });
+
+// ── Full & Final Settlement ───────────────────────────────────────────────────
+const HRFnFSchema = new mongoose.Schema({
+  employeeId:        { type: String, required: true },   // _id of HREmployee
+  employeeName:      { type: String },
+  empId:             { type: String },
+  department:        { type: String },
+  separationType:    { type: String, enum: ['resignation', 'termination', 'retirement', 'voluntary'], required: true },
+  lastWorkingDay:    { type: String, required: true },
+  noticePeriodDays:  { type: Number, default: 30 },
+  noticePeriodServed:{ type: Boolean, default: true },
+  status:            { type: String, enum: ['initiated', 'pending_approval', 'approved', 'disbursed'], default: 'initiated' },
+  // Earnings
+  lastBasicSalary:   { type: Number, default: 0 },
+  gratuityAmount:    { type: Number, default: 0 },
+  leaveEncashment:   { type: Number, default: 0 },
+  bonusAmount:       { type: Number, default: 0 },
+  otherEarnings:     { type: Number, default: 0 },
+  // Deductions
+  noticePayDeduction: { type: Number, default: 0 },
+  otherDeductions:    { type: Number, default: 0 },
+  // Net
+  netSettlement:     { type: Number, default: 0 },
+  // Meta
+  initiatedBy:       { type: String },
+  approvedBy:        { type: String },
+  approvedAt:        { type: Date },
+  settledAt:         { type: Date },
+  hrNotes:           { type: String },
+  paymentMode:       { type: String },
+  transactionRef:    { type: String },
+}, { timestamps: true, collection: 'hrfnf' });
+
 // ── Export models ─────────────────────────────────────────────────────────────
-export const HREmployee    = mongoose.model('HREmployee',    HREmployeeSchema);
-export const HRAttendance  = mongoose.model('HRAttendance',  HRAttendanceSchema);
-export const HRLeave       = mongoose.model('HRLeave',       HRLeaveSchema);
-export const HRPayroll     = mongoose.model('HRPayroll',     HRPayrollSchema);
-export const HRTicket      = mongoose.model('HRTicket',      HRTicketSchema);
-export const HRPerformance = mongoose.model('HRPerformance', HRPerformanceSchema);
+export const HREmployee     = mongoose.model('HREmployee',     HREmployeeSchema);
+export const HRAttendance   = mongoose.model('HRAttendance',   HRAttendanceSchema);
+export const HRLeave        = mongoose.model('HRLeave',        HRLeaveSchema);
+export const HRPayroll      = mongoose.model('HRPayroll',      HRPayrollSchema);
+export const HRTicket       = mongoose.model('HRTicket',       HRTicketSchema);
+export const HRPerformance  = mongoose.model('HRPerformance',  HRPerformanceSchema);
 export const HRNotification = mongoose.model('HRNotification', HRNotificationSchema);
+export const HRJob          = mongoose.model('HRJob',          HRJobSchema);
+export const HRCandidate    = mongoose.model('HRCandidate',    HRCandidateSchema);
+export const HRFnF          = mongoose.model('HRFnF',          HRFnFSchema);
