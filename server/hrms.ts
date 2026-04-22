@@ -162,6 +162,11 @@ const HRCandidateSchema = new mongoose.Schema({
   addedBy:        { type: String },   // empId of HR who added candidate
 
   // ── Self-Onboarding Portal fields ────────────────────────────────────────
+  hiringStatus: {
+    type: String,
+    enum: ['invited', 'submitted', 'hr_approved', 'founder_approved', 'bgv_clear', 'hired', 'rejected'],
+    default: 'invited',
+  },
   onboardingStatus:      { type: String, enum: ['pending', 'submitted'], default: 'pending' },
   onboardingSubmittedAt: { type: Date },
   onboardingData: {
