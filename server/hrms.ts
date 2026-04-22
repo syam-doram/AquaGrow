@@ -160,7 +160,56 @@ const HRCandidateSchema = new mongoose.Schema({
   offerSentAt:    { type: Date },
   convertedToEmp: { type: Boolean, default: false },
   addedBy:        { type: String },   // empId of HR who added candidate
+
+  // ── Self-Onboarding Portal fields ────────────────────────────────────────
+  onboardingStatus:      { type: String, enum: ['pending', 'submitted'], default: 'pending' },
+  onboardingSubmittedAt: { type: Date },
+  onboardingData: {
+    personal: {
+      fullName:   { type: String },
+      dob:        { type: String },
+      gender:     { type: String },
+      fatherName: { type: String },
+      address:    { type: String },
+      city:       { type: String },
+      state:      { type: String },
+      pincode:    { type: String },
+    },
+    contact: {
+      phone:          { type: String },
+      altPhone:       { type: String },
+      personalEmail:  { type: String },
+      emergencyName:  { type: String },
+      emergencyRel:   { type: String },
+      emergencyPhone: { type: String },
+    },
+    prof: {
+      prevCompany:  { type: String },
+      experience:   { type: String },
+      skills:       { type: String },
+      currentCTC:   { type: String },
+      expectedCTC:  { type: String },
+      noticePeriod: { type: String },
+    },
+    bank: {
+      bankName:  { type: String },
+      accountNo: { type: String },
+      confirmNo: { type: String },
+      ifsc:      { type: String },
+      holder:    { type: String },
+    },
+    docs: {
+      aadhaar:    { type: String },   // base64 data URI
+      pan:        { type: String },
+      resume:     { type: String },
+      photo:      { type: String },
+      degree:     { type: String },
+      experience: { type: String },
+    },
+    submittedAt: { type: String },
+  },
 }, { timestamps: true, collection: 'hrcandidates' });
+
 
 // ── Full & Final Settlement ───────────────────────────────────────────────────
 const HRFnFSchema = new mongoose.Schema({
