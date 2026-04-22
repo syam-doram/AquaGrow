@@ -644,6 +644,35 @@ router.delete('/jobs/:id', hrmsAuth, requireHR, async (req, res) => {
 //  RECRUITMENT — CANDIDATES
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── PUBLIC: GET /api/hrms/candidates/:id  (no auth — for candidate self-onboarding portal)
+router.get('/candidates/:id', async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const candidate = await HRCandidate.findById(req.params.id, '-addedBy');
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    // Only expose safe fields to the public portal
+    const { _id, name, email, phone, jobRole, status, onboardingStatus } = candidate as any;
+    res.json({ _id, name, email, phone, jobRole, status, onboardingStatus });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PUBLIC: PUT /api/hrms/candidates/:id/onboarding  (no auth — candidate submits their form)
+router.put('/candidates/:id/onboarding', async (req: any, res) => {
+  try {
+    if (dbCheck(res)) return;
+    const candidate = await HRCandidate.findById(req.params.id);
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    // Only allow updating onboarding-safe fields — never allow status/role changes via this route
+    const { onboardingData, onboardingStatus } = req.body;
+    const updated = await HRCandidate.findByIdAndUpdate(
+      req.params.id,
+      { onboardingData, onboardingStatus: onboardingStatus ?? 'submitted' },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
 // GET /api/hrms/candidates?jobId=&status=
 router.get('/candidates', hrmsAuth, requireHR, async (req: any, res) => {
   try {
