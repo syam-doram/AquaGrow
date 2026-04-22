@@ -662,11 +662,15 @@ router.put('/candidates/:id/onboarding', async (req: any, res) => {
     if (dbCheck(res)) return;
     const candidate = await HRCandidate.findById(req.params.id);
     if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    // 🔒 One-time submission: reject if already submitted
+    if ((candidate as any).onboardingStatus === 'submitted') {
+      return res.status(409).json({ error: 'Onboarding already completed. This link is no longer valid.' });
+    }
     // Only allow updating onboarding-safe fields — never allow status/role changes via this route
-    const { onboardingData, onboardingStatus } = req.body;
+    const { onboardingData } = req.body;
     const updated = await HRCandidate.findByIdAndUpdate(
       req.params.id,
-      { onboardingData, onboardingStatus: onboardingStatus ?? 'submitted' },
+      { onboardingData, onboardingStatus: 'submitted', onboardingSubmittedAt: new Date() },
       { new: true }
     );
     res.json(updated);
