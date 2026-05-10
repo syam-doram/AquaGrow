@@ -267,6 +267,16 @@ export const Dashboard = ({ user, t, onMenuClick }: { user: User; t: Translation
     try { return JSON.parse(localStorage.getItem('aqua_tray_confirmed') || '{}'); } catch { return {}; }
   });
   const [showTrayGuide, setShowTrayGuide] = useState<string | null>(null);
+
+  // Sync tray-guide-open body class — BottomNav observes this to hide itself
+  useEffect(() => {
+    if (showTrayGuide) {
+      document.body.classList.add('tray-guide-open');
+    } else {
+      document.body.classList.remove('tray-guide-open');
+    }
+    return () => document.body.classList.remove('tray-guide-open');
+  }, [showTrayGuide]);
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [selectedPondId, setSelectedPondId] = useState<string>('');
   const [isSyncingPush, setIsSyncingPush] = useState(false);

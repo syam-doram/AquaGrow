@@ -12,17 +12,73 @@ import { API_BASE_URL } from '../config';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = (attempt: number) => 2000 * Math.pow(2, attempt); // 2s, 4s, 8s
 
-const getAuthHeader = (): Record<string, string> => {
+// ─── Token helpers (localStorage — same keys as DataContext) ──────────────────
+const getTokens = (): { access: string; refresh: string } | null => {
   try {
-    // Tokens stored as JSON under 'aqua_tokens' by DataContext
     const raw = localStorage.getItem('aqua_tokens');
-    if (!raw) return {};
-    const tokens = JSON.parse(raw);
-    const token = tokens?.access;
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+
+const saveTokens = (t: { access: string; refresh: string }) => {
+  localStorage.setItem('aqua_tokens', JSON.stringify(t));
+};
+
+/**
+ * Attempt a silent token refresh via POST /auth/refresh.
+ * Returns the new token pair or null on failure.
+ */
+const refreshAccessToken = async (): Promise<{ access: string; refresh: string } | null> => {
+  const t = getTokens();
+  if (!t?.refresh) return null;
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: t.refresh }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const newTokens = {
+      access:  data.access_token,
+      refresh: data.refresh_token || t.refresh, // preserve refresh if not rotated
+    };
+    saveTokens(newTokens);
+    return newTokens;
   } catch {
-    return {};
+    return null;
   }
+};
+
+/**
+ * fetch wrapper that auto-refreshes the access token on 401,
+ * mirrors the DataContext `apiFetch` behaviour without needing the React context.
+ */
+const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const tokens = getTokens();
+  const authHeader = tokens?.access ? { Authorization: `Bearer ${tokens.access}` } : {};
+
+  const res = await fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...options.headers },
+  });
+
+  // If 401, attempt a silent token refresh then retry once
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${refreshed.access}`,
+          ...options.headers,
+        },
+      });
+    }
+  }
+
+  return res;
 };
 
 // ─── Shared quota/error throw helper ─────────────────────────────────────────
@@ -44,9 +100,8 @@ const throwIfError = async (res: Response, genericMsg: string): Promise<void> =>
 export async function analyzeShrimpHealth(base64Image: string, language: string = 'English') {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(`${API_BASE_URL}/ai/analyze-health`, {
+      const res = await authFetch(`${API_BASE_URL}/ai/analyze-health`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ base64Image, language }),
       });
 
@@ -78,9 +133,8 @@ export async function analyzeShrimpHealth(base64Image: string, language: string 
 export async function analyzeWaterTest(base64Image: string): Promise<any> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(`${API_BASE_URL}/ai/analyze-water`, {
+      const res = await authFetch(`${API_BASE_URL}/ai/analyze-water`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ base64Image }),
       });
 
@@ -106,9 +160,8 @@ export async function analyzeWaterTest(base64Image: string): Promise<any> {
 // ─── Live Stream Frame Analysis ───────────────────────────────────────────────
 export async function analyzeLiveStream(base64Image: string): Promise<any | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/ai/analyze-live`, {
+    const res = await authFetch(`${API_BASE_URL}/ai/analyze-live`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify({ base64Image }),
     });
     if (!res.ok) return null;

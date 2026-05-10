@@ -1343,7 +1343,9 @@ app.post('/api/push/weather-alert', authenticate, async (req: AuthenticatedReque
         deepLink:     '/weather',
       },
       android: {
-        priority: alertType === 'critical' ? 'high' : 'normal',
+        // NOTE: 'normal' priority is NEVER delivered to killed apps on Android.
+        // ALWAYS use 'high' so FCM wakes the device regardless of alert severity.
+        priority: 'high',
         ttl: 3600000,
         notification: {
           channelId:   'aquagrow-premium',
@@ -1592,18 +1594,26 @@ app.post('/api/push/iot-alert', authenticate, async (req: AuthenticatedRequest, 
       },
       android: {
         priority: 'high',
+        // TTL 1 hour — IoT alert is time-sensitive; stale delivery is unhelpful
+        ttl: 3600000,
         notification: {
           channelId: meta.channelId,
           color:     meta.color,
           icon:      'ic_stat_aquagrow',
           tag:       `iot-${deviceId}`,
+          ticker:    `AquaGrow: ${meta.title}`,
+          notificationCount: 1,
           clickAction: 'OPEN_SMART_FARM',
-          sound:     'default',
+          sound:     'alert_sound',
           visibility: 'public' as any,
+          body:      `📡 Device: ${deviceName || 'Device'}\n🐟 Pond: ${pondName || 'Pond'}${guidance ? `\n\n🛠️ Fix: ${guidance}` : ''}`,
+          defaultVibrateTimings: true,
+          defaultLightSettings:  true,
         },
       },
       apns: {
-        payload: { aps: { badge: 1, sound: 'default', category: 'IOT_ALERT' } },
+        headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+        payload: { aps: { badge: 1, sound: 'default', category: 'IOT_ALERT', 'content-available': 1 } },
       },
     };
 
@@ -1850,15 +1860,26 @@ const runPushEngine = async () => {
             },
             android: {
               priority: 'high',
+              // TTL 7 hours — aerator check is time-critical, do not deliver stale
+              ttl: 7200000,
               notification: {
                 channelId: 'aquagrow-aerator',
                 color: '#3B82F6',
                 icon: 'ic_stat_aquagrow',
                 tag: `aerator-${(p as any)._id || (p as any).id}`,
+                ticker: `AquaGrow: Aerator check due for ${p.name}`,
+                notificationCount: 1,
                 clickAction: 'OPEN_AERATOR',
-                sound: 'default',
+                sound: 'alert_sound',
                 visibility: 'public' as any,
+                body: `📍 Pond: ${p.name}\n🌿 Stage: ${stageLabel} (DOC ${doc})\n\nPlease update aerator count & positions to meet SOP.`,
+                defaultVibrateTimings: true,
+                defaultLightSettings: true,
               },
+            },
+            apns: {
+              headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+              payload: { aps: { badge: 1, sound: 'default', category: 'AERATOR_CHECK' } },
             },
           };
           await sendFCM(u.fcmToken!, aeratorMsg);
@@ -2030,13 +2051,9 @@ const runPushEngine = async () => {
             },
           };
 
-          if (admin.apps.length > 0) {
-            try {
-              await admin.messaging().send(fullMessage);
-              console.log(`[FCM-SUCCESS] ✅ Sent to ${u.name} | ${p.name} | ${alertTitle}`);
-            } catch (err: any) {
-              console.warn('[FCM-ERROR]', err.message);
-            }
+          const engineSent = await sendFCM(u.fcmToken!, fullMessage);
+          if (engineSent) {
+            console.log(`[FCM-SUCCESS] ✅ Sent to ${u.name} | ${p.name} | ${alertTitle}`);
           } else {
             console.log(`[SIMULATED-PUSH] ${alertTitle}: ${alertBody}`);
           }

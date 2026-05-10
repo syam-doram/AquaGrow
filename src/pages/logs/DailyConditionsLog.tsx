@@ -267,16 +267,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const { ponds, addWaterRecord, waterRecords, theme } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  const pond      = ponds.find(p => p.id === id) || ponds[0];
-  const today     = new Date().toISOString().split('T')[0];
-  const activeDate = urlDate || today;
-  const isHistorical = activeDate !== today;
-
-  // Early bail-out when no ponds exist
-  if (ponds.length === 0) return (
-    <NoPondState isDark={isDark} fullScreen subtitle="Add a pond to start logging daily water conditions." />
-  );
-
+  // ── ALL hooks must be declared BEFORE any early return (React rules of hooks) ──
   const [form, setForm] = useState<FormData>({
     ph: '', do: '', temperature: '', salinity: '',
     ammonia: '', alkalinity: '', turbidity: '', mortality: '',
@@ -288,6 +279,16 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const [loading, setLoading]             = useState(false);
   const [showCriticalModal, setShowCriticalModal] = useState(false);
   const [criticalAcked, setCriticalAcked]         = useState(false);
+
+  const pond      = ponds.find(p => p.id === id) || ponds[0];
+  const today     = new Date().toISOString().split('T')[0];
+  const activeDate = urlDate || today;
+  const isHistorical = activeDate !== today;
+
+  // Early bail-out AFTER hooks — safe to return here
+  if (ponds.length === 0) return (
+    <NoPondState isDark={isDark} fullScreen subtitle="Add a pond to start logging daily water conditions." />
+  );
 
   // Pre-fill if edit mode
   useEffect(() => {

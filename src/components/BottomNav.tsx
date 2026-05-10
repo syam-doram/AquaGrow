@@ -11,13 +11,18 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
   const location = useLocation();
   const { theme } = useData();
 
-  // Hide BottomNav when any full-screen sheet is open (e.g. aerator log)
+  // Hide BottomNav when any full-screen sheet is open (e.g. aerator log, tray guide)
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsSheetOpen(document.body.classList.contains('aerator-sheet-open'));
-    });
+    const checkSheets = () => {
+      setIsSheetOpen(
+        document.body.classList.contains('aerator-sheet-open') ||
+        document.body.classList.contains('tray-guide-open')
+      );
+    };
+    const observer = new MutationObserver(checkSheets);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    checkSheets(); // run once on mount
     return () => observer.disconnect();
   }, []);
 
