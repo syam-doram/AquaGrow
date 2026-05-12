@@ -222,6 +222,16 @@ export const FeedManagement = ({ t, onMenuClick }: { t: Translations; onMenuClic
   const [traySetupStep, setTraySetupStep] = useState<0|1|2>(0);
   // Alias for backwards-compat with any remaining showTraySetup references
   const showTraySetup = traySetupStep === 2;
+
+  // Sync feed-sheet-open body class — BottomNav observes this to hide itself
+  useEffect(() => {
+    if (traySetupStep > 0) {
+      document.body.classList.add('feed-sheet-open');
+    } else {
+      document.body.classList.remove('feed-sheet-open');
+    }
+    return () => document.body.classList.remove('feed-sheet-open');
+  }, [traySetupStep]);
   const [now, setNow] = useState(new Date());
   const [weather] = useState(getSimulatedWeather());
 

@@ -389,7 +389,13 @@ app.post('/api/water-logs', authenticate, async (req: AuthenticatedRequest, res)
   try {
     const data = { ...req.body, userId: req.user.id };
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    res.json(await new WaterLogMongo(data).save());
+    // Upsert: one record per pond per day — prevents duplicate entries
+    const result = await WaterLogMongo.findOneAndUpdate(
+      { userId: req.user.id, pondId: data.pondId, date: data.date },
+      { $set: data },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json(result);
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 

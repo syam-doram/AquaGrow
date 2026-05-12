@@ -377,7 +377,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
         mortality:   parseFloat(form.mortality)   || 0,
       });
       setSaved(true);
-      setTimeout(() => navigate(`/ponds/${pond.id}/monitor`), 1600);
+      setTimeout(() => navigate(-1), 1600);
     } catch (err) {
       console.error(err);
     } finally {

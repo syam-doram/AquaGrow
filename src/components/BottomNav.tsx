@@ -17,7 +17,8 @@ export const BottomNav = ({ t, onMenuClick }: { t: Translations, onMenuClick: ()
     const checkSheets = () => {
       setIsSheetOpen(
         document.body.classList.contains('aerator-sheet-open') ||
-        document.body.classList.contains('tray-guide-open')
+        document.body.classList.contains('tray-guide-open')  ||
+        document.body.classList.contains('feed-sheet-open')
       );
     };
     const observer = new MutationObserver(checkSheets);

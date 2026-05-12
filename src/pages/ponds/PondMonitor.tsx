@@ -509,14 +509,6 @@ export const PondMonitor = ({ t }: { t: Translations }) => {
             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <h2 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>{t.waterHistory}</h2>
-                {pond.status !== 'harvested' && (
-                  <button
-                    onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-                    className="bg-[#0D523C] text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
-                  >
-                    <Plus size={12} /> {t.logConditions}
-                  </button>
-                )}
               </div>
 
               {pondRecords.length === 0 ? (
