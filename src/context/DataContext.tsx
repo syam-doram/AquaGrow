@@ -277,8 +277,20 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.ok) {
         const data = await response.json();
         const mapped = data.map((l: any) => ({ ...l, id: l._id || l.id }));
-        setWaterRecords(mapped);
-        writeCache('aqua_cache_water', mapped);
+        // Deduplicate: keep only the latest record per (pondId, date)
+        // Server may have created duplicates before the upsert fix was deployed
+        const seen = new Map<string, any>();
+        for (const rec of mapped) {
+          const key = `${rec.pondId}_${rec.date}`;
+          const existing = seen.get(key);
+          // Keep whichever was created/updated more recently
+          const recTime  = new Date(rec.updatedAt || rec.createdAt || 0).getTime();
+          const exisTime = existing ? new Date(existing.updatedAt || existing.createdAt || 0).getTime() : -1;
+          if (!existing || recTime > exisTime) seen.set(key, rec);
+        }
+        const deduped = Array.from(seen.values());
+        setWaterRecords(deduped);
+        writeCache('aqua_cache_water', deduped);
       }
     } catch (error) {
       console.error("Error fetching water logs:", error);
@@ -882,7 +894,17 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       });
       if (response.ok) {
         const newRecord = await response.json();
-        setWaterRecords(prev => [{ ...newRecord, id: newRecord._id || newRecord.id }, ...prev]);
+        const normalized = { ...newRecord, id: newRecord._id || newRecord.id };
+        // Upsert client state: replace existing record for same pond+date, or prepend
+        setWaterRecords(prev => {
+          const idx = prev.findIndex(r => r.pondId === record.pondId && r.date === record.date);
+          if (idx !== -1) {
+            const updated = [...prev];
+            updated[idx] = normalized;
+            return updated;
+          }
+          return [normalized, ...prev];
+        });
         // Clean up old localStorage for seamless migration
         localStorage.removeItem('aqua_water_records');
       }

@@ -279,6 +279,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   const [loading, setLoading]             = useState(false);
   const [showCriticalModal, setShowCriticalModal] = useState(false);
   const [criticalAcked, setCriticalAcked]         = useState(false);
+  const submittingRef = React.useRef(false); // prevents double-submit
 
   const pond      = ponds.find(p => p.id === id) || ponds[0];
   const today     = new Date().toISOString().split('T')[0];
@@ -361,7 +362,8 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
   };
 
   const handleSave = async () => {
-    if (!pond || !canSave) return;
+    if (!pond || !canSave || submittingRef.current) return;
+    submittingRef.current = true;  // lock — prevents any second call while in-flight
     setLoading(true);
     try {
       await addWaterRecord({
@@ -380,6 +382,7 @@ export const DailyConditionsLog = ({ t }: { t: Translations }) => {
       setTimeout(() => navigate(-1), 1600);
     } catch (err) {
       console.error(err);
+      submittingRef.current = false; // unlock on error so user can retry
     } finally {
       setLoading(false);
     }

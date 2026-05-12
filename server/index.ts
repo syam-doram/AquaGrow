@@ -15,11 +15,10 @@ import cors from 'cors';
 import { User as UserMongo, AdminUser as AdminUserMongo, Subscription as SubscriptionMongo, RefreshToken, connectDB, Pond as PondMongo, FeedLog as FeedLogMongo, MedicineLog as MedicineLogMongo, WaterLog as WaterLogMongo, SOPLog as SOPLogMongo, Expense as ExpenseMongo, HarvestRequest, ROIEntry as ROIEntryMongo, NotificationLog as NotificationLogMongo, AeratorLog as AeratorLogMongo } from './db.js';
 import { apiLimiter, authenticate, requireRole, requireAnyAdmin, requireSuperAdmin, requireSelf, isAdminRole } from './middleware/auth.js';
 import { GoogleGenAI } from "@google/genai";
-import authRoutes    from './routes/auth.js';
+import authRoutes from './routes/auth.js';
 import providerRoutes from './routes/provider.js';
-import hrmsRoutes    from './routes/hrms.js';
+import hrmsRoutes from './routes/hrms.js';
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
-
 
 const app = express();
 app.set('trust proxy', 1);
@@ -50,9 +49,9 @@ app.use(cors({
     // Always allow Capacitor / Ionic WebView (Android = https://localhost, iOS = capacitor://localhost)
     if (
       origin === 'https://localhost' ||
-      origin === 'http://localhost'  ||
+      origin === 'http://localhost' ||
       origin.startsWith('capacitor://') ||
-      origin.startsWith('ionic://')     ||
+      origin.startsWith('ionic://') ||
       origin.startsWith('http://localhost:') ||
       origin.startsWith('https://localhost:')
     ) return callback(null, true);
@@ -74,7 +73,7 @@ app.use('/api/hrms', hrmsRoutes);   // ← HRMS Employee Portal routes
 app.get('/api/health', (_req, res) =>
   res.json({
     status: 'ok',
-    farmerDb:   mongoose.connection.readyState,   // 1 = connected (aquagrow)
+    farmerDb: mongoose.connection.readyState,   // 1 = connected (aquagrow)
     providerDb: isProviderDbReady() ? 1 : 0,      // 1 = connected (aquagrow_providers)
   })
 );
@@ -89,7 +88,7 @@ app.get('/api/health', (_req, res) =>
 //    5. Build & deploy the server. The mobile app will auto-detect on next launch.
 // ─────────────────────────────────────────────────────────────────────────────
 const LATEST_APP_VERSION = '1.0.0';    // ← bump when you publish a new APK
-const MIN_APP_VERSION    = '1.0.0';    // ← bump only for forced/critical updates
+const MIN_APP_VERSION = '1.0.0';    // ← bump only for forced/critical updates
 
 const RELEASE_NOTES: string[] = [
   'Initial release — full AquaGrow farm management suite',
@@ -103,10 +102,10 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.aquagr
 app.get('/api/app-version', (_req, res) => {
   res.json({
     latestVersion: LATEST_APP_VERSION,
-    minVersion:    MIN_APP_VERSION,
-    releaseNotes:  RELEASE_NOTES,
-    updateUrl:     PLAY_STORE_URL,
-    publishedAt:   '2026-04-12T00:00:00Z',
+    minVersion: MIN_APP_VERSION,
+    releaseNotes: RELEASE_NOTES,
+    updateUrl: PLAY_STORE_URL,
+    publishedAt: '2026-04-12T00:00:00Z',
   });
 });
 
@@ -120,30 +119,30 @@ const dbOffline = (res: any) =>
 
 // Plan name → subscriptionStatus mapping
 const PLAN_STATUS_MAP: Record<string, string> = {
-  free:         'free',
-  pro:          'pro',
-  pro_silver:   'pro_silver',
-  pro_gold:     'pro_gold',
-  pro_diamond:  'pro_diamond',
+  free: 'free',
+  pro: 'pro',
+  pro_silver: 'pro_silver',
+  pro_gold: 'pro_gold',
+  pro_diamond: 'pro_diamond',
   // Aliases for UI plan names (e.g. 'aqua_9_diamond')
-  aqua_1:       'pro',
-  aqua_3:       'pro_silver',
-  aqua_6:       'pro_gold',
-  aqua_9:       'pro_diamond',
-  enterprise:   'pro_diamond',
+  aqua_1: 'pro',
+  aqua_3: 'pro_silver',
+  aqua_6: 'pro_gold',
+  aqua_9: 'pro_diamond',
+  enterprise: 'pro_diamond',
 };
 
 const PLAN_FEATURES_MAP: Record<string, string[]> = {
-  free:        ['basic_dashboard', 'pond_management'],
-  pro:         ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics'],
-  pro_silver:  ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor'],
-  pro_gold:    ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation'],
+  free: ['basic_dashboard', 'pond_management'],
+  pro: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics'],
+  pro_silver: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor'],
+  pro_gold: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation'],
   pro_diamond: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
-  aqua_1:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics'],
-  aqua_3:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor'],
-  aqua_6:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation'],
-  aqua_9:      ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
-  enterprise:  ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
+  aqua_1: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics'],
+  aqua_3: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor'],
+  aqua_6: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation'],
+  aqua_9: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
+  enterprise: ['basic_dashboard', 'pond_management', 'ai_scans', 'advanced_analytics', 'live_monitor', 'market_trends', 'expert_consultation', 'unlimited_scans', 'priority_support'],
 };
 
 app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -169,7 +168,7 @@ app.post('/api/subscription/upgrade', authenticate, async (req: AuthenticatedReq
 app.get('/api/user/:userId/subscription', authenticate, requireSelf, async (req, res) => {
   try {
     const userId = req.params.userId;
-    
+
     let sub = await SubscriptionMongo.findOne({ userId });
     if (!sub) {
       const defaultSub = { userId, planName: 'free', status: 'active', features: ['basic_dashboard', 'pond_management'], startDate: new Date(), endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) };
@@ -253,7 +252,7 @@ app.put('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) =
     if (!pond) return res.status(404).json({ error: 'Pond not found' });
     if (String(pond.userId) !== req.user.id && req.user.role !== 'admin')
       return res.status(403).json({ error: 'Access denied' });
-    
+
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
     const updated = await PondMongo.findByIdAndUpdate(id, req.body, { new: true });
@@ -266,19 +265,19 @@ app.put('/api/ponds/:id', authenticate, async (req: AuthenticatedRequest, res) =
       if (latestLog) {
         const recommended = Math.ceil((pond.size || 0) * 4);
         await new AeratorLogMongo({
-          userId:      req.user.id,
-          pondId:      id,
-          pondName:    (pond as any).name || '',
-          doc:         latestLog.doc,
-          date:        latestLog.date || new Date().toISOString(),
-          count:       latestLog.count,
-          hp:          latestLog.hp,
-          positions:   latestLog.positions || [],
-          addedNew:    latestLog.addedNew || false,
-          notes:       latestLog.notes || '',
-          sopMet:      (latestLog.count || 0) >= recommended,
+          userId: req.user.id,
+          pondId: id,
+          pondName: (pond as any).name || '',
+          doc: latestLog.doc,
+          date: latestLog.date || new Date().toISOString(),
+          count: latestLog.count,
+          hp: latestLog.hp,
+          positions: latestLog.positions || [],
+          addedNew: latestLog.addedNew || false,
+          notes: latestLog.notes || '',
+          sopMet: (latestLog.count || 0) >= recommended,
           recommended,
-          source:      'pond_detail',
+          source: 'pond_detail',
         }).save();
       }
     }
@@ -414,7 +413,7 @@ app.delete('/api/water-logs/:id', authenticate, async (req, res) => {
 app.get('/api/harvest-requests', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
-    
+
     let query = {};
     if (req.user.role === 'farmer') {
       query = { userId: req.user.id };
@@ -422,7 +421,7 @@ app.get('/api/harvest-requests', authenticate, async (req: AuthenticatedRequest,
       // For now, providers see all pending or their accepted ones
       query = { $or: [{ status: 'pending' }, { providerId: req.user.id }] };
     }
-    
+
     const requests = await HarvestRequest.find(query).sort({ createdAt: -1 });
     res.json(requests);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -431,21 +430,21 @@ app.get('/api/harvest-requests', authenticate, async (req: AuthenticatedRequest,
 app.post('/api/harvest-requests', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const data = { ...req.body, userId: req.user.id, status: 'pending' };
-    
+
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
     const request = await new HarvestRequest(data).save();
-    
+
     // BROADCAST LOGIC: Notify nearby providers (within 150km)
     // In a real app, we would use $near sphere or a geo-spatial query
     // For now, we broadcast to all active providers as a simulation
-    const nearbyProviders = await UserMongo.find({ 
+    const nearbyProviders = await UserMongo.find({
       role: 'provider',
       // location: { $in: ['Bhimavaram', 'Nellore', 'Vizag'] } // Example geo-fence
     });
 
     console.log(`[Market Broadcast] Notifying ${nearbyProviders.length} providers within 150km about new Harvest Request: ${request._id}`);
-    
+
     // Logic to send push notifications to these providers would go here
     // nearbyProviders.forEach(p => sendPushNotification(p.fcmToken, ...))
 
@@ -457,9 +456,9 @@ app.put('/api/harvest-requests/:id', authenticate, async (req: AuthenticatedRequ
   try {
     const { id } = req.params;
     const updates = req.body;
-    
+
     if (req.user.role === 'provider' && !updates.providerId) {
-       updates.providerId = req.user.id;
+      updates.providerId = req.user.id;
     }
 
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
@@ -641,12 +640,14 @@ const normaliseAIError = (e: any): { status: number; body: object } => {
       const retryInfo = parsed?.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
       if (retryInfo?.retryDelay) retryAfter = parseInt(retryInfo.retryDelay);
     } catch { /* ignore */ }
-    return { status: 429, body: {
-      error: 'AI quota exhausted',
-      message: `You have exceeded the Gemini API free-tier daily limit. Please wait ${retryAfter} seconds and try again, or upgrade your Google AI plan.`,
-      retryAfterSeconds: retryAfter,
-      code: 'QUOTA_EXCEEDED',
-    }};
+    return {
+      status: 429, body: {
+        error: 'AI quota exhausted',
+        message: `You have exceeded the Gemini API free-tier daily limit. Please wait ${retryAfter} seconds and try again, or upgrade your Google AI plan.`,
+        retryAfterSeconds: retryAfter,
+        code: 'QUOTA_EXCEEDED',
+      }
+    };
   }
   // 503 / UNAVAILABLE
   if (msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('overloaded')) {
@@ -663,7 +664,7 @@ app.post('/api/ai/analyze-health', authenticate, async (req: any, res: any) => {
     if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
 
     const mimeType = base64Image.startsWith('data:') ? base64Image.split(';')[0].split(':')[1] : 'image/jpeg';
-    const data     = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    const data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
     const prompt = `You are a certified aquaculture pathologist with 20 years of shrimp disease diagnosis experience.
 Analyze this shrimp specimen photo carefully. Return a precise diagnosis using ONLY the visual evidence visible in the image.
@@ -710,7 +711,7 @@ app.post('/api/ai/analyze-water', authenticate, async (req: any, res: any) => {
     if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
 
     const mimeType = base64Image.startsWith('data:') ? base64Image.split(';')[0].split(':')[1] : 'image/jpeg';
-    const data     = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    const data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
     const prompt = `You are an expert aquaculture water quality analyst.
 Analyze this image — it may show pond water color, test kits, strips, or meters.
@@ -746,7 +747,7 @@ app.post('/api/ai/analyze-live', authenticate, async (req: any, res: any) => {
     if (!base64Image) return res.status(400).json({ error: 'base64Image is required' });
 
     const mimeType = base64Image.startsWith('data:') ? base64Image.split(';')[0].split(':')[1] : 'image/jpeg';
-    const data     = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    const data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
@@ -831,10 +832,10 @@ app.patch('/api/admin/staff/:id', authenticate, requireSuperAdmin, async (req: A
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     const { role, isActive, name, email, location } = req.body;
     const updates: any = {};
-    if (role     !== undefined) updates.role     = role;
+    if (role !== undefined) updates.role = role;
     if (isActive !== undefined) updates.isActive = isActive;
-    if (name     !== undefined) updates.name     = name;
-    if (email    !== undefined) updates.email    = email;
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email;
     if (location !== undefined) updates.location = location;
 
     const updated = await AdminUserMongo.findByIdAndUpdate(req.params.id, updates, { new: true, select: '-password' });
@@ -917,7 +918,7 @@ app.get('/api/admin/ponds', authenticate, requireAnyAdmin, async (_req, res) => 
       // Auto-detect alerts
       const alerts: string[] = [];
       if (lastWater) {
-        if ((lastWater as any).do < 4)    alerts.push('CRITICAL_LOW_DO');
+        if ((lastWater as any).do < 4) alerts.push('CRITICAL_LOW_DO');
         if ((lastWater as any).ph < 7 || (lastWater as any).ph > 9) alerts.push('PH_OUT_OF_RANGE');
         if ((lastWater as any).ammonia > 0.5) alerts.push('HIGH_AMMONIA');
         if ((lastWater as any).mortality > 100) alerts.push('HIGH_MORTALITY');
@@ -1091,17 +1092,17 @@ app.get('/api/admin/all-orders', authenticate, requireAnyAdmin, async (_req, res
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
 
-    const ShopOrderModel    = mongoose.models['ShopOrder'];
+    const ShopOrderModel = mongoose.models['ShopOrder'];
     const ProviderOrderModel = mongoose.models['ProviderOrder'];
 
     const [shopOrders, providerOrders] = await Promise.all([
-      ShopOrderModel    ? ShopOrderModel.find({}).sort({ createdAt: -1 }).limit(500).lean()    : [],
+      ShopOrderModel ? ShopOrderModel.find({}).sort({ createdAt: -1 }).limit(500).lean() : [],
       ProviderOrderModel ? ProviderOrderModel.find({}).sort({ createdAt: -1 }).limit(500).lean() : [],
     ]);
 
     // Tag each order with its source so the admin UI can distinguish them
     const tagged = [
-      ...(shopOrders    as any[]).map(o => ({ ...o, _source: 'shop' })),
+      ...(shopOrders as any[]).map(o => ({ ...o, _source: 'shop' })),
       ...(providerOrders as any[]).map(o => ({ ...o, _source: 'provider' })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -1267,7 +1268,7 @@ const sendFCM = async (token: string, payload: admin.messaging.Message): Promise
 // ─── OWM Server-side Weather Fetch ────────────────────────────────────────────
 // Used by the push daemon to fetch real weather every 15 min and alert farmers.
 const OWM_API_KEY = '02eb92440f84d48b0d5df34e44540cb1';
-const OWM_BASE    = 'https://api.openweathermap.org/data/2.5';
+const OWM_BASE = 'https://api.openweathermap.org/data/2.5';
 
 interface OWMWeatherBrief {
   temp: number; rainPct: number; humidity: number; windKmh: number;
@@ -1280,9 +1281,9 @@ const fetchWeatherBrief = async (city: string): Promise<OWMWeatherBrief | null> 
     const res = await fetch(url);
     if (!res.ok) return null;
     const d = await res.json();
-    const temp      = Math.round(d.main?.temp ?? 0);
-    const humidity  = d.main?.humidity ?? 0;
-    const windKmh   = Math.round((d.wind?.speed ?? 0) * 3.6);
+    const temp = Math.round(d.main?.temp ?? 0);
+    const humidity = d.main?.humidity ?? 0;
+    const windKmh = Math.round((d.wind?.speed ?? 0) * 3.6);
     const weatherId = d.weather?.[0]?.id ?? 800;
     let conditionCode = 'sunny';
     if (weatherId >= 200 && weatherId < 300) conditionCode = 'storm';
@@ -1298,11 +1299,11 @@ const fetchWeatherBrief = async (city: string): Promise<OWMWeatherBrief | null> 
 // Build weather alerts for aquaculture from a weather brief
 const buildWeatherAlerts = (w: OWMWeatherBrief): { title: string; body: string; aqAction: string; type: 'critical' | 'warning' | 'info'; color: string }[] => {
   const out: { title: string; body: string; aqAction: string; type: 'critical' | 'warning' | 'info'; color: string }[] = [];
-  if (w.temp >= 36)        out.push({ title: `🌡️ Extreme Heat — ${w.temp}°C`, body: `High temp at ${w.location} causing DO drop risk. Shrimp metabolism slows above 33°C.`, aqAction: 'Skip noon feed (12–2 PM). Apply Vitamin C. Add aeration at 3 PM.', type: 'critical', color: '#EF4444' });
-  else if (w.temp >= 33)   out.push({ title: `🌡️ High Temp — ${w.temp}°C`, body: `Temperature above optimal range (26–30°C) at ${w.location}. Increase aeration.`, aqAction: 'Reduce noon feed by 15%. Check DO at 3 PM.', type: 'warning', color: '#F59E0B' });
-  if (w.rainPct > 70)      out.push({ title: `🌧️ Heavy Rain Warning`, body: `Heavy rainfall likely at ${w.location}. Salinity drop risk. Check drainage.`, aqAction: 'Reduce feed 20%. Run all aerators. Check salinity after rain.', type: 'critical', color: '#3B82F6' });
+  if (w.temp >= 36) out.push({ title: `🌡️ Extreme Heat — ${w.temp}°C`, body: `High temp at ${w.location} causing DO drop risk. Shrimp metabolism slows above 33°C.`, aqAction: 'Skip noon feed (12–2 PM). Apply Vitamin C. Add aeration at 3 PM.', type: 'critical', color: '#EF4444' });
+  else if (w.temp >= 33) out.push({ title: `🌡️ High Temp — ${w.temp}°C`, body: `Temperature above optimal range (26–30°C) at ${w.location}. Increase aeration.`, aqAction: 'Reduce noon feed by 15%. Check DO at 3 PM.', type: 'warning', color: '#F59E0B' });
+  if (w.rainPct > 70) out.push({ title: `🌧️ Heavy Rain Warning`, body: `Heavy rainfall likely at ${w.location}. Salinity drop risk. Check drainage.`, aqAction: 'Reduce feed 20%. Run all aerators. Check salinity after rain.', type: 'critical', color: '#3B82F6' });
   else if (w.rainPct > 40) out.push({ title: `🌦️ Rain Expected`, body: `Moderate rain at ${w.location}. Monitor pond salinity and DO.`, aqAction: 'Reduce feed 10%. Check DO and pH after rainfall.', type: 'warning', color: '#60A5FA' });
-  if (w.windKmh > 40)      out.push({ title: `💨 High Wind — ${w.windKmh} km/h`, body: `Strong winds at ${w.location} can disturb pond surface and stress shrimp.`, aqAction: 'Reduce feeding in windy slots. Increase aerator coverage.', type: 'warning', color: '#8B5CF6' });
+  if (w.windKmh > 40) out.push({ title: `💨 High Wind — ${w.windKmh} km/h`, body: `Strong winds at ${w.location} can disturb pond surface and stress shrimp.`, aqAction: 'Reduce feeding in windy slots. Increase aerator coverage.', type: 'warning', color: '#8B5CF6' });
   if (w.hour >= 3 && w.hour <= 6) out.push({ title: `⚠️ Pre-Dawn DO Risk Window`, body: `3–6 AM critical zone at ${w.location}. Photosynthesis stopped.`, aqAction: 'Ensure all aerators running. Check DO immediately.', type: 'warning', color: '#F97316' });
   if (w.conditionCode === 'storm') out.push({ title: `⛈️ Storm / Lightning Alert`, body: `Thunderstorm conditions at ${w.location}. Avoid pond-side work. Danger to equipment.`, aqAction: 'Secure aerator cables. Keep farmer away from pond edges during lightning.', type: 'critical', color: '#6366F1' });
   return out;
@@ -1321,32 +1322,32 @@ app.post('/api/push/weather-alert', authenticate, async (req: AuthenticatedReque
     const user = await UserMongo.findById(userId);
     if (!user?.fcmToken) return res.json({ sent: false, reason: 'No FCM token' });
 
-    const emoji   = alertType === 'critical' ? '🚨' : alertType === 'warning' ? '⚠️' : 'ℹ️';
-    const color   = alertType === 'critical' ? '#EF4444' : alertType === 'warning' ? '#F59E0B' : '#10B981';
+    const emoji = alertType === 'critical' ? '🚨' : alertType === 'warning' ? '⚠️' : 'ℹ️';
+    const color = alertType === 'critical' ? '#EF4444' : alertType === 'warning' ? '#F59E0B' : '#10B981';
     const condImg = conditionCode === 'storm'
       ? 'https://aquagrow.onrender.com/assets/push/storm.png'
       : conditionCode === 'rain'
-      ? 'https://aquagrow.onrender.com/assets/push/rain.png'
-      : conditionCode === 'hot'
-      ? 'https://aquagrow.onrender.com/assets/push/hot.png'
-      : 'https://aquagrow.onrender.com/assets/push/sunny.png';
+        ? 'https://aquagrow.onrender.com/assets/push/rain.png'
+        : conditionCode === 'hot'
+          ? 'https://aquagrow.onrender.com/assets/push/hot.png'
+          : 'https://aquagrow.onrender.com/assets/push/sunny.png';
 
     const message: admin.messaging.Message = {
       token: user.fcmToken,
       notification: {
         title: `${emoji} ${alertTitle}`,
-        body:  alertBody,
+        body: alertBody,
         imageUrl: condImg,
       },
       data: {
         type: 'weather_alert',
-        alertType:    String(alertType || 'info'),
+        alertType: String(alertType || 'info'),
         conditionCode: String(conditionCode || ''),
-        location:     String(location || ''),
-        temp:         String(temp ?? ''),
-        rainPct:      String(rainPct ?? ''),
-        aqAction:     String(aqAction || ''),
-        deepLink:     '/weather',
+        location: String(location || ''),
+        temp: String(temp ?? ''),
+        rainPct: String(rainPct ?? ''),
+        aqAction: String(aqAction || ''),
+        deepLink: '/weather',
       },
       android: {
         // NOTE: 'normal' priority is NEVER delivered to killed apps on Android.
@@ -1354,18 +1355,18 @@ app.post('/api/push/weather-alert', authenticate, async (req: AuthenticatedReque
         priority: 'high',
         ttl: 3600000,
         notification: {
-          channelId:   'aquagrow-premium',
+          channelId: 'aquagrow-premium',
           color,
-          icon:        'ic_stat_aquagrow',
-          tag:         `weather-${userId}`,
-          ticker:      `AquaGrow Weather: ${alertTitle}`,
+          icon: 'ic_stat_aquagrow',
+          tag: `weather-${userId}`,
+          ticker: `AquaGrow Weather: ${alertTitle}`,
           notificationCount: 1,
           clickAction: 'OPEN_WEATHER_ALERTS',
-          sound:       'alert_sound',
-          visibility:  'public' as any,
+          sound: 'alert_sound',
+          visibility: 'public' as any,
           // BigText expanded view — shows full aqAction guidance
-          body:        `${alertBody}\n\n🌾 Action: ${aqAction}`,
-          imageUrl:    condImg,
+          body: `${alertBody}\n\n🌾 Action: ${aqAction}`,
+          imageUrl: condImg,
           defaultVibrateTimings: true,
           defaultLightSettings: true,
           // Inline action buttons
@@ -1403,7 +1404,7 @@ app.post('/api/push/aerator-check', authenticate, async (req: AuthenticatedReque
       token: user.fcmToken,
       notification: {
         title: `💨 Aerator Check Required — DOC ${doc}`,
-        body:  `${pondName} | ${docStage} Stage`,
+        body: `${pondName} | ${docStage} Stage`,
         imageUrl: 'https://aquagrow.onrender.com/assets/push/aerator_banner.png',
       },
       data: {
@@ -1419,8 +1420,8 @@ app.post('/api/push/aerator-check', authenticate, async (req: AuthenticatedReque
         notification: {
           channelId: 'aquagrow-aerator',
           color: '#3B82F6',
-          icon:  'ic_stat_aquagrow',
-          tag:   `aerator-${pondId}`,
+          icon: 'ic_stat_aquagrow',
+          tag: `aerator-${pondId}`,
           ticker: `AquaGrow: Aerator check due for ${pondName}`,
           notificationCount: 1,
           clickAction: 'OPEN_AERATOR',
@@ -1485,19 +1486,19 @@ app.post('/api/ponds/:id/aerator-confirm', authenticate, async (req: Authenticat
     // ── Also record in AeratorLog for history/analytics ──────────────────────
     const recommended = Math.ceil(((pond as any).size || 0) * 4);
     await new AeratorLogMongo({
-      userId:      req.user.id,
-      pondId:      id,
-      pondName:    (pond as any).name || '',
-      doc:         Number(doc),
-      date:        now,
-      count:       Number(count) || 0,
-      hp:          Number(hp) || 1,
-      positions:   positions || [],
-      addedNew:    Boolean(addedNew),
-      notes:       notes || '',
-      sopMet:      (Number(count) || 0) >= recommended,
+      userId: req.user.id,
+      pondId: id,
+      pondName: (pond as any).name || '',
+      doc: Number(doc),
+      date: now,
+      count: Number(count) || 0,
+      hp: Number(hp) || 1,
+      positions: positions || [],
+      addedNew: Boolean(addedNew),
+      notes: notes || '',
+      sopMet: (Number(count) || 0) >= recommended,
       recommended,
-      source:      'alert_confirm',
+      source: 'alert_confirm',
     }).save();
 
     res.json(updated);
@@ -1588,15 +1589,15 @@ app.post('/api/push/iot-alert', authenticate, async (req: AuthenticatedRequest, 
       },
       data: {
         type: 'iot_alert',
-        alertType:  String(alertType || ''),
-        deviceId:   String(deviceId  || ''),
+        alertType: String(alertType || ''),
+        deviceId: String(deviceId || ''),
         deviceName: String(deviceName || ''),
         deviceType: String(deviceType || ''),
-        pondId:     String(pondId    || ''),
-        pondName:   String(pondName  || ''),
-        signal:     String(signal    ?? ''),
-        guidance:   String(guidance  || ''),
-        deepLink:   '/smart-farm?tab=iot',
+        pondId: String(pondId || ''),
+        pondName: String(pondName || ''),
+        signal: String(signal ?? ''),
+        guidance: String(guidance || ''),
+        deepLink: '/smart-farm?tab=iot',
       },
       android: {
         priority: 'high',
@@ -1604,17 +1605,17 @@ app.post('/api/push/iot-alert', authenticate, async (req: AuthenticatedRequest, 
         ttl: 3600000,
         notification: {
           channelId: meta.channelId,
-          color:     meta.color,
-          icon:      'ic_stat_aquagrow',
-          tag:       `iot-${deviceId}`,
-          ticker:    `AquaGrow: ${meta.title}`,
+          color: meta.color,
+          icon: 'ic_stat_aquagrow',
+          tag: `iot-${deviceId}`,
+          ticker: `AquaGrow: ${meta.title}`,
           notificationCount: 1,
           clickAction: 'OPEN_SMART_FARM',
-          sound:     'alert_sound',
+          sound: 'alert_sound',
           visibility: 'public' as any,
-          body:      `📡 Device: ${deviceName || 'Device'}\n🐟 Pond: ${pondName || 'Pond'}${guidance ? `\n\n🛠️ Fix: ${guidance}` : ''}`,
+          body: `📡 Device: ${deviceName || 'Device'}\n🐟 Pond: ${pondName || 'Pond'}${guidance ? `\n\n🛠️ Fix: ${guidance}` : ''}`,
           defaultVibrateTimings: true,
-          defaultLightSettings:  true,
+          defaultLightSettings: true,
         },
       },
       apns: {
@@ -1644,35 +1645,35 @@ app.get('/api/iot/status/:userId', authenticate, async (req: AuthenticatedReques
     const devices = ponds.flatMap((pond: any) => {
       const doc = Math.floor((Date.now() - new Date(pond.stockingDate || Date.now()).getTime()) / 86400000);
       const aerCount = pond.aerators?.count ?? (doc > 60 ? 5 : doc > 40 ? 3 : doc > 20 ? 2 : 1);
-      const hp       = pond.aerators?.hp ?? 1;
+      const hp = pond.aerators?.hp ?? 1;
       const positions = pond.aerators?.positions ?? [];
 
       // Sensor device
       const sensor = {
-        id:        `sensor-${pond._id}`,
-        pondId:    String(pond._id),
-        pondName:  pond.name,
-        type:      'sensor',
-        name:      pond.sensorId ? `Sensor #${pond.sensorId}` : 'Water Sensor',
-        sensorId:  pond.sensorId || null,
-        signal:    pond.sensorId ? 88 : 0,
-        status:    pond.sensorId ? 'online' : 'offline',
-        isOn:      !!pond.sensorId,
-        power:     5,
-        lastSeen:  pond.sensorId ? new Date().toISOString() : null,
+        id: `sensor-${pond._id}`,
+        pondId: String(pond._id),
+        pondName: pond.name,
+        type: 'sensor',
+        name: pond.sensorId ? `Sensor #${pond.sensorId}` : 'Water Sensor',
+        sensorId: pond.sensorId || null,
+        signal: pond.sensorId ? 88 : 0,
+        status: pond.sensorId ? 'online' : 'offline',
+        isOn: !!pond.sensorId,
+        power: 5,
+        lastSeen: pond.sensorId ? new Date().toISOString() : null,
       };
 
       // Aerator devices
       const aerators = Array.from({ length: aerCount }).map((_, ai) => ({
-        id:       `aer-${pond._id}-${ai}`,
-        pondId:   String(pond._id),
+        id: `aer-${pond._id}-${ai}`,
+        pondId: String(pond._id),
         pondName: pond.name,
-        type:     'aerator',
-        name:     positions[ai] ? `Aerator – ${positions[ai]}` : `Aerator ${ai + 1}`,
-        signal:   pond.sensorId ? 80 + Math.floor(Math.random() * 15) : 60,
-        status:   'online',
-        isOn:     true,
-        power:    hp <= 1 ? 750 : hp <= 2 ? 1100 : hp <= 3 ? 2200 : 3700,
+        type: 'aerator',
+        name: positions[ai] ? `Aerator – ${positions[ai]}` : `Aerator ${ai + 1}`,
+        signal: pond.sensorId ? 80 + Math.floor(Math.random() * 15) : 60,
+        status: 'online',
+        isOn: true,
+        power: hp <= 1 ? 750 : hp <= 2 ? 1100 : hp <= 3 ? 2200 : 3700,
         lastSeen: new Date().toISOString(),
       }));
 
@@ -1689,15 +1690,15 @@ app.get('/api/iot/status/:userId', authenticate, async (req: AuthenticatedReques
 // POST /api/push/harvest-update
 // Fires an FCM push to the farmer on every harvest status change
 const HARVEST_STAGE_META: Record<string, { emoji: string; title: string; body: (pn: string) => string }> = {
-  pending:        { emoji: '📋', title: 'Harvest Request Submitted',        body: (p) => `${p}: Your request is live. Waiting for a buyer to accept.` },
-  accepted:       { emoji: '🤝', title: 'Buyer Accepted Your Order!',       body: (p) => `${p}: A buyer accepted your harvest. Prepare for quality inspection.` },
-  quality_checked:{ emoji: '🔬', title: 'Quality Check Completed ✓',       body: (p) => `${p}: Quality passed! Buyer is proceeding to weigh your harvest.` },
-  weighed:        { emoji: '⚖️', title: 'Weighing Done — Rate Check Next',  body: (p) => `${p}: Harvest weighed. Buyer is confirming the final rate per kg.` },
-  rate_confirmed: { emoji: '💰', title: 'Rate Confirmed — Harvest Starting!',body: (p) => `${p}: Final rate confirmed. Physical harvest is now beginning!` },
-  harvested:      { emoji: '🎣', title: 'Harvest Complete! Payment Soon',   body: (p) => `${p}: Harvest is done! Payment is being processed now.` },
-  paid:           { emoji: '💸', title: '💸 Payment Released!',             body: (p) => `${p}: Your payment has been released. Check your wallet!` },
-  completed:      { emoji: '🏆', title: 'Harvest Cycle Completed',          body: (p) => `${p}: Cycle archived. Excellent work this season!` },
-  cancelled:      { emoji: '❌', title: 'Harvest Order Cancelled',          body: (p) => `${p}: Your harvest order was cancelled. You may submit a new request.` },
+  pending: { emoji: '📋', title: 'Harvest Request Submitted', body: (p) => `${p}: Your request is live. Waiting for a buyer to accept.` },
+  accepted: { emoji: '🤝', title: 'Buyer Accepted Your Order!', body: (p) => `${p}: A buyer accepted your harvest. Prepare for quality inspection.` },
+  quality_checked: { emoji: '🔬', title: 'Quality Check Completed ✓', body: (p) => `${p}: Quality passed! Buyer is proceeding to weigh your harvest.` },
+  weighed: { emoji: '⚖️', title: 'Weighing Done — Rate Check Next', body: (p) => `${p}: Harvest weighed. Buyer is confirming the final rate per kg.` },
+  rate_confirmed: { emoji: '💰', title: 'Rate Confirmed — Harvest Starting!', body: (p) => `${p}: Final rate confirmed. Physical harvest is now beginning!` },
+  harvested: { emoji: '🎣', title: 'Harvest Complete! Payment Soon', body: (p) => `${p}: Harvest is done! Payment is being processed now.` },
+  paid: { emoji: '💸', title: '💸 Payment Released!', body: (p) => `${p}: Your payment has been released. Check your wallet!` },
+  completed: { emoji: '🏆', title: 'Harvest Cycle Completed', body: (p) => `${p}: Cycle archived. Excellent work this season!` },
+  cancelled: { emoji: '❌', title: 'Harvest Order Cancelled', body: (p) => `${p}: Your harvest order was cancelled. You may submit a new request.` },
 };
 
 app.post('/api/push/harvest-update', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -1717,57 +1718,57 @@ app.post('/api/push/harvest-update', authenticate, async (req: AuthenticatedRequ
 
     // Rich harvest stage image per status
     const stageImages: Record<string, string> = {
-      pending:         'https://aquagrow.onrender.com/assets/push/harvest_pending.png',
-      accepted:        'https://aquagrow.onrender.com/assets/push/harvest_accepted.png',
+      pending: 'https://aquagrow.onrender.com/assets/push/harvest_pending.png',
+      accepted: 'https://aquagrow.onrender.com/assets/push/harvest_accepted.png',
       quality_checked: 'https://aquagrow.onrender.com/assets/push/harvest_quality.png',
-      weighed:         'https://aquagrow.onrender.com/assets/push/harvest_weighed.png',
-      rate_confirmed:  'https://aquagrow.onrender.com/assets/push/harvest_rate.png',
-      harvested:       'https://aquagrow.onrender.com/assets/push/harvest_done.png',
-      paid:            'https://aquagrow.onrender.com/assets/push/harvest_paid.png',
-      completed:       'https://aquagrow.onrender.com/assets/push/harvest_complete.png',
-      cancelled:       'https://aquagrow.onrender.com/assets/push/harvest_cancelled.png',
+      weighed: 'https://aquagrow.onrender.com/assets/push/harvest_weighed.png',
+      rate_confirmed: 'https://aquagrow.onrender.com/assets/push/harvest_rate.png',
+      harvested: 'https://aquagrow.onrender.com/assets/push/harvest_done.png',
+      paid: 'https://aquagrow.onrender.com/assets/push/harvest_paid.png',
+      completed: 'https://aquagrow.onrender.com/assets/push/harvest_complete.png',
+      cancelled: 'https://aquagrow.onrender.com/assets/push/harvest_cancelled.png',
     };
     const harvestStageColors: Record<string, string> = {
       pending: '#6366F1', accepted: '#10B981', quality_checked: '#0EA5E9',
       weighed: '#F59E0B', rate_confirmed: '#8B5CF6', harvested: '#EC4899',
       paid: '#22C55E', completed: '#64748B', cancelled: '#EF4444',
     };
-    const stageImg   = stageImages[status] ?? 'https://aquagrow.onrender.com/assets/push/harvest_done.png';
+    const stageImg = stageImages[status] ?? 'https://aquagrow.onrender.com/assets/push/harvest_done.png';
     const stageColor = harvestStageColors[status] ?? '#10B981';
-    const msgBody    = meta.body(pondName || 'Your Pond');
+    const msgBody = meta.body(pondName || 'Your Pond');
 
     const msgPayload: admin.messaging.Message = {
       token: user.fcmToken,
       notification: {
-        title:    `${meta.emoji} ${meta.title}`,
-        body:     msgBody,
+        title: `${meta.emoji} ${meta.title}`,
+        body: msgBody,
         imageUrl: stageImg,
       },
       data: {
         type: 'harvest_update',
-        pondId:    String(pondId || ''),
-        pondName:  String(pondName || ''),
+        pondId: String(pondId || ''),
+        pondName: String(pondName || ''),
         requestId: String(requestId || ''),
-        status:    String(status),
-        deepLink:  `/ponds/${pondId}/tracking`,
+        status: String(status),
+        deepLink: `/ponds/${pondId}/tracking`,
       },
       android: {
         priority: 'high',
         ttl: 86400000,  // 24h — harvest is time-sensitive
         notification: {
           channelId: 'aquagrow-harvest',
-          color:     stageColor,
-          icon:      'ic_stat_aquagrow',
-          tag:       `harvest-${requestId}`,
-          ticker:    `AquaGrow Harvest: ${meta.title}`,
+          color: stageColor,
+          icon: 'ic_stat_aquagrow',
+          tag: `harvest-${requestId}`,
+          ticker: `AquaGrow Harvest: ${meta.title}`,
           notificationCount: 1,
           clickAction: 'OPEN_HARVEST_TRACKING',
-          sound:     status === 'paid' || status === 'harvested' ? 'success_chime' : 'alert_sound',
+          sound: status === 'paid' || status === 'harvested' ? 'success_chime' : 'alert_sound',
           visibility: 'public' as any,
-          body:      `${msgBody}\n\n🐟 Pond: ${pondName || 'Your Pond'}\nTap to track your harvest live →`,
-          imageUrl:  stageImg,
+          body: `${msgBody}\n\n🐟 Pond: ${pondName || 'Your Pond'}\nTap to track your harvest live →`,
+          imageUrl: stageImg,
           defaultVibrateTimings: true,
-          defaultLightSettings:  true,
+          defaultLightSettings: true,
         },
       },
       apns: {
@@ -1895,98 +1896,98 @@ const runPushEngine = async () => {
         // ─── CONDITION 1: Rich DOC Milestones ──────────────────────────────────
         const DOC_MILESTONES: Record<number, { title: string; body: string; bigBody: string; img: string; color: string }> = {
           15: {
-            title:   '🦐 Day 15 Growth Check — Action Required!',
-            body:    `${p.name}: Vitamin C spike time! Check trays & apply immunity booster.`,
+            title: '🦐 Day 15 Growth Check — Action Required!',
+            body: `${p.name}: Vitamin C spike time! Check trays & apply immunity booster.`,
             bigBody: `📍 Pond: ${p.name}\n\n✅ Action: Apply Vitamin C (1g/kg feed)\n🌡️ Check feed tray consumption\n💉 Start Immunity Pulse booster today\n\n💪 Your shrimp are in the crucial early window!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc15.png',
-            color:   '#22C55E',
+            img: 'https://aquagrow.onrender.com/assets/push/doc15.png',
+            color: '#22C55E',
           },
           25: {
-            title:   '⚠️ DOC 25 — Prepare for Critical Stage!',
-            body:    `${p.name}: Apply Immunity Pulse now before DOC 30 risk window opens.`,
+            title: '⚠️ DOC 25 — Prepare for Critical Stage!',
+            body: `${p.name}: Apply Immunity Pulse now before DOC 30 risk window opens.`,
             bigBody: `📍 Pond: ${p.name}\n\n⚡ DOC 30 is 5 days away — act now:\n✅ Apply Immunity Pulse in feed\n🔬 Check for tail redness or white spots\n💊 Start probiotic dosing cycle\n\n🎯 Preparation now = higher survival!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc25.png',
-            color:   '#F59E0B',
+            img: 'https://aquagrow.onrender.com/assets/push/doc25.png',
+            color: '#F59E0B',
           },
           30: {
-            title:   '📈 DOC 30 — Risk Window Starts Now!',
-            body:    `${p.name}: High-risk period. Watch for tail redness. Probiotics essential.`,
+            title: '📈 DOC 30 — Risk Window Starts Now!',
+            body: `${p.name}: High-risk period. Watch for tail redness. Probiotics essential.`,
             bigBody: `📍 Pond: ${p.name}\n\n🚨 Critical transition stage (DOC 30–45):\n🔴 Watch for tail redness / abnormal behavior\n💧 Increase water probiotic frequency\n💨 Run aerators 100% during 3–6 AM\n⚖️ Cross-check FCR and feed consumption\n\n⚠️ Do NOT miss tray checks this week!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc30.png',
-            color:   '#EF4444',
+            img: 'https://aquagrow.onrender.com/assets/push/doc30.png',
+            color: '#EF4444',
           },
           40: {
-            title:   '🔴 DOC 40 — Critical Stage Alert!',
-            body:    `${p.name}: DOC 40 Vit-Min Booster due. Max aeration 9PM–5AM.`,
+            title: '🔴 DOC 40 — Critical Stage Alert!',
+            body: `${p.name}: DOC 40 Vit-Min Booster due. Max aeration 9PM–5AM.`,
             bigBody: `📍 Pond: ${p.name}\n\n💊 Apply Vit-Min Booster in feed (2g/kg)\n💨 Run ALL aerators from 9 PM to 5 AM\n🔍 Check trays every hour during peak\n🧪 Log water quality — pH, DO, Ammonia\n\n🏅 DOC 40 is the make-or-break week. Stay sharp!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc40.png',
-            color:   '#EF4444',
+            img: 'https://aquagrow.onrender.com/assets/push/doc40.png',
+            color: '#EF4444',
           },
           45: {
-            title:   '🚨 DOC 45 — Peak WSSV Risk Window!',
-            body:    `${p.name}: Maximum virus risk. Max aeration. Reduce feed on cloudy days.`,
+            title: '🚨 DOC 45 — Peak WSSV Risk Window!',
+            body: `${p.name}: Maximum virus risk. Max aeration. Reduce feed on cloudy days.`,
             bigBody: `📍 Pond: ${p.name}\n\n🦠 WSSV Risk at MAXIMUM — Act Now:\n💨 Max aeration 24/7 for next 5 days\n⏬ Reduce feed by 10% on cloudy/rainy days\n🔬 Check for white spots on carapace\n📞 Any mortality spike? Call expert immediately!\n\n🛡️ Your vigilance is the vaccine. Don't relax!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc45.png',
-            color:   '#EF4444',
+            img: 'https://aquagrow.onrender.com/assets/push/doc45.png',
+            color: '#EF4444',
           },
           50: {
-            title:   '💊 DOC 50 — Liver Tonic Time',
-            body:    `${p.name}: Hepatopancreas protection due. Apply Liver Tonic in feed today.`,
+            title: '💊 DOC 50 — Liver Tonic Time',
+            body: `${p.name}: Hepatopancreas protection due. Apply Liver Tonic in feed today.`,
             bigBody: `📍 Pond: ${p.name}\n\n💊 Today's Protocol:\n🟡 Apply Liver Tonic (2ml/kg feed)\n⚖️ Check ABW — shrimp should be 5–7g\n💧 Partial water exchange if DO drops\n📋 Record medicine log in AquaGrow\n\n🌱 DOC 50: Hepatopancreas strength = harvest yield!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc50.png',
-            color:   '#8B5CF6',
+            img: 'https://aquagrow.onrender.com/assets/push/doc50.png',
+            color: '#8B5CF6',
           },
           60: {
-            title:   '🔵 DOC 60 — Growth Spurt Phase',
-            body:    `${p.name}: 1g growth spike expected! Double Water Probiotic application.`,
+            title: '🔵 DOC 60 — Growth Spurt Phase',
+            body: `${p.name}: 1g growth spike expected! Double Water Probiotic application.`,
             bigBody: `📍 Pond: ${p.name}\n\n🚀 Growth Acceleration Week:\n💧 Apply Water Probiotic Max every 2 days\n🍤 Increase feed ration by 10% if trays are clean\n📏 ABW target: 8–10g by DOC 65\n💨 Night aeration critical — DO must stay above 5\n\n🏆 You're 30 days from a record harvest!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc60.png',
-            color:   '#3B82F6',
+            img: 'https://aquagrow.onrender.com/assets/push/doc60.png',
+            color: '#3B82F6',
           },
           70: {
-            title:   '🟣 DOC 70 — Final Immunity Boost',
-            body:    `${p.name}: Last immunity protocol before harvest prep. Follow SOP.`,
+            title: '🟣 DOC 70 — Final Immunity Boost',
+            body: `${p.name}: Last immunity protocol before harvest prep. Follow SOP.`,
             bigBody: `📍 Pond: ${p.name}\n\n🎯 Final Immunity Protocol:\n💉 Apply final Vit-C + Mineral mix (3g/kg feed)\n⚖️ ABW check — should be 12–15g for Vannamei\n📋 Plan withdrawal schedule (no heavy meds after DOC 80)\n🏪 Check market rates in AquaGrow → Market\n\n🌟 Finish strong. You're almost there!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc70.png',
-            color:   '#8B5CF6',
+            img: 'https://aquagrow.onrender.com/assets/push/doc70.png',
+            color: '#8B5CF6',
           },
           83: {
-            title:   '⏰ DOC 83 — Harvest Prep Has Begun!',
-            body:    `${p.name}: STOP heavy medicines. Withdrawal period active.`,
+            title: '⏰ DOC 83 — Harvest Prep Has Begun!',
+            body: `${p.name}: STOP heavy medicines. Withdrawal period active.`,
             bigBody: `📍 Pond: ${p.name}\n\n🚫 STOP all heavy medicines now!\n✅ Only Vitamin C + probiotics allowed\n💧 Fresh water exchange: 20–30% today\n⚖️ ABW target: 15–18g before harvest\n📲 Open AquaGrow → Harvest to submit your order\n\n🎣 1 week to go. Prepare your team and buyer!`,
-            img:     'https://aquagrow.onrender.com/assets/push/doc83.png',
-            color:   '#EC4899',
+            img: 'https://aquagrow.onrender.com/assets/push/doc83.png',
+            color: '#EC4899',
           },
           90: {
-            title:   '🎉 DOC 90 — HARVEST READY! Submit Now!',
-            body:    `${p.name}: Zero medicines. Shell quality check done. Submit harvest order!`,
+            title: '🎉 DOC 90 — HARVEST READY! Submit Now!',
+            body: `${p.name}: Zero medicines. Shell quality check done. Submit harvest order!`,
             bigBody: `📍 Pond: ${p.name}\n\n🏆 YOUR SHRIMP ARE HARVEST-READY!\n\n✅ Zero heavy medicines for 7+ days\n🔬 Shell quality: firm & dark\n⚖️ Estimated yield: check ABW × survival%\n📲 AquaGrow → Harvest → New Request\n💰 Check live market rates before pricing\n\n🎊 Congratulations! Another successful cycle!`,
-            img:     'https://aquagrow.onrender.com/assets/push/harvest_done.png',
-            color:   '#22C55E',
+            img: 'https://aquagrow.onrender.com/assets/push/harvest_done.png',
+            color: '#22C55E',
           },
         };
 
         if (DOC_MILESTONES[doc]) {
           alertTitle = DOC_MILESTONES[doc].title;
-          alertBody  = DOC_MILESTONES[doc].body;
+          alertBody = DOC_MILESTONES[doc].body;
         }
 
         // ─── CONDITION 2: Amavasya / Purnima Lunar Alert ───────────────────────
         else if (isAmavasya && u.notifications.water) {
           alertTitle = `🌑 Amavasya High Molt Risk Tonight!`;
-          alertBody  = `${p.name}: Mass molting + DO drop risk. Run 100% aerators. Reduce feed by 25%. Stay alert!`;
+          alertBody = `${p.name}: Mass molting + DO drop risk. Run 100% aerators. Reduce feed by 25%. Stay alert!`;
         }
 
         // ─── CONDITION 3: 6 AM Morning Feed Reminder ───────────────────────────
         else if (currentHour === 6 && u.notifications.feed) {
           alertTitle = `🦐 Time to Feed Your Shrimp – Don't Miss It!`;
-          alertBody  = `Good morning! First feed time for ${p.name} (DOC ${doc}). Apply 4-5 balanced meals today. Check trays.`;
+          alertBody = `Good morning! First feed time for ${p.name} (DOC ${doc}). Apply 4-5 balanced meals today. Check trays.`;
         }
 
         // ─── CONDITION 4: 9 PM DO / Aeration Alert ─────────────────────────────
         else if (currentHour === 21 && u.notifications.water && !isAmavasya) {
           alertTitle = `💨 9 PM Aeration Check — ${p.name}`;
-          alertBody  = `Night aeration window (9PM–5AM). Maintain DO above 4.5 mg/L. DOC ${doc} — check all aerators now.`;
+          alertBody = `Night aeration window (9PM–5AM). Maintain DO above 4.5 mg/L. DOC ${doc} — check all aerators now.`;
         }
 
         // --- DELIVERY LOGIC ---
@@ -1994,36 +1995,36 @@ const runPushEngine = async () => {
           console.log(`[FCM-TRIGGER] Condition Met for ${u.name}: ${alertTitle}`);
 
           // Determine channel + color + deepLink per alert type
-          const isLunar     = alertTitle.includes('Amavasya') || alertTitle.includes('Purnima');
-          const isFeed      = alertTitle.includes('Feeding') || alertTitle.includes('Feed');
-          const pondIdStr   = String((p as any)._id || (p as any).id || '');
-          const channelId   = isLunar ? 'aquagrow-premium' : isFeed ? 'aquagrow-aerator' : 'aquagrow-premium';
-          const color       = isLunar ? '#6366F1' : isFeed ? '#F59E0B' : '#10B981';
+          const isLunar = alertTitle.includes('Amavasya') || alertTitle.includes('Purnima');
+          const isFeed = alertTitle.includes('Feeding') || alertTitle.includes('Feed');
+          const pondIdStr = String((p as any)._id || (p as any).id || '');
+          const channelId = isLunar ? 'aquagrow-premium' : isFeed ? 'aquagrow-aerator' : 'aquagrow-premium';
+          const color = isLunar ? '#6366F1' : isFeed ? '#F59E0B' : '#10B981';
           const deepLinkUrl = `/ponds/${pondIdStr}`;
-          const alertType   = isLunar ? 'lunar' : isFeed ? 'feed_reminder' : 'milestone';
+          const alertType = isLunar ? 'lunar' : isFeed ? 'feed_reminder' : 'milestone';
 
           // Pull rich content from the milestone map if available
           const milestoneData = DOC_MILESTONES[doc] || null;
-          const richBody    = milestoneData?.bigBody  || alertBody;
-          const richImg     = milestoneData?.img       || (isLunar
+          const richBody = milestoneData?.bigBody || alertBody;
+          const richImg = milestoneData?.img || (isLunar
             ? 'https://aquagrow.onrender.com/assets/push/lunar_alert.png'
             : isFeed
-            ? 'https://aquagrow.onrender.com/assets/push/feed_reminder.png'
-            : 'https://aquagrow.onrender.com/assets/push/milestone.png');
-          const richColor   = milestoneData?.color || color;
+              ? 'https://aquagrow.onrender.com/assets/push/feed_reminder.png'
+              : 'https://aquagrow.onrender.com/assets/push/milestone.png');
+          const richColor = milestoneData?.color || color;
 
           const fullMessage: admin.messaging.Message = {
             token: u.fcmToken!,
             notification: {
-              title:    alertTitle,
-              body:     alertBody,
+              title: alertTitle,
+              body: alertBody,
               imageUrl: richImg,
             },
             data: {
-              type:     alertType,
-              pondId:   pondIdStr,
+              type: alertType,
+              pondId: pondIdStr,
               pondName: p.name || '',
-              doc:      String(doc),
+              doc: String(doc),
               deepLink: deepLinkUrl,
             },
             android: {
@@ -2031,19 +2032,19 @@ const runPushEngine = async () => {
               ttl: 3600000,
               notification: {
                 channelId,
-                icon:    'ic_stat_aquagrow',
-                color:   richColor,
-                tag:     `engine-${u._id}-${now.toDateString().replace(/ /g, '_')}`,
-                ticker:  `AquaGrow: ${alertTitle}`,
+                icon: 'ic_stat_aquagrow',
+                color: richColor,
+                tag: `engine-${u._id}-${now.toDateString().replace(/ /g, '_')}`,
+                ticker: `AquaGrow: ${alertTitle}`,
                 notificationCount: 1,
-                sound:   'alert_sound',
+                sound: 'alert_sound',
                 visibility: 'public' as any,
                 clickAction: 'FCM_PLUGIN_ACTIVITY',
                 // BigText: expanded notification shows full farming guide
-                body:    richBody,
+                body: richBody,
                 imageUrl: richImg,
                 defaultVibrateTimings: true,
-                defaultLightSettings:  true,
+                defaultLightSettings: true,
               },
             },
             apns: {
@@ -2091,27 +2092,27 @@ const runPushEngine = async () => {
       const wxCondImg = weatherBrief.conditionCode === 'storm'
         ? 'https://aquagrow.onrender.com/assets/push/storm.png'
         : weatherBrief.conditionCode === 'rain'
-        ? 'https://aquagrow.onrender.com/assets/push/rain.png'
-        : weatherBrief.conditionCode === 'hot'
-        ? 'https://aquagrow.onrender.com/assets/push/hot.png'
-        : 'https://aquagrow.onrender.com/assets/push/sunny.png';
+          ? 'https://aquagrow.onrender.com/assets/push/rain.png'
+          : weatherBrief.conditionCode === 'hot'
+            ? 'https://aquagrow.onrender.com/assets/push/hot.png'
+            : 'https://aquagrow.onrender.com/assets/push/sunny.png';
 
       const wxMsg: admin.messaging.Message = {
         token: u.fcmToken!,
         notification: {
-          title:    `${wxEmoji} ${topAlert.title}`,
-          body:     topAlert.body,
+          title: `${wxEmoji} ${topAlert.title}`,
+          body: topAlert.body,
           imageUrl: wxCondImg,
         },
         data: {
           type: 'weather_alert',
-          alertType:     topAlert.type,
+          alertType: topAlert.type,
           conditionCode: weatherBrief.conditionCode,
-          location:      weatherBrief.location,
-          temp:          String(weatherBrief.temp),
-          rainPct:       String(weatherBrief.rainPct),
-          aqAction:      topAlert.aqAction,
-          deepLink:      '/weather',
+          location: weatherBrief.location,
+          temp: String(weatherBrief.temp),
+          rainPct: String(weatherBrief.rainPct),
+          aqAction: topAlert.aqAction,
+          deepLink: '/weather',
         },
         android: {
           // ALWAYS high — 'normal' priority messages are NOT delivered to killed apps
@@ -2119,19 +2120,19 @@ const runPushEngine = async () => {
           ttl: 3600000,
           notification: {
             channelId: 'aquagrow-premium',
-            icon:      'ic_stat_aquagrow',
-            color:     topAlert.color,
-            tag:       `weather-${String(u._id)}-${now.toDateString()}`,
-            ticker:    `AquaGrow Weather: ${topAlert.title}`,
+            icon: 'ic_stat_aquagrow',
+            color: topAlert.color,
+            tag: `weather-${String(u._id)}-${now.toDateString()}`,
+            ticker: `AquaGrow Weather: ${topAlert.title}`,
             notificationCount: 1,
-            sound:     'alert_sound',
+            sound: 'alert_sound',
             visibility: 'public' as any,
             clickAction: 'OPEN_WEATHER_ALERTS',
             // BigText expanded — shows full aquaculture action
-            body:      `${topAlert.body}\n\n🌾 AQ Action: ${topAlert.aqAction}\n📍 ${weatherBrief.location} | 🌡️ ${weatherBrief.temp}°C | 🌧️ ${weatherBrief.rainPct}%`,
-            imageUrl:  wxCondImg,
+            body: `${topAlert.body}\n\n🌾 AQ Action: ${topAlert.aqAction}\n📍 ${weatherBrief.location} | 🌡️ ${weatherBrief.temp}°C | 🌧️ ${weatherBrief.rainPct}%`,
+            imageUrl: wxCondImg,
             defaultVibrateTimings: true,
-            defaultLightSettings:  true,
+            defaultLightSettings: true,
           },
         },
         apns: {
@@ -2169,7 +2170,7 @@ if (process.env.NODE_ENV !== 'test') {
 
       // connectProviderDB is now a no-op — all provider models use the shared aquagrow DB.
       // Calling it here just fires the info log and returns immediately.
-      connectProviderDB().catch(() => {});
+      connectProviderDB().catch(() => { });
 
 
       // ── Push engine: every 15 min is sufficient — 2 min caused duplicate engine-alerts
@@ -2198,26 +2199,26 @@ if (process.env.NODE_ENV !== 'test') {
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 const ShopOrderSchema = new mongoose.Schema({
-  farmerId:     { type: String, required: true },
-  farmerName:   { type: String, default: '' },
-  farmerPhone:  { type: String, default: '' },
-  providerId:   { type: String, default: null },   // assigned by backend
+  farmerId: { type: String, required: true },
+  farmerName: { type: String, default: '' },
+  farmerPhone: { type: String, default: '' },
+  providerId: { type: String, default: null },   // assigned by backend
   providerName: { type: String, default: '' },
   items: [{
-    productId:   String,
+    productId: String,
     productName: String,
-    unit:        String,
-    qty:         Number,
-    unitPrice:   Number,
-    subtotal:    Number,
+    unit: String,
+    qty: Number,
+    unitPrice: Number,
+    subtotal: Number,
   }],
-  subtotal:     { type: Number, default: 0 },
-  deliveryFee:  { type: Number, default: 0 },
-  totalAmount:  { type: Number, default: 0 },
+  subtotal: { type: Number, default: 0 },
+  deliveryFee: { type: Number, default: 0 },
+  totalAmount: { type: Number, default: 0 },
   deliveryNote: { type: String, default: '' },
-  location:     { lat: Number, lng: Number },      // farmer's GPS at order time
-  status:       { type: String, default: 'assigned', enum: ['assigned','confirmed','shipped','delivered','cancelled'] },
-  source:       { type: String, default: 'aqua_shop' },
+  location: { lat: Number, lng: Number },      // farmer's GPS at order time
+  status: { type: String, default: 'assigned', enum: ['assigned', 'confirmed', 'shipped', 'delivered', 'cancelled'] },
+  source: { type: String, default: 'aqua_shop' },
 }, { timestamps: true });
 
 const ShopOrder = (mongoose.models['ShopOrder'] ?? mongoose.model('ShopOrder', ShopOrderSchema)) as mongoose.Model<any>;
@@ -2238,8 +2239,8 @@ const assignNearestProvider = async (lat?: number, lng?: number): Promise<{ id: 
       const R = 6371;
       const dLat = (pLat - lat) * Math.PI / 180;
       const dLng = (pLng - lng) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(lat*Math.PI/180)*Math.cos(pLat*Math.PI/180)*Math.sin(dLng/2)**2;
-      return { p, dist: R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) };
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(pLat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return { p, dist: R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) };
     });
     withDist.sort((a, b) => a.dist - b.dist);
     const nearest = withDist[0].p;
@@ -2259,19 +2260,19 @@ app.post('/api/shop/orders', authenticate, async (req: AuthenticatedRequest, res
     const provider = await assignNearestProvider(location?.lat, location?.lng);
 
     const order = await new ShopOrder({
-      farmerId:    farmerId || req.user.id,
-      farmerName:  farmerName || '',
+      farmerId: farmerId || req.user.id,
+      farmerName: farmerName || '',
       farmerPhone: farmerPhone || '',
-      providerId:  provider?.id || null,
-      providerName:provider?.name || '',
+      providerId: provider?.id || null,
+      providerName: provider?.name || '',
       items,
-      subtotal:    subtotal || 0,
+      subtotal: subtotal || 0,
       deliveryFee: deliveryFee || 0,
       totalAmount: totalAmount || 0,
-      deliveryNote:deliveryNote || '',
-      location:    location || {},
-      source:      source || 'aqua_shop',
-      status:      'assigned',
+      deliveryNote: deliveryNote || '',
+      location: location || {},
+      source: source || 'aqua_shop',
+      status: 'assigned',
     }).save();
 
     console.log(`[ShopOrder] New order ${order._id} assigned to provider ${provider?.name || 'none'}`);
@@ -2338,7 +2339,7 @@ app.patch('/api/shop/orders/:id/status', authenticate, async (req: Authenticated
   try {
     if (mongoose.connection.readyState !== 1) return dbOffline(res);
     const { status } = req.body;
-    const allowed = ['assigned','confirmed','shipped','delivered','cancelled'];
+    const allowed = ['assigned', 'confirmed', 'shipped', 'delivered', 'cancelled'];
     if (!allowed.includes(status)) return res.status(400).json({ error: `Invalid status. Must be one of: ${allowed.join(', ')}` });
 
     const order = await ShopOrder.findByIdAndUpdate(req.params.id, { status }, { new: true });
