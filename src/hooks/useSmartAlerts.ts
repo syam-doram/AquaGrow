@@ -69,10 +69,12 @@ export const useSmartAlerts = (params: {
     } catch { return DEFAULT_PREFS; }
   });
 
-  const lastRunRef    = useRef<number>(0);
-  const suppressedIds = useRef<Set<string>>(loadSuppressed(uid));
+  const lastRunRef     = useRef<number>(0);
+  const suppressedIds  = useRef<Set<string>>(loadSuppressed(uid));
   const alertsRef      = useRef<SmartAlert[]>(alerts);
   const sessionFiredRef = useRef<Set<string>>(new Set());
+  // Stable ref so the interval never needs to be re-registered when data changes
+  const runEngineRef   = useRef<() => Promise<void>>(() => Promise.resolve());
 
   // Keep alertsRef in sync with state
   useEffect(() => { alertsRef.current = alerts; }, [alerts]);
@@ -271,14 +273,19 @@ export const useSmartAlerts = (params: {
     try { localStorage.removeItem(suppressedKey(uid)); } catch {}
   }, [language, uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep runEngineRef pointing at the latest runEngine so the interval
+  // always invokes the current version without needing to be re-registered.
+  useEffect(() => { runEngineRef.current = runEngine; }, [runEngine]);
+
   useEffect(() => {
     if (!enabled) return;
-    // Immediate run
-    const timeout = setTimeout(runEngine, 2000);
-    // Periodic check
-    const interval = setInterval(runEngine, CHECK_INTERVAL_MS);
+    // Immediate first run (slight delay so context data settles)
+    const timeout = setTimeout(() => runEngineRef.current(), 2000);
+    // Periodic check — interval registered ONCE, never torn down on data changes
+    const interval = setInterval(() => runEngineRef.current(), CHECK_INTERVAL_MS);
     return () => { clearTimeout(timeout); clearInterval(interval); };
-  }, [enabled, runEngine]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]); // ← intentionally omit runEngine — we use runEngineRef instead
 
   // ── Actions ──
   const markRead = useCallback((id: string) => {

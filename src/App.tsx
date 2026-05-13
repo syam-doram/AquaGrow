@@ -535,12 +535,7 @@ const AppContent = () => {
 
           {/* Main App Routes */}
           <div className="w-full min-h-[100dvh] relative z-10 overflow-x-hidden">
-            {user && (
-              <>
-                <PushSyncManager />
-                <GlobalAlertCenter t={t} />
-              </>
-            )}
+            {/* PushSyncManager & GlobalAlertCenter are already mounted above — do NOT add them here again */}
             <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
                 {/* Farmer Routes */}
