@@ -1,6 +1,7 @@
 package com.aquagrow.app;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 import com.google.firebase.appcheck.FirebaseAppCheck;
@@ -30,6 +31,14 @@ public class MainActivity extends BridgeActivity {
                 PlayIntegrityAppCheckProviderFactory.getInstance()
             );
         }
+
+        // ── Handle killed-state notification tap deep-link ──────────────────
+        // When the app is KILLED and the user taps an FCM notification, Android
+        // launches a fresh MainActivity with the Intent containing our "deepLink"
+        // extra (set in AquaGrowMessagingService.postNotification).
+        // We inject it into sessionStorage so useFirebaseAlerts.ts picks it up
+        // on its first render cycle, just like a foreground notification tap.
+        handleDeepLinkFromIntent(getIntent());
     }
 
     /**
@@ -56,5 +65,32 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() != null) {
             getBridge().onNewIntent(intent);
         }
+        // Also check for a deepLink extra on the new intent (background→foreground tap)
+        handleDeepLinkFromIntent(intent);
+    }
+
+    /**
+     * Reads the "deepLink" extra from an FCM-tapped Intent and stores it in
+     * sessionStorage so the JS side (useFirebaseAlerts) can route to it.
+     * Safe to call multiple times — no-ops when there is no extra.
+     */
+    private void handleDeepLinkFromIntent(Intent intent) {
+        if (intent == null) return;
+        String deepLink = intent.getStringExtra("deepLink");
+        if (deepLink == null || deepLink.isEmpty()) return;
+
+        // Escape single quotes to prevent JS injection issues
+        final String safeLink = deepLink.replace("'", "\\'");
+
+        // Post to WebView after bridge is ready (100 ms grace period is sufficient)
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().evaluateJavascript(
+                    "sessionStorage.setItem('aqua_notification_deeplink', '" + safeLink + "');",
+                    null
+                );
+                android.util.Log.i("AquaGrow", "[DeepLink] Injected from killed-state: " + safeLink);
+            }
+        }, 500);
     }
 }
