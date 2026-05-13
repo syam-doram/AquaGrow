@@ -1265,7 +1265,51 @@ const sendFCM = async (token: string, payload: admin.messaging.Message): Promise
   return false;
 };
 
-// ─── OWM Server-side Weather Fetch ────────────────────────────────────────────
+// ─── Test Push Endpoint (debug only) ─────────────────────────────────────────
+// POST /api/push/test  { userId: "..." }
+// Sends a real test FCM notification to verify the full pipeline is working.
+app.post('/api/push/test', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.body?.userId || req.user?.id;
+    if (mongoose.connection.readyState !== 1) return dbOffline(res);
+
+    const user = await UserMongo.findById(userId);
+    if (!user?.fcmToken) {
+      return res.status(400).json({ ok: false, reason: 'No FCM token registered for this user. Open the app first.' });
+    }
+    if (admin.apps.length === 0) {
+      return res.status(500).json({ ok: false, reason: 'Firebase Admin SDK not initialized. Check FIREBASE_SERVICE_ACCOUNT_KEY env var.' });
+    }
+
+    const msg: admin.messaging.Message = {
+      token: user.fcmToken,
+      notification: {
+        title: '✅ AquaGrow Test Notification',
+        body: `FCM pipeline confirmed working! Token ends in ...${user.fcmToken.slice(-8)}`,
+      },
+      data: { type: 'test', deepLink: '/dashboard' },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'aquagrow-premium',
+          icon: 'ic_stat_aquagrow',
+          color: '#10B981',
+          tag: 'aquagrow-test',
+          sound: 'default',
+          visibility: 'public' as any,
+        },
+      },
+    };
+
+    const sent = await sendFCM(user.fcmToken, msg);
+    console.log(`[TEST-PUSH] ${sent ? '✅ Sent' : '❌ Failed'} → ${user.name || userId}`);
+    res.json({ ok: sent, userId, tokenTail: user.fcmToken.slice(-8), firebaseApps: admin.apps.length });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
 // Used by the push daemon to fetch real weather every 15 min and alert farmers.
 const OWM_API_KEY = '02eb92440f84d48b0d5df34e44540cb1';
 const OWM_BASE = 'https://api.openweathermap.org/data/2.5';
@@ -1990,6 +2034,19 @@ const runPushEngine = async () => {
           alertBody = `Night aeration window (9PM–5AM). Maintain DO above 4.5 mg/L. DOC ${doc} — check all aerators now.`;
         }
 
+        // ─── CONDITION 5: Daily Active Pond Reminder (fallback — always fires) ──
+        // Ensures at least one daily notification per active pond even when
+        // no milestone / lunar / time-specific condition matches.
+        else if (!alertTitle && doc > 0) {
+          const stageLabel =
+            doc <= 20 ? 'Nursery Stage' :
+            doc <= 40 ? 'Early Growth Stage' :
+            doc <= 60 ? 'Mid Growth Stage' :
+            doc <= 80 ? 'Pre-Harvest Stage' : 'Harvest Ready Stage';
+          alertTitle = `🌊 Daily Update — ${p.name} | DOC ${doc}`;
+          alertBody = `${stageLabel}: Check trays, log water quality & verify aerators. Tap to open pond.`;
+        }
+
         // --- DELIVERY LOGIC ---
         if (alertTitle && alertBody) {
           console.log(`[FCM-TRIGGER] Condition Met for ${u.name}: ${alertTitle}`);
@@ -2060,9 +2117,9 @@ const runPushEngine = async () => {
 
           const engineSent = await sendFCM(u.fcmToken!, fullMessage);
           if (engineSent) {
-            console.log(`[FCM-SUCCESS] ✅ Sent to ${u.name} | ${p.name} | ${alertTitle}`);
+            console.log(`[FCM-SUCCESS] ✅ Sent to ${u.name || String(u._id)} | ${p.name} | DOC ${doc} | ${alertTitle}`);
           } else {
-            console.log(`[SIMULATED-PUSH] ${alertTitle}: ${alertBody}`);
+            console.warn(`[FCM-FAIL] ❌ sendFCM returned false for ${u.name || String(u._id)} — token may be stale or Firebase not initialized. Token: ${u.fcmToken!.slice(0, 20)}...`);
           }
         }
       }
@@ -2173,7 +2230,9 @@ if (process.env.NODE_ENV !== 'test') {
       connectProviderDB().catch(() => { });
 
 
-      // ── Push engine: every 15 min is sufficient — 2 min caused duplicate engine-alerts
+      // ── Push engine: run IMMEDIATELY on startup, then every 15 min ──────────
+      console.log('[Push Engine] 🚀 First run starting immediately on server boot...');
+      runPushEngine().catch(e => console.error('[Push Engine] Startup run failed:', e));
       setInterval(runPushEngine, 15 * 60 * 1000);
 
       // ── Keep-alive ping: prevents Render free tier from sleeping ──────────
