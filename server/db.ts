@@ -325,6 +325,144 @@ export const ROIEntry = mongoose.model('ROIEntry', ROIEntrySchema);
 export const NotificationLog = mongoose.model('NotificationLog', NotificationLogSchema);
 export const AeratorLog = mongoose.model('AeratorLog', AeratorLogSchema);
 
+// ═══════════════════════════════════════════════════════════════
+//  ESP-NOW IoT DEVICE SCHEMAS                                    ║
+//  Three collections for ESP32 device management:               ║
+//    espdevices     — registered Master/Slave ESP32 nodes       ║
+//    espsensorreadings — high-frequency telemetry from Master   ║
+//    espcommands    — aerator commands (app → Master → Slave)   ║
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * EspDevice — one record per registered ESP32 board.
+ * Masters are linked directly to a pond; Slaves are linked to a Master.
+ * The apiKey is a 64-char hex secret stored on the device and used instead
+ * of JWT for all device-facing endpoints.
+ */
+const EspDeviceSchema = new mongoose.Schema({
+  userId:      { type: String, required: true },          // owning farmer
+  pondId:      { type: String, required: true },          // associated pond
+  mac:         { type: String, required: true, unique: true }, // ESP32 MAC address (AA:BB:CC:DD:EE:FF)
+  role:        { type: String, enum: ['master', 'slave'], required: true },
+  masterMac:   { type: String },                          // for slaves: the master's MAC
+  label:       { type: String },                          // human-readable label e.g. "Aerator 1"
+  apiKey:      { type: String, required: true, unique: true }, // 64-char hex secret
+  firmwareVersion: { type: String },                      // optional: OTA tracking
+  isActive:    { type: Boolean, default: true },
+  lastSeen:    { type: Date },                            // updated on every ingest/poll
+  heartbeatAt: { type: Date },                            // updated on every /heartbeat call
+  // ── Real-time state (updated on every ingest + ACK) ──────────────────────
+  aeratorState: { type: String, enum: ['ON', 'OFF', 'UNKNOWN'], default: 'UNKNOWN' }, // live aerator state
+  voltage:      { type: Number },                         // last reported voltage (V)
+  current:      { type: Number },                         // last reported current (A)
+  powerWatts:   { type: Number },                         // last reported power (W)
+  signalStrength: { type: Number },                       // RSSI from slave (dBm)
+  metadata:    { type: Map, of: String },                 // flexible extra fields
+}, { timestamps: true, collection: 'espdevices' });
+
+// Compound index so we can quickly look up all slaves of a master
+EspDeviceSchema.index({ masterMac: 1, role: 1 });
+EspDeviceSchema.index({ userId: 1, pondId: 1 });
+
+/**
+ * EspSensorReading — one record per sensor snapshot pushed by a Master.
+ * Kept separate from WaterLog so manual entries and IoT telemetry don't mix.
+ * High-frequency: potentially every 30 s per pond.
+ */
+const EspSensorReadingSchema = new mongoose.Schema({
+  deviceId:    { type: String, required: true },          // EspDevice._id (master)
+  pondId:      { type: String, required: true },
+  userId:      { type: String, required: true },
+  // Water quality parameters
+  do:          { type: Number },                          // dissolved oxygen mg/L
+  ph:          { type: Number },
+  temp:        { type: Number },                          // °C
+  salinity:    { type: Number },                          // ppt
+  ammonia:     { type: Number },                          // mg/L
+  turbidity:   { type: Number },                          // NTU
+  tds:         { type: Number },                          // mg/L
+  nitrite:     { type: Number },
+  nitrate:     { type: Number },
+  // Power telemetry from Master
+  voltage:     { type: Number },                          // V
+  current:     { type: Number },                          // A
+  powerWatts:  { type: Number },                          // W
+  aeratorState: { type: String, enum: ['ON', 'OFF', 'UNKNOWN'] }, // master aerator state at this reading
+  // Per-slave data reported by Master via ESP-NOW
+  slaveReadings: [{
+    mac:          { type: String },                       // slave MAC
+    aeratorState: { type: String, enum: ['ON', 'OFF', 'UNKNOWN'] },
+    voltage:      { type: Number },
+    current:      { type: Number },
+    powerWatts:   { type: Number },
+    rssi:         { type: Number },                       // ESP-NOW signal strength (dBm)
+  }],
+  // Status flags auto-computed on ingest
+  alerts:      [{ type: String }],                        // e.g. ['DO_LOW', 'PH_HIGH']
+  rawPayload:  { type: Map, of: mongoose.Schema.Types.Mixed }, // preserve any extra fields from firmware
+  recordedAt:  { type: Date, required: true },            // timestamp from ESP32 (or server time if missing)
+}, { timestamps: true, collection: 'espsensorreadings' });
+
+// TTL: auto-delete readings older than 90 days to keep collection lean
+EspSensorReadingSchema.index({ recordedAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600 });
+EspSensorReadingSchema.index({ pondId: 1, recordedAt: -1 });
+EspSensorReadingSchema.index({ deviceId: 1, recordedAt: -1 });
+
+/**
+ * EspAeratorCommand — a command issued by the farmer app to a specific slave aerator.
+ * Lifecycle: pending → sent → confirmed | failed | timeout
+ *
+ *  pending   : stored by server, waiting for Master to poll
+ *  sent      : Master has picked it up and forwarded via ESP-NOW
+ *  confirmed : Slave acknowledged execution
+ *  failed    : Slave reported failure
+ *  timeout   : Master never polled within TTL (5 min default)
+ */
+const EspAeratorCommandSchema = new mongoose.Schema({
+  userId:      { type: String, required: true },          // farmer who issued it
+  pondId:      { type: String, required: true },
+  masterMac:   { type: String, required: true },          // which master should relay this
+  targetMac:   { type: String, required: true },          // slave MAC address
+  action:      { type: String, enum: ['ON', 'OFF', 'SPEED', 'RESET'], required: true },
+  params: {
+    speed:           { type: Number, min: 0, max: 100 },  // % for SPEED command
+    durationMinutes: { type: Number },                    // optional timed ON
+  },
+  status:      {
+    type: String,
+    enum: ['pending', 'sent', 'confirmed', 'failed', 'timeout'],
+    default: 'pending',
+  },
+  issuedAt:    { type: Date, default: Date.now },
+  sentAt:      { type: Date },                            // when Master picked it up
+  confirmedAt: { type: Date },                            // when Slave acknowledged
+  errorMessage: { type: String },                         // for failed status
+  notes:       { type: String },                          // optional note from farmer
+}, { timestamps: true, collection: 'espcommands' });
+
+// Index for fast pending poll query
+EspAeratorCommandSchema.index({ masterMac: 1, status: 1, issuedAt: 1 });
+EspAeratorCommandSchema.index({ pondId: 1, createdAt: -1 });
+
+// ─── EspHeartbeat — lightweight ping log (TTL: 2 hours) ─────────────────────
+// One document per heartbeat from a Master. Used for uptime analysis.
+// The important online/offline signal lives on EspDevice.lastSeen / heartbeatAt.
+const EspHeartbeatSchema = new mongoose.Schema({
+  deviceId:  { type: String, required: true },
+  pondId:    { type: String, required: true },
+  mac:       { type: String, required: true },
+  at:        { type: Date, default: Date.now },
+}, { timestamps: false, collection: 'espheartbeats' });
+
+// TTL: auto-delete heartbeat docs older than 2 hours
+EspHeartbeatSchema.index({ at: 1 }, { expireAfterSeconds: 2 * 60 * 60 });
+EspHeartbeatSchema.index({ deviceId: 1, at: -1 });
+
+export const EspDevice          = mongoose.model('EspDevice', EspDeviceSchema);
+export const EspSensorReading   = mongoose.model('EspSensorReading', EspSensorReadingSchema);
+export const EspAeratorCommand  = mongoose.model('EspAeratorCommand', EspAeratorCommandSchema);
+export const EspHeartbeat       = mongoose.model('EspHeartbeat', EspHeartbeatSchema);
+
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://syamkdoram_db_user:xVMRfYAFMYYZvLzT@ac-k6ux81i-shard-00-00.mongodb.net:27017,ac-k6ux81i-shard-00-01.mongodb.net:27017,ac-k6ux81i-shard-00-02.mongodb.net:27017/aquagrow?ssl=true&replicaSet=atlas-k6ux81i-shard-0&authSource=admin&retryWrites=true&w=majority';

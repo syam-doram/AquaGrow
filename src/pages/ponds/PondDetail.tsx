@@ -6,7 +6,7 @@ import {
   Stethoscope, ShieldCheck, Scale, ArrowRight, Moon, Camera,
   AlertTriangle, BarChart2, Fish, ShoppingBag, Send, UserCheck,
   Award, Waves, Thermometer, FlaskConical, Star, Target,
-  Play, PlusCircle, Wind,
+  Play, PlusCircle, Wind, Cpu,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
@@ -650,50 +650,95 @@ export const PondDetail = ({ t }: { t: Translations }) => {
             </button>
           )}
 
-          {/* ── WATER QUALITY CARD ── */}
-          <div className={cn("rounded-[2rem] border shadow-sm overflow-hidden", isDark ? "bg-[#0D1A13] border-white/5" : "bg-white border-slate-100")}>
-            <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-              <div>
-                <h3 className={cn("font-black text-sm tracking-tight", isDark ? "text-white" : "text-slate-900")}>{t.waterQualitySection}</h3>
-                <p className={cn("text-[8px] font-black uppercase tracking-widest mt-0.5", isDark ? "text-white/30" : "text-slate-400")}>
-                  {hasLoggedToday ? 'Today · Live data' : 'No log today'}
+          {/* ── WATER STATUS RIBBON ── */}
+          {!isPlanned && (
+            <div
+              onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
+              className={cn(
+                "rounded-2xl border flex items-center gap-3 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all",
+                isDark ? "bg-[#0D1A13] border-white/5" : "bg-white border-slate-100"
+              )}
+            >
+              <div className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                hasLoggedToday ? "bg-emerald-500/15" : "bg-red-400/15"
+              )}>
+                <Droplets size={15} className={hasLoggedToday ? "text-emerald-400" : "text-red-400"} />
+              </div>
+
+              <div className="flex-1 flex items-center gap-4 min-w-0">
+                {[
+                  { label: 'pH',  value: todayRecord?.ph,          good: (v: number) => v >= 7.5 && v <= 8.5 },
+                  { label: 'DO',  value: todayRecord?.do,          good: (v: number) => v >= 4 },
+                  { label: '°C',  value: todayRecord?.temperature, good: (v: number) => v >= 27 && v <= 33 },
+                  { label: 'NH₃', value: todayRecord?.ammonia,     good: (v: number) => v < 0.3 },
+                ].map((p, i) => (
+                  <div key={i} className="flex items-baseline gap-0.5 shrink-0">
+                    <span className={cn(
+                      "text-sm font-black leading-none",
+                      p.value != null
+                        ? p.good(p.value) ? (isDark ? "text-emerald-400" : "text-emerald-600") : "text-red-500"
+                        : isDark ? "text-white/20" : "text-slate-300"
+                    )}>
+                      {p.value != null ? p.value : '—'}
+                    </span>
+                    <span className={cn("text-[7px] font-black uppercase tracking-wide", isDark ? "text-white/30" : "text-slate-400")}>
+                      {p.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {effectiveStatus !== 'harvested' && (
+                <div className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest",
+                  hasLoggedToday ? "bg-emerald-500/15 text-emerald-500" : "bg-red-500 text-white"
+                )}>
+                  {hasLoggedToday ? 'Update' : 'Log Now'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── IOT CONTROL ENTRY ── */}
+          {effectiveStatus !== 'harvested' && effectiveStatus !== 'planned' && (
+            <motion.button
+              id={`iot-control-btn-${pond.id}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={() => navigate(`/ponds/${pond.id}/iot`)}
+              className={cn(
+                'w-full flex items-center gap-4 rounded-[1.75rem] border px-4 py-3.5 text-left transition-all active:scale-[0.98] group',
+                isDark
+                  ? 'bg-gradient-to-r from-[#041A0E] to-[#071410] border-emerald-500/20'
+                  : 'bg-gradient-to-r from-emerald-50 to-sky-50 border-emerald-200 shadow-sm',
+              )}
+            >
+              <div className={cn(
+                'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border',
+                isDark
+                  ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
+                  : 'bg-emerald-100 border-emerald-200 text-emerald-600',
+              )}>
+                <Cpu size={17} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className={cn('text-[10px] font-black uppercase tracking-widest', isDark ? 'text-white' : 'text-slate-900')}>
+                    IoT Control
+                  </p>
+                  <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
+                    <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-emerald-400 text-[6px] font-black uppercase tracking-widest">Live</span>
+                  </div>
+                </div>
+                <p className={cn('text-[8px] font-medium mt-0.5', isDark ? 'text-white/30' : 'text-slate-500')}>
+                  Smart Boxes · aerator control · sensor readings
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", hasLoggedToday ? "bg-emerald-500 animate-pulse" : "bg-red-400")} />
-                {effectiveStatus !== 'harvested' && (
-                  <button
-                    onClick={() => navigate(`/ponds/${pond.id}/water-log`)}
-                    className="px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-[8px] font-black uppercase tracking-widest"
-                  >
-                    {hasLoggedToday ? 'Update' : 'Log Now'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-0 border-t border-card-border divide-x divide-card-border">
-              {[
-                { label: 'pH', value: todayRecord?.ph, unit: '', good: (v: number) => v >= 7.5 && v <= 8.5, range: '7.5–8.5' },
-                { label: 'DO', value: todayRecord?.do, unit: 'mg/L', good: (v: number) => v >= 4, range: '>4.0' },
-                { label: 'Temp', value: todayRecord?.temperature, unit: '°C', good: (v: number) => v >= 27 && v <= 33, range: '27–33' },
-                { label: 'NH₃', value: todayRecord?.ammonia, unit: 'ppm', good: (v: number) => v < 0.3, range: '<0.3' },
-              ].map((param, i) => (
-                <div key={i} className="py-4 text-center">
-                  <p className={cn("text-base font-black leading-none",
-                    param.value != null
-                      ? param.good(param.value) ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
-                        : 'text-red-500'
-                      : isDark ? 'text-white/20' : 'text-slate-300'
-                  )}>
-                    {param.value != null ? param.value : '—'}
-                  </p>
-                  <p className={cn("text-[6px] font-black uppercase tracking-widest mt-1", isDark ? "text-white/30" : "text-slate-400")}>{param.label}</p>
-                  <p className={cn("text-[5px] font-bold mt-0.5", isDark ? "text-white/15" : "text-slate-300")}>{param.range}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+              <ChevronRight size={14} className={cn('shrink-0 group-hover:translate-x-0.5 transition-transform', isDark ? 'text-white/20' : 'text-slate-300')} />
+            </motion.button>
+          )}
 
           {/* ── TAB NAV ── */}
           <div className={cn("rounded-2xl p-1 flex gap-1 border", isDark ? "bg-white/5 border-white/5" : "bg-slate-100 border-transparent")}>

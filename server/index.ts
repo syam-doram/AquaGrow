@@ -18,6 +18,7 @@ import { GoogleGenAI } from "@google/genai";
 import authRoutes from './routes/auth.js';
 import providerRoutes from './routes/provider.js';
 import hrmsRoutes from './routes/hrms.js';
+import espnowRoutes from './routes/espnow.js';
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
 
 const app = express();
@@ -67,7 +68,8 @@ app.use(cors({
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/provider', providerRoutes);
-app.use('/api/hrms', hrmsRoutes);   // ← HRMS Employee Portal routes
+app.use('/api/hrms', hrmsRoutes);         // ← HRMS Employee Portal routes
+app.use('/api/espnow', espnowRoutes);     // ← ESP-NOW IoT Device Bridge
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) =>
