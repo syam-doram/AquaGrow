@@ -1256,10 +1256,28 @@ const sendFCM = async (token: string, payload: admin.messaging.Message): Promise
   if (!token) return false;
   if (admin.apps.length > 0) {
     try {
-      await admin.messaging().send(payload);
+      // Always inject the token into the message — callers build the payload
+      // without it since the token is looked up separately.
+      const msg: admin.messaging.Message = { ...payload, token };
+      await admin.messaging().send(msg);
       return true;
     } catch (err: any) {
       console.warn('[FCM-ERROR]', err.message);
+      // Auto-clear stale / unregistered tokens so we stop retrying them
+      const errCode: string = err.code || err.errorInfo?.code || '';
+      const isStale =
+        errCode.includes('registration-token-not-registered') ||
+        errCode.includes('invalid-registration-token') ||
+        errCode.includes('NOT_FOUND') ||
+        err.message?.includes('Requested entity was not found');
+      if (isStale) {
+        try {
+          await UserMongo.updateOne({ fcmToken: token }, { $unset: { fcmToken: '' } });
+          console.warn(`[FCM-CLEANUP] Removed stale token ...${token.slice(-12)} from DB`);
+        } catch (cleanupErr: any) {
+          console.warn('[FCM-CLEANUP-ERROR]', cleanupErr.message);
+        }
+      }
       return false;
     }
   }
