@@ -116,10 +116,16 @@ export interface SendCommandPayload {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Read the JWT from localStorage (same key used by DataContext) */
+/** Read the JWT from localStorage (same key used by DataContext / geminiService) */
 const getAuthHeader = (): Record<string, string> => {
-  const token = localStorage.getItem('aqua_token') || '';
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  try {
+    const raw = localStorage.getItem('aqua_tokens');
+    const tokens = raw ? JSON.parse(raw) : null;
+    const token = tokens?.access || '';
+    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  } catch {
+    return { 'Content-Type': 'application/json' };
+  }
 };
 
 const handleResponse = async <T>(res: Response): Promise<T> => {
