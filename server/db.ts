@@ -327,41 +327,65 @@ export const AeratorLog = mongoose.model('AeratorLog', AeratorLogSchema);
 
 // ═══════════════════════════════════════════════════════════════
 //  ESP-NOW IoT DEVICE SCHEMAS                                    ║
-//  Three collections for ESP32 device management:               ║
-//    espdevices     — registered Master/Slave ESP32 nodes       ║
-//    espsensorreadings — high-frequency telemetry from Master   ║
-//    espcommands    — aerator commands (app → Master → Slave)   ║
+//  Collections for ESP32 device management:                      ║
+//    espdevices       — registered Master/Smart Box nodes        ║
+//    espsensorreadings — high-frequency telemetry from Master    ║
+//    espcommands      — aerator commands (app → Master → SB)    ║
+//    espdiscoverqueue — unassigned DISCOVER packets inbox        ║
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * EspDevice — one record per registered ESP32 board.
- * Masters are linked directly to a pond; Slaves are linked to a Master.
- * The apiKey is a 64-char hex secret stored on the device and used instead
- * of JWT for all device-facing endpoints.
+ *
+ * Identity model: devices use boxId (e.g. SB001, MB001) as the stable,
+ * human-readable identifier. The MAC address is kept internally for
+ * ESP-NOW firmware routing but is NEVER exposed to farmers in the UI.
+ *
+ * Roles:
+ *   master — gateway (WiFi + ESP-NOW hub). One per farm or per cluster.
+ *   slave  — Smart Box (field sensor/relay). N per master.
  */
 const EspDeviceSchema = new mongoose.Schema({
   userId:      { type: String, required: true },          // owning farmer
   pondId:      { type: String, required: true },          // associated pond
-  mac:         { type: String, required: true, unique: true }, // ESP32 MAC address (AA:BB:CC:DD:EE:FF)
+  mac:         { type: String, required: true, unique: true }, // internal MAC — never shown to farmers
   role:        { type: String, enum: ['master', 'slave'], required: true },
-  masterMac:   { type: String },                          // for slaves: the master's MAC
-  label:       { type: String },                          // human-readable label e.g. "Aerator 1"
-  apiKey:      { type: String, required: true, unique: true }, // 64-char hex secret
+  masterMac:   { type: String },                          // internal: slave's master MAC for ESP-NOW routing
+  // ── Box ID System (farmer-visible identity) ───────────────────────────────
+  boxId:       { type: String, sparse: true },            // e.g. 'SB001', 'MB001' — pre-programmed in firmware
+  masterId:    { type: String },                          // boxId of the paired Master (for slaves)
+  displayName: { type: String },                          // farmer-assigned name e.g. 'Pond 1 Aerator'
+  deviceType:  {
+    type: String,
+    enum: ['AERATOR', 'SENSOR', 'FEEDER', 'PUMP', 'CUSTOM', 'MASTER'],
+    default: 'AERATOR',
+  },
+  pairingStatus: {
+    type: String,
+    enum: ['unpaired', 'discovered', 'assigned'],
+    default: 'unpaired',
+  },
+  // ── Legacy label field (keep for backward compatibility) ──────────────────
+  label:       { type: String },                          // deprecated: use displayName
+  apiKey:      { type: String, required: true, unique: true }, // 64-char hex secret stored on device
   firmwareVersion: { type: String },                      // optional: OTA tracking
   isActive:    { type: Boolean, default: true },
   lastSeen:    { type: Date },                            // updated on every ingest/poll
   heartbeatAt: { type: Date },                            // updated on every /heartbeat call
   // ── Real-time state (updated on every ingest + ACK) ──────────────────────
-  aeratorState: { type: String, enum: ['ON', 'OFF', 'UNKNOWN'], default: 'UNKNOWN' }, // live aerator state
-  voltage:      { type: Number },                         // last reported voltage (V)
-  current:      { type: Number },                         // last reported current (A)
-  powerWatts:   { type: Number },                         // last reported power (W)
-  signalStrength: { type: Number },                       // RSSI from slave (dBm)
-  metadata:    { type: Map, of: String },                 // flexible extra fields
+  aeratorState:  { type: String, enum: ['ON', 'OFF', 'UNKNOWN'], default: 'UNKNOWN' },
+  voltage:       { type: Number },                        // last reported voltage (V)
+  current:       { type: Number },                        // last reported current (A)
+  powerWatts:    { type: Number },                        // last reported power (W)
+  signalStrength:{ type: Number },                        // RSSI from slave (dBm)
+  metadata:      { type: Map, of: String },               // flexible extra fields
 }, { timestamps: true, collection: 'espdevices' });
 
+// Unique sparse index on boxId (sparse = allows multiple nulls for legacy devices)
+EspDeviceSchema.index({ boxId: 1 }, { unique: true, sparse: true });
 // Compound index so we can quickly look up all slaves of a master
 EspDeviceSchema.index({ masterMac: 1, role: 1 });
+EspDeviceSchema.index({ masterId: 1, role: 1 });
 EspDeviceSchema.index({ userId: 1, pondId: 1 });
 
 /**
@@ -421,8 +445,11 @@ EspSensorReadingSchema.index({ deviceId: 1, recordedAt: -1 });
 const EspAeratorCommandSchema = new mongoose.Schema({
   userId:      { type: String, required: true },          // farmer who issued it
   pondId:      { type: String, required: true },
-  masterMac:   { type: String, required: true },          // which master should relay this
-  targetMac:   { type: String, required: true },          // slave MAC address
+  masterMac:   { type: String, required: true },          // internal: which master should relay this
+  targetMac:   { type: String, required: true },          // internal: slave MAC for ESP-NOW routing
+  // ── Box ID references (farmer-facing identifiers) ────────────────────────
+  targetBoxId: { type: String },                          // e.g. 'SB001' — shown in UI
+  targetDisplayName: { type: String },                    // e.g. 'Pond 1 Aerator' — shown in UI
   action:      { type: String, enum: ['ON', 'OFF', 'SPEED', 'RESET'], required: true },
   params: {
     speed:           { type: Number, min: 0, max: 100 },  // % for SPEED command
@@ -443,6 +470,7 @@ const EspAeratorCommandSchema = new mongoose.Schema({
 // Index for fast pending poll query
 EspAeratorCommandSchema.index({ masterMac: 1, status: 1, issuedAt: 1 });
 EspAeratorCommandSchema.index({ pondId: 1, createdAt: -1 });
+EspAeratorCommandSchema.index({ targetBoxId: 1 });
 
 // ─── EspHeartbeat — lightweight ping log (TTL: 2 hours) ─────────────────────
 // One document per heartbeat from a Master. Used for uptime analysis.
@@ -458,10 +486,31 @@ const EspHeartbeatSchema = new mongoose.Schema({
 EspHeartbeatSchema.index({ at: 1 }, { expireAfterSeconds: 2 * 60 * 60 });
 EspHeartbeatSchema.index({ deviceId: 1, at: -1 });
 
+// ─── EspDiscoverQueue — auto-pairing inbox ───────────────────────────────────
+// When a Smart Box broadcasts DISCOVER, the Master forwards it here.
+// The farmer app polls this to show "New Device Found" banners.
+// Entries expire after 24 hours if not assigned.
+const EspDiscoverQueueSchema = new mongoose.Schema({
+  boxId:        { type: String, required: true },         // e.g. 'SB001' from firmware
+  senderMac:    { type: String },                         // internal MAC of the Smart Box
+  masterId:     { type: String, required: true },         // boxId of the Master that forwarded this
+  masterMac:    { type: String },                         // internal MAC of the Master
+  userId:       { type: String, required: true },         // owning farmer
+  pondId:       { type: String, required: true },         // pond the Master belongs to
+  discoveredAt: { type: Date, default: Date.now },        // when DISCOVER was received
+}, { timestamps: false, collection: 'espdiscoverqueue' });
+
+// Unique per boxId so duplicate DISCOVER packets don't stack up
+EspDiscoverQueueSchema.index({ boxId: 1 }, { unique: true });
+EspDiscoverQueueSchema.index({ userId: 1, pondId: 1 });
+// TTL: auto-delete unassigned entries after 24 hours
+EspDiscoverQueueSchema.index({ discoveredAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+
 export const EspDevice          = mongoose.model('EspDevice', EspDeviceSchema);
 export const EspSensorReading   = mongoose.model('EspSensorReading', EspSensorReadingSchema);
 export const EspAeratorCommand  = mongoose.model('EspAeratorCommand', EspAeratorCommandSchema);
 export const EspHeartbeat       = mongoose.model('EspHeartbeat', EspHeartbeatSchema);
+export const EspDiscoverQueue   = mongoose.model('EspDiscoverQueue', EspDiscoverQueueSchema);
 
 
 export const connectDB = async () => {

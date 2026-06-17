@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, RefreshCw, Wifi, WifiOff, Zap, Thermometer,
-  Droplets, Wind, Activity, Power, Clock, AlertTriangle,
+  Droplets, Wind, Activity, Clock, AlertTriangle,
   CheckCircle2, XCircle, Timer, Radio, Signal, BatteryMedium,
   ToggleLeft, ToggleRight, ChevronRight, Cpu, Waves,
+  Sparkles, GitBranch, Bell, Settings,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import {
@@ -14,15 +15,20 @@ import {
   type EspDevice,
   type EspAeratorCommand,
   type EspSensorReading,
+  type EspDiscoverEntry,
   type CommandAction,
+  type DeviceType,
+  DEVICE_TYPE_OPTIONS,
 } from '../../services/espnowService';
+import { DeviceAssignmentModal } from './DeviceAssignmentModal';
 import { cn } from '../../utils/cn';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS   = 5000;
+const DISCOVER_POLL_MS   = 10000;
 
 const SENSOR_THRESHOLDS: Record<string, { min?: number; max?: number }> = {
   do:        { min: 4.0 },
@@ -33,6 +39,10 @@ const SENSOR_THRESHOLDS: Record<string, { min?: number; max?: number }> = {
   turbidity: { max: 60 },
   tds:       {},
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 
 const getSensorColor = (key: string, val?: number | null) => {
   if (val == null) return 'text-white/25';
@@ -54,11 +64,19 @@ const getSensorBg = (key: string, val?: number | null) => {
   return 'bg-white/5 border-white/10';
 };
 
+const DEVICE_TYPE_ICONS: Record<string, React.ElementType> = {
+  AERATOR: Wind,
+  SENSOR:  Droplets,
+  FEEDER:  BatteryMedium,
+  PUMP:    Waves,
+  CUSTOM:  Settings,
+  MASTER:  Radio,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
-//  SUB-COMPONENTS
+//  SMALL SUB-COMPONENTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Animated pulsing "LIVE" dot */
 const LiveBadge = () => (
   <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-2.5 py-1">
     <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
@@ -66,7 +84,6 @@ const LiveBadge = () => (
   </div>
 );
 
-/** Online / offline status pill */
 const OnlinePill = ({ online, lastSeenAgo }: { online: boolean; lastSeenAgo?: string }) => (
   <div className={cn(
     'flex items-center gap-1.5 rounded-full px-2.5 py-1 border',
@@ -74,17 +91,13 @@ const OnlinePill = ({ online, lastSeenAgo }: { online: boolean; lastSeenAgo?: st
       ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
       : 'bg-red-500/10 border-red-500/20 text-red-400',
   )}>
-    <div className={cn(
-      'w-1.5 h-1.5 rounded-full',
-      online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400',
-    )} />
+    <div className={cn('w-1.5 h-1.5 rounded-full', online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />
     <span className="text-[7px] font-black uppercase tracking-widest">
       {online ? 'Online' : `Offline${lastSeenAgo ? ` · ${lastSeenAgo}` : ''}`}
     </span>
   </div>
 );
 
-/** Command status badge */
 const StatusPill = ({ status }: { status: string }) => {
   const map: Record<string, { label: string; cls: string; Icon: any }> = {
     pending:   { label: 'Pending',   cls: 'bg-amber-500/15 border-amber-500/25 text-amber-400',   Icon: Timer },
@@ -102,10 +115,9 @@ const StatusPill = ({ status }: { status: string }) => {
   );
 };
 
-/** Single sensor tile */
 const SensorTile = ({
   label, value, unit, keyName, icon: Icon,
-}: { label: string; value?: number | null | undefined; unit: string; keyName: string; icon: any; key?: string }) => {
+}: { label: string; value?: number | null; unit: string; keyName: string; icon: any }) => {
   const color = getSensorColor(keyName, value);
   const bg    = getSensorBg(keyName, value);
   return (
@@ -122,7 +134,6 @@ const SensorTile = ({
   );
 };
 
-/** Power metric chip */
 const PowerChip = ({ label, value, unit }: { label: string; value?: number | null; unit: string }) => (
   <div className="flex-1 text-center bg-white/5 border border-white/10 rounded-xl py-2 px-1">
     <p className="text-white/25 text-[6px] font-black uppercase tracking-widest mb-1">{label}</p>
@@ -134,7 +145,72 @@ const PowerChip = ({ label, value, unit }: { label: string; value?: number | nul
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  AERATOR TOGGLE BUTTON
+//  DISCOVERY BANNER
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DiscoveryBannerProps {
+  entries: EspDiscoverEntry[];
+  isDark: boolean;
+  onAssign: (entry: EspDiscoverEntry) => void;
+}
+
+const DiscoveryBanner = ({ entries, isDark, onAssign }: DiscoveryBannerProps) => {
+  if (entries.length === 0) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="space-y-2"
+    >
+      <p className={cn('text-[7px] font-black uppercase tracking-widest px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+        <Sparkles size={8} className="inline mr-1" />
+        New Devices Found · {entries.length}
+      </p>
+      {entries.map(entry => (
+        <motion.div
+          key={entry.boxId}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          className={cn(
+            'rounded-[1.75rem] border overflow-hidden',
+            isDark ? 'bg-gradient-to-r from-[#041A0E] to-[#071410] border-emerald-500/25' : 'bg-emerald-50 border-emerald-200',
+          )}
+        >
+          <div className="px-4 py-3.5 flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-500/15 border border-emerald-500/25 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className={cn('text-[11px] font-black', isDark ? 'text-white' : 'text-slate-900')}>
+                  New Device Found
+                </p>
+                <span className="bg-emerald-500/15 border border-emerald-500/20 rounded-full px-2 py-0.5 text-emerald-400 text-[7px] font-black uppercase tracking-widest">
+                  {entry.boxId}
+                </span>
+              </div>
+              <p className={cn('text-[8px] font-medium', isDark ? 'text-white/30' : 'text-slate-500')}>
+                Discovered {espnowService.relativeTime(entry.discoveredAt)} · via {entry.masterId}
+              </p>
+            </div>
+            <motion.button
+              id={`assign-btn-${entry.boxId}`}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onAssign(entry)}
+              className="flex items-center gap-1.5 bg-emerald-500 text-white rounded-xl px-3 py-2 text-[9px] font-black uppercase tracking-widest flex-shrink-0"
+            >
+              Assign <ChevronRight size={11} />
+            </motion.button>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  AERATOR TOGGLE
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AeratorToggleProps {
@@ -146,41 +222,46 @@ interface AeratorToggleProps {
 }
 
 const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }: AeratorToggleProps) => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]     = useState(false);
   const [localState, setLocalState] = useState<'ON' | 'OFF' | 'UNKNOWN'>(device.aeratorState);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]         = useState<string | null>(null);
 
-  // Sync local when server state changes (after poll)
   useEffect(() => { setLocalState(device.aeratorState); }, [device.aeratorState]);
 
   const toggle = async () => {
     if (loading || hasPendingCmd) return;
-    const action: CommandAction = localState === 'ON' ? 'OFF' : 'ON';
+    const action: CommandAction  = localState === 'ON' ? 'OFF' : 'ON';
     const optimistic: 'ON' | 'OFF' = action === 'ON' ? 'ON' : 'OFF';
 
     setLoading(true);
     setError(null);
-    setLocalState(optimistic); // optimistic update
+    setLocalState(optimistic);
 
     try {
-      await espnowService.sendCommand({ pondId, targetMac: device.mac, action });
+      if (device.boxId) {
+        // Preferred: use Box ID — farmer-friendly
+        await espnowService.sendCommandById({ boxId: device.boxId, action, pondId });
+      } else {
+        // Fallback: legacy MAC-based (shouldn't happen in new deployments)
+        throw new Error('Device has no Box ID. Please re-register the device.');
+      }
       onCommandSent();
     } catch (err: any) {
       setError(err.message || 'Command failed');
-      setLocalState(device.aeratorState); // revert
+      setLocalState(device.aeratorState);
     } finally {
       setLoading(false);
     }
   };
 
-  const isOn = localState === 'ON';
+  const isOn      = localState === 'ON';
   const isUnknown = localState === 'UNKNOWN';
-  const locked = loading || hasPendingCmd;
+  const locked    = loading || hasPendingCmd;
 
   return (
     <div className="space-y-1">
       <motion.button
-        id={`aerator-toggle-${device._id}`}
+        id={`aerator-toggle-${device.boxId || device._id}`}
         whileTap={{ scale: 0.95 }}
         onClick={toggle}
         disabled={locked}
@@ -214,9 +295,7 @@ const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }:
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {loading && (
-            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          )}
+          {loading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
           {isOn
             ? <ToggleRight size={22} className="text-emerald-400" />
             : <ToggleLeft  size={22} className={isUnknown ? 'text-white/20' : 'text-red-400'} />
@@ -238,7 +317,7 @@ const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  SMART BOX CARD (one per slave device)
+//  SMART BOX CARD  (one per slave)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SmartBoxCardProps {
@@ -251,7 +330,10 @@ interface SmartBoxCardProps {
 }
 
 const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, index }: SmartBoxCardProps) => {
-  const hasPendingCmd = pendingCommands.some(c => c.targetMac === device.mac);
+  const hasPendingCmd = pendingCommands.some(c => c.targetBoxId === device.boxId);
+  const DeviceIcon = DEVICE_TYPE_ICONS[device.deviceType || 'AERATOR'] || Wind;
+  const displayName = espnowService.getDeviceLabel(device);
+  const typeLabel   = DEVICE_TYPE_OPTIONS.find(o => o.value === device.deviceType)?.label || 'Smart Box';
 
   return (
     <motion.div
@@ -272,29 +354,37 @@ const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, 
               ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
               : 'bg-white/5 border-white/10 text-white/25',
           )}>
-            <Cpu size={16} />
+            <DeviceIcon size={16} />
           </div>
           <div>
             <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
-              {device.label}
+              {displayName}
             </p>
-            <p className={cn('text-[7px] font-mono mt-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>
-              {device.mac}
-            </p>
+            {/* Box ID as subtle subtitle — NOT the MAC address */}
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
+                {device.boxId || '—'}
+              </span>
+              <span className={cn('text-[6px] font-black uppercase tracking-widest opacity-50', isDark ? 'text-white/20' : 'text-slate-300')}>
+                · {typeLabel}
+              </span>
+            </div>
           </div>
         </div>
         <OnlinePill online={device.online ?? false} lastSeenAgo={device.lastSeenAgo} />
       </div>
 
       <div className="px-4 pb-4 space-y-3">
-        {/* Aerator Toggle */}
-        <AeratorToggle
-          device={device}
-          pondId={pondId}
-          hasPendingCmd={hasPendingCmd}
-          onCommandSent={onCommandSent}
-          isDark={isDark}
-        />
+        {/* Aerator Toggle — only for AERATOR and PUMP type devices */}
+        {(!device.deviceType || device.deviceType === 'AERATOR' || device.deviceType === 'PUMP' || device.deviceType === 'CUSTOM') && (
+          <AeratorToggle
+            device={device}
+            pondId={pondId}
+            hasPendingCmd={hasPendingCmd}
+            onCommandSent={onCommandSent}
+            isDark={isDark}
+          />
+        )}
 
         {/* Power row */}
         <div className="flex gap-2">
@@ -322,6 +412,145 @@ const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  MASTER BOX CARD
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MasterBoxCard = ({ device, isDark }: { device: EspDevice; isDark: boolean }) => (
+  <div className={cn(
+    'rounded-[1.75rem] border p-4 relative overflow-hidden',
+    'bg-gradient-to-br from-[#01200F] to-[#071A10] border-emerald-500/15',
+  )}>
+    <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-emerald-500/20 border border-emerald-500/30 rounded-xl flex items-center justify-center">
+            <Radio size={14} className="text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-emerald-400 text-[7px] font-black uppercase tracking-widest">Master Gateway</p>
+            <p className="text-white text-[11px] font-black tracking-tight">
+              {espnowService.getDeviceLabel(device)}
+            </p>
+          </div>
+        </div>
+        <OnlinePill online={device.online ?? false} lastSeenAgo={device.lastSeenAgo} />
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-[7px]">
+        {/* Show Box ID — not MAC */}
+        <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2">
+          <p className="text-white/25 uppercase tracking-widest mb-0.5">Box ID</p>
+          <p className="text-white/70 font-black font-mono">{device.boxId || '—'}</p>
+        </div>
+        <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2">
+          <p className="text-white/25 uppercase tracking-widest mb-0.5">Heartbeat</p>
+          <p className="text-white/60 font-bold">{device.heartbeatAgo || 'Never'}</p>
+        </div>
+        {device.firmwareVersion && (
+          <div className="col-span-2 bg-white/5 border border-white/8 rounded-xl px-3 py-2">
+            <p className="text-white/25 uppercase tracking-widest mb-0.5">Firmware</p>
+            <p className="text-white/60 font-bold">{device.firmwareVersion}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TOPOLOGY TREE
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TopologyTree = ({
+  master, slaves, isDark,
+}: { master: EspDevice; slaves: EspDevice[]; isDark: boolean }) => (
+  <div className={cn('rounded-[1.75rem] border p-4', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+    <div className="flex items-center gap-2 mb-3">
+      <GitBranch size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+      <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+        Device Network
+      </p>
+    </div>
+
+    {/* Master row */}
+    <div className="flex items-center gap-3 mb-2">
+      <div className="w-7 h-7 bg-emerald-500/15 border border-emerald-500/25 rounded-xl flex items-center justify-center flex-shrink-0">
+        <Radio size={11} className="text-emerald-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn('text-[10px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>
+          {espnowService.getDeviceLabel(master)}
+        </p>
+        <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400/60' : 'text-emerald-600')}>
+          {master.boxId} · Master
+        </p>
+      </div>
+      <OnlinePill online={master.online ?? false} />
+    </div>
+
+    {/* Branch lines + Smart Boxes */}
+    {slaves.map((slave, i) => {
+      const isLast    = i === slaves.length - 1;
+      const DeviceIcon = DEVICE_TYPE_ICONS[slave.deviceType || 'AERATOR'] || Wind;
+      const displayName = espnowService.getDeviceLabel(slave);
+      const typeEmoji  = espnowService.getDeviceTypeEmoji(slave.deviceType);
+
+      return (
+        <div key={slave._id} className="flex items-start gap-0">
+          {/* Branch connector */}
+          <div className="flex flex-col items-center mr-2 mt-1" style={{ width: 16 }}>
+            <div className={cn('w-px flex-1 min-h-[8px]', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+            <div className={cn('w-3 h-px', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+            {!isLast && <div className={cn('w-px flex-1', isDark ? 'bg-white/10' : 'bg-slate-200')} />}
+          </div>
+          {/* Device row */}
+          <div className={cn(
+            'flex-1 flex items-center gap-2.5 py-2 px-3 rounded-2xl mb-1.5',
+            isDark ? 'bg-white/3' : 'bg-slate-50',
+          )}>
+            <div className={cn(
+              'w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0',
+              slave.online
+                ? 'bg-emerald-500/15 text-emerald-400'
+                : 'bg-white/5 text-white/20',
+            )}>
+              <DeviceIcon size={11} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-[9px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                {typeEmoji} {displayName}
+              </p>
+              <p className={cn('text-[6.5px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
+                {slave.boxId}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {slave.aeratorState === 'ON' && (
+                <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
+                  <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="text-emerald-400 text-[6px] font-black uppercase">ON</span>
+                </div>
+              )}
+              {slave.aeratorState === 'OFF' && (
+                <div className="bg-red-500/10 border border-red-500/15 rounded-full px-1.5 py-0.5">
+                  <span className="text-red-400 text-[6px] font-black uppercase">OFF</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    })}
+
+    {slaves.length === 0 && (
+      <p className={cn('text-[8px] font-medium text-center py-2', isDark ? 'text-white/20' : 'text-slate-400')}>
+        No Smart Boxes paired yet
+      </p>
+    )}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  COMMAND HISTORY ITEM
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -346,7 +575,10 @@ const CommandItem = ({ cmd, index }: { cmd: EspAeratorCommand; index: number }) 
         {cmd.action}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[8px] font-black text-white/60 truncate font-mono">{cmd.targetMac}</p>
+        {/* Show device name or boxId — never a raw MAC */}
+        <p className="text-[9px] font-black text-white/70 truncate">
+          {cmd.targetDisplayName || cmd.targetBoxId || 'Unknown Device'}
+        </p>
         <p className="text-[7px] text-white/20 mt-0.5">
           {new Date(cmd.issuedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </p>
@@ -357,47 +589,32 @@ const CommandItem = ({ cmd, index }: { cmd: EspAeratorCommand; index: number }) 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  MASTER BOX CARD
+//  OFFLINE ALERT BANNER
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MasterBoxCard = ({ device, isDark }: { device: EspDevice; isDark: boolean }) => (
-  <div className={cn(
-    'rounded-[1.75rem] border p-4 relative overflow-hidden',
-    'bg-gradient-to-br from-[#01200F] to-[#071A10] border-emerald-500/15',
-  )}>
-    <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
-    <div className="relative z-10">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-emerald-500/20 border border-emerald-500/30 rounded-xl flex items-center justify-center">
-            <Radio size={14} className="text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-emerald-400 text-[7px] font-black uppercase tracking-widest">Master Gateway</p>
-            <p className="text-white text-[11px] font-black tracking-tight">{device.label}</p>
-          </div>
-        </div>
-        <OnlinePill online={device.online ?? false} lastSeenAgo={device.lastSeenAgo} />
+const OfflineAlertBanner = ({ devices, isDark }: { devices: EspDevice[]; isDark: boolean }) => {
+  const offlineDevices = devices.filter(d => d.role === 'slave' && d.online === false && d.pairingStatus === 'assigned');
+  if (offlineDevices.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+      className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-3"
+    >
+      <Bell size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+      <div className="flex-1">
+        <p className="text-amber-400 text-[9px] font-black uppercase tracking-widest mb-1">
+          {offlineDevices.length} Device{offlineDevices.length > 1 ? 's' : ''} Offline
+        </p>
+        {offlineDevices.map(d => (
+          <p key={d._id} className="text-amber-400/60 text-[8px] font-bold">
+            ⚠ {espnowService.getDeviceLabel(d)} — {d.lastSeenAgo ? `last seen ${d.lastSeenAgo}` : 'never seen'}
+          </p>
+        ))}
       </div>
-      <div className="grid grid-cols-2 gap-2 text-[7px]">
-        <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2">
-          <p className="text-white/25 uppercase tracking-widest mb-0.5">MAC</p>
-          <p className="text-white/60 font-mono font-bold">{device.mac}</p>
-        </div>
-        <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2">
-          <p className="text-white/25 uppercase tracking-widest mb-0.5">Heartbeat</p>
-          <p className="text-white/60 font-bold">{device.heartbeatAgo || 'Never'}</p>
-        </div>
-        {device.firmwareVersion && (
-          <div className="col-span-2 bg-white/5 border border-white/8 rounded-xl px-3 py-2">
-            <p className="text-white/25 uppercase tracking-widest mb-0.5">Firmware</p>
-            <p className="text-white/60 font-bold">{device.firmwareVersion}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-);
+    </motion.div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN PAGE
@@ -409,15 +626,19 @@ export const SmartBoxDashboard = () => {
   const { theme } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
 
-  const [status,    setStatus]    = useState<PondIoTStatus | null>(null);
-  const [commands,  setCommands]  = useState<EspAeratorCommand[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
-  const [lastPoll,  setLastPoll]  = useState<Date | null>(null);
-  const [spinning,  setSpinning]  = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [status,     setStatus]     = useState<PondIoTStatus | null>(null);
+  const [commands,   setCommands]   = useState<EspAeratorCommand[]>([]);
+  const [discoveries, setDiscoveries] = useState<EspDiscoverEntry[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState<string | null>(null);
+  const [lastPoll,   setLastPoll]   = useState<Date | null>(null);
+  const [spinning,   setSpinning]   = useState(false);
+  const [assignTarget, setAssignTarget] = useState<EspDiscoverEntry | null>(null);
 
-  // ── Data fetch ──────────────────────────────────────────────────────────────
+  const pollRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const discoverRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Data fetch ─────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async (showSpinner = false) => {
     if (!pondId) return;
     if (showSpinner) setSpinning(true);
@@ -438,30 +659,44 @@ export const SmartBoxDashboard = () => {
     }
   }, [pondId]);
 
-  // Initial + polling
+  const fetchDiscoveries = useCallback(async () => {
+    if (!pondId) return;
+    try {
+      const entries = await espnowService.getPendingDiscoveries(pondId);
+      setDiscoveries(entries);
+    } catch {
+      // Non-critical — don't show error for discovery polling
+    }
+  }, [pondId]);
+
   useEffect(() => {
     fetchAll();
-    pollRef.current = setInterval(() => fetchAll(), POLL_INTERVAL_MS);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchAll]);
+    fetchDiscoveries();
+    pollRef.current     = setInterval(() => fetchAll(), POLL_INTERVAL_MS);
+    discoverRef.current = setInterval(() => fetchDiscoveries(), DISCOVER_POLL_MS);
+    return () => {
+      if (pollRef.current)     clearInterval(pollRef.current);
+      if (discoverRef.current) clearInterval(discoverRef.current);
+    };
+  }, [fetchAll, fetchDiscoveries]);
 
-  // ── Derived ─────────────────────────────────────────────────────────────────
-  const masterDevice = status?.devices.find(d => d.role === 'master');
-  const slaveDevices = status?.devices.filter(d => d.role === 'slave') ?? [];
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const masterDevice  = status?.devices.find(d => d.role === 'master');
+  const slaveDevices  = status?.devices.filter(d => d.role === 'slave') ?? [];
   const reading: EspSensorReading | null = status?.latestReading ?? null;
-  const pendingCmds = status?.pendingCommandDetails ?? [];
+  const pendingCmds   = status?.pendingCommandDetails ?? [];
 
   const SENSORS: { key: string; label: string; value: number | undefined; unit: string; icon: any }[] = [
-    { key: 'do',       label: 'DO',        unit: 'mg/L', icon: Droplets,     value: reading?.do },
-    { key: 'ph',       label: 'pH',        unit: '',     icon: Activity,     value: reading?.ph },
-    { key: 'temp',     label: 'Temp',      unit: '°C',   icon: Thermometer,  value: reading?.temp },
-    { key: 'salinity', label: 'Salinity',  unit: 'ppt',  icon: Waves,        value: reading?.salinity },
+    { key: 'do',       label: 'DO',        unit: 'mg/L', icon: Droplets,      value: reading?.do },
+    { key: 'ph',       label: 'pH',        unit: '',     icon: Activity,      value: reading?.ph },
+    { key: 'temp',     label: 'Temp',      unit: '°C',   icon: Thermometer,   value: reading?.temp },
+    { key: 'salinity', label: 'Salinity',  unit: 'ppt',  icon: Waves,         value: reading?.salinity },
     { key: 'ammonia',  label: 'Ammonia',   unit: 'mg/L', icon: AlertTriangle, value: reading?.ammonia },
-    { key: 'turbidity',label: 'Turbidity', unit: 'NTU',  icon: Wind,         value: reading?.turbidity },
+    { key: 'turbidity',label: 'Turbidity', unit: 'NTU',  icon: Wind,          value: reading?.turbidity },
     { key: 'tds',      label: 'TDS',       unit: 'mg/L', icon: BatteryMedium, value: reading?.tds },
   ];
 
-  // ── Loading skeleton ─────────────────────────────────────────────────────────
+  // ── Loading skeleton ───────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className={cn('min-h-screen flex flex-col', isDark ? 'bg-[#06100A]' : 'bg-[#F0F4F2]')}>
@@ -484,8 +719,8 @@ export const SmartBoxDashboard = () => {
     );
   }
 
-  // ── No devices state ─────────────────────────────────────────────────────────
-  if (!loading && !error && status?.devices.length === 0) {
+  // ── No devices state ───────────────────────────────────────────────────────
+  if (!loading && !error && status?.devices.length === 0 && discoveries.length === 0) {
     return (
       <div className={cn('min-h-screen', isDark ? 'bg-[#06100A]' : 'bg-[#F0F4F2]')}>
         <header className={cn(
@@ -503,17 +738,21 @@ export const SmartBoxDashboard = () => {
             <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Cpu size={28} className="text-white/20" />
             </div>
-            <h2 className={cn('font-black text-base mb-2', isDark ? 'text-white' : 'text-slate-900')}>No Devices Registered</h2>
+            <h2 className={cn('font-black text-base mb-2', isDark ? 'text-white' : 'text-slate-900')}>Waiting for Devices</h2>
             <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-500')}>
-              Register a Master ESP32 and Smart Box slaves to this pond to enable IoT control.
+              Power on your Smart Boxes. They will appear here automatically once detected by the Master Box.
             </p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-white/20">
+              <div className="w-1.5 h-1.5 bg-emerald-400/50 rounded-full animate-pulse" />
+              <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/50">Scanning for devices…</span>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── MAIN RENDER ──────────────────────────────────────────────────────────────
+  // ── MAIN RENDER ────────────────────────────────────────────────────────────
   return (
     <div className={cn('min-h-screen pb-10', isDark ? 'bg-[#06100A]' : 'bg-[#F0F4F2]')}>
 
@@ -540,11 +779,17 @@ export const SmartBoxDashboard = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {discoveries.length > 0 && (
+            <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/25 rounded-full px-2 py-1">
+              <Sparkles size={9} className="text-emerald-400" />
+              <span className="text-emerald-400 text-[7px] font-black">{discoveries.length} new</span>
+            </div>
+          )}
           <LiveBadge />
           <motion.button
             id="iot-refresh-btn"
             whileTap={{ scale: 0.9 }}
-            onClick={() => fetchAll(true)}
+            onClick={() => { fetchAll(true); fetchDiscoveries(); }}
             className={cn('w-9 h-9 rounded-xl flex items-center justify-center border transition-all', isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-white border-slate-200 text-slate-500')}
           >
             <motion.div animate={{ rotate: spinning ? 360 : 0 }} transition={{ duration: 0.5 }}>
@@ -572,6 +817,22 @@ export const SmartBoxDashboard = () => {
           )}
         </AnimatePresence>
 
+        {/* ── DISCOVERY BANNER (New Device Found) ── */}
+        <AnimatePresence>
+          {discoveries.length > 0 && (
+            <DiscoveryBanner
+              entries={discoveries}
+              isDark={isDark}
+              onAssign={entry => setAssignTarget(entry)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── OFFLINE ALERTS ── */}
+        {status?.devices && (
+          <OfflineAlertBanner devices={status.devices} isDark={isDark} />
+        )}
+
         {/* ── MASTER BOX ── */}
         {masterDevice && (
           <div>
@@ -580,6 +841,11 @@ export const SmartBoxDashboard = () => {
             </p>
             <MasterBoxCard device={masterDevice} isDark={isDark} />
           </div>
+        )}
+
+        {/* ── TOPOLOGY TREE ── */}
+        {masterDevice && slaveDevices.length > 0 && (
+          <TopologyTree master={masterDevice} slaves={slaveDevices} isDark={isDark} />
         )}
 
         {/* ── SENSOR READINGS ── */}
@@ -595,26 +861,16 @@ export const SmartBoxDashboard = () => {
             </div>
             <div className="grid grid-cols-4 gap-2">
               {SENSORS.slice(0, 4).map(s => (
-                <SensorTile
-                  key={s.key}
-                  label={s.label}
-                  value={s.value ?? undefined}
-                  unit={s.unit}
-                  keyName={s.key}
-                  icon={s.icon}
-                />
+                <React.Fragment key={s.key}>
+                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} />
+                </React.Fragment>
               ))}
             </div>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {SENSORS.slice(4).map(s => (
-                <SensorTile
-                  key={s.key}
-                  label={s.label}
-                  value={s.value ?? undefined}
-                  unit={s.unit}
-                  keyName={s.key}
-                  icon={s.icon}
-                />
+                <React.Fragment key={s.key}>
+                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} />
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -668,6 +924,23 @@ export const SmartBoxDashboard = () => {
           </p>
         )}
       </div>
+
+      {/* ── DEVICE ASSIGNMENT MODAL ── */}
+      <AnimatePresence>
+        {assignTarget && (
+          <DeviceAssignmentModal
+            entry={assignTarget}
+            pondId={pondId!}
+            isDark={isDark}
+            onAssigned={() => {
+              setAssignTarget(null);
+              fetchAll(true);
+              fetchDiscoveries();
+            }}
+            onDismiss={() => setAssignTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

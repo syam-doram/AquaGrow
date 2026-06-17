@@ -19,6 +19,7 @@ import authRoutes from './routes/auth.js';
 import providerRoutes from './routes/provider.js';
 import hrmsRoutes from './routes/hrms.js';
 import espnowRoutes from './routes/espnow.js';
+import { startIoTAlertJob } from './jobs/iotAlertJob.js';
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
 
 const app = express();
@@ -1284,6 +1285,11 @@ const sendFCM = async (token: string, payload: admin.messaging.Message): Promise
   console.log('[SIMULATED-PUSH]', JSON.stringify(payload.notification));
   return false;
 };
+
+// ─── Start IoT offline detection job ─────────────────────────────────────────
+// Runs every 30 seconds. When a device hasn't sent a heartbeat/ingest for 30s,
+// sends a push notification to the farmer (using displayName, not MAC).
+startIoTAlertJob(sendFCM);
 
 // ─── Test Push Endpoint (debug only) ─────────────────────────────────────────
 // POST /api/push/test  { userId: "..." }
