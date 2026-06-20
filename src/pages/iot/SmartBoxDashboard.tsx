@@ -720,10 +720,14 @@ export const SmartBoxDashboard = () => {
   }, [fetchAll, fetchDiscoveries]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const masterDevice  = status?.devices.find(d => d.role === 'master');
-  const slaveDevices  = status?.devices.filter(d => d.role === 'slave') ?? [];
+  const masterDevice        = status?.devices.find(d => d.role === 'master');
+  const slaveDevices        = status?.devices.filter(d => d.role === 'slave') ?? [];
+  // Only show sensor data / commands for Smart Boxes that have been assigned by the farmer.
+  // Discovered (unassigned) devices only appear in the "New Devices Found" banner.
+  const assignedSlaves      = slaveDevices.filter(d => d.pairingStatus === 'assigned');
+  const hasAssignedSlaves   = assignedSlaves.length > 0;
   const reading: EspSensorReading | null = status?.latestReading ?? null;
-  const pendingCmds   = status?.pendingCommandDetails ?? [];
+  const pendingCmds         = status?.pendingCommandDetails ?? [];
 
   const SENSORS: { key: string; label: string; value: number | undefined; unit: string; icon: any }[] = [
     { key: 'do',       label: 'DO',        unit: 'mg/L', icon: Droplets,      value: reading?.do },
@@ -939,8 +943,8 @@ export const SmartBoxDashboard = () => {
           <TopologyTree master={masterDevice} slaves={slaveDevices} isDark={isDark} />
         )}
 
-        {/* ── SENSOR READINGS ── */}
-        {reading && (
+        {/* ── SENSOR READINGS — only when ≥1 Smart Box assigned ── */}
+        {hasAssignedSlaves && reading && (
           <div>
             <div className="flex items-center justify-between mb-2 px-1">
               <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
@@ -967,14 +971,14 @@ export const SmartBoxDashboard = () => {
           </div>
         )}
 
-        {/* ── SMART BOXES (SLAVES) ── */}
-        {slaveDevices.length > 0 && (
+        {/* ── SMART BOXES (assigned slaves only) ── */}
+        {assignedSlaves.length > 0 && (
           <div>
             <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-              Smart Boxes · {slaveDevices.length} unit{slaveDevices.length !== 1 ? 's' : ''}
+              Smart Boxes · {assignedSlaves.length} unit{assignedSlaves.length !== 1 ? 's' : ''}
             </p>
             <div className="space-y-3">
-              {slaveDevices.map((d, i) => (
+              {assignedSlaves.map((d, i) => (
                 <React.Fragment key={d._id}>
                   <SmartBoxCard
                     device={d}
@@ -990,8 +994,8 @@ export const SmartBoxDashboard = () => {
           </div>
         )}
 
-        {/* ── COMMAND HISTORY ── */}
-        {commands.length > 0 && (
+        {/* ── COMMAND HISTORY — only when ≥1 Smart Box assigned ── */}
+        {hasAssignedSlaves && commands.length > 0 && (
           <div>
             <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
               Command History
