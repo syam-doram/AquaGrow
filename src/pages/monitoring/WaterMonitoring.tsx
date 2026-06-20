@@ -18,6 +18,7 @@ import type { Translations } from '../../translations';
 import { format, subDays, isSameDay, addDays, startOfToday, startOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { iotService, SensorData } from '../../services/iotService';
+import { espnowService } from '../../services/espnowService';
 import { motion, AnimatePresence } from 'motion/react';
 import { calculateDOC } from '../../utils/pondUtils';
 
@@ -135,6 +136,8 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
   const [connType, setConnType] = useState<'BLE' | 'WiFi' | null>(null);
   const [liveData, setLiveData] = useState<SensorData | null>(null);
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
+  const [pondIotStatus, setPondIotStatus] = useState<any>(null);
+  const [iotSyncing, setIotSyncing] = useState(false);
 
   const selectedPond = ponds.find(p => p.id === selectedPondId);
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -147,16 +150,42 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
     return () => clearTimeout(timer);
   }, [selectedPondId, selectedDate]);
 
+  // ── SMART BOX LIVE SYNC ─────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const fetchIot = async () => {
+      if (!selectedPondId) return;
+      setIotSyncing(true);
+      try {
+        const status = await espnowService.getPondStatus(selectedPondId);
+        if (!cancelled) setPondIotStatus(status);
+      } catch { /* silent — no device registered is fine */ }
+      finally { if (!cancelled) setIotSyncing(false); }
+    };
+    fetchIot();
+    const t = setInterval(fetchIot, 30_000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [selectedPondId]);
+
+  // Smart Box slave with sensor data for this pond
+  const espSlave     = (pondIotStatus?.devices ?? []).find((d: any) => d.role === 'slave' && d.pairingStatus === 'assigned');
+  const espReading   = pondIotStatus?.latestReading ?? null;
+  const hasEspnow    = !!(espSlave && espReading);
+
+  // Effective data: Smart Box auto-feeds live data; manual BLE/WiFi sync overrides it
+  const effectiveLiveData = liveData ?? espReading ?? null;
+  const effectiveLiveMode = !!(liveData || hasEspnow);
+
   const latestRecord = waterRecords
     .filter(r => r.pondId === selectedPondId && (r.date === dateStr || isSameDay(new Date(r.date), selectedDate)))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
-  const health = calcHealth(isLiveMode ? liveData : latestRecord);
+  const health = calcHealth(effectiveLiveMode ? effectiveLiveData : latestRecord);
   const doc = selectedPond ? calculateDOC(selectedPond.stockingDate) : 0;
 
   const METRICS = useMemo(
-    () => getMetrics(latestRecord, liveData, isLiveMode),
-    [latestRecord, liveData, isLiveMode]
+    () => getMetrics(latestRecord, effectiveLiveData, effectiveLiveMode),
+    [latestRecord, effectiveLiveData, effectiveLiveMode]
   );
   const loggedCount = METRICS.filter(m => m.val !== undefined && m.val !== null).length;
   const warnCount   = METRICS.filter(m => m.val !== undefined && m.val !== null && m.warn(m.val as number)).length;
@@ -341,7 +370,19 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
                 {/* IoT row */}
                 <div className="flex items-center gap-2 pt-3 border-t border-white/10">
                   <p className="text-[7px] font-black text-white/30 uppercase tracking-widest flex-1">IoT Sync</p>
-                  {isLiveMode ? (
+
+                  {hasEspnow ? (
+                    /* Smart Box auto-connected */
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                        <span className="text-[8px] font-black text-emerald-200 uppercase tracking-widest">
+                          Smart Box · Live
+                        </span>
+                      </div>
+                      {iotSyncing && <RefreshCcw size={10} className="text-white/30 animate-spin" />}
+                    </div>
+                  ) : isLiveMode ? (
                     <button onClick={() => setIsLiveMode(false)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-400/30 text-[8px] font-black text-red-200 uppercase tracking-widest">
                       <X size={10} /> Disconnect
@@ -415,7 +456,49 @@ export const WaterMonitoring = ({ t, onMenuClick }: { t: Translations; onMenuCli
               </div>
             </div>
 
+            {/* ─── SMART BOX LIVE DATA BANNER ─── */}
+            {hasEspnow && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  'rounded-2xl border px-4 py-3 flex items-center gap-3',
+                  isDark ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200',
+                )}
+              >
+                {/* Pulse dot */}
+                <div className={cn(
+                  'w-9 h-9 rounded-2xl border flex items-center justify-center flex-shrink-0',
+                  isDark ? 'bg-emerald-500/15 border-emerald-500/25' : 'bg-emerald-100 border-emerald-300',
+                )}>
+                  <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
+                </div>
 
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p className={cn('text-[10px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                      {espnowService.getDeviceLabel(espSlave)}
+                    </p>
+                    <span className="flex-shrink-0 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5 text-emerald-400 text-[6px] font-black uppercase tracking-widest">
+                      ESP-NOW
+                    </span>
+                  </div>
+                  <p className={cn('text-[7px] font-medium', isDark ? 'text-white/30' : 'text-slate-500')}>
+                    Auto-syncing · {espReading?.recordedAt
+                      ? new Date(espReading.recordedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                      : 'Waiting for data'
+                    }
+                  </p>
+                </div>
+
+                {/* Live badge */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400' : 'text-emerald-700')}>Live</span>
+                </div>
+              </motion.div>
+            )}
 
             {/* ═══════════════════════════════════════════════════
                 PARAMETER GRID
