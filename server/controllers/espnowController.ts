@@ -465,18 +465,41 @@ export const heartbeat = async (req: Request, res: Response): Promise<void> => {
     const device = (req as any).device;
     const now = new Date();
 
+    // ── Resolve pondId ─────────────────────────────────────────────────────
+    // The authenticating device record may lack pondId if it was created before
+    // the farmer registered the device in the app (split-record scenario).
+    // Look up the canonical pondId by boxId and patch this record immediately.
+    let resolvedPondId: string | null = device.pondId || null;
+
+    if (!resolvedPondId && device.boxId) {
+      // Find any other record with the same boxId that has a pondId
+      const canonical = await EspDevice.findOne(
+        { boxId: device.boxId, pondId: { $exists: true, $ne: null }, _id: { $ne: device._id } },
+        { pondId: 1, userId: 1 }
+      );
+      if (canonical?.pondId) {
+        resolvedPondId = String(canonical.pondId);
+        console.log(`[HB] Resolved pondId ${resolvedPondId} for device ${device.boxId} via canonical lookup`);
+        // Patch this device record so future heartbeats skip the lookup
+        await EspDevice.findByIdAndUpdate(device._id, {
+          pondId: canonical.pondId,
+          userId: canonical.userId,
+        });
+      }
+    }
+
     await Promise.all([
       EspDevice.findByIdAndUpdate(device._id, { lastSeen: now, heartbeatAt: now }),
-      EspHeartbeat.create({ deviceId: String(device._id), pondId: device.pondId, mac: device.mac, at: now }),
+      EspHeartbeat.create({ deviceId: String(device._id), pondId: resolvedPondId, mac: device.mac, at: now }),
     ]);
 
-    // Include pondId so the Master Box firmware can save it to NVS via saveConfig()
-    // This is the authoritative way the Master learns its pondId after registration.
+    console.log(`[HB] ${device.boxId || device.mac} → pondId=${resolvedPondId}`);
+
     res.json({
-      ok: true,
+      ok:         true,
       serverTime: now.toISOString(),
-      pondId: device.pondId || null,          // ← Master Box calls saveConfig(pondId) on receipt
-      boxId:  device.boxId  || null,          // ← confirm registration
+      pondId:     resolvedPondId,   // ← Master Box saves to NVS via saveConfig()
+      boxId:      device.boxId || null,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
