@@ -564,10 +564,11 @@ export const ingestReadings = async (req: Request, res: Response): Promise<void>
         if (s.rssi     != null) slaveSet.signalStrength = s.rssi;
 
         // Prefer boxId lookup, fall back to mac lookup
+        // NOTE: no isActive filter — newly registered slaves must also get lastSeen updates
         if (s.boxId) {
-          slaveOps.push({ updateOne: { filter: { boxId: s.boxId, isActive: true }, update: { $set: slaveSet } } });
+          slaveOps.push({ updateOne: { filter: { boxId: s.boxId }, update: { $set: { ...slaveSet, isActive: true } } } });
         } else if (s.mac) {
-          slaveOps.push({ updateOne: { filter: { mac: normalizeMac(s.mac), isActive: true }, update: { $set: slaveSet } } });
+          slaveOps.push({ updateOne: { filter: { mac: normalizeMac(s.mac) }, update: { $set: { ...slaveSet, isActive: true } } } });
         }
       }
     }
@@ -935,11 +936,11 @@ export const getPondIoTStatus = async (req: Request, res: Response): Promise<voi
       ).sort({ issuedAt: 1 }),
     ]);
 
-    const thirtySecsAgo = new Date(Date.now() - 30 * 1000);
+    const onlineThreshold = new Date(Date.now() - 120 * 1000); // 2 min window (accounts for Render cold starts)
 
     const devicesWithStatus = devices.map(d => {
       const obj = d.toObject() as any;
-      obj.online       = d.lastSeen ? d.lastSeen > thirtySecsAgo : false;
+      obj.online       = d.lastSeen ? d.lastSeen > onlineThreshold : false;
       obj.lastSeenAgo  = relativeTime(d.lastSeen);
       obj.heartbeatAgo = relativeTime((d as any).heartbeatAt);
       // Ensure every device has a human-readable name
