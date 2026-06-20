@@ -723,27 +723,46 @@ const SmartBoxConfigureStep = ({
   ponds: any[];
   masterDevices: any[];
   isDark: boolean;
-  onRegister: (displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave') => Promise<void>;
+  onRegister: (displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave', aeratorLabels: string[]) => Promise<void>;
   onBack: () => void;
 }) => {
   const initialType: DeviceType = device.deviceClass != null ? (CLASS_TO_TYPE[device.deviceClass] || 'AERATOR') : 'AERATOR';
 
-  const [displayName,  setDisplayName]  = useState('');
-  const [deviceType,   setDeviceType]   = useState<DeviceType>(initialType);
-  const [selectedPond, setSelectedPond] = useState(ponds[0]?.id || ponds[0]?._id || '');
-  const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
+  const [displayName,     setDisplayName]     = useState('');
+  const [deviceType,      setDeviceType]      = useState<DeviceType>(initialType);
+  const [selectedPond,    setSelectedPond]    = useState(ponds[0]?.id || ponds[0]?._id || '');
+  const [aeratorLabels,   setAeratorLabels]   = useState<string[]>([]);
+  const [customAerator,   setCustomAerator]   = useState('');
+  const [loading,         setLoading]         = useState(false);
+  const [error,           setError]           = useState<string | null>(null);
 
   const suggestedName = DEVICE_TYPE_OPTIONS.find(o => o.value === deviceType)?.label ?? 'Smart Box';
 
+  // Get aerator positions from the selected pond
+  const selectedPondData = ponds.find((p: any) => (p.id || p._id) === selectedPond);
+  const pondAeratorPositions: string[] = selectedPondData?.aerators?.positions?.filter(Boolean) ?? [];
+
   // Auto-select pond if only one master
   const masterForPond = masterDevices.find((m: any) => (m.pondId === selectedPond || m.pond === selectedPond));
+
+  const toggleAerator = (label: string) => {
+    setAeratorLabels(prev =>
+      prev.includes(label) ? prev.filter(a => a !== label) : [...prev, label]
+    );
+  };
+
+  const addCustomAerator = () => {
+    const trimmed = customAerator.trim();
+    if (!trimmed || aeratorLabels.includes(trimmed)) { setCustomAerator(''); return; }
+    setAeratorLabels(prev => [...prev, trimmed]);
+    setCustomAerator('');
+  };
 
   const handleRegister = async () => {
     if (!selectedPond) { setError('Please select a pond.'); return; }
     setLoading(true); setError(null);
     try {
-      await onRegister(displayName.trim() || suggestedName, deviceType, selectedPond, 'slave');
+      await onRegister(displayName.trim() || suggestedName, deviceType, selectedPond, 'slave', aeratorLabels);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
@@ -857,6 +876,90 @@ const SmartBoxConfigureStep = ({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Aerators Controlled (AERATOR type only) ──────────────────── */}
+      {deviceType === 'AERATOR' && (
+        <div>
+          <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
+            Aerators Controlled
+          </p>
+
+          {/* Pond aerator positions as toggle chips */}
+          {pondAeratorPositions.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {pondAeratorPositions.map(pos => {
+                const selected = aeratorLabels.includes(pos);
+                return (
+                  <motion.button key={pos} whileTap={{ scale: 0.93 }}
+                    onClick={() => toggleAerator(pos)}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all',
+                      selected
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                        : isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-slate-100 border-slate-200 text-slate-500',
+                    )}
+                  >
+                    {selected && <CheckCircle2 size={10} />}
+                    💨 {pos}
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Custom-added aerators (not in pond positions) */}
+          {aeratorLabels.filter(a => !pondAeratorPositions.includes(a)).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {aeratorLabels.filter(a => !pondAeratorPositions.includes(a)).map(label => (
+                <span key={label}
+                  className={cn('flex items-center gap-1 rounded-full border px-2.5 py-1 text-[8px] font-black',
+                    isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-emerald-100 border-emerald-300 text-emerald-700',
+                  )}
+                >
+                  💨 {label}
+                  <button onClick={() => toggleAerator(label)} className="ml-0.5 opacity-60 hover:opacity-100">
+                    <X size={9} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Custom aerator name input */}
+          <div className={cn('flex items-center gap-2 rounded-2xl border px-3 py-2.5',
+            isDark ? 'bg-white/5 border-white/10 focus-within:border-emerald-500/40' : 'bg-slate-50 border-slate-200 focus-within:border-emerald-400',
+          )}>
+            <Wind size={12} className={isDark ? 'text-white/30' : 'text-slate-400'} />
+            <input
+              id="custom-aerator-input"
+              type="text"
+              value={customAerator}
+              onChange={e => setCustomAerator(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addCustomAerator()}
+              placeholder="Add aerator (e.g. NE Corner, Paddle 1)…"
+              maxLength={30}
+              className={cn('flex-1 bg-transparent outline-none text-[10px] font-bold',
+                isDark ? 'text-white placeholder:text-white/20' : 'text-slate-900 placeholder:text-slate-400',
+              )}
+            />
+            <motion.button whileTap={{ scale: 0.9 }} onClick={addCustomAerator}
+              disabled={!customAerator.trim()}
+              className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full transition-all',
+                customAerator.trim()
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : isDark ? 'text-white/20' : 'text-slate-300',
+              )}
+            >
+              Add
+            </motion.button>
+          </div>
+          <p className={cn('text-[7px] font-medium mt-1.5 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+            {aeratorLabels.length === 0
+              ? 'Optional — select or add which aerators this Smart Box controls.'
+              : `${aeratorLabels.length} aerator${aeratorLabels.length > 1 ? 's' : ''} selected`}
+          </p>
         </div>
       )}
 
@@ -1098,9 +1201,10 @@ export const DeviceRegistration = () => {
 
   const handleRegister = useCallback(async (
     displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave',
+    aeratorLabels: string[] = [],
   ) => {
     if (!device) return;
-    const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role });
+    const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
     setSuccess({
       deviceName: displayName,
       boxId: device.boxId,

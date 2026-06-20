@@ -357,14 +357,14 @@ export const getPendingDiscoveries = async (req: Request, res: Response): Promis
  * POST /api/espnow/devices/assign
  * Farmer assigns a discovered Smart Box a displayName, deviceType, and pond.
  * JWT-protected.
- * Body: { boxId: "SB001", displayName: "Pond 1 Aerator", deviceType: "AERATOR", pondId: "..." }
+ * Body: { boxId: "SB001", displayName: "Pond 1 Aerator", deviceType: "AERATOR", pondId: "...", aeratorLabels?: ["NE Corner", "SW Corner"] }
  */
 export const assignDevice = async (req: Request, res: Response): Promise<void> => {
   try {
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
     const userId = (req as any).user?.id;
-    const { boxId, displayName, deviceType, pondId, role: reqRole } = req.body;
+    const { boxId, displayName, deviceType, pondId, role: reqRole, aeratorLabels } = req.body;
 
     if (!boxId)       { res.status(400).json({ error: 'boxId is required' }); return; }
     if (!displayName) { res.status(400).json({ error: 'displayName is required' }); return; }
@@ -407,6 +407,10 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
           pairingStatus: 'assigned',
           isActive:      true,
           aeratorState:  'UNKNOWN',
+          // Store aerator labels if provided (which physical aerators this Smart Box controls)
+          ...(Array.isArray(aeratorLabels) && aeratorLabels.length > 0
+            ? { aeratorLabels }
+            : {}),
         },
         // $setOnInsert only runs on upsert-create, not on update of existing doc
         $setOnInsert: {

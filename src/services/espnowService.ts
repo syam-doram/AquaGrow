@@ -177,6 +177,7 @@ export interface AssignDevicePayload {
   deviceType: DeviceType;
   pondId: string;
   role?: 'master' | 'slave';   // defaults to 'slave' on backend if omitted
+  aeratorLabels?: string[];     // which pond aerators this Smart Box controls
 }
 
 // ─── Auth helpers ────────────────────────────────────────────────────────────

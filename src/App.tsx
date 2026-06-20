@@ -368,7 +368,10 @@ const AppContent = () => {
   const isFarmer = user?.role === 'farmer';
 
   // Determine if BottomNav should be shown based on path
-  const showFarmerNav = isFarmer && [
+  // NOTE: /ponds/:id/iot matches the /ponds prefix — explicitly exclude all /iot paths.
+  const isIotPage = location.pathname.includes('/iot') || location.pathname.includes('/device-registration');
+
+  const showFarmerNav = isFarmer && !isIotPage && [
     '/dashboard',
     '/ponds',
     '/monitor',
@@ -382,7 +385,6 @@ const AppContent = () => {
     '/roi/pond-wise',
     '/roi/year-wise',
     '/smart-farm',
-    // NOTE: /iot and /device-registration intentionally excluded — IoT dashboard is full-screen
   ].some(path => location.pathname.startsWith(path));
 
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');

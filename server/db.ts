@@ -379,6 +379,7 @@ const EspDeviceSchema = new mongoose.Schema({
   powerWatts:    { type: Number },                        // last reported power (W)
   signalStrength:{ type: Number },                        // RSSI from slave (dBm)
   metadata:      { type: Map, of: String },               // flexible extra fields
+  aeratorLabels: [{ type: String }],                      // which aerators this Smart Box controls
 }, { timestamps: true, collection: 'espdevices' });
 
 // Unique sparse index on boxId (sparse = allows multiple nulls for legacy devices)
