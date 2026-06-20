@@ -732,25 +732,67 @@ export const SmartBoxDashboard = () => {
             <ChevronLeft size={18} />
           </button>
           <h1 className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Smart Box Control</h1>
+          <button
+            onClick={() => fetchAll(true)}
+            className={cn('ml-auto w-9 h-9 rounded-xl flex items-center justify-center border', isDark ? 'bg-white/5 border-white/10 text-white/50' : 'bg-white border-slate-200 text-slate-500')}
+          >
+            <RefreshCw size={14} />
+          </button>
         </header>
-        <div className="pt-24 flex items-center justify-center min-h-[60vh] px-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Cpu size={28} className="text-white/20" />
+        <div className="pt-24 px-4 space-y-4">
+
+          {/* Error banner if any */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 flex items-center gap-3">
+              <WifiOff size={14} className="text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-[9px] font-bold">{error}</p>
             </div>
-            <h2 className={cn('font-black text-base mb-2', isDark ? 'text-white' : 'text-slate-900')}>Waiting for Devices</h2>
-            <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-500')}>
-              Power on your Smart Boxes. They will appear here automatically once detected by the Master Box.
+          )}
+
+          {/* No Master Box registered yet */}
+          <div className={cn('rounded-[1.75rem] border p-6 text-center', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+            <div className="w-16 h-16 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Radio size={28} className="text-violet-400" />
+            </div>
+            <h2 className={cn('font-black text-sm mb-2', isDark ? 'text-white' : 'text-slate-900')}>No Master Box Found</h2>
+            <p className={cn('text-[9px] font-medium leading-relaxed mb-5', isDark ? 'text-white/30' : 'text-slate-500')}>
+              Register your Master Box first. It connects to the cloud and manages all Smart Boxes over ESP-NOW.
             </p>
-            <div className="mt-4 flex items-center justify-center gap-2 text-white/20">
-              <div className="w-1.5 h-1.5 bg-emerald-400/50 rounded-full animate-pulse" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/50">Scanning for devices…</span>
-            </div>
+            <motion.button
+              id="empty-register-master-btn"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(`/ponds/${pondId}/iot/register`)}
+              className="w-full py-4 rounded-2xl bg-violet-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
+            >
+              <Plus size={15} /> Register Master Box
+            </motion.button>
+          </div>
+
+          {/* Step guide */}
+          <div className={cn('rounded-2xl border p-4 space-y-3', isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200')}>
+            <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>Setup Guide</p>
+            {[
+              { step: '1', text: 'Register Master Box via this app → get API Key', color: 'text-violet-400' },
+              { step: '2', text: 'Flash the API Key into Master Box firmware', color: 'text-sky-400' },
+              { step: '3', text: 'Power on Master Box → heartbeat shows 200 OK', color: 'text-emerald-400' },
+              { step: '4', text: 'Power on Smart Boxes → they auto-discover', color: 'text-amber-400' },
+            ].map(({ step, text, color }) => (
+              <div key={step} className="flex items-start gap-3">
+                <div className={cn('w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 text-[7px] font-black', isDark ? 'border-white/15 text-white/30' : 'border-slate-300 text-slate-400')}>
+                  {step}
+                </div>
+                <p className={cn('text-[8px] font-bold leading-relaxed pt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>
+                  <span className={color}>{text.split(' → ')[0]}</span>
+                  {text.includes(' → ') ? ` → ${text.split(' → ')[1]}` : ''}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     );
   }
+
 
   // ── MAIN RENDER ────────────────────────────────────────────────────────────
   return (
