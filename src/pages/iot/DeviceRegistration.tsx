@@ -939,10 +939,21 @@ const SmartBoxConfigureStep = ({
 //  SUCCESS VIEW
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SuccessView = ({ deviceName, boxId, isMaster, isDark, onDone, onRegisterAnother }: {
+const SuccessView = ({ deviceName, boxId, isMaster, isDark, apiKey, onDone, onRegisterAnother }: {
   deviceName: string; boxId: string; isMaster: boolean; isDark: boolean;
+  apiKey?: string;
   onDone: () => void; onRegisterAnother: () => void;
 }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyKey = () => {
+    if (!apiKey) return;
+    navigator.clipboard.writeText(apiKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const steps = isMaster
     ? ['Master Box is now live on your dashboard', 'Power on Smart Boxes near this Master Box', 'Smart Boxes will auto-discover and appear in app']
     : ['Smart Box visible on IoT dashboard', 'It will pair to the Master Box automatically', 'Aerator/sensor now remotely controllable'];
@@ -967,6 +978,40 @@ const SuccessView = ({ deviceName, boxId, isMaster, isDark, onDone, onRegisterAn
           <span className={cn('font-black', isMaster ? 'text-violet-400' : 'text-emerald-400')}>{deviceName}</span> ({boxId}) is now active.
         </p>
       </div>
+
+      {/* ── API Key box — shown only for Master registrations ── */}
+      {isMaster && apiKey && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="w-full rounded-2xl border overflow-hidden bg-gradient-to-br from-violet-500/10 to-indigo-500/5 border-violet-500/25"
+        >
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-violet-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🔑 Firmware API Key</p>
+            <p className={cn('text-[7px] font-medium leading-relaxed mb-2.5', isDark ? 'text-white/40' : 'text-slate-500')}>
+              Copy this key into <code className="bg-black/20 px-1 py-0.5 rounded text-violet-300">DEVICE_API_KEY</code> in your Master Box firmware and re-flash.
+            </p>
+            <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
+              isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
+            )}>
+              <code className={cn('flex-1 text-[8px] font-mono break-all leading-relaxed text-left',
+                isDark ? 'text-violet-300' : 'text-violet-700',
+              )}>{apiKey}</code>
+              <button id="copy-api-key-btn" onClick={copyKey}
+                className={cn('flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[7.5px] font-black uppercase tracking-widest transition-all',
+                  copied
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-violet-500/20 text-violet-400 border border-violet-500/30 active:scale-95',
+                )}
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+            <p className={cn('text-[6.5px] font-bold mt-2', isDark ? 'text-amber-400/60' : 'text-amber-600')}>
+              ⚠ Store this key now — it will not be shown again.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {steps.map((step, i) => (
         <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 + i * 0.08 }}
@@ -1011,7 +1056,7 @@ export const DeviceRegistration = () => {
   const [mode,     setMode]     = useState<RegistrationMode>('choose_method');
   const [step,     setStep]     = useState<RegistrationStep>('category');
   const [device,   setDevice]   = useState<ScannedDevice | null>(null);
-  const [success,  setSuccess]  = useState<{ deviceName: string; boxId: string; isMaster: boolean } | null>(null);
+  const [success,  setSuccess]  = useState<{ deviceName: string; boxId: string; isMaster: boolean; apiKey?: string } | null>(null);
 
   // Fetch live IoT status to find existing master devices
   const [masterDevices, setMasterDevices] = useState<any[]>([]);
@@ -1055,8 +1100,13 @@ export const DeviceRegistration = () => {
     displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave',
   ) => {
     if (!device) return;
-    await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role });
-    setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: role === 'master' });
+    const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role });
+    setSuccess({
+      deviceName: displayName,
+      boxId: device.boxId,
+      isMaster: role === 'master',
+      apiKey: (result as any).apiKey,   // returned by backend only for Master Box
+    });
     setStep('success');
   }, [device]);
 
@@ -1263,6 +1313,7 @@ export const DeviceRegistration = () => {
               <SuccessView
                 deviceName={success.deviceName} boxId={success.boxId}
                 isMaster={success.isMaster} isDark={isDark}
+                apiKey={success.apiKey}
                 onDone={() => navigate(-1)}
                 onRegisterAnother={handleRegisterAnother}
               />

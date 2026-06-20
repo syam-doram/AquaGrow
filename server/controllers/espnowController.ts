@@ -364,12 +364,12 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
     const userId = (req as any).user?.id;
-    const { boxId, displayName, deviceType, pondId } = req.body;
+    const { boxId, displayName, deviceType, pondId, role: reqRole } = req.body;
 
-    if (!boxId)        { res.status(400).json({ error: 'boxId is required' }); return; }
-    if (!displayName)  { res.status(400).json({ error: 'displayName is required' }); return; }
-    if (!deviceType)   { res.status(400).json({ error: 'deviceType is required' }); return; }
-    if (!pondId)       { res.status(400).json({ error: 'pondId is required' }); return; }
+    if (!boxId)       { res.status(400).json({ error: 'boxId is required' }); return; }
+    if (!displayName) { res.status(400).json({ error: 'displayName is required' }); return; }
+    if (!deviceType)  { res.status(400).json({ error: 'deviceType is required' }); return; }
+    if (!pondId)      { res.status(400).json({ error: 'pondId is required' }); return; }
 
     const validTypes = ['AERATOR', 'SENSOR', 'FEEDER', 'PUMP', 'CUSTOM', 'MASTER'];
     if (!validTypes.includes(deviceType)) {
@@ -383,36 +383,70 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
       res.status(403).json({ error: 'Pond does not belong to your account' }); return;
     }
 
-    const device = await EspDevice.findOne({ boxId });
-    if (!device) {
-      res.status(404).json({ error: `No device found with boxId: ${boxId}. Power on the device first.` }); return;
-    }
+    // Derive role — explicit body.role takes priority, then infer from deviceType
+    const isMaster = deviceType === 'MASTER' || reqRole === 'master';
+    const role     = isMaster ? 'master' : 'slave';
 
-    // Update device with farmer's assignment
+    // Check if this device already exists (previously discovered via ESP-NOW)
+    const existing = await EspDevice.findOne({ boxId });
+
+    // Generate a fresh API key for brand new registrations.
+    // If device was already discovered via ESP-NOW it already has a key — keep it.
+    const freshApiKey = generateApiKey();
+
     const updated = await EspDevice.findOneAndUpdate(
       { boxId },
       {
-        displayName,
-        label: displayName, // keep label in sync for backward compat
-        deviceType,
-        pondId,
-        userId,
-        pairingStatus: 'assigned',
+        $set: {
+          displayName,
+          label:         displayName,
+          deviceType,
+          pondId,
+          userId,
+          role,
+          pairingStatus: 'assigned',
+          isActive:      true,
+          aeratorState:  'UNKNOWN',
+        },
+        // $setOnInsert only runs on upsert-create, not on update of existing doc
+        $setOnInsert: {
+          apiKey: freshApiKey,
+          // Placeholder MAC — replaced when device physically connects via ESP-NOW
+          mac: `APP_REG_${boxId}`,
+        },
       },
-      { new: true, projection: { apiKey: 0, mac: 0, masterMac: 0 } }
+      { upsert: true, new: true }
     );
 
-    // Remove from discover queue now that it's been assigned
+    // Remove from discover queue if it was there
     await EspDiscoverQueue.deleteOne({ boxId });
 
+    // Determine which API key to show (existing or freshly generated)
+    const apiKeyToShow = existing?.apiKey || freshApiKey;
+
     res.json({
-      message: `${displayName} assigned successfully!`,
-      device: updated,
+      message: isMaster
+        ? `Master Box "${displayName}" registered! Copy the apiKey into DEVICE_API_KEY in your firmware.`
+        : `${displayName} assigned successfully!`,
+      device: {
+        _id:           updated!._id,
+        boxId:         updated!.boxId,
+        displayName:   updated!.displayName,
+        deviceType:    updated!.deviceType,
+        role:          updated!.role,
+        pondId:        updated!.pondId,
+        isActive:      updated!.isActive,
+        pairingStatus: updated!.pairingStatus,
+        createdAt:     (updated as any).createdAt,
+      },
+      // apiKey returned ONLY for Master Box — user must copy this into firmware
+      ...(isMaster ? { apiKey: apiKeyToShow } : {}),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DEVICE → SERVER  (API-Key-protected — used by ESP32 firmware)
