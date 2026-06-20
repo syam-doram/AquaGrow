@@ -45,7 +45,8 @@ const SENSOR_THRESHOLDS: Record<string, { min?: number; max?: number }> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const getSensorColor = (key: string, val?: number | null) => {
-  if (val == null) return 'text-white/25';
+  // Treat null, undefined, AND exactly 0 as 'no data' (sensor not calibrated / no reading)
+  if (val == null || val === 0) return 'text-slate-400';
   const t = SENSOR_THRESHOLDS[key];
   if (!t) return 'text-sky-400';
   const low  = t.min !== undefined && val < t.min;
@@ -55,13 +56,16 @@ const getSensorColor = (key: string, val?: number | null) => {
   return 'text-emerald-400';
 };
 
-const getSensorBg = (key: string, val?: number | null) => {
+const getSensorBg = (key: string, val?: number | null, isDark = true) => {
+  if (val == null || val === 0) return isDark
+    ? 'bg-white/3 border-white/8'
+    : 'bg-slate-50 border-slate-200';
   const color = getSensorColor(key, val);
-  if (color.includes('red'))     return 'bg-red-500/10 border-red-500/20';
-  if (color.includes('amber'))   return 'bg-amber-500/10 border-amber-500/20';
-  if (color.includes('emerald')) return 'bg-emerald-500/10 border-emerald-500/20';
-  if (color.includes('sky'))     return 'bg-sky-500/10 border-sky-500/20';
-  return 'bg-white/5 border-white/10';
+  if (color.includes('red'))     return isDark ? 'bg-red-500/10 border-red-500/20'     : 'bg-red-50 border-red-200';
+  if (color.includes('amber'))   return isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200';
+  if (color.includes('emerald')) return isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200';
+  if (color.includes('sky'))     return isDark ? 'bg-sky-500/10 border-sky-500/20'     : 'bg-sky-50 border-sky-200';
+  return isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200';
 };
 
 const DEVICE_TYPE_ICONS: Record<string, React.ElementType> = {
@@ -116,31 +120,32 @@ const StatusPill = ({ status }: { status: string }) => {
 };
 
 const SensorTile = ({
-  label, value, unit, keyName, icon: Icon,
-}: { label: string; value?: number | null; unit: string; keyName: string; icon: any }) => {
-  const color = getSensorColor(keyName, value);
-  const bg    = getSensorBg(keyName, value);
+  label, value, unit, keyName, icon: Icon, isDark,
+}: { label: string; value?: number | null; unit: string; keyName: string; icon: any; isDark: boolean }) => {
+  const hasData = value != null && value !== 0;
+  const color   = hasData ? getSensorColor(keyName, value) : (isDark ? 'text-white/20' : 'text-slate-400');
+  const bg      = getSensorBg(keyName, value, isDark);
   return (
     <div className={cn('rounded-2xl border p-3 flex flex-col gap-1', bg)}>
       <div className="flex items-center gap-1.5 mb-0.5">
         <Icon size={10} className={color} />
-        <span className="text-white/30 text-[6px] font-black uppercase tracking-widest">{label}</span>
+        <span className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-500')}>{label}</span>
       </div>
       <p className={cn('font-black text-xl leading-none tracking-tight', color)}>
-        {value != null ? value.toFixed(value < 10 ? 2 : 1) : '—'}
+        {hasData ? value!.toFixed(value! < 10 ? 2 : 1) : '—'}
       </p>
-      <p className="text-white/20 text-[6px] font-black uppercase tracking-widest">{unit}</p>
+      <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{unit}</p>
     </div>
   );
 };
 
-const PowerChip = ({ label, value, unit }: { label: string; value?: number | null; unit: string }) => (
-  <div className="flex-1 text-center bg-white/5 border border-white/10 rounded-xl py-2 px-1">
-    <p className="text-white/25 text-[6px] font-black uppercase tracking-widest mb-1">{label}</p>
-    <p className={cn('font-black text-sm leading-none', value != null ? 'text-amber-400' : 'text-white/15')}>
-      {value != null ? value.toFixed(1) : '—'}
+const PowerChip = ({ label, value, unit, isDark }: { label: string; value?: number | null; unit: string; isDark: boolean }) => (
+  <div className={cn('flex-1 text-center rounded-xl py-2 px-1 border', isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')}>
+    <p className={cn('text-[6px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>{label}</p>
+    <p className={cn('font-black text-sm leading-none', value != null && value !== 0 ? 'text-amber-500' : isDark ? 'text-white/15' : 'text-slate-300')}>
+      {value != null && value !== 0 ? value.toFixed(1) : '—'}
     </p>
-    <p className="text-white/20 text-[5.5px] font-black uppercase tracking-widest mt-0.5">{unit}</p>
+    <p className={cn('text-[5.5px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>{unit}</p>
   </div>
 );
 
@@ -334,6 +339,7 @@ const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, 
   const DeviceIcon = DEVICE_TYPE_ICONS[device.deviceType || 'AERATOR'] || Wind;
   const displayName = espnowService.getDeviceLabel(device);
   const typeLabel   = DEVICE_TYPE_OPTIONS.find(o => o.value === device.deviceType)?.label || 'Smart Box';
+  const isOnline    = device.online ?? false;
 
   return (
     <motion.div
@@ -342,37 +348,70 @@ const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, 
       transition={{ delay: index * 0.06 }}
       className={cn(
         'rounded-[1.75rem] border overflow-hidden',
-        isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm',
+        isOnline
+          ? isDark
+            ? 'bg-gradient-to-br from-[#071A10] to-[#0A1410] border-emerald-500/20'
+            : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-200 shadow-sm'
+          : isDark
+            ? 'bg-[#0D0D10] border-white/8'
+            : 'bg-white border-slate-200 shadow-sm',
       )}
     >
+      {/* Coloured top accent bar */}
+      <div className={cn('h-0.5 w-full', isOnline ? 'bg-emerald-400' : isDark ? 'bg-white/10' : 'bg-slate-200')} />
+
       {/* Card header */}
       <div className="px-4 pt-4 pb-3 flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className={cn(
-            'w-10 h-10 rounded-2xl border flex items-center justify-center',
-            device.online
+            'w-11 h-11 rounded-2xl border flex items-center justify-center',
+            isOnline
               ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
-              : 'bg-white/5 border-white/10 text-white/25',
+              : isDark ? 'bg-white/5 border-white/10 text-white/20' : 'bg-slate-100 border-slate-200 text-slate-400',
           )}>
-            <DeviceIcon size={16} />
+            <DeviceIcon size={18} />
           </div>
           <div>
-            <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+            <p className={cn('text-[12px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
               {displayName}
             </p>
-            {/* Box ID as subtle subtitle — NOT the MAC address */}
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
-                {device.boxId || '—'}
-              </span>
-              <span className={cn('text-[6px] font-black uppercase tracking-widest opacity-50', isDark ? 'text-white/20' : 'text-slate-300')}>
-                · {typeLabel}
-              </span>
+              <span className={cn('text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
+                isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-slate-100 border-slate-200 text-slate-400'
+              )}>{device.boxId || '—'}</span>
+              <span className={cn('text-[6.5px] font-bold uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{typeLabel}</span>
             </div>
           </div>
         </div>
-        <OnlinePill online={device.online ?? false} lastSeenAgo={device.lastSeenAgo} />
+        <OnlinePill online={isOnline} lastSeenAgo={device.lastSeenAgo} />
       </div>
+
+      {/* Offline callout — shows when device never seen */}
+      {!isOnline && !device.lastSeenAgo && (
+        <div className={cn('mx-4 mb-3 rounded-2xl border px-3 py-2.5 flex items-start gap-2',
+          isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200'
+        )}>
+          <AlertTriangle size={12} className="text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-amber-400 text-[8px] font-black uppercase tracking-widest">Not Yet Seen</p>
+            <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-white/30' : 'text-slate-500')}>
+              Power on the Smart Box. It will broadcast DISCOVER and pair with the Master Box automatically.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Offline but was seen before */}
+      {!isOnline && device.lastSeenAgo && (
+        <div className={cn('mx-4 mb-3 rounded-2xl border px-3 py-2 flex items-center gap-2',
+          isDark ? 'bg-red-500/8 border-red-500/15' : 'bg-red-50 border-red-200'
+        )}>
+          <WifiOff size={11} className="text-red-400 flex-shrink-0" />
+          <p className={cn('text-[7.5px] font-bold', isDark ? 'text-red-400/80' : 'text-red-600')}>
+            Last seen {device.lastSeenAgo} — check ESP-NOW range
+          </p>
+        </div>
+      )}
 
       <div className="px-4 pb-4 space-y-3">
         {/* Aerator Toggle — only for AERATOR and PUMP type devices */}
@@ -388,22 +427,22 @@ const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, 
 
         {/* Power row */}
         <div className="flex gap-2">
-          <PowerChip label="Voltage" value={device.voltage}    unit="V" />
-          <PowerChip label="Current" value={device.current}    unit="A" />
-          <PowerChip label="Power"   value={device.powerWatts} unit="W" />
+          <PowerChip label="Voltage" value={device.voltage}    unit="V" isDark={isDark} />
+          <PowerChip label="Current" value={device.current}    unit="A" isDark={isDark} />
+          <PowerChip label="Power"   value={device.powerWatts} unit="W" isDark={isDark} />
         </div>
 
         {/* Signal + last seen footer */}
-        <div className="flex items-center justify-between pt-1">
+        <div className={cn('flex items-center justify-between pt-1 border-t', isDark ? 'border-white/5' : 'border-slate-100')}>
           {device.signalStrength != null ? (
-            <div className="flex items-center gap-1.5 text-white/30">
+            <div className={cn('flex items-center gap-1.5', isDark ? 'text-white/30' : 'text-slate-400')}>
               <Signal size={10} />
               <span className="text-[7px] font-black">{device.signalStrength} dBm</span>
             </div>
           ) : <div />}
-          <div className="flex items-center gap-1 text-white/20">
+          <div className={cn('flex items-center gap-1', isDark ? 'text-white/20' : 'text-slate-400')}>
             <Clock size={9} />
-            <span className="text-[7px] font-bold">{device.lastSeenAgo || 'Never'}</span>
+            <span className="text-[7px] font-bold">{device.lastSeenAgo || 'Never seen'}</span>
           </div>
         </div>
       </div>
@@ -914,14 +953,14 @@ export const SmartBoxDashboard = () => {
             <div className="grid grid-cols-4 gap-2">
               {SENSORS.slice(0, 4).map(s => (
                 <React.Fragment key={s.key}>
-                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} />
+                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} isDark={isDark} />
                 </React.Fragment>
               ))}
             </div>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {SENSORS.slice(4).map(s => (
                 <React.Fragment key={s.key}>
-                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} />
+                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} isDark={isDark} />
                 </React.Fragment>
               ))}
             </div>
