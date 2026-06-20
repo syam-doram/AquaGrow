@@ -456,6 +456,7 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
  * POST /api/espnow/heartbeat
  * Master ESP32 sends a lightweight ping every 30 seconds.
  * Header: X-Device-ApiKey
+ * Response includes pondId so firmware can save it to NVS if not already set.
  */
 export const heartbeat = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -469,7 +470,14 @@ export const heartbeat = async (req: Request, res: Response): Promise<void> => {
       EspHeartbeat.create({ deviceId: String(device._id), pondId: device.pondId, mac: device.mac, at: now }),
     ]);
 
-    res.json({ ok: true, serverTime: now.toISOString() });
+    // Include pondId so the Master Box firmware can save it to NVS via saveConfig()
+    // This is the authoritative way the Master learns its pondId after registration.
+    res.json({
+      ok: true,
+      serverTime: now.toISOString(),
+      pondId: device.pondId || null,          // ← Master Box calls saveConfig(pondId) on receipt
+      boxId:  device.boxId  || null,          // ← confirm registration
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
