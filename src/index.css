@@ -186,3 +186,16 @@ body.aerator-sheet-open .bottom-nav-pill {
   transform: translateY(20px);
   transition: opacity 0.2s, transform 0.2s;
 }
+
+/* ── QR Scanner: make WebView transparent so camera shows through ── */
+body.scanner-active {
+  background: transparent !important;
+}
+body.scanner-active * {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.scanner-active .scanner-overlay {
+  background: transparent !important;
+}
+

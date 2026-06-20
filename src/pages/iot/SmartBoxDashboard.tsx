@@ -6,7 +6,7 @@ import {
   Droplets, Wind, Activity, Clock, AlertTriangle,
   CheckCircle2, XCircle, Timer, Radio, Signal, BatteryMedium,
   ToggleLeft, ToggleRight, ChevronRight, Cpu, Waves,
-  Sparkles, GitBranch, Bell, Settings,
+  Sparkles, GitBranch, Bell, Settings, QrCode, Plus,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import {
@@ -785,6 +785,16 @@ export const SmartBoxDashboard = () => {
               <span className="text-emerald-400 text-[7px] font-black">{discoveries.length} new</span>
             </div>
           )}
+          {/* Register new device button */}
+          <motion.button
+            id="iot-register-device-btn"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate(`/ponds/${pondId}/iot/register`)}
+            className={cn('w-9 h-9 rounded-xl flex items-center justify-center border transition-all', isDark ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600')}
+            title="Register New Device"
+          >
+            <QrCode size={15} />
+          </motion.button>
           <LiveBadge />
           <motion.button
             id="iot-refresh-btn"

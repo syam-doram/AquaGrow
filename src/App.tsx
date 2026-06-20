@@ -49,7 +49,8 @@ const WaterTestScanner  = lazy(() => import('./pages/monitoring/WaterTestScanner
 const WaterReportScanner= lazy(() => import('./pages/monitoring/WaterReportScanner').then(m => ({ default: m.WaterReportScanner })));
 const WaterLogDetail    = lazy(() => import('./pages/monitoring/WaterLogDetail').then(m => ({ default: m.WaterLogDetail })));
 const WaterReportDetail = lazy(() => import('./pages/monitoring/WaterReportDetail').then(m => ({ default: m.WaterReportDetail })));
-const SmartBoxDashboard = lazy(() => import('./pages/iot/SmartBoxDashboard').then(m => ({ default: m.SmartBoxDashboard })));
+const SmartBoxDashboard  = lazy(() => import('./pages/iot/SmartBoxDashboard').then(m => ({ default: m.SmartBoxDashboard })));
+const DeviceRegistration = lazy(() => import('./pages/iot/DeviceRegistration').then(m => ({ default: m.DeviceRegistration })));
 
 const MarketPrices      = lazy(() => import('./pages/market/MarketPrices').then(m => ({ default: m.MarketPrices })));
 const ExportMarketTrends= lazy(() => import('./pages/market/ExportMarketTrends').then(m => ({ default: m.ExportMarketTrends })));
@@ -552,6 +553,8 @@ const AppContent = () => {
                 <Route path="/ponds/:id/harvest" element={<PondHarvest t={t} />} />
                 <Route path="/ponds/:id/tracking" element={<HarvestTracking t={t} />} />
                 <Route path="/ponds/:id/iot" element={<SmartBoxDashboard />} />
+                <Route path="/ponds/:id/iot/register" element={<DeviceRegistration />} />
+                <Route path="/iot/register" element={<DeviceRegistration />} />
                 <Route path="/monitor" element={<WaterMonitoring t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/market" element={<MarketPrices t={t} onMenuClick={() => navigate('/profile')} />} />
                 <Route path="/profile" element={<Profile t={t} onMenuClick={() => navigate('/profile')} />} />
