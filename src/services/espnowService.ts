@@ -179,23 +179,99 @@ export interface AssignDevicePayload {
   role?: 'master' | 'slave';   // defaults to 'slave' on backend if omitted
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Auth helpers ────────────────────────────────────────────────────────────
 
-const getAuthHeader = (): Record<string, string> => {
+/** Read tokens from localStorage (same key used by DataContext) */
+const getStoredTokens = (): { access: string; refresh: string } | null => {
   try {
     const raw = localStorage.getItem('aqua_tokens');
-    const tokens = raw ? JSON.parse(raw) : null;
-    const token = tokens?.access || '';
-    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return { 'Content-Type': 'application/json' };
+    return null;
   }
+};
+
+/** Save refreshed tokens back to localStorage so DataContext stays in sync */
+const saveTokens = (tokens: { access: string; refresh: string }) => {
+  localStorage.setItem('aqua_tokens', JSON.stringify(tokens));
+};
+
+/** Singleton promise to avoid parallel refresh races */
+let _refreshPromise: Promise<{ access: string; refresh: string } | null> | null = null;
+
+/** Silently refresh the access token using the stored refresh token */
+const refreshAccessToken = async (): Promise<{ access: string; refresh: string } | null> => {
+  if (_refreshPromise) return _refreshPromise;          // reuse in-flight refresh
+
+  _refreshPromise = (async () => {
+    try {
+      const stored = getStoredTokens();
+      if (!stored?.refresh) return null;
+
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ refresh_token: stored.refresh }),
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const newTokens = {
+        access:  data.access_token,
+        refresh: data.refresh_token || stored.refresh,  // keep old refresh if not rotated
+      };
+      saveTokens(newTokens);
+      return newTokens;
+    } catch {
+      return null;
+    } finally {
+      _refreshPromise = null;  // reset so next call can trigger a new refresh
+    }
+  })();
+
+  return _refreshPromise;
+};
+
+/**
+ * Core fetch wrapper for all espnowService calls.
+ * • Attaches Authorization: Bearer <access_token>
+ * • On 401 → silently refreshes token → retries once
+ * • On second 401 → throws "Session expired" so the UI can show a message
+ */
+const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const makeHeaders = (access: string) => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${access}`,
+    ...((options.headers as Record<string, string>) || {}),
+  });
+
+  let tokens = getStoredTokens();
+  if (!tokens?.access) throw new Error('Not authenticated. Please log in again.');
+
+  // First attempt
+  let res = await fetch(url, { ...options, headers: makeHeaders(tokens.access) });
+
+  // 401 → try a silent token refresh then retry once
+  if (res.status === 401) {
+    const newTokens = await refreshAccessToken();
+    if (newTokens) {
+      res = await fetch(url, { ...options, headers: makeHeaders(newTokens.access) });
+    }
+    // If still 401 after refresh, fall through and let handleResponse throw
+  }
+
+  return res;
 };
 
 const handleResponse = async <T>(res: Response): Promise<T> => {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error || `Request failed: ${res.status}`);
+    // Surface a friendly message for auth failures
+    if (res.status === 401) {
+      throw new Error('Session expired. Please log in again.');
+    }
+    throw new Error(body?.error || body?.message || `Request failed: ${res.status}`);
   }
   return res.json() as Promise<T>;
 };
@@ -212,9 +288,7 @@ export const espnowService = {
    * Returns devices with boxId/displayName — no MAC addresses.
    */
   async getPondStatus(pondId: string): Promise<PondIoTStatus> {
-    const res = await fetch(`${API_BASE_URL}/espnow/status/${pondId}`, {
-      headers: getAuthHeader(),
-    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/status/${pondId}`);
     return handleResponse<PondIoTStatus>(res);
   },
 
@@ -231,9 +305,8 @@ export const espnowService = {
     if (opts.from)   params.set('from', opts.from);
     if (opts.to)     params.set('to', opts.to);
     if (opts.latest) params.set('latest', 'true');
-    const res = await fetch(
-      `${API_BASE_URL}/espnow/readings/${pondId}?${params.toString()}`,
-      { headers: getAuthHeader() }
+    const res = await fetchWithAuth(
+      `${API_BASE_URL}/espnow/readings/${pondId}?${params.toString()}`
     );
     return handleResponse<EspSensorReading[]>(res);
   },
@@ -249,9 +322,8 @@ export const espnowService = {
     const params = new URLSearchParams();
     if (opts.limit)  params.set('limit', String(opts.limit));
     if (opts.status) params.set('status', opts.status);
-    const res = await fetch(
-      `${API_BASE_URL}/espnow/commands/${pondId}?${params.toString()}`,
-      { headers: getAuthHeader() }
+    const res = await fetchWithAuth(
+      `${API_BASE_URL}/espnow/commands/${pondId}?${params.toString()}`
     );
     return handleResponse<EspAeratorCommand[]>(res);
   },
@@ -268,9 +340,8 @@ export const espnowService = {
   async sendCommandById(
     payload: SendCommandByIdPayload
   ): Promise<{ message: string; command: EspAeratorCommand }> {
-    const res = await fetch(`${API_BASE_URL}/espnow/command-by-id`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/command-by-id`, {
       method: 'POST',
-      headers: getAuthHeader(),
       body: JSON.stringify(payload),
     });
     return handleResponse<{ message: string; command: EspAeratorCommand }>(res);
@@ -283,9 +354,8 @@ export const espnowService = {
   async sendCommand(
     payload: SendCommandPayload
   ): Promise<{ message: string; command: EspAeratorCommand }> {
-    const res = await fetch(`${API_BASE_URL}/espnow/command`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/command`, {
       method: 'POST',
-      headers: getAuthHeader(),
       body: JSON.stringify(payload),
     });
     return handleResponse<{ message: string; command: EspAeratorCommand }>(res);
@@ -301,9 +371,7 @@ export const espnowService = {
    */
   async getPendingDiscoveries(pondId?: string): Promise<EspDiscoverEntry[]> {
     const params = pondId ? `?pondId=${pondId}` : '';
-    const res = await fetch(`${API_BASE_URL}/espnow/discover/pending${params}`, {
-      headers: getAuthHeader(),
-    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/discover/pending${params}`);
     return handleResponse<EspDiscoverEntry[]>(res);
   },
 
@@ -323,9 +391,8 @@ export const espnowService = {
   async assignDevice(
     payload: AssignDevicePayload
   ): Promise<{ message: string; device: EspDevice }> {
-    const res = await fetch(`${API_BASE_URL}/espnow/devices/assign`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/devices/assign`, {
       method: 'POST',
-      headers: getAuthHeader(),
       body: JSON.stringify(payload),
     });
     return handleResponse<{ message: string; device: EspDevice }>(res);
@@ -339,9 +406,7 @@ export const espnowService = {
    */
   async getDevices(pondId?: string): Promise<EspDevice[]> {
     const params = pondId ? `?pondId=${pondId}` : '';
-    const res = await fetch(`${API_BASE_URL}/espnow/devices${params}`, {
-      headers: getAuthHeader(),
-    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/devices${params}`);
     return handleResponse<EspDevice[]>(res);
   },
 
@@ -349,9 +414,7 @@ export const espnowService = {
    * GET /api/espnow/devices/:deviceId
    */
   async getDevice(deviceId: string): Promise<EspDevice> {
-    const res = await fetch(`${API_BASE_URL}/espnow/devices/${deviceId}`, {
-      headers: getAuthHeader(),
-    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/devices/${deviceId}`);
     return handleResponse<EspDevice>(res);
   },
 
