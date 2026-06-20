@@ -29,12 +29,20 @@ export interface DeviceTypeOption {
 }
 
 export const DEVICE_TYPE_OPTIONS: DeviceTypeOption[] = [
-  { value: 'AERATOR', label: 'Aerator',           emoji: '💨', description: 'Controls aerator relay for oxygen' },
-  { value: 'SENSOR',  label: 'Water Quality Sensor', emoji: '🔬', description: 'Reads pH, DO, temperature, etc.' },
-  { value: 'FEEDER',  label: 'Auto Feeder',        emoji: '🐟', description: 'Automated feed dispenser' },
-  { value: 'PUMP',    label: 'Water Pump',         emoji: '💧', description: 'Water inlet/outlet pump control' },
-  { value: 'CUSTOM',  label: 'Custom Device',      emoji: '⚙️',  description: 'Any other connected device' },
+  { value: 'AERATOR', label: 'Aerator',              emoji: '💨', description: 'Controls aerator relay for oxygen' },
+  { value: 'SENSOR',  label: 'Water Quality Sensor',  emoji: '🔬', description: 'Reads pH, DO, temperature, etc.' },
+  { value: 'FEEDER',  label: 'Auto Feeder',           emoji: '🐟', description: 'Automated feed dispenser' },
+  { value: 'PUMP',    label: 'Water Pump',            emoji: '💧', description: 'Water inlet/outlet pump control' },
+  { value: 'CUSTOM',  label: 'Custom Device',         emoji: '⚙️',  description: 'Any other connected device' },
 ];
+
+// Master Box type — kept separate (role=master, not a slave device)
+export const MASTER_TYPE_OPTION: DeviceTypeOption = {
+  value: 'MASTER',
+  label:  'Master Box',
+  emoji:  '📡',
+  description: 'Gateway that manages all Smart Boxes via ESP-NOW',
+};
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -168,6 +176,7 @@ export interface AssignDevicePayload {
   displayName: string;
   deviceType: DeviceType;
   pondId: string;
+  role?: 'master' | 'slave';   // defaults to 'slave' on backend if omitted
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
