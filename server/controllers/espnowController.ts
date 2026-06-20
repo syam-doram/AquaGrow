@@ -834,15 +834,23 @@ export const sendCommandById = async (req: Request, res: Response): Promise<void
       res.status(403).json({ error: 'Pond does not belong to your account' }); return;
     }
 
-    // Find Master by MAC or masterId
-    const master = slave.masterMac
+    // Find Master — try masterMac, then masterId, then any active master for the same pond
+    let master = slave.masterMac
       ? await EspDevice.findOne({ mac: slave.masterMac, role: 'master', isActive: true })
-      : slave.masterId
-      ? await EspDevice.findOne({ boxId: slave.masterId, role: 'master', isActive: true })
       : null;
 
+    if (!master && slave.masterId) {
+      master = await EspDevice.findOne({ boxId: slave.masterId, role: 'master', isActive: true });
+    }
+
+    // Last resort: find any active master for the same pond
+    // (handles split-record case where slave.masterMac is a placeholder like APP_REG_MB001)
+    if (!master && pondId) {
+      master = await EspDevice.findOne({ pondId, role: 'master', isActive: true });
+    }
+
     if (!master) {
-      res.status(404).json({ error: `No active Master Box found for Smart Box ${boxId}` }); return;
+      res.status(404).json({ error: `No active Master Box found for Smart Box ${boxId}. Ensure the Master Box is registered and online.` }); return;
     }
 
     const command = await new EspAeratorCommand({

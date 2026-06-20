@@ -382,6 +382,7 @@ const AppContent = () => {
     '/roi/pond-wise',
     '/roi/year-wise',
     '/smart-farm',
+    // NOTE: /iot and /device-registration intentionally excluded — IoT dashboard is full-screen
   ].some(path => location.pathname.startsWith(path));
 
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
