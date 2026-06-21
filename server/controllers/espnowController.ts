@@ -390,9 +390,15 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     // Check if this device already exists (previously discovered via ESP-NOW)
     const existing = await EspDevice.findOne({ boxId });
 
-    // Generate a fresh API key for brand new registrations.
-    // If device was already discovered via ESP-NOW it already has a key — keep it.
+    // Always generate a fresh API key.
+    // - For Master Box: always rotate — ensures the key returned to the farmer
+    //   matches what /api/device/provision will serve to the firmware on first boot.
+    //   (Old key is invalidated; box must factory-reset NVS to re-provision.)
+    // - For Slave Box: if device was already discovered, keep its existing key
+    //   so any in-flight comms aren't broken.
     const freshApiKey = generateApiKey();
+    const apiKeyForMaster = freshApiKey; // always fresh for master
+    const apiKeyForSlave  = existing?.apiKey || freshApiKey; // keep existing for slave
 
     const updated = await EspDevice.findOneAndUpdate(
       { boxId },
@@ -407,6 +413,8 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
           pairingStatus: 'assigned',
           isActive:      true,
           aeratorState:  'UNKNOWN',
+          // Master Box: always rotate key so app + firmware stay in sync
+          ...(isMaster ? { apiKey: apiKeyForMaster } : {}),
           // Store aerator labels if provided (which physical aerators this Smart Box controls)
           ...(Array.isArray(aeratorLabels) && aeratorLabels.length > 0
             ? { aeratorLabels }
@@ -414,8 +422,8 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
         },
         // $setOnInsert only runs on upsert-create, not on update of existing doc
         $setOnInsert: {
-          apiKey: freshApiKey,
-          // Placeholder MAC — replaced when device physically connects via ESP-NOW
+          // Slave Box new creation: set initial key + placeholder MAC
+          ...(!isMaster ? { apiKey: apiKeyForSlave } : {}),
           mac: `APP_REG_${boxId}`,
         },
       },
@@ -425,12 +433,12 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     // Remove from discover queue if it was there
     await EspDiscoverQueue.deleteOne({ boxId });
 
-    // Determine which API key to show (existing or freshly generated)
-    const apiKeyToShow = existing?.apiKey || freshApiKey;
+    // The key to show: master always gets the fresh rotated key; slave gets existing or fresh
+    const apiKeyToShow = isMaster ? apiKeyForMaster : apiKeyForSlave;
 
     res.json({
       message: isMaster
-        ? `Master Box "${displayName}" registered! Copy the apiKey into DEVICE_API_KEY in your firmware.`
+        ? `Master Box "${displayName}" registered! The box will fetch this key automatically via /api/device/provision on first boot (or after factory reset).`
         : `${displayName} assigned successfully!`,
       device: {
         _id:           updated!._id,
@@ -443,7 +451,7 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
         pairingStatus: updated!.pairingStatus,
         createdAt:     (updated as any).createdAt,
       },
-      // apiKey returned ONLY for Master Box — user must copy this into firmware
+      // apiKey returned ONLY for Master Box reference — firmware gets it via provision API
       ...(isMaster ? { apiKey: apiKeyToShow } : {}),
     });
   } catch (err: any) {

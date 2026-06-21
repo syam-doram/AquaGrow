@@ -20,6 +20,7 @@ import providerRoutes from './routes/provider.js';
 import hrmsRoutes from './routes/hrms.js';
 import espnowRoutes from './routes/espnow.js';
 import deviceRoutes from './routes/device.js';
+import masterboxRoutes from './routes/masterbox.js';
 import { startIoTAlertJob } from './jobs/iotAlertJob.js';
 
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
@@ -71,9 +72,10 @@ app.use(cors({
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/provider', providerRoutes);
-app.use('/api/hrms', hrmsRoutes);         // ← HRMS Employee Portal routes
-app.use('/api/espnow', espnowRoutes);     // ← ESP-NOW IoT Device Bridge
-app.use('/api/device', deviceRoutes);     // ← Firmware provisioning (no JWT, factoryKey auth)
+app.use('/api/hrms', hrmsRoutes);           // ← HRMS Employee Portal routes
+app.use('/api/espnow', espnowRoutes);       // ← ESP-NOW IoT Device Bridge
+app.use('/api/masterbox', masterboxRoutes); // ← Master Box provisioning (firmware-facing)
+app.use('/api/device', deviceRoutes);       // ← Legacy provisioning alias (kept for compat)
 
 
 // ─── Health ───────────────────────────────────────────────────────────────────

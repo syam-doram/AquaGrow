@@ -1,5 +1,5 @@
 // =============================================================================
-//  AquaGrow MASTER BOX  v3.0  —  Simplified Development Architecture
+//  AquaGrow MASTER BOX  v3.0  —  Final Development Architecture
 //
 //  Architecture:
 //    AquaGrow App  ←→  Backend  ←HTTPS→  Master Box  ←ESP-NOW→  Smart Boxes
@@ -9,8 +9,8 @@
 //
 //  Boot flow:
 //    1. Connect to hardcoded WiFi
-//    2. Read NVS (pondId + deviceToken)
-//    3. If missing → POST /api/device/provision → save to NVS
+//    2. Read NVS (pondId + apiKey)
+//    3. If missing → POST /api/masterbox/register → save to NVS
 //    4. Start normal operations (heartbeat, command poll, ESP-NOW relay)
 // =============================================================================
 
@@ -72,8 +72,8 @@ struct SlaveEntry {
 // ─────────────────────────────────────────────────────────────────────────────
 //  RUNTIME STATE
 // ─────────────────────────────────────────────────────────────────────────────
-static String g_pondId;        // From /api/device/provision
-static String g_deviceToken;   // From /api/device/provision (used as X-API-Key)
+static String g_pondId;    // Loaded from NVS after provisioning
+static String g_apiKey;    // Loaded from NVS after provisioning (used as X-API-Key)
 static bool   g_wifiOk = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,21 +83,21 @@ static Preferences g_prefs;
 
 static void loadFromNVS() {
   g_prefs.begin("aquagrow", /*readOnly=*/true);
-  g_pondId      = g_prefs.getString("pondId",      "");
-  g_deviceToken = g_prefs.getString("deviceToken", "");
+  g_pondId  = g_prefs.getString("pondId",  "");
+  g_apiKey  = g_prefs.getString("apiKey",  "");
   g_prefs.end();
-  Serial.printf("[NVS] pondId=%s  token=%s\n",
-    g_pondId.length()      ? g_pondId.c_str() : "(none)",
-    g_deviceToken.length() ? "***"            : "(none)");
+  Serial.printf("[NVS] pondId=%s  apiKey=%s\n",
+    g_pondId.length() ? g_pondId.c_str() : "(none)",
+    g_apiKey.length() ? "***"             : "(none)");
 }
 
-static void saveProvisionData(const String& pondId, const String& token) {
+static void saveProvisionData(const String& pondId, const String& apiKey) {
   g_prefs.begin("aquagrow", false);
-  g_prefs.putString("pondId",      pondId);
-  g_prefs.putString("deviceToken", token);
+  g_prefs.putString("pondId", pondId);
+  g_prefs.putString("apiKey", apiKey);
   g_prefs.end();
-  g_pondId      = pondId;
-  g_deviceToken = token;
+  g_pondId  = pondId;
+  g_apiKey  = apiKey;
   Serial.printf("[NVS] Saved: pondId=%s\n", pondId.c_str());
 }
 
@@ -105,7 +105,7 @@ static void clearNVS() {
   g_prefs.begin("aquagrow", false);
   g_prefs.clear();
   g_prefs.end();
-  g_pondId = g_deviceToken = "";
+  g_pondId = g_apiKey = "";
   Serial.println("[NVS] Cleared — will re-provision on next boot");
 }
 
@@ -166,7 +166,7 @@ static void connectWifi() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  HTTP HELPERS  (all cloud calls use g_deviceToken as X-API-Key)
+//  HTTP HELPERS  (all cloud calls use g_apiKey as X-API-Key)
 // ─────────────────────────────────────────────────────────────────────────────
 static WiFiClientSecure g_tlsClient;
 
@@ -176,8 +176,8 @@ static int httpPost(const char* url, const char* body, String* respOut = nullptr
   g_tlsClient.setInsecure();
   http.begin(g_tlsClient, url);
   http.addHeader("Content-Type", "application/json");
-  if (g_deviceToken.length() > 0)
-    http.addHeader("X-API-Key", g_deviceToken);
+  if (g_apiKey.length() > 0)
+    http.addHeader("X-API-Key", g_apiKey);
   http.setTimeout(HTTP_TIMEOUT_MS);
   int code = http.POST(body);
   if (respOut && code > 0) *respOut = http.getString();
@@ -190,7 +190,7 @@ static int httpGet(const char* url, String* respOut) {
   HTTPClient http;
   g_tlsClient.setInsecure();
   http.begin(g_tlsClient, url);
-  http.addHeader("X-API-Key", g_deviceToken);
+  http.addHeader("X-API-Key", g_apiKey);
   http.setTimeout(HTTP_TIMEOUT_MS);
   int code = http.GET();
   if (respOut && code > 0) *respOut = http.getString();
@@ -199,15 +199,15 @@ static int httpGet(const char* url, String* respOut) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  PROVISIONING  —  POST /api/device/provision
+//  PROVISIONING  —  POST /api/masterbox/register
 //
 //  Request body:
 //    { "boxId": "MB001", "deviceType": "MASTER", "factoryKey": "AQUAGROW_..." }
 //
 //  Response (200):
-//    { "success": true, "pondId": "...", "deviceToken": "..." }
+//    { "success": true, "pondId": "...", "apiKey": "aqg_..." }
 //
-//  On success, pondId + deviceToken are saved to NVS and the box starts
+//  On success, pondId + apiKey are saved to NVS and the box starts
 //  sending heartbeats. On subsequent boots, NVS is read and this call is
 //  skipped entirely.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ static bool provisionDevice() {
   char reqBuf[256];
   serializeJson(req, reqBuf, sizeof(reqBuf));
 
-  const char* url = API_BASE "/device/provision";
+  const char* url = API_BASE "/masterbox/register";
   Serial.printf("[PROVISION] POST %s\n", url);
 
   String resp;
@@ -232,10 +232,10 @@ static bool provisionDevice() {
     DynamicJsonDocument doc(512);
     if (!deserializeJson(doc, resp)) {
       bool        success = doc["success"] | false;
-      const char* pondId  = doc["pondId"]      | "";
-      const char* token   = doc["deviceToken"] | "";
-      if (success && strlen(pondId) > 0 && strlen(token) > 0) {
-        saveProvisionData(pondId, token);
+      const char* pondId  = doc["pondId"]  | "";
+      const char* apiKey  = doc["apiKey"]  | "";
+      if (success && strlen(pondId) > 0 && strlen(apiKey) > 0) {
+        saveProvisionData(pondId, apiKey);
         Serial.printf("[PROVISION] ✓ Success!  Pond: %s\n", pondId);
         return true;
       }
@@ -431,39 +431,45 @@ static void postCommandConfirm(JsonDocument& d) {
 static void pollAndDispatchCommands() {
   char url[200];
   snprintf(url, sizeof(url),
-    "%s/commands/%s?status=pending&limit=10", ESPNOW_BASE, g_pondId.c_str());
+    "%s/commands/%s", ESPNOW_BASE, g_pondId.c_str());
 
   String resp;
   int code = httpGet(url, &resp);
   if (code != 200) {
-    Serial.printf("[POLL] Commands HTTP %d\n", code);
+    Serial.printf("[POLL] HTTP %d\n", code);
     return;
   }
 
-  DynamicJsonDocument cmds(4096);
-  if (deserializeJson(cmds, resp)) return;
-
-  int dispatched = 0;
-  for (JsonObject cmd : cmds.as<JsonArray>()) {
-    const char* cmdId    = cmd["_id"]         | "";
-    const char* targetId = cmd["targetBoxId"] | "";
-    const char* action   = cmd["action"]      | "";
-    int speed  = cmd["params"]["speed"]           | 0;
-    int durMin = cmd["params"]["durationMinutes"] | 0;
-    if (!strlen(targetId) || !strlen(action)) continue;
-
-    bool ok = dispatchCommandToSlave(targetId, action, cmdId, speed, durMin);
-    if (!ok) {
-      StaticJsonDocument<200> fail;
-      fail["cmdId"]   = cmdId;
-      fail["success"] = false;
-      fail["reason"]  = "Slave unreachable";
-      postCommandConfirm(fail);
-    }
-    dispatched++;
+  // Response: { "command": { commandId, targetBoxId, targetMac, action, params } | null }
+  DynamicJsonDocument doc(2048);
+  if (deserializeJson(doc, resp)) {
+    Serial.println("[POLL] JSON parse error");
+    return;
   }
-  if (dispatched) Serial.printf("[POLL] Dispatched %d command(s)\n", dispatched);
+
+  JsonVariant cmdVar = doc["command"];
+  if (cmdVar.isNull()) return;  // no pending command
+
+  JsonObject cmd = cmdVar.as<JsonObject>();
+  const char* cmdId    = cmd["commandId"]  | "";
+  const char* targetId = cmd["targetBoxId"]| "";
+  const char* action   = cmd["action"]     | "";
+  int speed  = cmd["params"]["speed"]           | 0;
+  int durMin = cmd["params"]["durationMinutes"] | 0;
+
+  if (!strlen(targetId) || !strlen(action)) return;
+
+  Serial.printf("[POLL] Command: %s → %s  id=%s\n", action, targetId, cmdId);
+  bool ok = dispatchCommandToSlave(targetId, action, cmdId, speed, durMin);
+  if (!ok) {
+    StaticJsonDocument<200> fail;
+    fail["cmdId"]   = cmdId;
+    fail["success"] = false;
+    fail["reason"]  = "Slave unreachable";
+    postCommandConfirm(fail);
+  }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  ESP-NOW RX QUEUE  (interrupt-safe circular buffer)
@@ -547,7 +553,7 @@ void setup() {
   // ── Step 2: Read NVS ─────────────────────────────────────────────────────
   loadFromNVS();
 
-  bool hasToken = (g_deviceToken.length() > 0 && g_pondId.length() > 0);
+  bool hasToken = (g_apiKey.length() > 0 && g_pondId.length() > 0);
 
   // ── Step 3: Provision if needed ───────────────────────────────────────────
   if (!hasToken && WiFi.status() == WL_CONNECTED) {
@@ -566,7 +572,7 @@ void setup() {
       Serial.println("[BOOT] Make sure MB001 is registered in the AquaGrow app.");
     }
   } else if (hasToken) {
-    Serial.printf("[BOOT] Token found — skipping provisioning. Pond: %s\n", g_pondId.c_str());
+    Serial.printf("[BOOT] apiKey found — skipping provisioning. Pond: %s\n", g_pondId.c_str());
   }
 
   // ── Step 4: Init ESP-NOW ──────────────────────────────────────────────────

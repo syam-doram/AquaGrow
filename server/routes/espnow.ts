@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { authenticateDevice, requireMaster } from '../middleware/deviceAuth.js';
 import {
@@ -21,7 +21,8 @@ router.get('/discover/pending', authenticate, getPendingDiscoveries);
 router.post('/devices/assign', authenticate, assignDevice);
 
 router.post('/reading', authenticateDevice, requireMaster, ingestReadings);
-router.get('/poll/:pondId', authenticateDevice, requireMaster, pollPendingCommand);
+// Firmware polls this with X-API-Key to fetch the next pending command
+router.get('/commands/:pondId', authenticateDevice, requireMaster, pollPendingCommand);
 router.post('/ack', authenticateDevice, requireMaster, acknowledgeCommand);
 router.post('/heartbeat', authenticateDevice, heartbeat);
 router.post('/confirm', authenticateDevice, requireMaster, acknowledgeCommand);
@@ -29,7 +30,8 @@ router.post('/confirm', authenticateDevice, requireMaster, acknowledgeCommand);
 router.post('/command-by-id', authenticate, sendCommandById);
 router.post('/command', authenticate, sendCommand);
 router.get('/readings/:pondId', authenticate, getReadings);
-router.get('/commands/:pondId', authenticate, getCommandHistory);
+// App command history (JWT-protected — separate from device poll)
+router.get('/command-history/:pondId', authenticate, getCommandHistory);
 router.get('/status/:pondId', authenticate, getPondIoTStatus);
 
 export default router;
