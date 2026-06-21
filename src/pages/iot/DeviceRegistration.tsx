@@ -1069,84 +1069,125 @@ const MasterProvisionWizard = ({
 
   const apSsid = editApSsid || defaultApSsid;
 
-  // Auto-detect: poll 192.168.4.1/status every 2 s while on sub-step 2
-  // The moment the box AP answers, flash "Connected!" and move to step 3.
+  // True only when running as installed APK — browser blocks http:// from https:// pages
+  const isNative = Capacitor.isNativePlatform();
+
+  // Auto-detect: poll 192.168.4.1/status every 2 s while on sub-step 2.
+  // ONLY runs on native APK — browser blocks http:// from https:// (Mixed Content).
+  // Any response (even 404 or non-ok) = IP reachable = phone is on the box AP.
   React.useEffect(() => {
-    if (subStep !== 2) return;
+    if (!isNative || subStep !== 2) return;
     let cancelled = false;
+    let attempt   = 0;
+
+    console.log(`[AP-DETECT] Poll started  isNative=${isNative}  platform=${Capacitor.getPlatform()}`);
+
     const poll = async () => {
       while (!cancelled) {
+        attempt++;
+        const ts = new Date().toISOString();
+
+        // Network info (best-effort — not available on all Android WebViews)
+        const conn = (navigator as any).connection ||
+                     (navigator as any).mozConnection ||
+                     (navigator as any).webkitConnection;
+        const netType       = conn?.type          ?? 'unknown';
+        const effectiveType = conn?.effectiveType ?? 'unknown';
+        console.log(`[AP-DETECT] #${attempt} ${ts}  netType=${netType}  effectiveType=${effectiveType}`);
+
         try {
-          const r = await fetch('http://192.168.4.1/status', { signal: AbortSignal.timeout(2000) });
-          if (r.ok && !cancelled) {
+          console.log(`[AP-DETECT] #${attempt} → fetch http://192.168.4.1/status (timeout 2500 ms)`);
+          // Any HTTP response = IP is reachable = phone is on the box AP.
+          // We do NOT check r.ok — even a 404 or redirect means connected.
+          const r = await fetch('http://192.168.4.1/status', { signal: AbortSignal.timeout(2500) });
+          console.log(`[AP-DETECT] #${attempt} ✓ status=${r.status}  ok=${r.ok}  type=${r.type}`);
+
+          if (!cancelled) {
+            console.log('[AP-DETECT] ✅ Box AP detected — advancing to step 3');
             setApDetected(true);
-            await new Promise(res => setTimeout(res, 900)); // brief "Connected!" flash
+            await new Promise(res => setTimeout(res, 800));
             if (!cancelled) setSubStep(3);
-            return;
           }
-        } catch {
-          // not yet connected — wait and retry
+          return;
+        } catch (err: any) {
+          const errName = err?.name    ?? 'Unknown';
+          const errMsg  = err?.message ?? String(err);
+          console.warn(`[AP-DETECT] #${attempt} ✗ name=${errName}  msg="${errMsg}"`);
+          if (errMsg.toLowerCase().includes('cleartext') || errMsg.toLowerCase().includes('blocked')) {
+            console.error('[AP-DETECT] ⛔ Cleartext blocked! Verify android:usesCleartextTraffic="true" in AndroidManifest.');
+          }
         }
+
         await new Promise(res => setTimeout(res, 2000));
       }
     };
     poll();
     return () => { cancelled = true; };
-  }, [subStep]);
+  }, [isNative, subStep]);
 
-  // Open phone WiFi settings (works on iOS & Android via Capacitor)
+  // Open phone WiFi settings
   const openWifiSettings = () => {
+    if (!isNative) {
+      alert(`Open your phone WiFi settings and connect to:\n\nNetwork: ${editApSsid}\nPassword: ${editApPass}`);
+      return;
+    }
     const ua = navigator.userAgent.toLowerCase();
     if (ua.includes('android')) {
       (window as any).location = 'intent:#Intent;action=android.settings.WIFI_SETTINGS;end';
     } else {
-      // iOS — App Store URL scheme doesn't allow direct WiFi, show instructions
-      window.open('App-Prefs:WIFI', '_system');
+      (window as any).location = 'App-Prefs:WIFI';
     }
   };
 
   const sendWifiCredentials = async () => {
     if (!ssid.trim()) { setError('Please enter your WiFi name (SSID).'); return; }
     setError(null); setSending(true);
+    console.log(`[WIFI-SEND] Starting  isNative=${isNative}  ssid=${ssid.trim()}`);
     try {
-      // ── Pre-flight: verify phone is actually on the Master Box AP ────────────
-      // If we reach this, the box is at 192.168.4.1. If not, fail fast with a clear message.
-      try {
-        await fetch('http://192.168.4.1/status', {
-          signal: AbortSignal.timeout(3000),
-        });
-      } catch {
-        setError(
-          `Your phone is still connected to your normal WiFi or mobile data. ` +
-          `Please go to WiFi Settings → connect to "${defaultApSsid}" (password: ${editApPass}) → ` +
-          `then come back here and try again.`
-        );
-        setSending(false);
-        return;
+      if (isNative) {
+        // ── Native APK: pre-flight — any response = connected ─────────────────
+        try {
+          console.log('[WIFI-SEND] Pre-flight → http://192.168.4.1/status');
+          await fetch('http://192.168.4.1/status', { signal: AbortSignal.timeout(3000) });
+          console.log('[WIFI-SEND] Pre-flight ✓ box reachable');
+        } catch (pf: any) {
+          console.warn(`[WIFI-SEND] Pre-flight ✗ ${pf?.name}: ${pf?.message}`);
+          setError(
+            `Your phone is not connected to the Master Box. ` +
+            `Go to WiFi Settings → connect to "${defaultApSsid}" (password: ${editApPass}) → then try again.`
+          );
+          setSending(false);
+          return;
+        }
       }
 
-      // ── Send WiFi credentials to box ─────────────────────────────────────────
+      // ── Send WiFi credentials to box ───────────────────────────────────────
+      console.log('[WIFI-SEND] POST → http://192.168.4.1/wifi/setup');
       const res = await fetch('http://192.168.4.1/wifi/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ssid: ssid.trim(), password: password }),
         signal: AbortSignal.timeout(8000),
       });
+      console.log(`[WIFI-SEND] Response status=${res.status}  ok=${res.ok}`);
       const data = await res.json();
       if (res.ok && data.success) {
+        console.log('[WIFI-SEND] ✅ WiFi credentials accepted by box');
         setWifiSent(true);
         setSubStep(4);
       } else {
         setError(data.error || 'Unexpected response from Master Box.');
       }
     } catch (err: any) {
-      if (err?.name === 'TimeoutError' || err?.message?.includes('fetch') || err?.message?.includes('Failed to fetch')) {
-        setError(
-          `Could not reach the Master Box at 192.168.4.1. ` +
-          `Make sure your phone WiFi is connected to "${defaultApSsid}" and try again.`
-        );
+      const errName = err?.name    ?? 'Unknown';
+      const errMsg  = err?.message ?? String(err);
+      console.error(`[WIFI-SEND] ✗ name=${errName}  msg="${errMsg}"`);
+      if (!isNative && (errMsg.includes('Mixed Content') || errMsg.includes('Failed to fetch') || errName === 'TypeError')) {
+        setError('WiFi provisioning only works from the installed AquaGrow app (APK), not a browser.');
+      } else if (errName === 'TimeoutError' || errMsg.includes('fetch') || errMsg.includes('Failed to fetch')) {
+        setError(`Could not reach the Master Box at 192.168.4.1. Make sure your phone WiFi is connected to "${defaultApSsid}" and try again.`);
       } else {
-        setError('Failed to send credentials: ' + (err?.message || 'Unknown error'));
+        setError('Failed to send credentials: ' + errMsg);
       }
     } finally { setSending(false); }
   };

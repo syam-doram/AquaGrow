@@ -92,7 +92,7 @@
 #define TEST_PASSWORD  ""            // ← Your hotspot password (blank if open)
 #define TEST_TOKEN     ""            // ← Paste apiKey from backend DB here
 #define TEST_POND_ID   ""            // ← Paste pondId here (e.g. 69d21569b5dcd1a28857838c)
-#define USE_TEST_WIFI  1             // ← Set to 0 for production AP provisioning
+#define USE_TEST_WIFI  0             // ← 0 = production AP mode (AquaGrow-MB001 / 12345678)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SLAVE ENTRY  (declared here so Arduino auto-prototype sees the type)
