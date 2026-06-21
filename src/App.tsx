@@ -214,7 +214,7 @@ const AppContent = () => {
         if (location.pathname !== homePath && !location.pathname.startsWith('/auth')) {
           navigate(homePath, { replace: true });
         }
-      }, 3 * 60 * 1000); // 3 minutes
+      }, 5 * 60 * 1000); // 5 minutes
     };
 
     const events = ['touchstart', 'mousemove', 'keydown', 'scroll', 'click'];

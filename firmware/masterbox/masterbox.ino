@@ -83,21 +83,41 @@ static Preferences g_prefs;
 
 static void loadFromNVS() {
   g_prefs.begin("aquagrow", /*readOnly=*/true);
-  g_pondId  = g_prefs.getString("pondId",  "");
-  g_apiKey  = g_prefs.getString("apiKey",  "");
+  g_pondId = g_prefs.getString("pondId",  "");
+  g_apiKey = g_prefs.getString("apiKey",  "");
+
+  // ── Backward compat: old firmware stored token as "deviceToken" ──────────
+  // If "apiKey" is empty but "deviceToken" exists (from prior firmware version),
+  // read the old key so we don't force an unnecessary factory reset.
+  String legacyToken = "";
+  if (g_apiKey.length() == 0) {
+    legacyToken = g_prefs.getString("deviceToken", "");
+  }
   g_prefs.end();
+
+  // Migrate: write "apiKey" + remove "deviceToken" so next boot is clean
+  if (legacyToken.length() > 0) {
+    g_apiKey = legacyToken;
+    g_prefs.begin("aquagrow", false);
+    g_prefs.putString("apiKey", g_apiKey);
+    g_prefs.remove("deviceToken");
+    g_prefs.end();
+    Serial.println("[NVS] Migrated 'deviceToken' → 'apiKey' (one-time upgrade)");
+  }
+
   Serial.printf("[NVS] pondId=%s  apiKey=%s\n",
     g_pondId.length() ? g_pondId.c_str() : "(none)",
-    g_apiKey.length() ? "***"             : "(none)");
+    g_apiKey.length() ? "***"            : "(none)");
 }
 
 static void saveProvisionData(const String& pondId, const String& apiKey) {
   g_prefs.begin("aquagrow", false);
   g_prefs.putString("pondId", pondId);
   g_prefs.putString("apiKey", apiKey);
+  g_prefs.remove("deviceToken"); // clean up old key if still present
   g_prefs.end();
-  g_pondId  = pondId;
-  g_apiKey  = apiKey;
+  g_pondId = pondId;
+  g_apiKey = apiKey;
   Serial.printf("[NVS] Saved: pondId=%s\n", pondId.c_str());
 }
 
@@ -372,6 +392,31 @@ static void pingAllSlaves() {
 // ─────────────────────────────────────────────────────────────────────────────
 //  CLOUD API CALLS
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  AUTO RE-PROVISION  — called when server returns 401 (stale apiKey)
+// ─────────────────────────────────────────────────────────────────────────────
+static void triggerReProvision() {
+  Serial.println("[AUTH] 401 detected — apiKey is stale. Clearing NVS and re-provisioning...");
+  clearNVS();           // wipes pondId + apiKey
+  // Immediately try to get fresh credentials from server
+  if (WiFi.status() == WL_CONNECTED) {
+    int attempts = 0;
+    while (!provisionDevice() && attempts < 3) {
+      attempts++;
+      Serial.printf("[AUTH] Re-provision attempt %d/3 in 15 s...\n", attempts);
+      for (int s = 0; s < 15; s++) {
+        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        delay(1000);
+        checkResetButton();
+      }
+    }
+    if (g_pondId.length() == 0) {
+      Serial.println("[AUTH] Re-provision failed — will retry every 60 s.");
+      Serial.println("[AUTH] Ensure MB001 is registered in the AquaGrow app.");
+    }
+  }
+}
+
 static void postMasterHeartbeat() {
   StaticJsonDocument<256> doc;
   doc["boxId"]      = BOX_ID;
@@ -384,6 +429,7 @@ static void postMasterHeartbeat() {
   serializeJson(doc, buf, sizeof(buf));
   int code = httpPost(ESPNOW_BASE "/heartbeat", buf);
   Serial.printf("[HB] Master → Cloud: HTTP %d\n", code);
+  if (code == 401) triggerReProvision();
 }
 
 static void postDiscover(const char* slaveBoxId, const char* slaveMac) {
@@ -435,8 +481,9 @@ static void pollAndDispatchCommands() {
 
   String resp;
   int code = httpGet(url, &resp);
+  Serial.printf("[POLL] HTTP %d\n", code);
+  if (code == 401) { triggerReProvision(); return; }
   if (code != 200) {
-    Serial.printf("[POLL] HTTP %d\n", code);
     return;
   }
 
@@ -608,10 +655,11 @@ void loop() {
   checkResetButton();
 
   uint32_t now = millis();
-  static uint32_t lastPoll     = 0;
-  static uint32_t lastHB       = 0;
-  static uint32_t lastPing     = 0;
-  static uint32_t lastRetry    = 0;
+  static uint32_t lastPoll      = 0;
+  static uint32_t lastHB        = 0;
+  static uint32_t lastPing      = 0;
+  static uint32_t lastWifiRetry = 0;  // WiFi reconnect timer
+  static uint32_t lastProvRetry = 0;  // Provision retry timer (separate)
 
   // Process incoming ESP-NOW messages
   processRxQueue();
@@ -619,11 +667,11 @@ void loop() {
   // ── WiFi watchdog — reconnect if dropped ──────────────────────────────────
   if (WiFi.status() != WL_CONNECTED) {
     g_wifiOk = false;
-    if (now - lastRetry >= 10000) {
+    if (now - lastWifiRetry >= 10000) {
       Serial.println("[WiFi] Lost — reconnecting...");
       WiFi.disconnect();
       WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-      lastRetry = now;
+      lastWifiRetry = now;
     }
     return;
   }
@@ -633,12 +681,12 @@ void loop() {
     digitalWrite(LED_PIN, HIGH);
   }
 
-  // ── Retry provisioning if still no token ──────────────────────────────────
-  if (g_pondId.length() == 0) {
-    if (now - lastRetry >= 60000) {
-      Serial.println("[PROVISION] Retrying...");
+  // ── Retry provisioning if no credentials (or 401 cleared them) ───────────
+  if (g_pondId.length() == 0 || g_apiKey.length() == 0) {
+    if (now - lastProvRetry >= 60000) {
+      Serial.println("[PROVISION] Retrying register call...");
       provisionDevice();
-      lastRetry = now;
+      lastProvRetry = now;
     }
     return;
   }

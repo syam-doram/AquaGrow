@@ -46,6 +46,16 @@
 #define HEARTBEAT_INTERVAL_MS  10000UL  // Send telemetry every 10 seconds
 #define DISCOVER_INTERVAL_MS   30000UL  // Re-broadcast DISCOVER every 30 s until paired
 
+// ── WiFi channel detection ────────────────────────────────────────────────────
+// Smart Box never connects to the cloud, but it needs to be on the SAME WiFi
+// channel as the Master Box for ESP-NOW to work.
+// Set these to the SAME credentials the Master Box uses so the Smart Box can
+// tune its radio to the correct channel, then disconnect immediately.
+// No data is sent to the cloud from the Smart Box.
+#define CHANNEL_DETECT_SSID     "iPhone"    // ← same as Master Box WIFI_SSID
+#define CHANNEL_DETECT_PASSWORD "12345678"  // ← same as Master Box WIFI_PASSWORD
+#define CHANNEL_DETECT_TIMEOUT_MS 8000      // max time to spend on channel detection
+
 // ── Pin config ───────────────────────────────────────────────────────────────
 #define CURRENT_PIN     34   // ACS712 output (or leave unused if no current sensor)
 #define VOLTAGE_PIN     35   // Voltage divider output (or leave unused)
@@ -235,9 +245,30 @@ void setup() {
   setAerator(false);  // Safe default: aerator OFF on boot
   digitalWrite(ONBOARD_LED, LOW);
 
-  // WiFi in Station mode (needed for ESP-NOW)
+  // ── WiFi channel detection ─────────────────────────────────────────────────
+  // Smart Box NEVER connects to the cloud.
+  // We connect briefly to the same WiFi as the Master Box ONLY to lock our
+  // radio onto the correct channel (channel 6 for iPhone hotspot, etc.).
+  // After disconnect the channel stays set — ESP-NOW uses it automatically.
   WiFi.mode(WIFI_STA);
+  Serial.printf("[CHAN] Detecting channel via \"%s\"...\n", CHANNEL_DETECT_SSID);
+  WiFi.begin(CHANNEL_DETECT_SSID, CHANNEL_DETECT_PASSWORD);
+  uint32_t chanStart = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - chanStart < CHANNEL_DETECT_TIMEOUT_MS) {
+    delay(200);
+    Serial.print(".");
+  }
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("[CHAN] Locked to channel %d via \"%s\"\n",
+      WiFi.channel(), CHANNEL_DETECT_SSID);
+  } else {
+    Serial.println("[CHAN] Could not detect channel — staying on default (ch 1)");
+    Serial.println("[CHAN] DISCOVER may not reach Master Box if channels differ!");
+  }
+  // Disconnect immediately — Smart Box does NOT stay on WiFi
   WiFi.disconnect();
+  delay(100);
 
   // Store own MAC for logging (WiFi.macAddress() works on all ESP32 core versions)
   String macStr = WiFi.macAddress();
