@@ -377,6 +377,15 @@ const EspDeviceSchema = new mongoose.Schema({
   voltage:       { type: Number },                        // last reported voltage (V)
   current:       { type: Number },                        // last reported current (A)
   powerWatts:    { type: Number },                        // last reported power (W)
+  // ── Real motor status (derived from relay + voltage + current) ────────────
+  motorStatus:    {
+    type: String,
+    enum: ['RUNNING', 'STOPPED', 'POWER_FAILURE', 'FAULT', 'OVERCURRENT'],
+    default: 'STOPPED',
+  },
+  motorRunning:   { type: Boolean, default: false },      // true = aerator actually spinning
+  powerAvailable: { type: Boolean, default: true },       // false = EB off / MCB tripped
+  relayStatus:    { type: Boolean, default: false },      // physical relay state
   signalStrength:{ type: Number },                        // RSSI from slave (dBm)
   metadata:      { type: Map, of: String },               // flexible extra fields
   aeratorLabels: [{ type: String }],                      // which aerators this Smart Box controls

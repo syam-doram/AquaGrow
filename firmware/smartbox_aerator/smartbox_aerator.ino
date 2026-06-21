@@ -73,6 +73,26 @@ static const uint8_t PROBE_CHANNELS[] = {1, 6, 11};
 #define ACS712_SENSITIVITY 0.066f // V per Ampere (use 0.185 for 5A version)
 #define ACS712_ZERO_VOLTAGE 1.65f // VCC/2 when running on 3.3V logic
 
+// ── Motor Status Thresholds ─────────────────────────────────────────────────
+// These determine the actual aerator condition beyond just relay state.
+// Adjust based on your motor / sensor specifications.
+#define VOLTAGE_MIN_V     100.0f  // Below this = EB off / MCB tripped (power failure)
+#define CURRENT_MIN_A     0.5f   // Below this when relay ON = motor fault
+#define CURRENT_MAX_A     15.0f  // Above this = overcurrent alert
+
+// ── Motor Status Result struct ───────────────────────────────────────────────
+// Defined here (before all functions) so Arduino IDE's auto-prototype
+// generator can see it when it scans the file top-to-bottom.
+struct MotorStatusResult {
+  bool        relayOn;
+  float       voltage;
+  float       current;
+  float       powerWatts;
+  bool        powerAvailable;
+  bool        motorRunning;
+  const char* status;  // "RUNNING" | "STOPPED" | "POWER_FAILURE" | "FAULT" | "OVERCURRENT"
+};
+
 // ── State ──────────────────────────────────────────────────────────────
 static bool g_aeratorOn = false;
 static bool g_paired = false; // true once Master acknowledges DISCOVER
@@ -131,25 +151,56 @@ static void sendDiscover() {
   Serial.printf("[DISCOVER] Broadcasted: %s\n", buf);
 }
 
+// ── Motor Status ─────────────────────────────────────────────────────────────
+// Determines real aerator condition from relay + voltage + current readings.
+
+static MotorStatusResult computeMotorStatus() {
+  MotorStatusResult ms;
+  ms.relayOn        = g_aeratorOn;
+  ms.voltage        = readVoltage();
+  ms.current        = readCurrent();
+  ms.powerWatts     = ms.voltage * ms.current;
+  ms.powerAvailable = (ms.voltage > VOLTAGE_MIN_V);
+  ms.motorRunning   = false;
+
+  if (!ms.relayOn) {
+    ms.status = "STOPPED";             // intentionally off
+  } else if (!ms.powerAvailable) {
+    ms.status = "POWER_FAILURE";       // EB off / MCB tripped / supply cut
+  } else if (ms.current > CURRENT_MAX_A) {
+    ms.status = "OVERCURRENT";         // motor drawing too much — possible short
+  } else if (ms.current >= CURRENT_MIN_A) {
+    ms.motorRunning = true;
+    ms.status = "RUNNING";             // relay ON + power + current → aerator running
+  } else {
+    ms.status = "FAULT";              // relay ON + power OK + no current → motor problem
+  }
+  return ms;
+}
+
 // ── Heartbeat
 // ─────────────────────────────────────────────────────────────────
 static void sendHeartbeat() {
-  float v = readVoltage();
-  float i = readCurrent();
-  float w = v * i;
+  MotorStatusResult ms = computeMotorStatus();
 
-  StaticJsonDocument<256> doc;
-  doc["type"] = "HEARTBEAT";
-  doc["boxId"] = BOX_ID;
-  doc["deviceType"] = DEVICE_TYPE;
-  doc["aeratorState"] = g_aeratorOn ? "ON" : "OFF";
-  doc["voltage"] = round(v * 100.0f) / 100.0f;
-  doc["current"] = round(i * 100.0f) / 100.0f;
-  doc["powerWatts"] = round(w * 100.0f) / 100.0f;
-  // NOTE: Smart Box does not connect to WiFi — RSSI not available.
-  //       ESP-NOW signal quality is handled by the Master Box on its side.
+  // Use DynamicJsonDocument so the size isn't an issue
+  StaticJsonDocument<384> doc;
+  doc["type"]           = "HEARTBEAT";
+  doc["boxId"]          = BOX_ID;
+  doc["deviceType"]     = DEVICE_TYPE;
+  // ── Relay & motor reality ───────────────────────────────────────────
+  doc["relayStatus"]    = ms.relayOn;                             // physical relay state
+  doc["motorRunning"]   = ms.motorRunning;                        // true only if actually running
+  doc["powerAvailable"] = ms.powerAvailable;                      // EB / MCB supply present
+  doc["motorStatus"]    = ms.status;                              // RUNNING|STOPPED|POWER_FAILURE|FAULT|OVERCURRENT
+  // ── Sensor readings ─────────────────────────────────────────────────
+  doc["voltage"]        = round(ms.voltage    * 100.0f) / 100.0f;
+  doc["current"]        = round(ms.current    * 100.0f) / 100.0f;
+  doc["powerWatts"]     = round(ms.powerWatts * 100.0f) / 100.0f;
+  // ── Backward compat ─────────────────────────────────────────────────
+  doc["aeratorState"]   = ms.relayOn ? "ON" : "OFF";
 
-  char buf[256];
+  char buf[384];
   serializeJson(doc, buf, sizeof(buf));
   espNowSendToMaster(buf);
   Serial.printf("[HEARTBEAT] %s\n", buf);

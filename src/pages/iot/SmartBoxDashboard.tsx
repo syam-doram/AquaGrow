@@ -214,9 +214,79 @@ const DiscoveryBanner = ({ entries, isDark, onAssign }: DiscoveryBannerProps) =>
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+//  MOTOR STATUS HELPERS
+// ─────────────────────────────────────────────────────────────────
+
+type MotorStatus = 'RUNNING' | 'STOPPED' | 'POWER_FAILURE' | 'FAULT' | 'OVERCURRENT';
+
+const MOTOR_STATUS_CONFIG: Record<MotorStatus, {
+  label: string;
+  sublabel: string;
+  color: string;
+  bg: string;
+  border: string;
+  darkBg: string;
+  darkBorder: string;
+}> = {
+  RUNNING: {
+    label: 'Aerator Running',
+    sublabel: 'Motor is operating normally',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/15',
+    border: 'border-emerald-500/30',
+    darkBg: 'bg-emerald-500/10',
+    darkBorder: 'border-emerald-500/20',
+  },
+  STOPPED: {
+    label: 'Aerator Stopped',
+    sublabel: 'Relay OFF — stopped by command',
+    color: 'text-slate-400',
+    bg: 'bg-slate-100',
+    border: 'border-slate-200',
+    darkBg: 'bg-white/5',
+    darkBorder: 'border-white/10',
+  },
+  POWER_FAILURE: {
+    label: 'Power Failure',
+    sublabel: 'Relay ON but no voltage — check EB / MCB',
+    color: 'text-amber-400',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    darkBg: 'bg-amber-500/10',
+    darkBorder: 'border-amber-500/25',
+  },
+  FAULT: {
+    label: 'Motor Fault',
+    sublabel: 'Relay ON + power OK but no current — check motor / contactor',
+    color: 'text-red-400',
+    bg: 'bg-red-50',
+    border: 'border-red-200',
+    darkBg: 'bg-red-500/10',
+    darkBorder: 'border-red-500/25',
+  },
+  OVERCURRENT: {
+    label: 'Overcurrent Alert',
+    sublabel: 'Motor drawing too much current — check for short circuit',
+    color: 'text-orange-400',
+    bg: 'bg-orange-50',
+    border: 'border-orange-200',
+    darkBg: 'bg-orange-500/10',
+    darkBorder: 'border-orange-200/25',
+  },
+};
+
+const MOTOR_STATUS_ICONS: Record<MotorStatus, React.ComponentType<{ size?: number; className?: string }>> = {
+  RUNNING:       Wind,
+  STOPPED:       Wind,
+  POWER_FAILURE: Zap,
+  FAULT:         AlertTriangle,
+  OVERCURRENT:   AlertTriangle,
+};
+
+// ─────────────────────────────────────────────────────────────────
 //  AERATOR TOGGLE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 interface AeratorToggleProps {
   device: EspDevice;
@@ -227,16 +297,16 @@ interface AeratorToggleProps {
 }
 
 const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }: AeratorToggleProps) => {
-  const [loading, setLoading]     = useState(false);
+  const [loading, setLoading]       = useState(false);
   const [localState, setLocalState] = useState<'ON' | 'OFF' | 'UNKNOWN'>(device.aeratorState);
-  const [error, setError]         = useState<string | null>(null);
+  const [error, setError]           = useState<string | null>(null);
 
   useEffect(() => { setLocalState(device.aeratorState); }, [device.aeratorState]);
 
   const toggle = async () => {
     if (loading || hasPendingCmd) return;
-    const action: CommandAction  = localState === 'ON' ? 'OFF' : 'ON';
-    const optimistic: 'ON' | 'OFF' = action === 'ON' ? 'ON' : 'OFF';
+    const action: CommandAction    = localState === 'ON' ? 'OFF' : 'ON';
+    const optimistic: 'ON' | 'OFF' = action;
 
     setLoading(true);
     setError(null);
@@ -244,10 +314,8 @@ const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }:
 
     try {
       if (device.boxId) {
-        // Preferred: use Box ID — farmer-friendly
         await espnowService.sendCommandById({ boxId: device.boxId, action, pondId });
       } else {
-        // Fallback: legacy MAC-based (shouldn't happen in new deployments)
         throw new Error('Device has no Box ID. Please re-register the device.');
       }
       onCommandSent();
@@ -259,54 +327,113 @@ const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }:
     }
   };
 
-  const isOn      = localState === 'ON';
-  const isUnknown = localState === 'UNKNOWN';
-  const locked    = loading || hasPendingCmd;
+  // Derive display status — prefer firmware-reported motorStatus, fall back to relay state
+  const motorStatus = ((device as any).motorStatus as MotorStatus | undefined)
+    || (localState === 'ON' ? 'RUNNING' : localState === 'OFF' ? 'STOPPED' : undefined);
+  const cfg = motorStatus ? MOTOR_STATUS_CONFIG[motorStatus] : MOTOR_STATUS_CONFIG.STOPPED;
+  const StatusIcon = motorStatus ? MOTOR_STATUS_ICONS[motorStatus] : Wind;
+
+  const isOn   = localState === 'ON';
+  const locked = loading || hasPendingCmd;
+
+  const isAlert = motorStatus === 'POWER_FAILURE' || motorStatus === 'FAULT' || motorStatus === 'OVERCURRENT';
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
+
+      {/* ─ Real motor status banner ─ */}
       <motion.button
         id={`aerator-toggle-${device.boxId || device._id}`}
-        whileTap={{ scale: 0.95 }}
+        whileTap={{ scale: 0.97 }}
         onClick={toggle}
         disabled={locked}
         className={cn(
-          'w-full flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all',
-          locked   ? 'opacity-60 cursor-not-allowed' : 'active:scale-[0.98] cursor-pointer',
-          isOn     ? 'bg-emerald-500/15 border-emerald-500/30' :
-          isUnknown? 'bg-white/5 border-white/10' :
-                     'bg-red-500/10 border-red-500/20',
+          'w-full rounded-2xl border px-4 py-3 transition-all',
+          locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+          isDark
+            ? `${cfg.darkBg} ${cfg.darkBorder}`
+            : `${cfg.bg} ${cfg.border}`,
         )}
       >
-        <div className="flex items-center gap-2">
-          <div className={cn(
-            'w-8 h-8 rounded-xl flex items-center justify-center border',
-            isOn      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
-            isUnknown ? 'bg-white/5 border-white/10 text-white/25' :
-                        'bg-red-500/15 border-red-500/20 text-red-400',
-          )}>
-            <Wind size={14} />
-          </div>
-          <div>
-            <p className={cn(
-              'text-[10px] font-black uppercase tracking-widest',
-              isOn ? 'text-emerald-400' : isUnknown ? 'text-white/30' : 'text-red-400',
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              'w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0',
+              isDark ? `${cfg.darkBg} ${cfg.darkBorder}` : `${cfg.bg} ${cfg.border}`,
             )}>
-              Aerator {isUnknown ? '—' : isOn ? 'Running' : 'Stopped'}
-            </p>
-            {hasPendingCmd && (
-              <p className="text-amber-400 text-[7px] font-bold">Command pending…</p>
+              <StatusIcon
+                size={15}
+                className={cn(cfg.color, motorStatus === 'RUNNING' ? 'animate-pulse' : '')}
+              />
+            </div>
+            <div className="text-left">
+              <p className={cn('text-[10px] font-black uppercase tracking-widest', cfg.color)}>
+                {cfg.label}
+              </p>
+              <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-white/30' : 'text-slate-500')}>
+                {hasPendingCmd ? 'Command pending…' : cfg.sublabel}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {loading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            {isOn
+              ? <ToggleRight size={22} className={cfg.color} />
+              : <ToggleLeft  size={22} className={isDark ? 'text-white/20' : 'text-slate-300'} />
+            }
+          </div>
+        </div>
+
+        {/* Voltage + Current inline */}
+        {((device as any).voltage != null || (device as any).current != null) && (
+          <div className={cn('flex gap-3 mt-3 pt-2.5 border-t', isDark ? 'border-white/5' : 'border-black/5')}>
+            {(device as any).voltage != null && (
+              <div className="flex items-center gap-1">
+                <Zap size={9} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                <span className={cn('text-[8px] font-black tabular-nums', isDark ? 'text-white/50' : 'text-slate-600')}>
+                  {Number((device as any).voltage).toFixed(1)}V
+                </span>
+              </div>
+            )}
+            {(device as any).current != null && (
+              <div className="flex items-center gap-1">
+                <Activity size={9} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                <span className={cn('text-[8px] font-black tabular-nums', isDark ? 'text-white/50' : 'text-slate-600')}>
+                  {Number((device as any).current).toFixed(2)}A
+                </span>
+              </div>
+            )}
+            {(device as any).powerWatts != null && (
+              <div className="flex items-center gap-1">
+                <BatteryMedium size={9} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                <span className={cn('text-[8px] font-black tabular-nums', isDark ? 'text-white/50' : 'text-slate-600')}>
+                  {Number((device as any).powerWatts).toFixed(0)}W
+                </span>
+              </div>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {loading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-          {isOn
-            ? <ToggleRight size={22} className="text-emerald-400" />
-            : <ToggleLeft  size={22} className={isUnknown ? 'text-white/20' : 'text-red-400'} />
-          }
-        </div>
+        )}
       </motion.button>
+
+      {/* Alert chip for fault states */}
+      <AnimatePresence>
+        {isAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className={cn('flex items-center gap-2 px-3 py-2 rounded-xl border text-[7.5px] font-bold',
+              motorStatus === 'POWER_FAILURE'
+                ? isDark ? 'bg-amber-500/10 border-amber-500/25 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'
+                : isDark ? 'bg-red-500/10 border-red-500/25 text-red-400'       : 'bg-red-50 border-red-200 text-red-700'
+            )}
+          >
+            <AlertTriangle size={10} className="flex-shrink-0" />
+            {motorStatus === 'POWER_FAILURE' && 'Check EB supply, MCB, and wiring connections'}
+            {motorStatus === 'FAULT'         && 'Relay ON but motor drawing no current — check motor and contactor'}
+            {motorStatus === 'OVERCURRENT'   && 'Motor drawing too much current — turn off immediately and inspect'}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {error && (
           <motion.p
@@ -320,6 +447,7 @@ const AeratorToggle = ({ device, pondId, hasPendingCmd, onCommandSent, isDark }:
     </div>
   );
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SMART BOX CARD  (one per slave)
@@ -424,13 +552,6 @@ const SmartBoxCard = ({ device, pondId, pendingCommands, onCommandSent, isDark, 
             isDark={isDark}
           />
         )}
-
-        {/* Power row */}
-        <div className="flex gap-2">
-          <PowerChip label="Voltage" value={device.voltage}    unit="V" isDark={isDark} />
-          <PowerChip label="Current" value={device.current}    unit="A" isDark={isDark} />
-          <PowerChip label="Power"   value={device.powerWatts} unit="W" isDark={isDark} />
-        </div>
 
         {/* Signal + last seen footer */}
         <div className={cn('flex items-center justify-between pt-1 border-t', isDark ? 'border-white/5' : 'border-slate-100')}>

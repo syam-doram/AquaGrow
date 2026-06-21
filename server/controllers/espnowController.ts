@@ -546,7 +546,7 @@ export const heartbeat = async (req: Request, res: Response): Promise<void> => {
         : { mac: normalizeMac(slaveMacRaw!) };
 
       // Find the existing slave record — do NOT create it (that's forwardDiscover's job)
-      const existingSlave = await EspDevice.findOne(slaveFilter, { pairingStatus: 1 });
+      const existingSlave = await EspDevice.findOne(slaveFilter, { pairingStatus: 1, motorStatus: 1, displayName: 1, boxId: 1 });
       if (existingSlave) {
         const slaveSet: Record<string, any> = {
           lastSeen: now,
@@ -556,19 +556,59 @@ export const heartbeat = async (req: Request, res: Response): Promise<void> => {
           // Heartbeats only keep lastSeen fresh so the device shows online/offline correctly.
         };
 
-        // Only update sensor data for fully-assigned devices
+        // Only update sensor + motor data for fully-assigned devices
         if (existingSlave.pairingStatus === 'assigned') {
-          if (body.aeratorState)       slaveSet.aeratorState = body.aeratorState;
-          if (body.voltage    != null) slaveSet.voltage      = body.voltage;
-          if (body.current    != null) slaveSet.current      = body.current;
-          if (body.powerWatts != null) slaveSet.powerWatts   = body.powerWatts;
+          if (body.aeratorState)         slaveSet.aeratorState   = body.aeratorState;
+          if (body.voltage    != null)   slaveSet.voltage        = body.voltage;
+          if (body.current    != null)   slaveSet.current        = body.current;
+          if (body.powerWatts != null)   slaveSet.powerWatts     = body.powerWatts;
+          // ── Motor reality fields ──────────────────────────────────────────
+          if (body.motorStatus    != null) slaveSet.motorStatus    = body.motorStatus;
+          if (body.motorRunning   != null) slaveSet.motorRunning   = body.motorRunning;
+          if (body.powerAvailable != null) slaveSet.powerAvailable = body.powerAvailable;
+          if (body.relayStatus    != null) slaveSet.relayStatus    = body.relayStatus;
+
+          // ── Alert generation for fault conditions ─────────────────────────
+          const prevStatus   = (existingSlave as any).motorStatus;
+          const newStatus    = body.motorStatus;
+          const deviceName   = (existingSlave as any).displayName || (existingSlave as any).boxId || 'Smart Box';
+          if (newStatus && newStatus !== prevStatus && resolvedPondId) {
+            const userId = device.userId || resolvedPondId;
+            let alertTitle = '';
+            let alertBody  = '';
+            if (newStatus === 'POWER_FAILURE') {
+              alertTitle = `⚡ Power Failure — ${deviceName}`;
+              alertBody  = `${deviceName}: Relay is ON but no voltage detected. Check EB supply / MCB.`;
+            } else if (newStatus === 'FAULT') {
+              alertTitle = `⚠ Motor Fault — ${deviceName}`;
+              alertBody  = `${deviceName}: Relay ON and power present, but motor drawing no current. Check motor / contactor.`;
+            } else if (newStatus === 'OVERCURRENT') {
+              alertTitle = `🔴 Overcurrent — ${deviceName}`;
+              alertBody  = `${deviceName}: Motor drawing excessive current. Possible short circuit or motor overload.`;
+            }
+            if (alertTitle) {
+              // Store in NotificationLog for in-app notification history
+              const { NotificationLog } = await import('../db.js');
+              await NotificationLog.create({
+                userId: String(device.userId),
+                title:  alertTitle,
+                body:   alertBody,
+                type:   'aerator_alert',
+                deepLink: `/ponds/${resolvedPondId}/iot`,
+                date:   now.toISOString(),
+                isRead: false,
+              }).catch(() => {}); // Non-critical — don't fail heartbeat if alert save fails
+              console.log(`[ALERT] ${alertTitle}`);
+            }
+          }
         }
 
         ops.push(EspDevice.findOneAndUpdate(slaveFilter, { $set: slaveSet }));
-        console.log(`[HB] Slave ${slaveBoxId || slaveMacRaw} (${existingSlave.pairingStatus}) lastSeen stamped`);
+        console.log(`[HB] Slave ${slaveBoxId || slaveMacRaw} (${existingSlave.pairingStatus}) motorStatus=${body.motorStatus || 'n/a'}`);
       }
       // If slave not in DB at all → ignore heartbeat; forwardDiscover will create it
     }
+
 
     await Promise.all(ops);
 
