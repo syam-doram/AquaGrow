@@ -943,33 +943,8 @@ export const SmartBoxDashboard = () => {
           <TopologyTree master={masterDevice} slaves={slaveDevices} isDark={isDark} />
         )}
 
-        {/* ── SENSOR READINGS — only when ≥1 Smart Box assigned ── */}
-        {hasAssignedSlaves && reading && (
-          <div>
-            <div className="flex items-center justify-between mb-2 px-1">
-              <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
-                Live Sensor Data
-              </p>
-              <p className={cn('text-[7px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>
-                {new Date(reading.recordedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </p>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {SENSORS.slice(0, 4).map(s => (
-                <React.Fragment key={s.key}>
-                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} isDark={isDark} />
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {SENSORS.slice(4).map(s => (
-                <React.Fragment key={s.key}>
-                  <SensorTile label={s.label} value={s.value} unit={s.unit} keyName={s.key} icon={s.icon} isDark={isDark} />
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        )}
+
+
 
         {/* ── SMART BOXES (assigned slaves only) ── */}
         {assignedSlaves.length > 0 && (

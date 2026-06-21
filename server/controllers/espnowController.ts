@@ -268,13 +268,28 @@ export const forwardDiscover = async (req: Request, res: Response): Promise<void
     const rawMac = senderMac || bodyMac;
     const normalizedSenderMac = rawMac ? normalizeMac(rawMac) : undefined;
 
-    // Upsert the discover queue entry (idempotent — repeated DISCOVERs just refresh discoveredAt)
+    // ── Check if device is already assigned ──────────────────────────────────
+    // If the Smart Box reboots and re-broadcasts DISCOVER after already being
+    // assigned by the farmer, do NOT add it back to the discover queue.
+    // Just update the device's MAC and masterId silently and return.
+    const existingDevice = await EspDevice.findOne({ boxId });
+    if (existingDevice?.pairingStatus === 'assigned') {
+      // Silently update MAC if it changed (e.g. after re-flash)
+      if (normalizedSenderMac && normalizedSenderMac !== existingDevice.mac) {
+        await EspDevice.findOneAndUpdate({ boxId }, { mac: normalizedSenderMac });
+      }
+      // Make sure the discover queue has NO entry for this assigned device
+      await EspDiscoverQueue.deleteOne({ boxId });
+      return res.json({ status: 'already_assigned', message: `${boxId} is already assigned — skipping discover queue` });
+    }
+
+    // ── Upsert discover queue (only for unassigned devices) ──────────────────
     await EspDiscoverQueue.findOneAndUpdate(
       { boxId },
       {
         boxId,
         senderMac: normalizedSenderMac,
-        masterId:  master.boxId || master.mac, // use boxId if available, fallback to mac
+        masterId:  master.boxId || master.mac,
         masterMac: master.mac,
         userId:    master.userId,
         pondId:    master.pondId,
@@ -283,12 +298,8 @@ export const forwardDiscover = async (req: Request, res: Response): Promise<void
       { upsert: true, new: true }
     );
 
-    // Also upsert a basic EspDevice record so the device exists in the system
-    // The farmer's assign step will fill in displayName and deviceType
-    const existingDevice = await EspDevice.findOne({ boxId });
+    // ── Upsert EspDevice placeholder ─────────────────────────────────────────
     if (!existingDevice) {
-      // We don't have a full apiKey yet — the device gets one when fully registered
-      // For now, create a placeholder with a temporary apiKey
       const placeholderApiKey = generateApiKey();
       await EspDevice.findOneAndUpdate(
         { boxId },
@@ -296,7 +307,7 @@ export const forwardDiscover = async (req: Request, res: Response): Promise<void
           boxId,
           userId:      master.userId,
           pondId:      master.pondId,
-          mac:         normalizedSenderMac || `PENDING_${boxId}`, // placeholder if MAC not sent
+          mac:         normalizedSenderMac || `PENDING_${boxId}`,
           role:        'slave',
           masterMac:   master.mac,
           masterId:    master.boxId || undefined,
@@ -311,7 +322,6 @@ export const forwardDiscover = async (req: Request, res: Response): Promise<void
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
     } else if (existingDevice.pairingStatus === 'unpaired') {
-      // Update to discovered if previously unpaired
       await EspDevice.findOneAndUpdate({ boxId }, {
         pairingStatus: 'discovered',
         masterMac: master.mac,
@@ -343,12 +353,29 @@ export const getPendingDiscoveries = async (req: Request, res: Response): Promis
 
     const entries = await EspDiscoverQueue.find(filter).sort({ discoveredAt: -1 });
 
-    res.json(entries.map(e => ({
+    // ── Filter out already-assigned devices ──────────────────────────────────
+    // If a Smart Box was assigned, then rebooted and re-DISCOVER'd before the
+    // queue entry was cleaned up, we must hide it from the banner.
+    const boxIds = entries.map(e => e.boxId);
+    const assignedBoxIds = new Set(
+      (await EspDevice.find(
+        { boxId: { $in: boxIds }, pairingStatus: 'assigned' },
+        { boxId: 1 }
+      )).map((d: any) => d.boxId)
+    );
+
+    // Also clean up stale queue entries for assigned devices
+    if (assignedBoxIds.size > 0) {
+      await EspDiscoverQueue.deleteMany({ boxId: { $in: [...assignedBoxIds] } });
+    }
+
+    const pending = entries.filter(e => !assignedBoxIds.has(e.boxId));
+
+    res.json(pending.map(e => ({
       boxId:        e.boxId,
       masterId:     e.masterId,
       pondId:       e.pondId,
       discoveredAt: e.discoveredAt,
-      // No MAC exposed to farmer
     })));
   } catch (err: any) {
     res.status(500).json({ error: err.message });

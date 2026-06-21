@@ -570,16 +570,6 @@ const IotDeviceSyncPanel = ({
     </div>
   );
 
-  // Sensor definitions for tiles
-  const makeSensors = (r: any) => [
-    { k: 'do',        label: 'DO',        unit: 'mg/L', icon: Droplets,       value: r?.do },
-    { k: 'ph',        label: 'pH',        unit: '',     icon: Activity,       value: r?.ph },
-    { k: 'temp',      label: 'Temp',      unit: '\u00b0C',   icon: Thermometer,    value: r?.temp },
-    { k: 'salinity',  label: 'Salinity',  unit: 'ppt',  icon: Waves,          value: r?.salinity },
-    { k: 'ammonia',   label: 'Ammonia',   unit: 'mg/L', icon: AlertTriangle,  value: r?.ammonia },
-    { k: 'turbidity', label: 'Turbidity', unit: 'NTU',  icon: Wind,           value: r?.turbidity },
-    { k: 'tds',       label: 'TDS',       unit: 'mg/L', icon: BatteryMedium,  value: r?.tds },
-  ];
 
   return (
     <div className="space-y-5">
@@ -623,7 +613,6 @@ const IotDeviceSyncPanel = ({
         const reading       = data?.latestReading;
         const pendingCmds   = data?.pendingCommandDetails ?? [];
         const cmds          = cmdsByPond[pondId] ?? [];
-        const sensors       = makeSensors(reading);
         if (!pondMaster && pondSlaves.length === 0 && pondDiscov.length === 0) return null;
 
         return (
@@ -682,27 +671,6 @@ const IotDeviceSyncPanel = ({
               </motion.div>
             )}
 
-            {/* LIVE SENSOR DATA — only when assigned slaves exist */}
-            {pondSlaves.length > 0 && reading && (
-              <div>
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>Live Sensor Data</p>
-                  <p className={cn('text-[7px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>
-                    {new Date(reading.recordedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </p>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {sensors.slice(0, 4).map(s => (
-                    <HubSensorTile key={s.k} label={s.label} value={s.value} unit={s.unit} keyName={s.k} icon={s.icon} isDark={isDark} />
-                  ))}
-                </div>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {sensors.slice(4).map(s => (
-                    <HubSensorTile key={s.k} label={s.label} value={s.value} unit={s.unit} keyName={s.k} icon={s.icon} isDark={isDark} />
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* SMART BOXES with aerator toggle */}
             {pondSlaves.length > 0 && (
