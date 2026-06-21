@@ -90,6 +90,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 #define TEST_SSID      "iPhone"      // ← Your hotspot / router name
 #define TEST_PASSWORD  ""            // ← Your hotspot password (blank if open)
+#define TEST_TOKEN     ""            // ← Paste apiKey from backend DB here
+#define TEST_POND_ID   ""            // ← Paste pondId here (e.g. 69d21569b5dcd1a28857838c)
 #define USE_TEST_WIFI  1             // ← Set to 0 for production AP provisioning
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -341,31 +343,39 @@ static bool connectWifi() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  PROVISIONING  (POST /api/device/provision)
+// ─────────────────────────────────────────────────────────────────────────────
+//  PROVISIONING  (GET /api/device/{BOX_ID})
 //  Called after WiFi connects if deviceToken is not yet in NVS.
 //  The farmer must have already registered BOX_ID in the AquaGrow app
 //  (assigned it to a pond) before this call will succeed.
+//
+//  Request:
+//    GET  {API_BASE}/device/{BOX_ID}
+//    X-Factory-Key : FACTORY_KEY   (validates this is genuine hardware)
+//    X-Device-Type : DEVICE_TYPE   (e.g. MASTER)
+//
+//  Response (200):
+//    { "success": true, "pondId": "POND001", "deviceToken": "xyz123" }
 // ─────────────────────────────────────────────────────────────────────────────
 static bool provisionDevice() {
+  // Build URL: GET /api/device/MB001
+  char url[120];
+  snprintf(url, sizeof(url), "%s/device/%s", API_BASE, BOX_ID);
+
   Serial.println("[PROVISION] Contacting provisioning server...");
-  Serial.printf("[PROVISION] POST %s/device/provision\n", API_BASE);
+  Serial.printf("[PROVISION] GET %s\n", url);
 
   WiFiClientSecure tls;
   tls.setInsecure();  // Prototype: skip cert verify
 
   HTTPClient http;
-  http.begin(tls, String(API_BASE) + "/device/provision");
-  http.addHeader("Content-Type", "application/json");
+  http.begin(tls, url);
+  // Permanent factory credentials sent as headers — no body needed
+  http.addHeader("X-Factory-Key",  FACTORY_KEY);
+  http.addHeader("X-Device-Type",  DEVICE_TYPE);
   http.setTimeout(HTTP_TIMEOUT_MS);
 
-  StaticJsonDocument<128> req;
-  req["boxId"]      = BOX_ID;
-  req["factoryKey"] = FACTORY_KEY;
-  req["deviceType"] = DEVICE_TYPE;
-  char body[128];
-  serializeJson(req, body, sizeof(body));
-
-  int    code = http.POST(body);
+  int    code = http.GET();
   String resp = code > 0 ? http.getString() : "";
   http.end();
 
@@ -374,22 +384,34 @@ static bool provisionDevice() {
   if (code == 200 || code == 201) {
     DynamicJsonDocument doc(512);
     if (!deserializeJson(doc, resp)) {
-      const char* pondId = doc["pondId"]      | "";
-      const char* token  = doc["deviceToken"] | "";
-      if (strlen(pondId) > 0 && strlen(token) > 0) {
+      bool        success = doc["success"] | false;
+      const char* pondId  = doc["pondId"]      | "";
+      const char* token   = doc["deviceToken"] | "";
+      if (success && strlen(pondId) > 0 && strlen(token) > 0) {
         saveProvisionData(pondId, token);
-        Serial.printf("[PROVISION] ✓ Success! Pond: %s\n", pondId);
+        Serial.printf("[PROVISION] ✓ Success!  Pond: %s\n", pondId);
         return true;
       }
-      Serial.println("[PROVISION] Response missing pondId or deviceToken");
+      if (!success) {
+        const char* err = doc["error"] | "Unknown error from server";
+        Serial.printf("[PROVISION] ✗ Server returned success=false: %s\n", err);
+      } else {
+        Serial.println("[PROVISION] ✗ Response missing pondId or deviceToken");
+      }
+    } else {
+      Serial.println("[PROVISION] ✗ JSON parse failed");
     }
-  } else if (code == 403) {
-    Serial.println("[PROVISION] ✗ Invalid FACTORY_KEY. Check firmware define.");
+  } else if (code == 401 || code == 403) {
+    Serial.println("[PROVISION] ✗ Invalid FACTORY_KEY. Check #define FACTORY_KEY in firmware.");
   } else if (code == 404) {
-    Serial.println("[PROVISION] ✗ Box not found or not registered in AquaGrow app.");
-    Serial.println("[PROVISION]   → Register BOX_ID in app first, then retry.");
+    Serial.println("[PROVISION] ✗ Box not found. Register BOX_ID in the AquaGrow app first.");
+    Serial.printf ("[PROVISION]   → App: Add Master Box → Box ID: %s\n", BOX_ID);
+  } else if (code == 409) {
+    Serial.println("[PROVISION] ✗ Box already claimed by another account.");
   } else if (code < 0) {
-    Serial.println("[PROVISION] ✗ Network error — check WiFi.");
+    Serial.println("[PROVISION] ✗ Network error — check WiFi connection.");
+  } else {
+    Serial.printf("[PROVISION] ✗ Unexpected HTTP %d\n", code);
   }
   return false;
 }
@@ -728,6 +750,15 @@ void setup() {
     g_password = TEST_PASSWORD;
     Serial.printf("[DEV] SSID set to: %s\n", TEST_SSID);
   }
+  // Also inject token + pondId if provided (skips /api/device/provision)
+  #if defined(TEST_TOKEN) && defined(TEST_POND_ID)
+  if (strlen(TEST_TOKEN) > 0 && strlen(TEST_POND_ID) > 0) {
+    if (g_deviceToken != TEST_TOKEN || g_pondId != TEST_POND_ID) {
+      Serial.println("[DEV] Injecting TEST_TOKEN + TEST_POND_ID into NVS");
+      saveProvisionData(TEST_POND_ID, TEST_TOKEN);
+    }
+  }
+  #endif
 #endif
 
   bool hasWifi  = (g_ssid.length() > 0);

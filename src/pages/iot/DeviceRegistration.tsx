@@ -44,7 +44,7 @@ import { cn } from '../../utils/cn';
 
 type DeviceCategory  = 'choose_category' | 'master' | 'smart_box';
 type RegistrationMode = 'choose_method' | 'qr' | 'manual';
-type RegistrationStep = 'category' | 'method' | 'configure' | 'provision' | 'success';
+type RegistrationStep = 'category' | 'method' | 'configure' | 'provision' | 'reg_error' | 'success';
 
 interface ScannedDevice {
   boxId:        string;
@@ -1083,6 +1083,23 @@ const MasterProvisionWizard = ({
     if (!ssid.trim()) { setError('Please enter your WiFi name (SSID).'); return; }
     setError(null); setSending(true);
     try {
+      // ── Pre-flight: verify phone is actually on the Master Box AP ────────────
+      // If we reach this, the box is at 192.168.4.1. If not, fail fast with a clear message.
+      try {
+        await fetch('http://192.168.4.1/status', {
+          signal: AbortSignal.timeout(3000),
+        });
+      } catch {
+        setError(
+          `Your phone is still connected to your normal WiFi or mobile data. ` +
+          `Please go to WiFi Settings → connect to "${defaultApSsid}" (password: ${editApPass}) → ` +
+          `then come back here and try again.`
+        );
+        setSending(false);
+        return;
+      }
+
+      // ── Send WiFi credentials to box ─────────────────────────────────────────
       const res = await fetch('http://192.168.4.1/wifi/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1097,10 +1114,10 @@ const MasterProvisionWizard = ({
         setError(data.error || 'Unexpected response from Master Box.');
       }
     } catch (err: any) {
-      if (err?.name === 'TimeoutError' || err?.message?.includes('fetch')) {
+      if (err?.name === 'TimeoutError' || err?.message?.includes('fetch') || err?.message?.includes('Failed to fetch')) {
         setError(
-          'Cannot reach the Master Box. Make sure your phone is connected to ' +
-          apSsid + ' and try again.'
+          `Could not reach the Master Box at 192.168.4.1. ` +
+          `Make sure your phone WiFi is connected to "${defaultApSsid}" and try again.`
         );
       } else {
         setError('Failed to send credentials: ' + (err?.message || 'Unknown error'));
@@ -1450,6 +1467,78 @@ const MasterProvisionWizard = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  DEVICE CLAIMED / OWNERSHIP ERROR VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DeviceClaimedView = ({
+  boxId, errorMsg, isDark, onBack,
+}: {
+  boxId: string;
+  errorMsg: string;
+  isDark: boolean;
+  onBack: () => void;
+}) => (
+  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+    className="px-4 pb-6 space-y-4"
+  >
+    {/* Locked icon */}
+    <div className="text-center py-6 space-y-3">
+      <motion.div
+        initial={{ scale: 0 }} animate={{ scale: 1 }}
+        transition={{ type: 'spring', damping: 14, stiffness: 200 }}
+        className="w-20 h-20 rounded-full bg-red-500/15 border-2 border-red-500/30 flex items-center justify-center mx-auto"
+      >
+        <Shield size={36} className="text-red-400" />
+      </motion.div>
+      <p className={cn('font-black text-base', isDark ? 'text-white' : 'text-slate-900')}>Device Already Claimed</p>
+      <p className={cn('text-[9px] font-medium leading-relaxed max-w-xs mx-auto', isDark ? 'text-white/40' : 'text-slate-500')}>
+        This Master Box is already registered under another AquaGrow account and cannot be re-registered.
+      </p>
+    </div>
+
+    {/* Box ID pill */}
+    <div className={cn('rounded-2xl border p-4 flex items-center gap-3', isDark ? 'bg-black/20 border-white/8' : 'bg-slate-50 border-slate-200')}>
+      <div className="w-9 h-9 rounded-xl bg-red-500/12 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+        <Radio size={16} className="text-red-400" />
+      </div>
+      <div>
+        <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>Box ID</p>
+        <p className={cn('font-black text-sm font-mono', isDark ? 'text-white' : 'text-slate-900')}>{boxId}</p>
+      </div>
+    </div>
+
+    {/* Error detail */}
+    <div className="rounded-2xl border bg-red-500/8 border-red-500/20 px-4 py-3 flex items-start gap-3">
+      <AlertTriangle size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
+      <p className="text-red-400 text-[9px] font-bold leading-relaxed">{errorMsg}</p>
+    </div>
+
+    {/* What to do */}
+    <div className={cn('rounded-2xl border p-4 space-y-2', isDark ? 'bg-black/20 border-white/8' : 'bg-white border-slate-200')}>
+      <p className={cn('text-[7.5px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>What to do</p>
+      {[
+        'Contact AquaGrow support with the Box ID above',
+        'If you own this device, make sure you are logged in to the correct account',
+        'If this box belongs to you, ask support to transfer ownership',
+      ].map((t, i) => (
+        <div key={i} className="flex items-start gap-2">
+          <div className="w-1 h-1 rounded-full bg-red-400/60 flex-shrink-0 mt-1.5" />
+          <span className={cn('text-[8px] font-bold leading-relaxed', isDark ? 'text-white/45' : 'text-slate-600')}>{t}</span>
+        </div>
+      ))}
+    </div>
+
+    <motion.button id="claimed-back-btn" whileTap={{ scale: 0.97 }} onClick={onBack}
+      className={cn('w-full py-4 rounded-2xl border font-black text-[11px] uppercase tracking-widest',
+        isDark ? 'bg-white/5 border-white/10 text-white/70' : 'bg-slate-100 border-slate-200 text-slate-700',
+      )}
+    >
+      ← Go Back
+    </motion.button>
+  </motion.div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  SUCCESS VIEW
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1611,6 +1700,7 @@ export const DeviceRegistration = () => {
   const [step,     setStep]     = useState<RegistrationStep>('category');
   const [device,   setDevice]   = useState<ScannedDevice | null>(null);
   const [success,  setSuccess]  = useState<{ deviceName: string; boxId: string; isMaster: boolean; apiKey?: string; pondId?: string } | null>(null);
+  const [registrationError, setRegistrationError] = useState<{ boxId: string; msg: string } | null>(null);
 
   // Fetch live IoT status to find existing master devices
   const [masterDevices, setMasterDevices] = useState<any[]>([]);
@@ -1655,14 +1745,34 @@ export const DeviceRegistration = () => {
     aeratorLabels: string[] = [],
   ) => {
     if (!device) return;
-    const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
-    if (role === 'master') {
-      // Master Box: go to provisioning wizard (sends WiFi to box)
-      setStep('provision');
-    } else {
-      // Slave: go straight to success
-      setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: false });
-      setStep('success');
+    try {
+      await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
+      if (role === 'master') {
+        // Master Box: go to provisioning wizard (sends WiFi to box)
+        setStep('provision');
+      } else {
+        // Slave: go straight to success
+        setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: false });
+        setStep('success');
+      }
+    } catch (err: any) {
+      const msg: string = err?.message || '';
+      // 409 = already registered to another user; 403 = ownership denied
+      const isOwnershipError = msg.toLowerCase().includes('already registered') ||
+                               msg.toLowerCase().includes('already claimed') ||
+                               msg.toLowerCase().includes('belongs to another') ||
+                               msg.toLowerCase().includes('ownership') ||
+                               msg.includes('409') || msg.includes('403');
+      if (isOwnershipError) {
+        setRegistrationError({
+          boxId: device.boxId,
+          msg: msg || 'This device is already registered under a different AquaGrow account.',
+        });
+        setStep('reg_error');
+      } else {
+        // Generic error — surface it to configure step (MasterConfigureStep / SmartBoxConfigureStep handles it)
+        throw err;
+      }
     }
   }, [device]);
 
@@ -1672,6 +1782,7 @@ export const DeviceRegistration = () => {
     setStep('category');
     setDevice(null);
     setSuccess(null);
+    setRegistrationError(null);
   };
 
   // After success of master, offer to register smart box
@@ -1890,6 +2001,18 @@ export const DeviceRegistration = () => {
                 isMaster={success.isMaster} isDark={isDark}
                 onDone={() => navigate(-1)}
                 onRegisterAnother={handleRegisterAnother}
+              />
+            </motion.div>
+          )}
+
+          {/* Ownership / Already Claimed Error */}
+          {step === 'reg_error' && registrationError && (
+            <motion.div key="reg_error" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="pt-4">
+              <DeviceClaimedView
+                boxId={registrationError.boxId}
+                errorMsg={registrationError.msg}
+                isDark={isDark}
+                onBack={resetAll}
               />
             </motion.div>
           )}
