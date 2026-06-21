@@ -1045,10 +1045,12 @@ const SmartBoxConfigureStep = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MasterProvisionWizard = ({
-  boxId, isDark, onDone,
+  boxId, isDark, apiKey, pondId, onDone,
 }: {
   boxId: string;
   isDark: boolean;
+  apiKey?: string;
+  pondId?: string;
   onDone: () => void;
 }) => {
   const [subStep,       setSubStep]       = useState<1 | 2 | 3 | 4>(1);
@@ -1528,7 +1530,7 @@ const MasterProvisionWizard = ({
       {/* ── Sub-step 4: Done ── */}
       {subStep === 4 && (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-          <div className="text-center py-6 space-y-3">
+          <div className="text-center py-4 space-y-3">
             <motion.div
               initial={{ scale: 0 }} animate={{ scale: 1 }}
               transition={{ type: 'spring', damping: 14, stiffness: 200 }}
@@ -1542,6 +1544,59 @@ const MasterProvisionWizard = ({
               It will automatically register with the AquaGrow cloud.
             </p>
           </div>
+
+          {/* ── Firmware API Key (shown only if available) ── */}
+          {apiKey && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+              className="w-full rounded-2xl border overflow-hidden bg-gradient-to-br from-violet-500/10 to-indigo-500/5 border-violet-500/25"
+            >
+              <div className="px-4 pt-3 pb-3">
+                <p className="text-violet-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🔑 Firmware API Key</p>
+                <p className={cn('text-[7px] font-medium leading-relaxed mb-2', isDark ? 'text-white/40' : 'text-slate-500')}>
+                  Already stored on the box. Keep a copy in case you re-flash the firmware.
+                </p>
+                <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
+                  isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
+                )}>
+                  <code className={cn('flex-1 text-[8px] font-mono break-all leading-relaxed text-left',
+                    isDark ? 'text-violet-300' : 'text-violet-700',
+                  )}>{apiKey}</code>
+                  <button
+                    id="copy-provision-api-key-btn"
+                    onClick={() => { navigator.clipboard.writeText(apiKey); }}
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[7.5px] font-black uppercase tracking-widest bg-violet-500/20 text-violet-400 border border-violet-500/30 active:scale-95"
+                  >Copy</button>
+                </div>
+                <p className={cn('text-[6.5px] font-bold mt-1.5', isDark ? 'text-amber-400/60' : 'text-amber-600')}>
+                  ⚠ This key was flashed to the device automatically. Store a copy now.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Pond ID ── */}
+          {pondId && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+              className="w-full rounded-2xl border overflow-hidden bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/25"
+            >
+              <div className="px-4 pt-3 pb-3">
+                <p className="text-cyan-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🏠 Pond ID</p>
+                <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
+                  isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
+                )}>
+                  <code className={cn('flex-1 text-[8px] font-mono break-all leading-relaxed text-left',
+                    isDark ? 'text-cyan-300' : 'text-cyan-700',
+                  )}>{pondId}</code>
+                  <button
+                    id="copy-provision-pond-id-btn"
+                    onClick={() => { navigator.clipboard.writeText(pondId); }}
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[7.5px] font-black uppercase tracking-widest bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 active:scale-95"
+                  >Copy</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           <div className={cn('rounded-2xl border p-4 space-y-2', isDark ? 'bg-black/20 border-white/8' : 'bg-slate-50 border-slate-200')}>
             <p className={cn('text-[7.5px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>What happens next</p>
             {[
@@ -1576,6 +1631,7 @@ const MasterProvisionWizard = ({
     </div>
   );
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DEVICE CLAIMED / OWNERSHIP ERROR VIEW
@@ -1813,6 +1869,9 @@ export const DeviceRegistration = () => {
   const [success,  setSuccess]  = useState<{ deviceName: string; boxId: string; isMaster: boolean; apiKey?: string; pondId?: string } | null>(null);
   const [registrationError, setRegistrationError] = useState<{ boxId: string; msg: string } | null>(null);
 
+  // Holds the apiKey + pondId returned by assignDevice for Master Box — needed by wizard
+  const [provisionKeys, setProvisionKeys] = useState<{ apiKey?: string; pondId?: string }>({});
+
   // Fetch live IoT status to find existing master devices
   const [masterDevices, setMasterDevices] = useState<any[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -1857,8 +1916,10 @@ export const DeviceRegistration = () => {
   ) => {
     if (!device) return;
     try {
-      await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
+      const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
       if (role === 'master') {
+        // Store apiKey + pondId so the provision wizard can display them
+        setProvisionKeys({ apiKey: result.apiKey, pondId });
         // Master Box: go to provisioning wizard (sends WiFi to box)
         setStep('provision');
       } else {
@@ -1894,6 +1955,7 @@ export const DeviceRegistration = () => {
     setDevice(null);
     setSuccess(null);
     setRegistrationError(null);
+    setProvisionKeys({});
   };
 
   // After success of master, offer to register smart box
@@ -2099,6 +2161,8 @@ export const DeviceRegistration = () => {
               <MasterProvisionWizard
                 boxId={device.boxId}
                 isDark={isDark}
+                apiKey={provisionKeys.apiKey}
+                pondId={provisionKeys.pondId}
                 onDone={() => navigate(-1)}
               />
             </motion.div>

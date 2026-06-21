@@ -391,13 +391,14 @@ export const espnowService = {
    */
   async assignDevice(
     payload: AssignDevicePayload
-  ): Promise<{ message: string; device: EspDevice }> {
+  ): Promise<{ message: string; device: EspDevice; apiKey?: string }> {
     const res = await fetchWithAuth(`${API_BASE_URL}/espnow/devices/assign`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    return handleResponse<{ message: string; device: EspDevice }>(res);
+    return handleResponse<{ message: string; device: EspDevice; apiKey?: string }>(res);
   },
+
 
   // ── Device Management ──────────────────────────────────────────────────────
 

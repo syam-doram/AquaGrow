@@ -24,6 +24,8 @@ import {
   getCommandHistory,
   getPondIoTStatus,
 } from '../controllers/espnowController.js';
+import { EspDevice } from '../db.js';
+
 
 const router = express.Router();
 
@@ -197,4 +199,80 @@ router.get('/commands/:pondId', authenticate, getCommandHistory);
  */
 router.get('/status/:pondId', authenticate, getPondIoTStatus);
 
+// ═══════════════════════════════════════════════════════════════════════════════
+//  FIRMWARE SELF-PROVISIONING  (no JWT — uses X-Factory-Key + X-Device-Type)
+//
+//  GET /api/espnow/device/:boxId
+//
+//  Called automatically by the Master Box firmware after WiFi connects,
+//  when it has no deviceToken in NVS.
+//
+//  Headers:
+//    X-Factory-Key : must match FACTORY_KEY env var (or 'AQUAGROW_FACTORY_2025')
+//    X-Device-Type : must be 'MASTER'
+//
+//  Response 200:
+//    { success: true, pondId: "...", deviceToken: "..." }
+//
+//  Firmware saves pondId + deviceToken to NVS via saveProvisionData(),
+//  then uses deviceToken as the X-API-Key on all subsequent calls.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+router.get('/device/:boxId', async (req, res) => {
+  try {
+    const { boxId } = req.params;
+    const factoryKey = req.headers['x-factory-key']  as string | undefined;
+    const deviceType = req.headers['x-device-type']  as string | undefined;
+
+    // 1. Validate factory key
+    const expectedKey = process.env.FACTORY_KEY || 'AQUAGROW_FACTORY_2025';
+    if (!factoryKey || factoryKey !== expectedKey) {
+      res.status(401).json({ success: false, error: 'Invalid factory key' });
+      return;
+    }
+
+    // 2. Validate device type
+    if (!deviceType || deviceType.toUpperCase() !== 'MASTER') {
+      res.status(400).json({ success: false, error: 'X-Device-Type must be MASTER' });
+      return;
+    }
+
+    // 3. Look up device — must exist and have been assigned in the app
+    const device = await EspDevice.findOne({ boxId, isActive: true });
+    if (!device) {
+      res.status(404).json({
+        success: false,
+        error: `Box ${boxId} not registered. Add this Box ID in the AquaGrow app first.`,
+      });
+      return;
+    }
+
+    if (!device.pondId || !device.apiKey) {
+      res.status(409).json({
+        success: false,
+        error: 'Device exists but is not fully assigned to a pond yet. Complete app registration first.',
+      });
+      return;
+    }
+
+    // 4. Stamp lastSeen so dashboard shows device coming online
+    await EspDevice.findByIdAndUpdate(device._id, {
+      lastSeen: new Date(),
+      ...(device.pairingStatus !== 'assigned' ? { pairingStatus: 'assigned' } : {}),
+    });
+
+    // 5. Return provisioning data — firmware key name is "deviceToken"
+    res.json({
+      success:     true,
+      pondId:      String(device.pondId),
+      deviceToken: device.apiKey,
+      boxId:       device.boxId,
+    });
+  } catch (err: any) {
+    console.error('[PROVISION]', err.message);
+    res.status(500).json({ success: false, error: 'Server error during provisioning' });
+  }
+});
+
 export default router;
+

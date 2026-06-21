@@ -12,10 +12,14 @@ import { EspDevice } from '../db.js';
  *   router.post('/ingest', authenticateDevice, espnowController.ingest);
  */
 export const authenticateDevice = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const apiKey = req.headers['x-device-apikey'] as string | undefined;
+  // Accept both X-Device-ApiKey (server convention) and X-API-Key (firmware convention)
+  const apiKey = (
+    req.headers['x-device-apikey'] ||
+    req.headers['x-api-key']
+  ) as string | undefined;
 
   if (!apiKey) {
-    res.status(401).json({ error: 'Missing X-Device-ApiKey header' });
+    res.status(401).json({ error: 'Missing X-Device-ApiKey or X-API-Key header' });
     return;
   }
 

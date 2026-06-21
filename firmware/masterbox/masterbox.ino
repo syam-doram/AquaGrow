@@ -68,7 +68,8 @@
 #define AP_PASSWORD  "12345678"           // AP password shown to farmer in app
 
 // Cloud API
-#define API_BASE  "https://aquagrow.onrender.com/api"
+#define API_BASE      "https://aquagrow.onrender.com/api/espnow"
+#define API_BASE_ROOT "https://aquagrow.onrender.com/api"
 
 // Hardware
 #define LED_PIN         2     // Onboard LED
@@ -358,8 +359,8 @@ static bool connectWifi() {
 //    { "success": true, "pondId": "POND001", "deviceToken": "xyz123" }
 // ─────────────────────────────────────────────────────────────────────────────
 static bool provisionDevice() {
-  // Build URL: GET /api/device/MB001
-  char url[120];
+  // Build URL: GET /api/espnow/device/MB001
+  char url[160];
   snprintf(url, sizeof(url), "%s/device/%s", API_BASE, BOX_ID);
 
   Serial.println("[PROVISION] Contacting provisioning server...");
