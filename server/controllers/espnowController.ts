@@ -714,21 +714,39 @@ export const pollPendingCommand = async (req: Request, res: Response): Promise<v
 };
 
 /**
- * PATCH /api/espnow/command/:commandId/ack
- * Master confirms a command was executed (or failed) by the slave.
- * Header: X-Device-ApiKey
- * Body: { status: 'confirmed' | 'failed', errorMessage? }
+ * POST /api/espnow/confirm   ← called by Master Box firmware
+ * POST /api/espnow/ack       ← alias
+ * PATCH /api/espnow/command/:commandId/ack  ← legacy app route
+ *
+ * Firmware body: { cmdId, success, action, aeratorState, boxId, masterId, pondId }
+ * App body:      { status: 'confirmed' | 'failed', errorMessage? }
+ *
+ * Accepts commandId from URL param (legacy) OR from body.cmdId (firmware).
+ * Accepts status as 'confirmed'/'failed' string OR derived from body.success boolean.
  */
 export const acknowledgeCommand = async (req: Request, res: Response): Promise<void> => {
   try {
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
     const device = (req as any).device;
-    const { commandId } = req.params;
-    const { status, errorMessage } = req.body;
+
+    // ── Resolve commandId ────────────────────────────────────────────────────
+    // Firmware posts cmdId in body; legacy app route uses URL param.
+    const commandId = req.params.commandId || req.body.cmdId || req.body.commandId;
+    if (!commandId) {
+      res.status(400).json({ error: 'commandId is required (URL param or body.cmdId)' }); return;
+    }
+
+    // ── Resolve status ───────────────────────────────────────────────────────
+    // Firmware sends boolean "success"; app sends string 'confirmed' | 'failed'.
+    let status: string = req.body.status;
+    if (!status && req.body.success !== undefined) {
+      status = req.body.success === true ? 'confirmed' : 'failed';
+    }
+    const { errorMessage } = req.body;
 
     if (!['confirmed', 'failed'].includes(status)) {
-      res.status(400).json({ error: 'status must be "confirmed" or "failed"' }); return;
+      res.status(400).json({ error: 'status must be "confirmed" or "failed" (or supply success: true/false)' }); return;
     }
 
     const command = await EspAeratorCommand.findById(commandId);
@@ -739,6 +757,7 @@ export const acknowledgeCommand = async (req: Request, res: Response): Promise<v
 
     const update: Record<string, any> = { status, confirmedAt: new Date() };
     if (errorMessage) update.errorMessage = errorMessage;
+
 
     const [updated] = await Promise.all([
       EspAeratorCommand.findByIdAndUpdate(commandId, update, { new: true }),
