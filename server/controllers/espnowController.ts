@@ -545,21 +545,33 @@ export const heartbeat = async (req: Request, res: Response): Promise<void> => {
         ? { boxId: slaveBoxId }
         : { mac: normalizeMac(slaveMacRaw!) };
 
-      const slaveSet: Record<string, any> = {
-        lastSeen:      now,
-        isActive:      true,
-        pairingStatus: 'assigned',
-      };
-      if (body.aeratorState)      slaveSet.aeratorState = body.aeratorState;
-      if (body.voltage    != null) slaveSet.voltage     = body.voltage;
-      if (body.current    != null) slaveSet.current     = body.current;
-      if (body.powerWatts != null) slaveSet.powerWatts  = body.powerWatts;
+      // Find the existing slave record — do NOT create it (that's forwardDiscover's job)
+      const existingSlave = await EspDevice.findOne(slaveFilter, { pairingStatus: 1 });
+      if (existingSlave) {
+        const slaveSet: Record<string, any> = {
+          lastSeen: now,
+          isActive: true,
+          // NEVER touch pairingStatus here — only the farmer's explicit assign action
+          // in the app changes it from 'discovered' → 'assigned'.
+          // Heartbeats only keep lastSeen fresh so the device shows online/offline correctly.
+        };
 
-      ops.push(EspDevice.findOneAndUpdate(slaveFilter, { $set: slaveSet }));
-      console.log(`[HB] Slave ${slaveBoxId || slaveMacRaw} lastSeen → online`);
+        // Only update sensor data for fully-assigned devices
+        if (existingSlave.pairingStatus === 'assigned') {
+          if (body.aeratorState)       slaveSet.aeratorState = body.aeratorState;
+          if (body.voltage    != null) slaveSet.voltage      = body.voltage;
+          if (body.current    != null) slaveSet.current      = body.current;
+          if (body.powerWatts != null) slaveSet.powerWatts   = body.powerWatts;
+        }
+
+        ops.push(EspDevice.findOneAndUpdate(slaveFilter, { $set: slaveSet }));
+        console.log(`[HB] Slave ${slaveBoxId || slaveMacRaw} (${existingSlave.pairingStatus}) lastSeen stamped`);
+      }
+      // If slave not in DB at all → ignore heartbeat; forwardDiscover will create it
     }
 
     await Promise.all(ops);
+
     console.log(`[HB] ${device.boxId || device.mac} → pondId=${resolvedPondId}`);
 
     res.json({

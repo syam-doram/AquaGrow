@@ -44,7 +44,7 @@
   "SB001" // Unique Smart Box ID  (match what's registered in AquaGrow app)
 #define DEVICE_TYPE "AERATOR"  // Must be "AERATOR" for aerator smart box
 #define AERATOR_PIN 14         // Relay control pin (HIGH = ON)
-#define RELAY_ACTIVE_HIGH true // Set to false if your relay triggers on LOW
+#define RELAY_ACTIVE_HIGH false // Set to false if your relay triggers on LOW (most common relay modules)
 
 // ── Timing
 // ────────────────────────────────────────────────────────────────────
