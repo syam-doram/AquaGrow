@@ -33,7 +33,7 @@
 //  WIFI CREDENTIALS  —  change for your development hotspot / router
 //  After product is stable, replace with SIM7600 or AP-provisioning module.
 // ─────────────────────────────────────────────────────────────────────────────
-#define WIFI_SSID     "Syam_Hotspot"   // ← Change to your WiFi name
+#define WIFI_SSID     "iPhone"         // ← Change to your WiFi name
 #define WIFI_PASSWORD "12345678"       // ← Change to your WiFi password
 
 // ─────────────────────────────────────────────────────────────────────────────

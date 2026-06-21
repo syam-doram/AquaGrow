@@ -468,25 +468,23 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
 
 /**
  * POST /api/espnow/heartbeat
- * Master ESP32 sends a lightweight ping every 30 seconds.
- * Header: X-Device-ApiKey
- * Response includes pondId so firmware can save it to NVS if not already set.
+ * Handles both:
+ *   a) Master heartbeat: body boxId = master boxId
+ *   b) Slave heartbeat forwarded by Master: body boxId = "SB001", mac = slave MAC
+ *
+ * Header: X-Device-ApiKey  (always the Master Box's key)
  */
 export const heartbeat = async (req: Request, res: Response): Promise<void> => {
   try {
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
-    const device = (req as any).device;
-    const now = new Date();
+    const device = (req as any).device; // always the authenticating Master Box
+    const now    = new Date();
+    const body   = req.body || {};
 
     // ── Resolve pondId ─────────────────────────────────────────────────────
-    // The authenticating device record may lack pondId if it was created before
-    // the farmer registered the device in the app (split-record scenario).
-    // Look up the canonical pondId by boxId and patch this record immediately.
     let resolvedPondId: string | null = device.pondId || null;
-
     if (!resolvedPondId && device.boxId) {
-      // Find any other record with the same boxId that has a pondId
       const canonical = await EspDevice.findOne(
         { boxId: device.boxId, pondId: { $exists: true, $ne: null }, _id: { $ne: device._id } },
         { pondId: 1, userId: 1 }
@@ -502,23 +500,52 @@ export const heartbeat = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    await Promise.all([
+    // ── Always stamp master lastSeen ────────────────────────────────────────
+    const ops: Promise<any>[] = [
       EspDevice.findByIdAndUpdate(device._id, { lastSeen: now, heartbeatAt: now }),
       EspHeartbeat.create({ deviceId: String(device._id), pondId: resolvedPondId, mac: device.mac, at: now }),
-    ]);
+    ];
 
+    // ── Slave heartbeat forwarded by Master ─────────────────────────────────
+    // Master forwards slave HEARTBEAT to this same endpoint with body:
+    //   { type:"HEARTBEAT", boxId:"SB001", mac:<slave_mac>, aeratorState, voltage, current }
+    // Detect when body.boxId is a slave (different from the authenticating master).
+    const slaveBoxId  = body.boxId && body.boxId !== device.boxId ? String(body.boxId)  : null;
+    const slaveMacRaw = body.mac   && body.mac   !== device.mac   ? String(body.mac)    : null;
+
+    if (slaveBoxId || slaveMacRaw) {
+      const slaveFilter = slaveBoxId
+        ? { boxId: slaveBoxId }
+        : { mac: normalizeMac(slaveMacRaw!) };
+
+      const slaveSet: Record<string, any> = {
+        lastSeen:      now,
+        isActive:      true,
+        pairingStatus: 'assigned',
+      };
+      if (body.aeratorState)      slaveSet.aeratorState = body.aeratorState;
+      if (body.voltage    != null) slaveSet.voltage     = body.voltage;
+      if (body.current    != null) slaveSet.current     = body.current;
+      if (body.powerWatts != null) slaveSet.powerWatts  = body.powerWatts;
+
+      ops.push(EspDevice.findOneAndUpdate(slaveFilter, { $set: slaveSet }));
+      console.log(`[HB] Slave ${slaveBoxId || slaveMacRaw} lastSeen → online`);
+    }
+
+    await Promise.all(ops);
     console.log(`[HB] ${device.boxId || device.mac} → pondId=${resolvedPondId}`);
 
     res.json({
       ok:         true,
       serverTime: now.toISOString(),
-      pondId:     resolvedPondId,   // ← Master Box saves to NVS via saveConfig()
+      pondId:     resolvedPondId,
       boxId:      device.boxId || null,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /**
  * POST /api/espnow/ingest

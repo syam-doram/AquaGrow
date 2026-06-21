@@ -33,50 +33,55 @@
  * ============================================================
  */
 
-#include <esp_now.h>
-#include <WiFi.h>
 #include <ArduinoJson.h>
+#include <WiFi.h>
+#include <esp_now.h>
+#include <esp_wifi.h>
 
 // ── User config ──────────────────────────────────────────────────────────────
 // Change these to match your deployment
-#define BOX_ID          "SB001"          // Unique Smart Box ID  (match what's registered in AquaGrow app)
-#define DEVICE_TYPE     "AERATOR"        // Must be "AERATOR" for aerator smart box
-#define AERATOR_PIN     14               // Relay control pin (HIGH = ON)
-#define RELAY_ACTIVE_HIGH true           // Set to false if your relay triggers on LOW
-#define HEARTBEAT_INTERVAL_MS  10000UL  // Send telemetry every 10 seconds
-#define DISCOVER_INTERVAL_MS   30000UL  // Re-broadcast DISCOVER every 30 s until paired
+#define BOX_ID                                                                 \
+  "SB001" // Unique Smart Box ID  (match what's registered in AquaGrow app)
+#define DEVICE_TYPE "AERATOR"  // Must be "AERATOR" for aerator smart box
+#define AERATOR_PIN 14         // Relay control pin (HIGH = ON)
+#define RELAY_ACTIVE_HIGH true // Set to false if your relay triggers on LOW
 
-// ── WiFi channel detection ────────────────────────────────────────────────────
-// Smart Box never connects to the cloud, but it needs to be on the SAME WiFi
-// channel as the Master Box for ESP-NOW to work.
-// Set these to the SAME credentials the Master Box uses so the Smart Box can
-// tune its radio to the correct channel, then disconnect immediately.
-// No data is sent to the cloud from the Smart Box.
-#define CHANNEL_DETECT_SSID     "iPhone"    // ← same as Master Box WIFI_SSID
-#define CHANNEL_DETECT_PASSWORD "12345678"  // ← same as Master Box WIFI_PASSWORD
-#define CHANNEL_DETECT_TIMEOUT_MS 8000      // max time to spend on channel detection
+// ── Timing
+// ────────────────────────────────────────────────────────────────────
+#define HEARTBEAT_INTERVAL_MS 10000UL // Send telemetry every 10 seconds
+
+// ── Channel probe ───────────────────────────────────────────────────────────
+// Smart Box has ZERO WiFi credentials. It discovers the Master Box channel
+// automatically by cycling through common 2.4GHz channels and sending DISCOVER
+// on each one. The channel where Master Box receives it will get a PAIR_ACK
+// back. Channels 1, 6, 11 cover all common hotspot/router defaults.
+#define DISCOVER_PROBE_MS 2000UL // Try next channel every 2 seconds
+static const uint8_t PROBE_CHANNELS[] = {1, 6, 11};
+#define NUM_PROBE_CHANNELS (sizeof(PROBE_CHANNELS) / sizeof(PROBE_CHANNELS[0]))
 
 // ── Pin config ───────────────────────────────────────────────────────────────
-#define CURRENT_PIN     34   // ACS712 output (or leave unused if no current sensor)
-#define VOLTAGE_PIN     35   // Voltage divider output (or leave unused)
-#define ONBOARD_LED     2    // Built-in LED (optional feedback)
+#define CURRENT_PIN 34 // ACS712 output (or leave unused if no current sensor)
+#define VOLTAGE_PIN 35 // Voltage divider output (or leave unused)
+#define ONBOARD_LED 2  // Built-in LED (optional feedback)
 
 // Voltage divider ratio: R1=30kΩ, R2=7.5kΩ → ratio = (R1+R2)/R2 = 5.0
-#define VOLTAGE_DIVIDER_RATIO  5.0f
-#define ADC_REF_VOLTAGE        3.3f
-#define ADC_RESOLUTION         4095.0f
+#define VOLTAGE_DIVIDER_RATIO 5.0f
+#define ADC_REF_VOLTAGE 3.3f
+#define ADC_RESOLUTION 4095.0f
 
 // ACS712-30A: sensitivity = 66mV/A, zero at VCC/2
-#define ACS712_SENSITIVITY     0.066f   // V per Ampere (use 0.185 for 5A version)
-#define ACS712_ZERO_VOLTAGE    1.65f    // VCC/2 when running on 3.3V logic
+#define ACS712_SENSITIVITY 0.066f // V per Ampere (use 0.185 for 5A version)
+#define ACS712_ZERO_VOLTAGE 1.65f // VCC/2 when running on 3.3V logic
 
-// ── State ────────────────────────────────────────────────────────────────────
-static bool      g_aeratorOn      = false;
-static bool      g_paired         = false;   // true once Master acknowledges DISCOVER
-static uint8_t   g_masterMac[6]   = {0};     // MAC of Master Box (filled on first pairing)
-static uint32_t  g_lastHeartbeat  = 0;
-static uint32_t  g_lastDiscover   = 0;
-static char      g_myMac[18]      = {0};     // This device's MAC (for logging only)
+// ── State ──────────────────────────────────────────────────────────────
+static bool g_aeratorOn = false;
+static bool g_paired = false; // true once Master acknowledges DISCOVER
+static uint8_t g_masterMac[6] = {
+    0}; // MAC of Master Box (filled on first pairing)
+static uint32_t g_lastHeartbeat = 0;
+static uint32_t g_lastDiscover = 0;
+static uint8_t g_probeIdx = 0; // current channel probe index
+static char g_myMac[18] = {0}; // This device's MAC (from eFuse, for logging)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 static void setAerator(bool on) {
@@ -96,46 +101,51 @@ static float readCurrent() {
   int raw = analogRead(CURRENT_PIN);
   float vSense = (raw / ADC_RESOLUTION) * ADC_REF_VOLTAGE;
   float current = (vSense - ACS712_ZERO_VOLTAGE) / ACS712_SENSITIVITY;
-  return fabsf(current);   // always positive
+  return fabsf(current); // always positive
 }
 
-// ── ESP-NOW send helper ───────────────────────────────────────────────────────
-static void espNowSendToMaster(const char* jsonPayload) {
-  if (!g_paired) return;
-  esp_now_send(g_masterMac, (const uint8_t*)jsonPayload, strlen(jsonPayload) + 1);
+// ── ESP-NOW send helper
+// ───────────────────────────────────────────────────────
+static void espNowSendToMaster(const char *jsonPayload) {
+  if (!g_paired)
+    return;
+  esp_now_send(g_masterMac, (const uint8_t *)jsonPayload,
+               strlen(jsonPayload) + 1);
 }
 
-// ── DISCOVER broadcast ────────────────────────────────────────────────────────
+// ── DISCOVER broadcast
+// ────────────────────────────────────────────────────────
 static void sendDiscover() {
   StaticJsonDocument<256> doc;
-  doc["type"]       = "DISCOVER";
-  doc["boxId"]      = BOX_ID;
+  doc["type"] = "DISCOVER";
+  doc["boxId"] = BOX_ID;
   doc["deviceType"] = DEVICE_TYPE;
-  doc["mac"]        = g_myMac;
+  doc["mac"] = g_myMac;
 
   char buf[256];
   serializeJson(doc, buf, sizeof(buf));
 
   // Broadcast to all devices (FF:FF:FF:FF:FF:FF)
-  uint8_t broadcast[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
-  esp_now_send(broadcast, (const uint8_t*)buf, strlen(buf) + 1);
+  uint8_t broadcast[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  esp_now_send(broadcast, (const uint8_t *)buf, strlen(buf) + 1);
   Serial.printf("[DISCOVER] Broadcasted: %s\n", buf);
 }
 
-// ── Heartbeat ─────────────────────────────────────────────────────────────────
+// ── Heartbeat
+// ─────────────────────────────────────────────────────────────────
 static void sendHeartbeat() {
   float v = readVoltage();
   float i = readCurrent();
   float w = v * i;
 
   StaticJsonDocument<256> doc;
-  doc["type"]         = "HEARTBEAT";
-  doc["boxId"]        = BOX_ID;
-  doc["deviceType"]   = DEVICE_TYPE;
+  doc["type"] = "HEARTBEAT";
+  doc["boxId"] = BOX_ID;
+  doc["deviceType"] = DEVICE_TYPE;
   doc["aeratorState"] = g_aeratorOn ? "ON" : "OFF";
-  doc["voltage"]      = round(v * 100.0f) / 100.0f;
-  doc["current"]      = round(i * 100.0f) / 100.0f;
-  doc["powerWatts"]   = round(w * 100.0f) / 100.0f;
+  doc["voltage"] = round(v * 100.0f) / 100.0f;
+  doc["current"] = round(i * 100.0f) / 100.0f;
+  doc["powerWatts"] = round(w * 100.0f) / 100.0f;
   // NOTE: Smart Box does not connect to WiFi — RSSI not available.
   //       ESP-NOW signal quality is handled by the Master Box on its side.
 
@@ -145,14 +155,15 @@ static void sendHeartbeat() {
   Serial.printf("[HEARTBEAT] %s\n", buf);
 }
 
-// ── Command confirmation ──────────────────────────────────────────────────────
-static void sendConfirm(const char* cmdId, const char* action, bool success) {
+// ── Command confirmation
+// ──────────────────────────────────────────────────────
+static void sendConfirm(const char *cmdId, const char *action, bool success) {
   StaticJsonDocument<200> doc;
-  doc["type"]         = "CMD_CONFIRM";
-  doc["boxId"]        = BOX_ID;
-  doc["cmdId"]        = cmdId;
-  doc["action"]       = action;
-  doc["success"]      = success;
+  doc["type"] = "CMD_CONFIRM";
+  doc["boxId"] = BOX_ID;
+  doc["cmdId"] = cmdId;
+  doc["action"] = action;
+  doc["success"] = success;
   doc["aeratorState"] = g_aeratorOn ? "ON" : "OFF";
 
   char buf[200];
@@ -161,8 +172,10 @@ static void sendConfirm(const char* cmdId, const char* action, bool success) {
   Serial.printf("[CONFIRM] %s\n", buf);
 }
 
-// ── Incoming ESP-NOW callback ─────────────────────────────────────────────────
-static void onDataRecv(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
+// ── Incoming ESP-NOW callback
+// ─────────────────────────────────────────────────
+static void onDataRecv(const esp_now_recv_info_t *info, const uint8_t *data,
+                       int len) {
   // Parse JSON
   StaticJsonDocument<512> doc;
   DeserializationError err = deserializeJson(doc, data, len);
@@ -171,7 +184,7 @@ static void onDataRecv(const esp_now_recv_info_t* info, const uint8_t* data, int
     return;
   }
 
-  const char* msgType = doc["type"] | "";
+  const char *msgType = doc["type"] | "";
   Serial.printf("[RX] type=%s\n", msgType);
 
   // ── PAIR_ACK: Master confirmed pairing ──
@@ -189,16 +202,16 @@ static void onDataRecv(const esp_now_recv_info_t* info, const uint8_t* data, int
       esp_now_add_peer(&peer);
     }
 
-    digitalWrite(ONBOARD_LED, HIGH);  // Solid LED = paired
+    digitalWrite(ONBOARD_LED, HIGH); // Solid LED = paired
     sendHeartbeat();
     return;
   }
 
   // ── COMMAND: ON / OFF / RESET / SPEED ──
   if (strcmp(msgType, "COMMAND") == 0) {
-    const char* action = doc["action"] | "";
-    const char* cmdId  = doc["cmdId"]  | "unknown";
-    int         speed  = doc["speed"]  | 0;
+    const char *action = doc["action"] | "";
+    const char *cmdId = doc["cmdId"] | "unknown";
+    int speed = doc["speed"] | 0;
 
     bool success = false;
     if (strcmp(action, "ON") == 0) {
@@ -231,7 +244,8 @@ static void onDataRecv(const esp_now_recv_info_t* info, const uint8_t* data, int
   }
 }
 
-// ── Arduino setup ─────────────────────────────────────────────────────────────
+// ── Arduino setup
+// ─────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -242,37 +256,21 @@ void setup() {
   // GPIO init
   pinMode(AERATOR_PIN, OUTPUT);
   pinMode(ONBOARD_LED, OUTPUT);
-  setAerator(false);  // Safe default: aerator OFF on boot
+  setAerator(false); // Safe default: aerator OFF on boot
   digitalWrite(ONBOARD_LED, LOW);
 
-  // ── WiFi channel detection ─────────────────────────────────────────────────
-  // Smart Box NEVER connects to the cloud.
-  // We connect briefly to the same WiFi as the Master Box ONLY to lock our
-  // radio onto the correct channel (channel 6 for iPhone hotspot, etc.).
-  // After disconnect the channel stays set — ESP-NOW uses it automatically.
+  // ── WiFi / ESP-NOW init ──────────────────────────────────────────────────
   WiFi.mode(WIFI_STA);
-  Serial.printf("[CHAN] Detecting channel via \"%s\"...\n", CHANNEL_DETECT_SSID);
-  WiFi.begin(CHANNEL_DETECT_SSID, CHANNEL_DETECT_PASSWORD);
-  uint32_t chanStart = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - chanStart < CHANNEL_DETECT_TIMEOUT_MS) {
-    delay(200);
-    Serial.print(".");
-  }
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("[CHAN] Locked to channel %d via \"%s\"\n",
-      WiFi.channel(), CHANNEL_DETECT_SSID);
-  } else {
-    Serial.println("[CHAN] Could not detect channel — staying on default (ch 1)");
-    Serial.println("[CHAN] DISCOVER may not reach Master Box if channels differ!");
-  }
-  // Disconnect immediately — Smart Box does NOT stay on WiFi
   WiFi.disconnect();
   delay(100);
 
-  // Store own MAC for logging (WiFi.macAddress() works on all ESP32 core versions)
-  String macStr = WiFi.macAddress();
-  macStr.toCharArray(g_myMac, sizeof(g_myMac));
+  // Read hardware MAC — WiFi.macAddress(uint8_t*) is available on all ESP32
+  // core versions Works correctly once WiFi.mode(WIFI_STA) has been called
+  // above
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  snprintf(g_myMac, sizeof(g_myMac), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0],
+           mac[1], mac[2], mac[3], mac[4], mac[5]);
   Serial.printf("MAC         : %s\n", g_myMac);
 
   // ESP-NOW init
@@ -290,22 +288,33 @@ void setup() {
   peer.encrypt = false;
   esp_now_add_peer(&peer);
 
-  Serial.println("[BOOT] Ready. Broadcasting DISCOVER…");
+  Serial.println(
+      "[BOOT] Ready. Auto-discovering Master Box via channel cycling...");
   sendDiscover();
   g_lastDiscover = millis();
 }
 
-// ── Arduino loop ──────────────────────────────────────────────────────────────
+// ── Arduino loop ───────────────────────────────────────────────────────────
 void loop() {
   uint32_t now = millis();
 
-  // Blink LED slowly when not paired
   if (!g_paired) {
+    // Slow blink: not yet paired
     digitalWrite(ONBOARD_LED, (now / 500) % 2);
 
-    // Retry DISCOVER every 30 s
-    if (now - g_lastDiscover >= DISCOVER_INTERVAL_MS) {
+    // ── Multi-channel DISCOVER cycling ────────────────────────────────────
+    // Every 2 seconds: switch to next channel, send DISCOVER, wait for
+    // PAIR_ACK. Master Box receives DISCOVER only on its own channel and
+    // replies with PAIR_ACK. Smart Box remains on the probe channel long enough
+    // to receive the reply. No WiFi credentials needed — purely ESP-NOW based.
+    if (now - g_lastDiscover >= DISCOVER_PROBE_MS) {
+      // Advance to next channel
+      g_probeIdx = (g_probeIdx + 1) % NUM_PROBE_CHANNELS;
+      uint8_t ch = PROBE_CHANNELS[g_probeIdx];
+      esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
       sendDiscover();
+      Serial.printf("[DISCOVER] ch=%d  boxId=%s  mac=%s\n", ch, BOX_ID,
+                    g_myMac);
       g_lastDiscover = now;
     }
   }
