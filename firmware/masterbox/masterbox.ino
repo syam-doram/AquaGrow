@@ -84,6 +84,15 @@
 #define HTTP_TIMEOUT_MS         8000
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  DEV / TEST WIFI OVERRIDE
+//  Fill TEST_SSID to skip AP mode and connect directly — useful during testing.
+//  Set TEST_SSID to "" for production (uses normal AP provisioning flow).
+// ─────────────────────────────────────────────────────────────────────────────
+#define TEST_SSID      "iPhone"      // ← Your hotspot / router name
+#define TEST_PASSWORD  ""            // ← Your hotspot password (blank if open)
+#define USE_TEST_WIFI  1             // ← Set to 0 for production AP provisioning
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  SLAVE ENTRY  (declared here so Arduino auto-prototype sees the type)
 // ─────────────────────────────────────────────────────────────────────────────
 struct SlaveEntry {
@@ -709,6 +718,17 @@ void setup() {
 
   // ── Load NVS ──────────────────────────────────────────────────────────────
   loadFromNVS();
+
+#if USE_TEST_WIFI
+  // ── DEV OVERRIDE: auto-inject test WiFi into NVS if not already set ────────
+  if (g_ssid != TEST_SSID) {
+    Serial.println("[DEV] USE_TEST_WIFI — writing test credentials to NVS");
+    saveWifiCredentials(TEST_SSID, TEST_PASSWORD);
+    g_ssid     = TEST_SSID;
+    g_password = TEST_PASSWORD;
+    Serial.printf("[DEV] SSID set to: %s\n", TEST_SSID);
+  }
+#endif
 
   bool hasWifi  = (g_ssid.length() > 0);
   bool hasToken = (g_deviceToken.length() > 0 && g_pondId.length() > 0);
