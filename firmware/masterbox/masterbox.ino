@@ -431,7 +431,7 @@ static void postCommandConfirm(JsonDocument& d) {
 static void pollAndDispatchCommands() {
   char url[200];
   snprintf(url, sizeof(url),
-    "%s/commands/%s", ESPNOW_BASE, g_pondId.c_str());
+    "%s/poll/%s", ESPNOW_BASE, g_pondId.c_str());
 
   String resp;
   int code = httpGet(url, &resp);

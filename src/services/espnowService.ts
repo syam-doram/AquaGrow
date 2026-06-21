@@ -313,7 +313,7 @@ export const espnowService = {
   },
 
   /**
-   * GET /api/espnow/command-history/:pondId
+   * GET /api/espnow/commands/:pondId
    * Command history — returns boxId/displayName, not MAC addresses.
    */
   async getCommandHistory(
@@ -324,7 +324,7 @@ export const espnowService = {
     if (opts.limit)  params.set('limit', String(opts.limit));
     if (opts.status) params.set('status', opts.status);
     const res = await fetchWithAuth(
-      `${API_BASE_URL}/espnow/command-history/${pondId}?${params.toString()}`
+      `${API_BASE_URL}/espnow/commands/${pondId}?${params.toString()}`
     );
     return handleResponse<EspAeratorCommand[]>(res);
   },

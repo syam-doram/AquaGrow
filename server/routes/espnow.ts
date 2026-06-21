@@ -21,8 +21,8 @@ router.get('/discover/pending', authenticate, getPendingDiscoveries);
 router.post('/devices/assign', authenticate, assignDevice);
 
 router.post('/reading', authenticateDevice, requireMaster, ingestReadings);
-// Firmware polls this with X-API-Key to fetch the next pending command
-router.get('/commands/:pondId', authenticateDevice, requireMaster, pollPendingCommand);
+// Firmware uses this with X-API-Key to fetch the next pending command
+router.get('/poll/:pondId', authenticateDevice, requireMaster, pollPendingCommand);
 router.post('/ack', authenticateDevice, requireMaster, acknowledgeCommand);
 router.post('/heartbeat', authenticateDevice, heartbeat);
 router.post('/confirm', authenticateDevice, requireMaster, acknowledgeCommand);
@@ -30,8 +30,8 @@ router.post('/confirm', authenticateDevice, requireMaster, acknowledgeCommand);
 router.post('/command-by-id', authenticate, sendCommandById);
 router.post('/command', authenticate, sendCommand);
 router.get('/readings/:pondId', authenticate, getReadings);
-// App command history (JWT-protected — separate from device poll)
-router.get('/command-history/:pondId', authenticate, getCommandHistory);
+// App uses this with JWT to fetch command history
+router.get('/commands/:pondId', authenticate, getCommandHistory);
 router.get('/status/:pondId', authenticate, getPondIoTStatus);
 
 export default router;

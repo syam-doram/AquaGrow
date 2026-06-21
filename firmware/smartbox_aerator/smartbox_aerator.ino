@@ -4,6 +4,10 @@
  *  Device Type : AERATOR
  *  Role        : slave
  *  Transport   : ESP-NOW  ←→  Master Box (MB001 …)
+ *
+ *  Final Development Architecture:
+ *    Smart Box ←ESP-NOW→ Master Box ←HTTPS→ Backend ←→ App
+ *    Smart Box NEVER connects to WiFi or the cloud directly.
  * ============================================================
  *
  *  WIRING
@@ -122,7 +126,8 @@ static void sendHeartbeat() {
   doc["voltage"]      = round(v * 100.0f) / 100.0f;
   doc["current"]      = round(i * 100.0f) / 100.0f;
   doc["powerWatts"]   = round(w * 100.0f) / 100.0f;
-  doc["rssi"]         = WiFi.RSSI();
+  // NOTE: Smart Box does not connect to WiFi — RSSI not available.
+  //       ESP-NOW signal quality is handled by the Master Box on its side.
 
   char buf[256];
   serializeJson(doc, buf, sizeof(buf));
@@ -179,10 +184,11 @@ static void onDataRecv(const esp_now_recv_info_t* info, const uint8_t* data, int
     return;
   }
 
-  // ── COMMAND: ON / OFF ──
+  // ── COMMAND: ON / OFF / RESET / SPEED ──
   if (strcmp(msgType, "COMMAND") == 0) {
     const char* action = doc["action"] | "";
     const char* cmdId  = doc["cmdId"]  | "unknown";
+    int         speed  = doc["speed"]  | 0;
 
     bool success = false;
     if (strcmp(action, "ON") == 0) {
@@ -193,6 +199,12 @@ static void onDataRecv(const esp_now_recv_info_t* info, const uint8_t* data, int
       success = true;
     } else if (strcmp(action, "RESET") == 0) {
       setAerator(false);
+      success = true;
+    } else if (strcmp(action, "SPEED") == 0) {
+      // SPEED: treat as ON with optional duty-cycle hint
+      // (hardware PWM can be wired here if supported by your relay driver)
+      setAerator(true);
+      Serial.printf("[CMD] SPEED=%d (aerator ON at requested speed)\n", speed);
       success = true;
     } else {
       Serial.printf("[CMD] Unknown action: %s\n", action);

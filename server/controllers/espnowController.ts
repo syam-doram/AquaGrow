@@ -260,11 +260,13 @@ export const forwardDiscover = async (req: Request, res: Response): Promise<void
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
     const master = (req as any).device;
-    const { boxId, senderMac } = req.body;
+    const { boxId, senderMac, mac: bodyMac } = req.body;
 
     if (!boxId) { res.status(400).json({ error: 'boxId is required' }); return; }
 
-    const normalizedSenderMac = senderMac ? normalizeMac(senderMac) : undefined;
+    // Accept 'mac' (firmware field name) or 'senderMac' (legacy) — whichever is present
+    const rawMac = senderMac || bodyMac;
+    const normalizedSenderMac = rawMac ? normalizeMac(rawMac) : undefined;
 
     // Upsert the discover queue entry (idempotent — repeated DISCOVERs just refresh discoveredAt)
     await EspDiscoverQueue.findOneAndUpdate(
