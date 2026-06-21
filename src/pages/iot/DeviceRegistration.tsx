@@ -1058,6 +1058,7 @@ const MasterProvisionWizard = ({
   const [sending,       setSending]       = useState(false);
   const [error,         setError]         = useState<string | null>(null);
   const [wifiSent,      setWifiSent]      = useState(false);
+  const [apDetected,    setApDetected]    = useState(false);   // true when 192.168.4.1 responds
 
   // Editable AP credentials (in case farmer has custom AP_PASSWORD or BOX_ID)
   const defaultApSsid = `AquaGrow-${boxId}`;
@@ -1067,6 +1068,31 @@ const MasterProvisionWizard = ({
   const [showApPass,   setShowApPass]   = useState(false);
 
   const apSsid = editApSsid || defaultApSsid;
+
+  // Auto-detect: poll 192.168.4.1/status every 2 s while on sub-step 2
+  // The moment the box AP answers, flash "Connected!" and move to step 3.
+  React.useEffect(() => {
+    if (subStep !== 2) return;
+    let cancelled = false;
+    const poll = async () => {
+      while (!cancelled) {
+        try {
+          const r = await fetch('http://192.168.4.1/status', { signal: AbortSignal.timeout(2000) });
+          if (r.ok && !cancelled) {
+            setApDetected(true);
+            await new Promise(res => setTimeout(res, 900)); // brief "Connected!" flash
+            if (!cancelled) setSubStep(3);
+            return;
+          }
+        } catch {
+          // not yet connected — wait and retry
+        }
+        await new Promise(res => setTimeout(res, 2000));
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [subStep]);
 
   // Open phone WiFi settings (works on iOS & Android via Capacitor)
   const openWifiSettings = () => {
@@ -1191,130 +1217,174 @@ const MasterProvisionWizard = ({
       {subStep === 2 && (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
           <div className={cn('rounded-2xl border p-5 space-y-4',
-            isDark ? 'bg-violet-500/8 border-violet-500/20' : 'bg-violet-50 border-violet-200',
+            apDetected
+              ? isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300'
+              : isDark ? 'bg-violet-500/8 border-violet-500/20'    : 'bg-violet-50 border-violet-200',
           )}>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-violet-500/15 border border-violet-500/25 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Smartphone size={22} className="text-violet-400" />
+              <div className={cn('w-12 h-12 border rounded-2xl flex items-center justify-center flex-shrink-0 transition-all',
+                apDetected
+                  ? 'bg-emerald-500/20 border-emerald-500/30'
+                  : 'bg-violet-500/15 border-violet-500/25',
+              )}>
+                {apDetected
+                  ? <CheckCircle2 size={22} className="text-emerald-400" />
+                  : <Smartphone   size={22} className="text-violet-400" />}
               </div>
               <div>
-                <p className={cn('font-black text-sm', isDark ? 'text-white' : 'text-slate-900')}>Connect Phone to Box</p>
-                <p className={cn('text-[8px] font-bold mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>Use your phone WiFi settings</p>
+                <p className={cn('font-black text-sm', isDark ? 'text-white' : 'text-slate-900')}>
+                  {apDetected ? 'Connected to Box!' : 'Connect Phone to Box'}
+                </p>
+                <p className={cn('text-[8px] font-bold mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>
+                  {apDetected ? 'Automatically detected — moving to next step…' : 'Use your phone WiFi settings'}
+                </p>
               </div>
             </div>
-            {/* AP credentials display / edit */}
-            <div className={cn('rounded-xl border overflow-hidden', isDark ? 'bg-black/20 border-white/8' : 'bg-white border-slate-200')}>
 
-              {/* Header row with Edit toggle */}
-              <div className={cn('flex items-center justify-between px-3 py-2 border-b',
-                isDark ? 'border-white/6' : 'border-slate-100',
+            {/* Auto-detect status indicator */}
+            {!apDetected && (
+              <div className={cn('rounded-xl border px-3 py-2 flex items-center gap-2',
+                isDark ? 'bg-black/15 border-white/6' : 'bg-white/70 border-slate-200',
               )}>
-                <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
-                  AP Credentials
+                <div className="flex gap-0.5">
+                  {[0,1,2].map(i => (
+                    <motion.div key={i}
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                      className="w-1.5 h-1.5 rounded-full bg-violet-400"
+                    />
+                  ))}
+                </div>
+                <span className={cn('text-[8px] font-bold', isDark ? 'text-white/35' : 'text-slate-500')}>
+                  Waiting for connection to {editApSsid}…
                 </span>
-                <button
-                  id="edit-ap-credentials-btn"
-                  onClick={() => setEditingAp(e => !e)}
-                  className={cn(
-                    'flex items-center gap-1 px-2 py-0.5 rounded-lg text-[7.5px] font-black uppercase tracking-wide transition-all',
-                    editingAp
-                      ? 'bg-violet-500 text-white'
-                      : isDark ? 'bg-white/8 text-white/40 hover:text-white/70' : 'bg-slate-100 text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  {editingAp
-                    ? <><CheckCircle2 size={9} /> Done</>  
-                    : <><Settings size={9} /> Edit</>}
-                </button>
               </div>
+            )}
 
-              {/* View mode */}
-              {!editingAp && (
-                <div className="px-3 py-2 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>WiFi Name</span>
-                    <code className="text-violet-400 font-mono font-black text-[10px]">{editApSsid}</code>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>Password</span>
-                    <code className="text-violet-400 font-mono font-black text-[10px]">{editApPass}</code>
-                  </div>
+            {/* AP credentials display / edit */}
+            {!apDetected && (
+              <div className={cn('rounded-xl border overflow-hidden', isDark ? 'bg-black/20 border-white/8' : 'bg-white border-slate-200')}>
+
+                {/* Header row with Edit toggle */}
+                <div className={cn('flex items-center justify-between px-3 py-2 border-b',
+                  isDark ? 'border-white/6' : 'border-slate-100',
+                )}>
+                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                    AP Credentials
+                  </span>
+                  <button
+                    id="edit-ap-credentials-btn"
+                    onClick={() => setEditingAp(e => !e)}
+                    className={cn(
+                      'flex items-center gap-1 px-2 py-0.5 rounded-lg text-[7.5px] font-black uppercase tracking-wide transition-all',
+                      editingAp
+                        ? 'bg-violet-500 text-white'
+                        : isDark ? 'bg-white/8 text-white/40 hover:text-white/70' : 'bg-slate-100 text-slate-500 hover:text-slate-700',
+                    )}
+                  >
+                    {editingAp
+                      ? <><CheckCircle2 size={9} /> Done</>  
+                      : <><Settings size={9} /> Edit</>}
+                  </button>
                 </div>
-              )}
 
-              {/* Edit mode */}
-              {editingAp && (
-                <div className="px-3 py-2 space-y-2">
-                  {/* AP SSID */}
-                  <div>
-                    <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Box WiFi Name</p>
-                    <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2',
-                      isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200',
-                    )}>
-                      <Wifi size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                      <input
-                        id="edit-ap-ssid-input"
-                        type="text"
-                        value={editApSsid}
-                        onChange={e => setEditApSsid(e.target.value)}
-                        placeholder={defaultApSsid}
-                        className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
-                          isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-300',
-                        )}
-                      />
-                      {editApSsid !== defaultApSsid && (
-                        <button onClick={() => setEditApSsid(defaultApSsid)}
-                          className={cn('text-[7px] font-black', isDark ? 'text-violet-400/60 hover:text-violet-400' : 'text-violet-500/50 hover:text-violet-500')}
-                        >Reset</button>
-                      )}
+                {/* View mode */}
+                {!editingAp && (
+                  <div className="px-3 py-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>WiFi Name</span>
+                      <code className="text-violet-400 font-mono font-black text-[10px]">{editApSsid}</code>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>Password</span>
+                      <code className="text-violet-400 font-mono font-black text-[10px]">{editApPass}</code>
                     </div>
                   </div>
-                  {/* AP Password */}
-                  <div>
-                    <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Box WiFi Password</p>
-                    <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2',
-                      isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200',
-                    )}>
-                      <Lock size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                      <input
-                        id="edit-ap-password-input"
-                        type={showApPass ? 'text' : 'password'}
-                        value={editApPass}
-                        onChange={e => setEditApPass(e.target.value)}
-                        placeholder="12345678"
-                        className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
-                          isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-300',
+                )}
+
+                {/* Edit mode */}
+                {editingAp && (
+                  <div className="px-3 py-2 space-y-2">
+                    {/* AP SSID */}
+                    <div>
+                      <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Box WiFi Name</p>
+                      <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2',
+                        isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200',
+                      )}>
+                        <Wifi size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                        <input
+                          id="edit-ap-ssid-input"
+                          type="text"
+                          value={editApSsid}
+                          onChange={e => setEditApSsid(e.target.value)}
+                          placeholder={defaultApSsid}
+                          className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
+                            isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-300',
+                          )}
+                        />
+                        {editApSsid !== defaultApSsid && (
+                          <button onClick={() => setEditApSsid(defaultApSsid)}
+                            className={cn('text-[7px] font-black', isDark ? 'text-violet-400/60 hover:text-violet-400' : 'text-violet-500/50 hover:text-violet-500')}
+                          >Reset</button>
                         )}
-                      />
-                      <button onClick={() => setShowApPass(!showApPass)}>
-                        {showApPass
-                          ? <EyeOff size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                          : <Eye    size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />}
-                      </button>
+                      </div>
                     </div>
-                    <p className={cn('text-[6.5px] font-medium mt-1 px-0.5', isDark ? 'text-white/18' : 'text-slate-400')}>
-                      Change only if you modified AP_PASSWORD in the firmware.
-                    </p>
+                    {/* AP Password */}
+                    <div>
+                      <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Box WiFi Password</p>
+                      <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2',
+                        isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200',
+                      )}>
+                        <Lock size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                        <input
+                          id="edit-ap-password-input"
+                          type={showApPass ? 'text' : 'password'}
+                          value={editApPass}
+                          onChange={e => setEditApPass(e.target.value)}
+                          placeholder="12345678"
+                          className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
+                            isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-300',
+                          )}
+                        />
+                        <button onClick={() => setShowApPass(!showApPass)}>
+                          {showApPass
+                            ? <EyeOff size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                            : <Eye    size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />}
+                        </button>
+                      </div>
+                      <p className={cn('text-[6.5px] font-medium mt-1 px-0.5', isDark ? 'text-white/18' : 'text-slate-400')}>
+                        Change only if you modified AP_PASSWORD in the firmware.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
+
             <p className={cn('text-[7.5px] font-medium leading-relaxed', isDark ? 'text-white/35' : 'text-slate-500')}>
-              After connecting, come back to this app. Internet will temporarily disconnect — that's normal.
+              {apDetected
+                ? 'Box detected at 192.168.4.1 — advancing automatically.'
+                : 'After connecting, come back to this app. Internet will temporarily disconnect — that\u2019s normal.'}
             </p>
           </div>
-          <motion.button id="open-wifi-settings-btn" whileTap={{ scale: 0.97 }} onClick={openWifiSettings}
-            className={cn('w-full py-3.5 rounded-2xl border font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2',
-              isDark ? 'bg-white/5 border-white/10 text-white/70' : 'bg-white border-slate-200 text-slate-700',
-            )}
-          >
-            <ExternalLink size={14} /> Open WiFi Settings
-          </motion.button>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => setSubStep(3)}
-            className="w-full py-4 rounded-2xl bg-violet-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
-          >
-            <CheckCircle2 size={15} /> I'm Connected — Continue
-          </motion.button>
+
+          {!apDetected && (
+            <>
+              <motion.button id="open-wifi-settings-btn" whileTap={{ scale: 0.97 }} onClick={openWifiSettings}
+                className={cn('w-full py-3.5 rounded-2xl border font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2',
+                  isDark ? 'bg-white/5 border-white/10 text-white/70' : 'bg-white border-slate-200 text-slate-700',
+                )}
+              >
+                <ExternalLink size={14} /> Open WiFi Settings
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setSubStep(3)}
+                className="w-full py-4 rounded-2xl bg-violet-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 size={15} /> I'm Connected — Continue
+              </motion.button>
+            </>
+          )}
+
           <button onClick={() => setSubStep(1)}
             className={cn('text-[8px] font-bold w-full text-center', isDark ? 'text-white/25' : 'text-slate-400')}
           >← Back</button>
