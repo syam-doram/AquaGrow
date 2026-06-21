@@ -19,7 +19,9 @@ import authRoutes from './routes/auth.js';
 import providerRoutes from './routes/provider.js';
 import hrmsRoutes from './routes/hrms.js';
 import espnowRoutes from './routes/espnow.js';
+import deviceRoutes from './routes/device.js';
 import { startIoTAlertJob } from './jobs/iotAlertJob.js';
+
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
 
 const app = express();
@@ -71,6 +73,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/provider', providerRoutes);
 app.use('/api/hrms', hrmsRoutes);         // ← HRMS Employee Portal routes
 app.use('/api/espnow', espnowRoutes);     // ← ESP-NOW IoT Device Bridge
+app.use('/api/device', deviceRoutes);     // ← Firmware provisioning (no JWT, factoryKey auth)
+
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) =>

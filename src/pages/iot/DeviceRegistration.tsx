@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DeviceRegistration.tsx
  * ─────────────────────────────────────────────────────────────────────────────
  * IoT Device Registration — two device categories:
@@ -26,7 +26,6 @@ import {
   Wind, Droplets, Waves, Settings, Fish, ChevronRight,
   Radio, X, ScanLine, Search, Cpu, Camera,
   RotateCcw, Wifi, GitBranch, Zap, Shield,
-  Smartphone, Lock, Eye, EyeOff, ExternalLink, RefreshCw, WifiOff,
 } from 'lucide-react';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
@@ -44,7 +43,7 @@ import { cn } from '../../utils/cn';
 
 type DeviceCategory  = 'choose_category' | 'master' | 'smart_box';
 type RegistrationMode = 'choose_method' | 'qr' | 'manual';
-type RegistrationStep = 'category' | 'method' | 'configure' | 'provision' | 'reg_error' | 'success';
+type RegistrationStep = 'category' | 'method' | 'configure' | 'reg_error' | 'success';
 
 interface ScannedDevice {
   boxId:        string;
@@ -1040,600 +1039,6 @@ const SmartBoxConfigureStep = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  MASTER BOX PROVISIONING WIZARD
-//  Runs AFTER cloud registration: guides farmer to send WiFi creds to the box
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MasterProvisionWizard = ({
-  boxId, isDark, apiKey, pondId, onDone,
-}: {
-  boxId: string;
-  isDark: boolean;
-  apiKey?: string;
-  pondId?: string;
-  onDone: () => void;
-}) => {
-  const [subStep,       setSubStep]       = useState<1 | 2 | 3 | 4>(1);
-  const [ssid,          setSsid]          = useState('');
-  const [password,      setPassword]      = useState('');
-  const [showPassword,  setShowPassword]  = useState(false);
-  const [sending,       setSending]       = useState(false);
-  const [error,         setError]         = useState<string | null>(null);
-  const [wifiSent,      setWifiSent]      = useState(false);
-  const [apDetected,    setApDetected]    = useState(false);   // true when 192.168.4.1 responds
-
-  // Editable AP credentials (in case farmer has custom AP_PASSWORD or BOX_ID)
-  const defaultApSsid = `AquaGrow-${boxId}`;
-  const [editingAp,    setEditingAp]    = useState(false);
-  const [editApSsid,   setEditApSsid]   = useState(defaultApSsid);
-  const [editApPass,   setEditApPass]   = useState('12345678');
-  const [showApPass,   setShowApPass]   = useState(false);
-
-  const apSsid = editApSsid || defaultApSsid;
-
-  // True only when running as installed APK — browser blocks http:// from https:// pages
-  const isNative = Capacitor.isNativePlatform();
-
-  // Auto-detect: poll 192.168.4.1/status every 2 s while on sub-step 2.
-  // ONLY runs on native APK — browser blocks http:// from https:// (Mixed Content).
-  // Any response (even 404 or non-ok) = IP reachable = phone is on the box AP.
-  React.useEffect(() => {
-    if (!isNative || subStep !== 2) return;
-    let cancelled = false;
-    let attempt   = 0;
-
-    console.log(`[AP-DETECT] Poll started  isNative=${isNative}  platform=${Capacitor.getPlatform()}`);
-
-    const poll = async () => {
-      while (!cancelled) {
-        attempt++;
-        const ts = new Date().toISOString();
-
-        // Network info (best-effort — not available on all Android WebViews)
-        const conn = (navigator as any).connection ||
-                     (navigator as any).mozConnection ||
-                     (navigator as any).webkitConnection;
-        const netType       = conn?.type          ?? 'unknown';
-        const effectiveType = conn?.effectiveType ?? 'unknown';
-        console.log(`[AP-DETECT] #${attempt} ${ts}  netType=${netType}  effectiveType=${effectiveType}`);
-
-        try {
-          console.log(`[AP-DETECT] #${attempt} → fetch http://192.168.4.1/status (timeout 2500 ms)`);
-          // Any HTTP response = IP is reachable = phone is on the box AP.
-          // We do NOT check r.ok — even a 404 or redirect means connected.
-          const r = await fetch('http://192.168.4.1/status', { signal: AbortSignal.timeout(2500) });
-          console.log(`[AP-DETECT] #${attempt} ✓ status=${r.status}  ok=${r.ok}  type=${r.type}`);
-
-          if (!cancelled) {
-            console.log('[AP-DETECT] ✅ Box AP detected — advancing to step 3');
-            setApDetected(true);
-            await new Promise(res => setTimeout(res, 800));
-            if (!cancelled) setSubStep(3);
-          }
-          return;
-        } catch (err: any) {
-          const errName = err?.name    ?? 'Unknown';
-          const errMsg  = err?.message ?? String(err);
-          console.warn(`[AP-DETECT] #${attempt} ✗ name=${errName}  msg="${errMsg}"`);
-          if (errMsg.toLowerCase().includes('cleartext') || errMsg.toLowerCase().includes('blocked')) {
-            console.error('[AP-DETECT] ⛔ Cleartext blocked! Verify android:usesCleartextTraffic="true" in AndroidManifest.');
-          }
-        }
-
-        await new Promise(res => setTimeout(res, 2000));
-      }
-    };
-    poll();
-    return () => { cancelled = true; };
-  }, [isNative, subStep]);
-
-  // Open phone WiFi settings
-  const openWifiSettings = () => {
-    if (!isNative) {
-      alert(`Open your phone WiFi settings and connect to:\n\nNetwork: ${editApSsid}\nPassword: ${editApPass}`);
-      return;
-    }
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('android')) {
-      (window as any).location = 'intent:#Intent;action=android.settings.WIFI_SETTINGS;end';
-    } else {
-      (window as any).location = 'App-Prefs:WIFI';
-    }
-  };
-
-  const sendWifiCredentials = async () => {
-    if (!ssid.trim()) { setError('Please enter your WiFi name (SSID).'); return; }
-    setError(null); setSending(true);
-    console.log(`[WIFI-SEND] Starting  isNative=${isNative}  ssid=${ssid.trim()}`);
-    try {
-      if (isNative) {
-        // ── Native APK: pre-flight — any response = connected ─────────────────
-        try {
-          console.log('[WIFI-SEND] Pre-flight → http://192.168.4.1/status');
-          await fetch('http://192.168.4.1/status', { signal: AbortSignal.timeout(3000) });
-          console.log('[WIFI-SEND] Pre-flight ✓ box reachable');
-        } catch (pf: any) {
-          console.warn(`[WIFI-SEND] Pre-flight ✗ ${pf?.name}: ${pf?.message}`);
-          setError(
-            `Your phone is not connected to the Master Box. ` +
-            `Go to WiFi Settings → connect to "${defaultApSsid}" (password: ${editApPass}) → then try again.`
-          );
-          setSending(false);
-          return;
-        }
-      }
-
-      // ── Send WiFi credentials to box ───────────────────────────────────────
-      console.log('[WIFI-SEND] POST → http://192.168.4.1/wifi/setup');
-      const res = await fetch('http://192.168.4.1/wifi/setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ssid: ssid.trim(), password: password }),
-        signal: AbortSignal.timeout(8000),
-      });
-      console.log(`[WIFI-SEND] Response status=${res.status}  ok=${res.ok}`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        console.log('[WIFI-SEND] ✅ WiFi credentials accepted by box');
-        setWifiSent(true);
-        setSubStep(4);
-      } else {
-        setError(data.error || 'Unexpected response from Master Box.');
-      }
-    } catch (err: any) {
-      const errName = err?.name    ?? 'Unknown';
-      const errMsg  = err?.message ?? String(err);
-      console.error(`[WIFI-SEND] ✗ name=${errName}  msg="${errMsg}"`);
-      if (!isNative && (errMsg.includes('Mixed Content') || errMsg.includes('Failed to fetch') || errName === 'TypeError')) {
-        setError('WiFi provisioning only works from the installed AquaGrow app (APK), not a browser.');
-      } else if (errName === 'TimeoutError' || errMsg.includes('fetch') || errMsg.includes('Failed to fetch')) {
-        setError(`Could not reach the Master Box at 192.168.4.1. Make sure your phone WiFi is connected to "${defaultApSsid}" and try again.`);
-      } else {
-        setError('Failed to send credentials: ' + errMsg);
-      }
-    } finally { setSending(false); }
-  };
-
-  const steps = [
-    { num: 1, label: 'Power On Box' },
-    { num: 2, label: 'Connect Phone' },
-    { num: 3, label: 'Enter WiFi'   },
-    { num: 4, label: 'Done'         },
-  ];
-
-  return (
-    <div className="px-4 pb-6 space-y-4">
-
-      {/* Progress bar */}
-      <div className="flex items-center gap-1.5 mb-2">
-        {steps.map(s => (
-          <div key={s.num} className="flex-1">
-            <div className={cn('h-1 rounded-full transition-all duration-500',
-              subStep > s.num ? 'bg-violet-400' :
-              subStep === s.num ? 'bg-violet-400/60' : isDark ? 'bg-white/10' : 'bg-slate-200',
-            )} />
-            <p className={cn('text-[6px] font-black uppercase tracking-wide mt-1 text-center',
-              subStep === s.num ? 'text-violet-400' : isDark ? 'text-white/20' : 'text-slate-400',
-            )}>{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Sub-step 1: Power on Master Box ── */}
-      {subStep === 1 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className={cn('rounded-2xl border p-5 text-center space-y-3',
-            isDark ? 'bg-violet-500/8 border-violet-500/20' : 'bg-violet-50 border-violet-200',
-          )}>
-            <div className="w-16 h-16 bg-violet-500/15 border border-violet-500/25 rounded-full flex items-center justify-center mx-auto">
-              <Zap size={28} className="text-violet-400" />
-            </div>
-            <p className={cn('font-black text-sm', isDark ? 'text-white' : 'text-slate-900')}>
-              Power On Your Master Box
-            </p>
-            <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-              Plug in the Master Box (<span className="font-black text-violet-400">{boxId}</span>).
-              Wait ~5 seconds for it to start in setup mode.
-            </p>
-            <div className={cn('rounded-xl p-3 space-y-2', isDark ? 'bg-black/20' : 'bg-white/70')}>
-              <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>What to expect</p>
-              {[
-                'LED blinks twice repeatedly = setup mode ready',
-                'Box broadcasts: ' + apSsid,
-              ].map((t, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
-                  <span className={cn('text-[8px] font-bold', isDark ? 'text-white/50' : 'text-slate-600')}>{t}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => setSubStep(2)}
-            className="w-full py-4 rounded-2xl bg-violet-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
-          >
-            <Wifi size={15} /> Box is On — Continue
-          </motion.button>
-        </motion.div>
-      )}
-
-      {/* ── Sub-step 2: Connect phone to AP ── */}
-      {subStep === 2 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className={cn('rounded-2xl border p-5 space-y-4',
-            apDetected
-              ? isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300'
-              : isDark ? 'bg-violet-500/8 border-violet-500/20'    : 'bg-violet-50 border-violet-200',
-          )}>
-            <div className="flex items-center gap-3">
-              <div className={cn('w-12 h-12 border rounded-2xl flex items-center justify-center flex-shrink-0 transition-all',
-                apDetected
-                  ? 'bg-emerald-500/20 border-emerald-500/30'
-                  : 'bg-violet-500/15 border-violet-500/25',
-              )}>
-                {apDetected
-                  ? <CheckCircle2 size={22} className="text-emerald-400" />
-                  : <Smartphone   size={22} className="text-violet-400" />}
-              </div>
-              <div>
-                <p className={cn('font-black text-sm', isDark ? 'text-white' : 'text-slate-900')}>
-                  {apDetected ? 'Connected to Box!' : 'Connect Phone to Box'}
-                </p>
-                <p className={cn('text-[8px] font-bold mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>
-                  {apDetected ? 'Automatically detected — moving to next step…' : 'Use your phone WiFi settings'}
-                </p>
-              </div>
-            </div>
-
-            {/* Auto-detect status indicator */}
-            {!apDetected && (
-              <div className={cn('rounded-xl border px-3 py-2 flex items-center gap-2',
-                isDark ? 'bg-black/15 border-white/6' : 'bg-white/70 border-slate-200',
-              )}>
-                <div className="flex gap-0.5">
-                  {[0,1,2].map(i => (
-                    <motion.div key={i}
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                      className="w-1.5 h-1.5 rounded-full bg-violet-400"
-                    />
-                  ))}
-                </div>
-                <span className={cn('text-[8px] font-bold', isDark ? 'text-white/35' : 'text-slate-500')}>
-                  Waiting for connection to {editApSsid}…
-                </span>
-              </div>
-            )}
-
-            {/* AP credentials display / edit */}
-            {!apDetected && (
-              <div className={cn('rounded-xl border overflow-hidden', isDark ? 'bg-black/20 border-white/8' : 'bg-white border-slate-200')}>
-
-                {/* Header row with Edit toggle */}
-                <div className={cn('flex items-center justify-between px-3 py-2 border-b',
-                  isDark ? 'border-white/6' : 'border-slate-100',
-                )}>
-                  <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
-                    AP Credentials
-                  </span>
-                  <button
-                    id="edit-ap-credentials-btn"
-                    onClick={() => setEditingAp(e => !e)}
-                    className={cn(
-                      'flex items-center gap-1 px-2 py-0.5 rounded-lg text-[7.5px] font-black uppercase tracking-wide transition-all',
-                      editingAp
-                        ? 'bg-violet-500 text-white'
-                        : isDark ? 'bg-white/8 text-white/40 hover:text-white/70' : 'bg-slate-100 text-slate-500 hover:text-slate-700',
-                    )}
-                  >
-                    {editingAp
-                      ? <><CheckCircle2 size={9} /> Done</>  
-                      : <><Settings size={9} /> Edit</>}
-                  </button>
-                </div>
-
-                {/* View mode */}
-                {!editingAp && (
-                  <div className="px-3 py-2 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>WiFi Name</span>
-                      <code className="text-violet-400 font-mono font-black text-[10px]">{editApSsid}</code>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>Password</span>
-                      <code className="text-violet-400 font-mono font-black text-[10px]">{editApPass}</code>
-                    </div>
-                  </div>
-                )}
-
-                {/* Edit mode */}
-                {editingAp && (
-                  <div className="px-3 py-2 space-y-2">
-                    {/* AP SSID */}
-                    <div>
-                      <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Box WiFi Name</p>
-                      <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2',
-                        isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200',
-                      )}>
-                        <Wifi size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                        <input
-                          id="edit-ap-ssid-input"
-                          type="text"
-                          value={editApSsid}
-                          onChange={e => setEditApSsid(e.target.value)}
-                          placeholder={defaultApSsid}
-                          className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
-                            isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-300',
-                          )}
-                        />
-                        {editApSsid !== defaultApSsid && (
-                          <button onClick={() => setEditApSsid(defaultApSsid)}
-                            className={cn('text-[7px] font-black', isDark ? 'text-violet-400/60 hover:text-violet-400' : 'text-violet-500/50 hover:text-violet-500')}
-                          >Reset</button>
-                        )}
-                      </div>
-                    </div>
-                    {/* AP Password */}
-                    <div>
-                      <p className={cn('text-[6.5px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Box WiFi Password</p>
-                      <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2',
-                        isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200',
-                      )}>
-                        <Lock size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                        <input
-                          id="edit-ap-password-input"
-                          type={showApPass ? 'text' : 'password'}
-                          value={editApPass}
-                          onChange={e => setEditApPass(e.target.value)}
-                          placeholder="12345678"
-                          className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
-                            isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-300',
-                          )}
-                        />
-                        <button onClick={() => setShowApPass(!showApPass)}>
-                          {showApPass
-                            ? <EyeOff size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                            : <Eye    size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />}
-                        </button>
-                      </div>
-                      <p className={cn('text-[6.5px] font-medium mt-1 px-0.5', isDark ? 'text-white/18' : 'text-slate-400')}>
-                        Change only if you modified AP_PASSWORD in the firmware.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <p className={cn('text-[7.5px] font-medium leading-relaxed', isDark ? 'text-white/35' : 'text-slate-500')}>
-              {apDetected
-                ? 'Box detected at 192.168.4.1 — advancing automatically.'
-                : 'After connecting, come back to this app. Internet will temporarily disconnect — that\u2019s normal.'}
-            </p>
-          </div>
-
-          {!apDetected && (
-            <>
-              <motion.button id="open-wifi-settings-btn" whileTap={{ scale: 0.97 }} onClick={openWifiSettings}
-                className={cn('w-full py-3.5 rounded-2xl border font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2',
-                  isDark ? 'bg-white/5 border-white/10 text-white/70' : 'bg-white border-slate-200 text-slate-700',
-                )}
-              >
-                <ExternalLink size={14} /> Open WiFi Settings
-              </motion.button>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setSubStep(3)}
-                className="w-full py-4 rounded-2xl bg-violet-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 size={15} /> I'm Connected — Continue
-              </motion.button>
-            </>
-          )}
-
-          <button onClick={() => setSubStep(1)}
-            className={cn('text-[8px] font-bold w-full text-center', isDark ? 'text-white/25' : 'text-slate-400')}
-          >← Back</button>
-        </motion.div>
-      )}
-
-      {/* ── Sub-step 3: Enter farm WiFi ── */}
-      {subStep === 3 && (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className={cn('rounded-2xl border px-4 py-3 flex items-center gap-3',
-            isDark ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200',
-          )}>
-            <Wifi size={14} className="text-emerald-400 flex-shrink-0" />
-            <p className={cn('text-[8px] font-bold', isDark ? 'text-emerald-400/80' : 'text-emerald-700')}>
-              Enter the WiFi your pond area uses — the Master Box will connect to this.
-            </p>
-          </div>
-
-          {/* SSID */}
-          <div>
-            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>Farm WiFi Name (SSID)</p>
-            <div className={cn('flex items-center gap-3 rounded-2xl border px-4 py-3.5',
-              isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200 focus-within:border-violet-400',
-            )}>
-              <Wifi size={14} className={isDark ? 'text-white/30' : 'text-slate-400'} />
-              <input
-                id="provision-ssid-input"
-                type="text"
-                value={ssid}
-                onChange={e => { setSsid(e.target.value); setError(null); }}
-                placeholder="e.g. Jio_Fiber_Home"
-                autoComplete="off"
-                className={cn('flex-1 bg-transparent outline-none text-sm font-bold',
-                  isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-400',
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div>
-            <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>WiFi Password</p>
-            <div className={cn('flex items-center gap-3 rounded-2xl border px-4 py-3.5',
-              isDark ? 'bg-white/5 border-white/10 focus-within:border-violet-500/40' : 'bg-slate-50 border-slate-200 focus-within:border-violet-400',
-            )}>
-              <Lock size={14} className={isDark ? 'text-white/30' : 'text-slate-400'} />
-              <input
-                id="provision-password-input"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="WiFi password"
-                className={cn('flex-1 bg-transparent outline-none text-sm font-bold',
-                  isDark ? 'text-white placeholder:text-white/15' : 'text-slate-900 placeholder:text-slate-400',
-                )}
-              />
-              <button onClick={() => setShowPassword(!showPassword)}>
-                {showPassword
-                  ? <EyeOff size={14} className={isDark ? 'text-white/30' : 'text-slate-400'} />
-                  : <Eye    size={14} className={isDark ? 'text-white/30' : 'text-slate-400'} />}
-              </button>
-            </div>
-            <p className={cn('text-[7px] font-medium mt-1.5 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-              Works with any router, Jio Fiber, Airtel, BSNL, Hotspot, or any WiFi.
-            </p>
-          </div>
-
-          <AnimatePresence>
-            {error && (
-              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="rounded-2xl border bg-red-500/10 border-red-500/20 px-4 py-3 flex items-start gap-3"
-              >
-                <WifiOff size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-red-400 text-[9px] font-bold leading-relaxed">{error}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.button
-            id="send-wifi-to-box-btn"
-            whileTap={{ scale: 0.97 }}
-            onClick={sendWifiCredentials}
-            disabled={sending || !ssid.trim()}
-            className={cn('w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all',
-              sending || !ssid.trim()
-                ? isDark ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                : 'bg-violet-500 text-white',
-            )}
-          >
-            {sending
-              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending to Box…</>
-              : <><Wifi size={15} /> Send WiFi to Master Box</>}
-          </motion.button>
-          <button onClick={() => setSubStep(2)}
-            className={cn('text-[8px] font-bold w-full text-center', isDark ? 'text-white/25' : 'text-slate-400')}
-          >← Back (reconnect to {apSsid})</button>
-        </motion.div>
-      )}
-
-      {/* ── Sub-step 4: Done ── */}
-      {subStep === 4 && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-          <div className="text-center py-4 space-y-3">
-            <motion.div
-              initial={{ scale: 0 }} animate={{ scale: 1 }}
-              transition={{ type: 'spring', damping: 14, stiffness: 200 }}
-              className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/30 flex items-center justify-center mx-auto"
-            >
-              <CheckCircle2 size={36} className="text-emerald-400" />
-            </motion.div>
-            <p className={cn('font-black text-base', isDark ? 'text-white' : 'text-slate-900')}>WiFi Credentials Sent!</p>
-            <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-              The Master Box is restarting and connecting to your WiFi.
-              It will automatically register with the AquaGrow cloud.
-            </p>
-          </div>
-
-          {/* ── Firmware API Key (shown only if available) ── */}
-          {apiKey && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="w-full rounded-2xl border overflow-hidden bg-gradient-to-br from-violet-500/10 to-indigo-500/5 border-violet-500/25"
-            >
-              <div className="px-4 pt-3 pb-3">
-                <p className="text-violet-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🔑 Firmware API Key</p>
-                <p className={cn('text-[7px] font-medium leading-relaxed mb-2', isDark ? 'text-white/40' : 'text-slate-500')}>
-                  Already stored on the box. Keep a copy in case you re-flash the firmware.
-                </p>
-                <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
-                  isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
-                )}>
-                  <code className={cn('flex-1 text-[8px] font-mono break-all leading-relaxed text-left',
-                    isDark ? 'text-violet-300' : 'text-violet-700',
-                  )}>{apiKey}</code>
-                  <button
-                    id="copy-provision-api-key-btn"
-                    onClick={() => { navigator.clipboard.writeText(apiKey); }}
-                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[7.5px] font-black uppercase tracking-widest bg-violet-500/20 text-violet-400 border border-violet-500/30 active:scale-95"
-                  >Copy</button>
-                </div>
-                <p className={cn('text-[6.5px] font-bold mt-1.5', isDark ? 'text-amber-400/60' : 'text-amber-600')}>
-                  ⚠ This key was flashed to the device automatically. Store a copy now.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ── Pond ID ── */}
-          {pondId && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
-              className="w-full rounded-2xl border overflow-hidden bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/25"
-            >
-              <div className="px-4 pt-3 pb-3">
-                <p className="text-cyan-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🏠 Pond ID</p>
-                <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
-                  isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
-                )}>
-                  <code className={cn('flex-1 text-[8px] font-mono break-all leading-relaxed text-left',
-                    isDark ? 'text-cyan-300' : 'text-cyan-700',
-                  )}>{pondId}</code>
-                  <button
-                    id="copy-provision-pond-id-btn"
-                    onClick={() => { navigator.clipboard.writeText(pondId); }}
-                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[7.5px] font-black uppercase tracking-widest bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 active:scale-95"
-                  >Copy</button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          <div className={cn('rounded-2xl border p-4 space-y-2', isDark ? 'bg-black/20 border-white/8' : 'bg-slate-50 border-slate-200')}>
-            <p className={cn('text-[7.5px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>What happens next</p>
-            {[
-              'Master Box restarts (~10 seconds)',
-              'Connects to your farm WiFi automatically',
-              'Registers with AquaGrow cloud',
-              'Smart Boxes will auto-discover it',
-            ].map((t, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-                className="flex items-center gap-2"
-              >
-                <CheckCircle2 size={10} className="text-emerald-400 flex-shrink-0" />
-                <span className={cn('text-[8px] font-bold', isDark ? 'text-white/50' : 'text-slate-600')}>{t}</span>
-              </motion.div>
-            ))}
-          </div>
-          <div className={cn('rounded-2xl border px-4 py-3 flex items-start gap-3',
-            isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200',
-          )}>
-            <Wifi size={12} className="text-amber-400 mt-0.5 flex-shrink-0" />
-            <p className={cn('text-[8px] font-bold leading-relaxed', isDark ? 'text-amber-400/80' : 'text-amber-700')}>
-              Reconnect your phone to your normal WiFi or mobile data now.
-            </p>
-          </div>
-          <motion.button id="provision-done-btn" whileTap={{ scale: 0.97 }} onClick={onDone}
-            className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-[11px] uppercase tracking-widest"
-          >
-            Go to Dashboard
-          </motion.button>
-        </motion.div>
-      )}
-    </div>
-  );
-};
-
-
-// ─────────────────────────────────────────────────────────────────────────────
 //  DEVICE CLAIMED / OWNERSHIP ERROR VIEW
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1735,7 +1140,11 @@ const SuccessView = ({ deviceName, boxId, isMaster, isDark, apiKey, pondId, onDo
   };
 
   const steps = isMaster
-    ? ['Master Box is now live on your dashboard', 'Power on Smart Boxes near this Master Box', 'Smart Boxes will auto-discover and appear in app']
+    ? [
+        'Power on the Master Box — it connects to WiFi automatically',
+        'It will self-provision from the cloud (no app interaction needed)',
+        'Smart Boxes will auto-discover it via ESP-NOW',
+      ]
     : ['Smart Box visible on IoT dashboard', 'It will pair to the Master Box automatically', 'Aerator/sensor now remotely controllable'];
 
   return (
@@ -1767,7 +1176,7 @@ const SuccessView = ({ deviceName, boxId, isMaster, isDark, apiKey, pondId, onDo
           <div className="px-4 pt-3 pb-2">
             <p className="text-violet-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🔑 Firmware API Key</p>
             <p className={cn('text-[7px] font-medium leading-relaxed mb-2.5', isDark ? 'text-white/40' : 'text-slate-500')}>
-              Copy this key into <code className="bg-black/20 px-1 py-0.5 rounded text-violet-300">API_KEY</code> in your Master Box firmware.
+              This key is automatically fetched by the Master Box on first boot via the provision API. Keep a copy for reference.
             </p>
             <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
               isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
@@ -1798,9 +1207,9 @@ const SuccessView = ({ deviceName, boxId, isMaster, isDark, apiKey, pondId, onDo
           className="w-full rounded-2xl border overflow-hidden bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/25"
         >
           <div className="px-4 pt-3 pb-3">
-            <p className="text-cyan-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🏠 Pond ID — for firmware</p>
+            <p className="text-cyan-400 text-[7.5px] font-black uppercase tracking-widest mb-1.5">🏠 Pond ID</p>
             <p className={cn('text-[7px] font-medium leading-relaxed mb-2.5', isDark ? 'text-white/40' : 'text-slate-500')}>
-              Copy this into <code className="bg-black/20 px-1 py-0.5 rounded text-cyan-300">POND_ID</code> in your Master Box firmware.
+              Automatically sent to the Master Box by the provision API on first boot.
             </p>
             <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5',
               isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200',
@@ -1869,9 +1278,6 @@ export const DeviceRegistration = () => {
   const [success,  setSuccess]  = useState<{ deviceName: string; boxId: string; isMaster: boolean; apiKey?: string; pondId?: string } | null>(null);
   const [registrationError, setRegistrationError] = useState<{ boxId: string; msg: string } | null>(null);
 
-  // Holds the apiKey + pondId returned by assignDevice for Master Box — needed by wizard
-  const [provisionKeys, setProvisionKeys] = useState<{ apiKey?: string; pondId?: string }>({});
-
   // Fetch live IoT status to find existing master devices
   const [masterDevices, setMasterDevices] = useState<any[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -1918,10 +1324,9 @@ export const DeviceRegistration = () => {
     try {
       const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
       if (role === 'master') {
-        // Store apiKey + pondId so the provision wizard can display them
-        setProvisionKeys({ apiKey: result.apiKey, pondId });
-        // Master Box: go to provisioning wizard (sends WiFi to box)
-        setStep('provision');
+        // Master Box: go straight to success — box self-provisions from cloud on first boot
+        setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: true, apiKey: result.apiKey, pondId });
+        setStep('success');
       } else {
         // Slave: go straight to success
         setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: false });
@@ -1955,7 +1360,6 @@ export const DeviceRegistration = () => {
     setDevice(null);
     setSuccess(null);
     setRegistrationError(null);
-    setProvisionKeys({});
   };
 
   // After success of master, offer to register smart box
@@ -1973,8 +1377,8 @@ export const DeviceRegistration = () => {
     }
   };
 
-  const stepNum = step === 'category' ? 0 : step === 'method' ? 1 : step === 'configure' ? 2 : step === 'provision' ? 3 : 3;
-  const totalSteps = isMasterFlow ? 4 : 3;
+  const stepNum = step === 'category' ? 0 : step === 'method' ? 1 : step === 'configure' ? 2 : 2;
+  const totalSteps = 3;
 
   return (
     <div className={cn('min-h-screen pb-10', isDark ? 'bg-[#06100A]' : 'bg-[#F0F4F2]')}>
@@ -2000,19 +1404,14 @@ export const DeviceRegistration = () => {
             <h1 className={cn('font-black text-sm tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
               Register IoT Device
             </h1>
-            {step !== 'success' && step !== 'category' && step !== 'provision' && (
+            {step !== 'success' && step !== 'category' && (
               <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
                 {isMasterFlow ? '📡 Master Box' : '⚡ Smart Box'} · Step {stepNum} of {totalSteps}
               </p>
             )}
-            {step === 'provision' && (
-              <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
-                📡 Master Box · WiFi Setup
-              </p>
-            )}
           </div>
           {/* Progress dots */}
-          {step !== 'success' && step !== 'category' && step !== 'provision' && (
+          {step !== 'success' && step !== 'category' && (
             <div className="flex gap-1.5">
               {[1, 2, 3].map(n => (
                 <div key={n} className={cn('rounded-full transition-all duration-300',
@@ -2152,28 +1551,14 @@ export const DeviceRegistration = () => {
             </motion.div>
           )}
 
-          {/* Provision — Master Box WiFi Setup Wizard */}
-          {step === 'provision' && device?.isMaster && (
-            <motion.div key="provision"
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-              className="pt-4"
-            >
-              <MasterProvisionWizard
-                boxId={device.boxId}
-                isDark={isDark}
-                apiKey={provisionKeys.apiKey}
-                pondId={provisionKeys.pondId}
-                onDone={() => navigate(-1)}
-              />
-            </motion.div>
-          )}
-
-          {/* Success — Smart Box only (Master Box uses provision wizard) */}
+          {/* Success — both Master Box and Smart Box */}
           {step === 'success' && success && (
             <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-4">
               <SuccessView
                 deviceName={success.deviceName} boxId={success.boxId}
                 isMaster={success.isMaster} isDark={isDark}
+                apiKey={success.apiKey}
+                pondId={success.pondId}
                 onDone={() => navigate(-1)}
                 onRegisterAnother={handleRegisterAnother}
               />
