@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DeviceRegistration.tsx
  * ─────────────────────────────────────────────────────────────────────────────
  * IoT Device Registration — two device categories:
@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, QrCode, Keyboard, CheckCircle2, AlertTriangle,
@@ -1270,6 +1270,7 @@ export const DeviceRegistration = () => {
   const navigate = useNavigate();
   const { theme, ponds } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
+  const [searchParams] = useSearchParams();
 
   const [category, setCategory] = useState<DeviceCategory>('choose_category');
   const [mode,     setMode]     = useState<RegistrationMode>('choose_method');
@@ -1277,6 +1278,19 @@ export const DeviceRegistration = () => {
   const [device,   setDevice]   = useState<ScannedDevice | null>(null);
   const [success,  setSuccess]  = useState<{ deviceName: string; boxId: string; isMaster: boolean; apiKey?: string; pondId?: string } | null>(null);
   const [registrationError, setRegistrationError] = useState<{ boxId: string; msg: string } | null>(null);
+
+  // ── If ?boxId=SB001 is present (navigated from discovery banner), jump straight to configure step
+  useEffect(() => {
+    const preBoxId = searchParams.get('boxId');
+    if (preBoxId) {
+      const cleanId = preBoxId.trim().toUpperCase();
+      setCategory('smart_box');
+      setMode('qr');
+      setDevice({ boxId: cleanId, source: 'qr', isMaster: false });
+      setStep('configure');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch live IoT status to find existing master devices
   const [masterDevices, setMasterDevices] = useState<any[]>([]);

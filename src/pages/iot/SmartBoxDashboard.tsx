@@ -915,12 +915,12 @@ export const SmartBoxDashboard = () => {
 
           {/* No Master Box registered yet */}
           <div className={cn('rounded-[1.75rem] border p-6 text-center', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-            <div className="w-16 h-16 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Radio size={28} className="text-violet-400" />
+            <div className="w-16 h-16 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
+              📡
             </div>
-            <h2 className={cn('font-black text-sm mb-2', isDark ? 'text-white' : 'text-slate-900')}>No Master Box Found</h2>
+            <h2 className={cn('font-black text-sm mb-2', isDark ? 'text-white' : 'text-slate-900')}>No Smart Box Set Up Yet</h2>
             <p className={cn('text-[9px] font-medium leading-relaxed mb-5', isDark ? 'text-white/30' : 'text-slate-500')}>
-              Register your Master Box first. It connects to the cloud and manages all Smart Boxes over ESP-NOW.
+              Register a Master Box first to start controlling your aerators from your phone. Master Box connects to your WiFi and manages all Smart Boxes wirelessly.
             </p>
             <motion.button
               id="empty-register-master-btn"
@@ -932,23 +932,24 @@ export const SmartBoxDashboard = () => {
             </motion.button>
           </div>
 
-          {/* Step guide */}
+          {/* Step guide - farmer friendly */}
           <div className={cn('rounded-2xl border p-4 space-y-3', isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200')}>
-            <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>Setup Guide</p>
+            <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/25' : 'text-slate-400')}>📖 How to Set Up (Step by Step)</p>
             {[
-              { step: '1', text: 'Register Master Box via this app → get API Key', color: 'text-violet-400' },
-              { step: '2', text: 'Flash the API Key into Master Box firmware', color: 'text-sky-400' },
-              { step: '3', text: 'Power on Master Box → heartbeat shows 200 OK', color: 'text-emerald-400' },
-              { step: '4', text: 'Power on Smart Boxes → they auto-discover', color: 'text-amber-400' },
-            ].map(({ step, text, color }) => (
+              { step: '1', emoji: '📱', text: 'Tap "Register Master Box" above. App gives you a code.', color: '#8B5CF6' },
+              { step: '2', emoji: '🔑', text: 'Give that code to your hardware supplier. They enter it into Master Box.', color: '#F59E0B' },
+              { step: '3', emoji: '🌐', text: 'Turn ON Master Box near WiFi router. Green LED = connected.', color: '#0EA5E9' },
+              { step: '4', emoji: '🔌', text: 'Electrician installs Smart Box at aerator motor.', color: '#EF4444' },
+              { step: '5', emoji: '✅', text: 'Turn ON Smart Box. It connects automatically — tap Assign in this page.', color: '#10B981' },
+            ].map(({ step, emoji, text, color }) => (
               <div key={step} className="flex items-start gap-3">
-                <div className={cn('w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 text-[7px] font-black', isDark ? 'border-white/15 text-white/30' : 'border-slate-300 text-slate-400')}>
-                  {step}
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style={{ background: `${color}15` }}>
+                  {emoji}
                 </div>
-                <p className={cn('text-[8px] font-bold leading-relaxed pt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>
-                  <span className={color}>{text.split(' → ')[0]}</span>
-                  {text.includes(' → ') ? ` → ${text.split(' → ')[1]}` : ''}
-                </p>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full text-white mr-1.5" style={{ background: color }}>STEP {step}</span>
+                  <span className={cn('text-[8.5px] font-medium leading-snug', isDark ? 'text-white/50' : 'text-slate-600')}>{text}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -980,7 +981,7 @@ export const SmartBoxDashboard = () => {
             {status?.pondName || 'Smart Box Control'}
           </h1>
           <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
-            {status?.devices.length ?? 0} devices · auto-refresh 5s
+            {assignedSlaves.length} aerator{assignedSlaves.length !== 1 ? 's' : ''} connected · live updates every 5s
           </p>
         </div>
 

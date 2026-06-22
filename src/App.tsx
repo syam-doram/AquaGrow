@@ -384,7 +384,7 @@ const AppContent = () => {
     '/roi/overview',
     '/roi/pond-wise',
     '/roi/year-wise',
-    '/smart-farm',
+    // '/smart-farm' intentionally excluded — SmartFarmHub has its own tab navigation
   ].some(path => location.pathname.startsWith(path));
 
   const showProviderNav = isProvider && location.pathname.startsWith('/provider/');
