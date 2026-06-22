@@ -62,8 +62,10 @@ export interface Pond {
     lastUpdated: string;
     lastDoc: number;
     log: AeratorLog[];
+    starterGroups?: StarterGroupConfig[];  // auto-calculated on pond creation
   };
   diseaseScans?: {
+
     count: number;          // Scans used this month
     monthKey: string;       // Format: 'YYYY-MM' — resets monthly
     lastScanAt?: string;    // ISO date of last scan
@@ -79,6 +81,16 @@ export interface AeratorLog {
   positions: string[];
   addedNew: boolean;
   notes?: string;
+}
+
+/** Persisted starter group layout for a pond (auto-calculated from aerator count) */
+export interface StarterGroupConfig {
+  groupNumber: number;   // 1-based
+  aeratorStart: number;  // 1-based aerator index start
+  aeratorEnd: number;    // 1-based aerator index end
+  aeratorCount: number;  // aerators in this group (1–4)
+  aeratorNames: string[];// ["Aerator 1", "Aerator 2", ...]
+  smartBoxId?: string;   // boxId of assigned Smart Box (e.g. "SB001"), set after registration
 }
 
 export interface PondLog {

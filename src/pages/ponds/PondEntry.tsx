@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 import type { Translations } from '../../translations';
+import { calcStarterGroups, calcRequiredSmartBoxes } from '../../utils/starterGroupUtils';
+
 
 // ─── STYLED INPUT ─────────────────────────────────────────────────────────────
 const FieldInput = ({
@@ -164,21 +166,23 @@ export const PondEntry = ({ t }: { t: Translations }) => {
           aerators: {
             count: parseInt(form.aeratorCount),
             hp: parseFloat(form.aeratorHp) || 1,
-            positions: [],
+            positions: calcStarterGroups(parseInt(form.aeratorCount)).flatMap(g => g.aeratorNames),
             addedNew: false,
             lastUpdated: new Date().toISOString(),
             lastDoc: 0,
+            starterGroups: calcStarterGroups(parseInt(form.aeratorCount)),
             log: [{
               doc: 0,
               date: new Date().toISOString(),
               count: parseInt(form.aeratorCount),
               hp: parseFloat(form.aeratorHp) || 1,
-              positions: [],
+              positions: calcStarterGroups(parseInt(form.aeratorCount)).flatMap(g => g.aeratorNames),
               addedNew: false,
               notes: 'Initial aerator setup at pond creation',
             }],
           }
         } : {}),
+
       } as any);
 
       setDone(true);
@@ -461,36 +465,109 @@ export const PondEntry = ({ t }: { t: Translations }) => {
               </div>
             </div>
 
-            {/* Live total HP display */}
+            {/* Live total HP + Smart Box Calculator */}
             {parseInt(form.aeratorCount || '0') > 0 && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                className={cn("rounded-2xl border p-3", isDark ? "bg-white/3 border-white/5" : "bg-slate-50 border-slate-100")}
+                className="space-y-3"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Wind size={13} className="text-blue-500" />
-                    <p className={cn("text-[9px] font-black", isDark ? "text-white/60" : "text-slate-700")}>
-                      {form.aeratorCount} × {form.aeratorHp} HP = <span className="text-blue-500">{(parseInt(form.aeratorCount) * parseFloat(form.aeratorHp || '1')).toFixed(1)} HP total</span>
-                    </p>
+                {/* HP Summary */}
+                <div className={cn('rounded-2xl border p-3', isDark ? 'bg-white/3 border-white/5' : 'bg-slate-50 border-slate-100')}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wind size={13} className="text-blue-500" />
+                      <p className={cn('text-[9px] font-black', isDark ? 'text-white/60' : 'text-slate-700')}>
+                        {form.aeratorCount} × {form.aeratorHp} HP = <span className="text-blue-500">{(parseInt(form.aeratorCount) * parseFloat(form.aeratorHp || '1')).toFixed(1)} HP total</span>
+                      </p>
+                    </div>
+                    {parseFloat(form.size) > 0 && (
+                      <span className={cn('text-[8px] font-black px-2 py-0.5 rounded-lg',
+                        parseInt(form.aeratorCount) >= Math.ceil(parseFloat(form.size) * 4)
+                          ? isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700'
+                          : isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-700'
+                      )}>
+                        {parseInt(form.aeratorCount) >= Math.ceil(parseFloat(form.size) * 4) ? '✓ SOP Met' : `Need ${Math.max(0, Math.ceil(parseFloat(form.size) * 4) - parseInt(form.aeratorCount))} more`}
+                      </span>
+                    )}
                   </div>
                   {parseFloat(form.size) > 0 && (
-                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-lg",
-                      parseInt(form.aeratorCount) >= Math.ceil(parseFloat(form.size) * 4)
-                        ? isDark ? "bg-emerald-500/15 text-emerald-400" : "bg-emerald-50 text-emerald-700"
-                        : isDark ? "bg-amber-500/15 text-amber-400" : "bg-amber-50 text-amber-700"
-                    )}>
-                      {parseInt(form.aeratorCount) >= Math.ceil(parseFloat(form.size) * 4) ? '✓ SOP Met' : `Need ${Math.max(0, Math.ceil(parseFloat(form.size) * 4) - parseInt(form.aeratorCount))} more`}
-                    </span>
+                    <p className={cn('text-[7px] font-medium mt-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+                      {(parseInt(form.aeratorCount) * parseFloat(form.aeratorHp || '1') / parseFloat(form.size)).toFixed(1)} HP/acre
+                    </p>
                   )}
                 </div>
-                {parseFloat(form.size) > 0 && (
-                  <p className={cn("text-[7px] font-medium mt-1", isDark ? "text-white/20" : "text-slate-400")}>
-                    {(parseInt(form.aeratorCount) * parseFloat(form.aeratorHp || '1') / parseFloat(form.size)).toFixed(1)} HP/acre
-                  </p>
-                )}
+
+                {/* Smart Box Auto-Calculator */}
+                {(() => {
+                  const total = parseInt(form.aeratorCount || '0');
+                  const groups = calcStarterGroups(total);
+                  const sbCount = calcRequiredSmartBoxes(total);
+                  if (groups.length === 0) return null;
+                  return (
+                    <div className={cn('rounded-2xl border overflow-hidden', isDark ? 'bg-violet-500/5 border-violet-500/20' : 'bg-violet-50 border-violet-200')}>
+                      {/* Header */}
+                      <div className={cn('px-4 py-3 flex items-center justify-between border-b', isDark ? 'border-violet-500/10' : 'border-violet-100')}>
+                        <div className="flex items-center gap-2">
+                          <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center', isDark ? 'bg-violet-500/20' : 'bg-violet-100')}>
+                            <Zap size={11} className="text-violet-500" />
+                          </div>
+                          <div>
+                            <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-violet-400' : 'text-violet-700')}>
+                              Smart Box Calculator
+                            </p>
+                            <p className={cn('text-[6.5px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>
+                              1 Smart Box controls up to 4 aerators
+                            </p>
+                          </div>
+                        </div>
+                        <div className={cn('text-center px-3 py-1.5 rounded-xl border', isDark ? 'bg-violet-500/15 border-violet-500/25' : 'bg-white border-violet-200')}>
+                          <p className={cn('text-lg font-black tracking-tighter', isDark ? 'text-violet-300' : 'text-violet-700')}>{sbCount}</p>
+                          <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-violet-400/60' : 'text-violet-500')}>Smart Box{sbCount !== 1 ? 'es' : ''}</p>
+                        </div>
+                      </div>
+
+                      {/* Starter Group breakdown */}
+                      <div className="px-4 py-3 space-y-1.5">
+                        {groups.map(g => (
+                          <div key={g.groupNumber} className={cn('flex items-center gap-3 rounded-xl px-3 py-2', isDark ? 'bg-white/3' : 'bg-white border border-violet-100')}>
+                            {/* Group number badge */}
+                            <span className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-black flex-shrink-0', isDark ? 'bg-violet-500/20 text-violet-400' : 'bg-violet-100 text-violet-700')}>
+                              {g.groupNumber}
+                            </span>
+                            {/* Label */}
+                            <div className="flex-1">
+                              <p className={cn('text-[8px] font-black', isDark ? 'text-white/60' : 'text-slate-700')}>
+                                Starter Group {g.groupNumber}
+                              </p>
+                              <p className={cn('text-[7px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>
+                                Aerator{g.aeratorStart !== g.aeratorEnd ? `s ${g.aeratorStart}–${g.aeratorEnd}` : ` ${g.aeratorStart}`} · {g.aeratorCount} unit{g.aeratorCount !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            {/* Slot dots */}
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 4 }, (_, i) => (
+                                <div key={i} className={cn('w-1.5 h-1.5 rounded-full', i < g.aeratorCount ? 'bg-violet-500' : isDark ? 'bg-white/10' : 'bg-slate-200')} />
+                              ))}
+                            </div>
+                            {/* Smart Box slot */}
+                            <span className={cn('text-[6.5px] font-black uppercase px-2 py-0.5 rounded-full border', isDark ? 'bg-white/5 border-white/10 text-white/25' : 'bg-slate-50 border-slate-200 text-slate-400')}>
+                              SB0{g.groupNumber}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className={cn('px-4 pb-3')}>
+                        <p className={cn('text-[7px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+                          💡 Register {sbCount} Smart Box{sbCount !== 1 ? 'es' : ''} in the Smart Farm Hub after creating this pond.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
+
           </SectionCard>
 
           {/* ── SUBMIT ── */}

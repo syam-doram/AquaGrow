@@ -18,14 +18,14 @@
  * OR: Live getUserMedia stream → jsQR frame scanning
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, QrCode, Keyboard, CheckCircle2, AlertTriangle,
   Wind, Droplets, Waves, Settings, Fish, ChevronRight,
   Radio, X, ScanLine, Search, Cpu, Camera,
-  RotateCcw, Wifi, GitBranch, Zap, Shield,
+  RotateCcw, Wifi, GitBranch, Zap, Shield, Info,
 } from 'lucide-react';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
@@ -36,6 +36,7 @@ import {
   MASTER_TYPE_OPTION,
   type DeviceType,
 } from '../../services/espnowService';
+import { calcStarterGroups, type StarterGroup } from '../../utils/starterGroupUtils';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 
@@ -728,41 +729,92 @@ const SmartBoxConfigureStep = ({
 }) => {
   const initialType: DeviceType = device.deviceClass != null ? (CLASS_TO_TYPE[device.deviceClass] || 'AERATOR') : 'AERATOR';
 
-  const [displayName,     setDisplayName]     = useState('');
-  const [deviceType,      setDeviceType]      = useState<DeviceType>(initialType);
-  const [selectedPond,    setSelectedPond]    = useState(ponds[0]?.id || ponds[0]?._id || '');
-  const [aeratorLabels,   setAeratorLabels]   = useState<string[]>([]);
-  const [customAerator,   setCustomAerator]   = useState('');
-  const [loading,         setLoading]         = useState(false);
-  const [error,           setError]           = useState<string | null>(null);
+  const [displayName,      setDisplayName]      = useState('');
+  const [deviceType,       setDeviceType]       = useState<DeviceType>(initialType);
+  const [selectedPond,     setSelectedPond]     = useState(ponds[0]?.id || ponds[0]?._id || '');
+  const [selectedGroup,    setSelectedGroup]    = useState<number | null>(null); // starter group number
+  const [loading,          setLoading]          = useState(false);
+  const [error,            setError]            = useState<string | null>(null);
+  const [existingDevices,  setExistingDevices]  = useState<any[]>([]);
+  const [loadingDevices,   setLoadingDevices]   = useState(false);
 
   const suggestedName = DEVICE_TYPE_OPTIONS.find(o => o.value === deviceType)?.label ?? 'Smart Box';
 
-  // Get aerator positions from the selected pond
+  // Pond data
   const selectedPondData = ponds.find((p: any) => (p.id || p._id) === selectedPond);
-  const pondAeratorPositions: string[] = selectedPondData?.aerators?.positions?.filter(Boolean) ?? [];
+  const aeratorCount: number = selectedPondData?.aerators?.count ?? 0;
+  const aeratorHp: number   = selectedPondData?.aerators?.hp ?? 0;
 
-  // Auto-select pond if only one master
+  // Starter groups — use saved ones or auto-calculate from count
+  const starterGroups: StarterGroup[] = useMemo(() => {
+    const saved = selectedPondData?.aerators?.starterGroups;
+    if (saved && saved.length > 0) return saved as StarterGroup[];
+    return calcStarterGroups(aeratorCount);
+  }, [selectedPondData, aeratorCount]);
+
+  // Master for this pond
   const masterForPond = masterDevices.find((m: any) => (m.pondId === selectedPond || m.pond === selectedPond));
 
-  const toggleAerator = (label: string) => {
-    setAeratorLabels(prev =>
-      prev.includes(label) ? prev.filter(a => a !== label) : [...prev, label]
-    );
-  };
+  // Map: groupNumber → assigned Smart Box (from existing devices)
+  const takenGroups: Record<number, string> = useMemo(() => {
+    const map: Record<number, string> = {};
+    existingDevices
+      .filter(d => d.role === 'slave' && d.deviceType === 'AERATOR' && d.pairingStatus === 'assigned')
+      .forEach(d => {
+        // Match by aeratorLabels — group is identified by first label matching a group's aeratorNames
+        if (d.starterGroup) {
+          map[d.starterGroup] = d.displayName || d.label || d.boxId || 'Another Smart Box';
+        } else if (d.aeratorLabels?.length > 0) {
+          // Fallback: determine group from first aerator label
+          starterGroups.forEach(g => {
+            if (g.aeratorNames.some((n: string) => d.aeratorLabels.includes(n))) {
+              map[g.groupNumber] = d.displayName || d.label || d.boxId || 'Another Smart Box';
+            }
+          });
+        }
+      });
+    return map;
+  }, [existingDevices, starterGroups]);
 
-  const addCustomAerator = () => {
-    const trimmed = customAerator.trim();
-    if (!trimmed || aeratorLabels.includes(trimmed)) { setCustomAerator(''); return; }
-    setAeratorLabels(prev => [...prev, trimmed]);
-    setCustomAerator('');
-  };
+  const availableGroups = starterGroups.filter(g => !takenGroups[g.groupNumber]);
+  const totalGroups = starterGroups.length;
+  const takenCount = Object.keys(takenGroups).length;
+
+  // Fetch existing devices whenever selected pond changes
+  useEffect(() => {
+    if (!selectedPond) return;
+    setLoadingDevices(true);
+    setSelectedGroup(null);
+    espnowService.getDevices(selectedPond)
+      .then(devs => { setExistingDevices(devs); })
+      .catch(() => { setExistingDevices([]); })
+      .finally(() => setLoadingDevices(false));
+  }, [selectedPond]);
+
+  // Auto-select first available group when AERATOR type
+  useEffect(() => {
+    if (deviceType !== 'AERATOR') { setSelectedGroup(null); return; }
+    if (selectedGroup !== null) return;
+    if (availableGroups.length > 0) setSelectedGroup(availableGroups[0].groupNumber);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableGroups.length, deviceType]);
+
+  // Derive aeratorLabels from selected group
+  const aeratorLabels = useMemo((): string[] => {
+    if (deviceType !== 'AERATOR' || selectedGroup === null) return [];
+    const group = starterGroups.find(g => g.groupNumber === selectedGroup);
+    return group?.aeratorNames ?? [];
+  }, [selectedGroup, starterGroups, deviceType]);
 
   const handleRegister = async () => {
     if (!selectedPond) { setError('Please select a pond.'); return; }
+    if (deviceType === 'AERATOR' && selectedGroup === null && starterGroups.length > 0) {
+      setError('Please assign this Smart Box to a Starter Group.'); return;
+    }
     setLoading(true); setError(null);
     try {
-      await onRegister(displayName.trim() || suggestedName, deviceType, selectedPond, 'slave', aeratorLabels);
+      const name = displayName.trim() || `${suggestedName} (Group ${selectedGroup})`;
+      await onRegister(name, deviceType, selectedPond, 'slave', aeratorLabels);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
@@ -879,89 +931,179 @@ const SmartBoxConfigureStep = ({
         </div>
       )}
 
-      {/* ── Aerators Controlled (AERATOR type only) ──────────────────── */}
+      {/* ── Starter Group Assignment (AERATOR type only) ─────────────── */}
       {deviceType === 'AERATOR' && (
-        <div>
-          <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
-            Aerators Controlled
-          </p>
+        <div className="space-y-3">
 
-          {/* Pond aerator positions as toggle chips */}
-          {pondAeratorPositions.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {pondAeratorPositions.map(pos => {
-                const selected = aeratorLabels.includes(pos);
+          {/* Section header */}
+          <div className={cn('rounded-2xl border px-4 py-3', isDark ? 'bg-violet-500/5 border-violet-500/15' : 'bg-violet-50 border-violet-200')}>
+            <div className="flex items-center justify-between mb-1">
+              <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-violet-400' : 'text-violet-700')}>
+                Assign to Starter Group
+              </p>
+              {totalGroups > 0 && (
+                <span className={cn(
+                  'text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                  takenCount === totalGroups
+                    ? 'bg-amber-500/15 border-amber-500/25 text-amber-400'
+                    : takenCount === 0
+                      ? isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-slate-100 border-slate-200 text-slate-400'
+                      : 'bg-violet-500/15 border-violet-500/25 text-violet-400'
+                )}>
+                  {takenCount}/{totalGroups} groups taken
+                </span>
+              )}
+            </div>
+            <p className={cn('text-[7.5px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-500')}>
+              Each Starter Group controls <strong>1 motor starter</strong> in the pond.
+              1 Smart Box = 1 Starter = max 4 aerators.
+            </p>
+            {aeratorHp > 0 && (
+              <p className={cn('text-[7px] font-bold mt-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+                💨 Pond has {aeratorCount} aerators · {aeratorHp} HP each
+              </p>
+            )}
+          </div>
+
+          {/* Loading */}
+          {loadingDevices && (
+            <div className="flex items-center gap-2 py-2">
+              <div className="w-3 h-3 border-2 border-violet-500/30 border-t-violet-400 rounded-full animate-spin flex-shrink-0" />
+              <p className={cn('text-[8px] font-medium', isDark ? 'text-white/30' : 'text-slate-400')}>Checking existing group assignments…</p>
+            </div>
+          )}
+
+          {/* Starter Group list */}
+          {!loadingDevices && starterGroups.length > 0 && (
+            <div className="space-y-2">
+              {starterGroups.map(g => {
+                const isTaken   = !!takenGroups[g.groupNumber];
+                const isSelected = selectedGroup === g.groupNumber;
+                const takenBy   = takenGroups[g.groupNumber];
                 return (
-                  <motion.button key={pos} whileTap={{ scale: 0.93 }}
-                    onClick={() => toggleAerator(pos)}
+                  <motion.button
+                    key={g.groupNumber}
+                    whileTap={isTaken ? {} : { scale: 0.98 }}
+                    onClick={() => !isTaken && setSelectedGroup(g.groupNumber)}
+                    disabled={isTaken}
                     className={cn(
-                      'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all',
-                      selected
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                        : isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-slate-100 border-slate-200 text-slate-500',
+                      'w-full rounded-2xl border px-4 py-3 text-left transition-all',
+                      isTaken
+                        ? isDark ? 'bg-white/2 border-white/6 cursor-not-allowed' : 'bg-slate-50 border-slate-100 cursor-not-allowed'
+                        : isSelected
+                          ? isDark ? 'bg-violet-500/15 border-violet-500/35' : 'bg-violet-50 border-violet-300'
+                          : isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200',
                     )}
                   >
-                    {selected && <CheckCircle2 size={10} />}
-                    💨 {pos}
+                    <div className="flex items-center gap-3">
+                      {/* Group number badge */}
+                      <div className={cn(
+                        'w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 font-black text-sm',
+                        isTaken
+                          ? isDark ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-300'
+                          : isSelected
+                            ? 'bg-violet-500 text-white'
+                            : isDark ? 'bg-violet-500/15 text-violet-400' : 'bg-violet-100 text-violet-700'
+                      )}>
+                        {isTaken ? '🔒' : g.groupNumber}
+                      </div>
+
+                      {/* Group info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className={cn('text-[10px] font-black', isTaken ? isDark ? 'text-white/25' : 'text-slate-400' : isDark ? 'text-white' : 'text-slate-900')}>
+                            Starter Group {g.groupNumber}
+                          </p>
+                          {isTaken && (
+                            <span className={cn('text-[7px] font-black', isDark ? 'text-white/20' : 'text-slate-400')}>
+                              → {takenBy}
+                            </span>
+                          )}
+                        </div>
+                        <p className={cn('text-[7.5px] font-medium mt-0.5', isTaken ? isDark ? 'text-white/15' : 'text-slate-300' : isDark ? 'text-white/35' : 'text-slate-500')}>
+                          Aerator{g.aeratorStart !== g.aeratorEnd ? `s ${g.aeratorStart}–${g.aeratorEnd}` : ` ${g.aeratorStart}`} · {g.aeratorCount} unit{g.aeratorCount !== 1 ? 's' : ''} · 1 starter relay
+                        </p>
+                      </div>
+
+                      {/* Slot dots */}
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        {Array.from({ length: 4 }, (_, i) => (
+                          <div key={i} className={cn(
+                            'w-1.5 h-1.5 rounded-full',
+                            i < g.aeratorCount
+                              ? isTaken ? isDark ? 'bg-white/15' : 'bg-slate-300' : 'bg-violet-500'
+                              : isDark ? 'bg-white/8' : 'bg-slate-200'
+                          )} />
+                        ))}
+                      </div>
+
+                      {/* Radio */}
+                      <div className={cn(
+                        'w-4 h-4 rounded-full border-2 flex-shrink-0',
+                        isTaken
+                          ? isDark ? 'border-white/10' : 'border-slate-200'
+                          : isSelected
+                            ? 'bg-violet-500 border-violet-500'
+                            : isDark ? 'border-white/20' : 'border-slate-300'
+                      )} />
+                    </div>
+
+                    {/* Selected group — aerator preview */}
+                    {isSelected && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-3 pt-3 border-t border-violet-500/15"
+                      >
+                        <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-violet-400/60' : 'text-violet-600')}>
+                          Aerators assigned to this Smart Box:
+                        </p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {g.aeratorNames.map((name, ni) => (
+                            <div key={name} className={cn('flex items-center gap-2 rounded-xl px-2.5 py-1.5', isDark ? 'bg-violet-500/10' : 'bg-violet-100/70')}>
+                              <span className={cn('w-4 h-4 rounded-full flex items-center justify-center text-[6.5px] font-black flex-shrink-0 bg-violet-500 text-white')}>
+                                {ni + 1}
+                              </span>
+                              <p className={cn('text-[7.5px] font-black truncate', isDark ? 'text-violet-300' : 'text-violet-700')}>💨 {name}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.button>
                 );
               })}
+
+              {/* All groups taken */}
+              {takenCount === totalGroups && totalGroups > 0 && (
+                <div className={cn('rounded-xl px-3 py-2.5 flex items-center gap-2', isDark ? 'bg-amber-500/8 border border-amber-500/20' : 'bg-amber-50 border border-amber-200')}>
+                  <AlertTriangle size={11} className="text-amber-500 flex-shrink-0" />
+                  <p className={cn('text-[8px] font-black', isDark ? 'text-amber-400' : 'text-amber-700')}>
+                    All {totalGroups} Starter Groups are assigned. Pond's aerators are fully controlled.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Custom-added aerators (not in pond positions) */}
-          {aeratorLabels.filter(a => !pondAeratorPositions.includes(a)).length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {aeratorLabels.filter(a => !pondAeratorPositions.includes(a)).map(label => (
-                <span key={label}
-                  className={cn('flex items-center gap-1 rounded-full border px-2.5 py-1 text-[8px] font-black',
-                    isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-emerald-100 border-emerald-300 text-emerald-700',
-                  )}
-                >
-                  💨 {label}
-                  <button onClick={() => toggleAerator(label)} className="ml-0.5 opacity-60 hover:opacity-100">
-                    <X size={9} />
-                  </button>
-                </span>
-              ))}
+          {/* No aerators in pond */}
+          {!loadingDevices && starterGroups.length === 0 && (
+            <div className={cn('rounded-2xl border px-4 py-3.5 flex items-start gap-3', isDark ? 'bg-amber-500/6 border-amber-500/15' : 'bg-amber-50 border-amber-200')}>
+              <AlertTriangle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className={cn('text-[9px] font-black mb-0.5', isDark ? 'text-amber-400' : 'text-amber-700')}>
+                  No aerators recorded in this pond
+                </p>
+                <p className={cn('text-[7.5px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-500')}>
+                  Go to Pond Details → Aerator Management and set the total number of aerators first. Starter Groups will be auto-calculated.
+                </p>
+              </div>
             </div>
           )}
-
-          {/* Custom aerator name input */}
-          <div className={cn('flex items-center gap-2 rounded-2xl border px-3 py-2.5',
-            isDark ? 'bg-white/5 border-white/10 focus-within:border-emerald-500/40' : 'bg-slate-50 border-slate-200 focus-within:border-emerald-400',
-          )}>
-            <Wind size={12} className={isDark ? 'text-white/30' : 'text-slate-400'} />
-            <input
-              id="custom-aerator-input"
-              type="text"
-              value={customAerator}
-              onChange={e => setCustomAerator(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCustomAerator()}
-              placeholder="Add aerator (e.g. NE Corner, Paddle 1)…"
-              maxLength={30}
-              className={cn('flex-1 bg-transparent outline-none text-[10px] font-bold',
-                isDark ? 'text-white placeholder:text-white/20' : 'text-slate-900 placeholder:text-slate-400',
-              )}
-            />
-            <motion.button whileTap={{ scale: 0.9 }} onClick={addCustomAerator}
-              disabled={!customAerator.trim()}
-              className={cn('text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full transition-all',
-                customAerator.trim()
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : isDark ? 'text-white/20' : 'text-slate-300',
-              )}
-            >
-              Add
-            </motion.button>
-          </div>
-          <p className={cn('text-[7px] font-medium mt-1.5 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-            {aeratorLabels.length === 0
-              ? 'Optional — select or add which aerators this Smart Box controls.'
-              : `${aeratorLabels.length} aerator${aeratorLabels.length > 1 ? 's' : ''} selected`}
-          </p>
         </div>
       )}
+
+
 
       {/* Name input */}
       <div>

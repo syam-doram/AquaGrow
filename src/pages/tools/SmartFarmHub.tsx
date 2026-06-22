@@ -62,6 +62,7 @@ import {
   DEVICE_TYPE_OPTIONS,
 } from '../../services/espnowService';
 import { DeviceAssignmentModal } from '../iot/DeviceAssignmentModal';
+import { calcStarterGroups, type StarterGroup } from '../../utils/starterGroupUtils';
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Types Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 interface IoTDevice {
@@ -941,7 +942,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
   }, [iotPondId]);
 
   useEffect(() => {
-    if (activeTab !== 'iot') return;
+    if (activeTab !== 'iot' && activeTab !== 'aerators') return;
     fetchIotAll();
     fetchIotDiscoveries();
     iotPollRef.current     = setInterval(() => fetchIotAll(),          5000);
@@ -1158,241 +1159,299 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
         </div>
 
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ TAB CONTENT Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* ── TAB CONTENT ── */}
         <AnimatePresence mode="wait">
 
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ AERATORS TAB Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ── AERATORS TAB ── */}
           {activeTab === 'aerators' && (
             <motion.div key="aerators" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
 
-              {/* Ã¢â€â‚¬Ã¢â€â‚¬ NO PONDS EMPTY STATE Ã¢â€â‚¬Ã¢â€â‚¬ */}
-              {ponds.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className={cn('rounded-3xl p-10 border text-center', isDark ? 'bg-white/4 border-white/8' : 'bg-white border-slate-100 shadow-sm')}
-                >
-                  <div className={cn('w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border', isDark ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-cyan-50 border-cyan-200')}>
-                    <Wind size={28} className="text-cyan-500" />
-                  </div>
-                  <p className={cn('text-sm font-black uppercase tracking-widest mb-1', isDark ? 'text-white/60' : 'text-slate-600')}>No Ponds Yet</p>
-                  <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-400')}>
-                    Add a pond first to see aerator schedules and manage your devices.
-                  </p>
-                </motion.div>
-              ) : (
-                <>
-                  {/* Ã¢â€â‚¬Ã¢â€â‚¬ AERATOR COMPLIANCE SUMMARY Ã¢â€â‚¬Ã¢â€â‚¬ */}
-                  {(() => {
-                    const activePonds = ponds.filter(p => p.status === 'active' && (selectedPondId === 'all' || p.id === selectedPondId));
-                    const withData    = activePonds.filter(p => p.aerators && p.aerators.count > 0);
-                    const compliant   = withData.filter(p => {
-                      const doc = calculateDOC(p.stockingDate);
-                      const rec = doc > 60 ? 5 : doc > 40 ? 3 : doc > 20 ? 2 : 1;
-                      return (p.aerators?.count ?? 0) >= rec;
-                    });
-                    const noData      = activePonds.filter(p => !p.aerators || p.aerators.count === 0);
-                    if (activePonds.length === 0) return null;
-                    return (
-                      <div className="grid grid-cols-3 gap-2">
+              {/* ── SMART BOX AERATOR CONTROL ── */}
+              {(() => {
+                // Collect ALL slave devices with aeratorLabels across all ponds
+                const allDevices: any[] = iotStatus?.devices ?? [];
+                const aeratorSlaves = allDevices.filter(d =>
+                  d.role === 'slave' &&
+                  d.pairingStatus === 'assigned' &&
+                  d.deviceType === 'AERATOR' &&
+                  (selectedPondId === 'all' || d.pondId === selectedPondId || d.pond === selectedPondId)
+                );
+
+                if (aeratorSlaves.length === 0) {
+                  // No Smart Boxes with aerators registered
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.97 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={cn('rounded-3xl border p-8 text-center space-y-4', isDark ? 'bg-white/4 border-white/8' : 'bg-white border-slate-100 shadow-sm')}
+                    >
+                      <div className={cn('w-16 h-16 rounded-2xl flex items-center justify-center mx-auto border', isDark ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-cyan-50 border-cyan-200')}>
+                        <CircuitBoard size={28} className="text-cyan-500" />
+                      </div>
+                      <div>
+                        <p className={cn('text-sm font-black tracking-tight mb-1', isDark ? 'text-white/70' : 'text-slate-800')}>
+                          No Smart Box Aerators Yet
+                        </p>
+                        <p className={cn('text-[9px] font-medium leading-relaxed max-w-xs mx-auto', isDark ? 'text-white/30' : 'text-slate-400')}>
+                          Register a Smart Box and add the aerators it controls. They will appear here with live ON/OFF toggle and motor status.
+                        </p>
+                      </div>
+                      <div className={cn('rounded-2xl p-4 text-left space-y-2 border', isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-100')}>
+                        <p className={cn('text-[7.5px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/25' : 'text-slate-400')}>How to set up</p>
                         {[
-                          { label: 'Data Recorded', value: withData.length, color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)' },
-                          { label: 'SOP Compliant', value: compliant.length, color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-                          { label: 'No Data Yet', value: noData.length, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                        ].map((s, i) => (
-                          <div key={i} className={cn('rounded-2xl px-3 py-3 border text-center', isDark ? 'bg-white/4 border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-                            <span className="text-xl font-black tracking-tighter block" style={{ color: s.color }}>{s.value}</span>
-                            <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>{s.label}</span>
+                          { n: '1', t: 'Go to Smart Box tab → Register a Master Box for your pond' },
+                          { n: '2', t: 'Tap Register Smart Box → select Device Type: Aerator' },
+                          { n: '3', t: 'Tick which aerator positions this Smart Box controls' },
+                          { n: '4', t: 'Come back here — each aerator shows live motor status & toggle' },
+                        ].map(s => (
+                          <div key={s.n} className="flex items-start gap-2">
+                            <span className={cn('w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black flex-shrink-0', isDark ? 'bg-cyan-500/20 text-cyan-400' : 'bg-cyan-100 text-cyan-700')}>{s.n}</span>
+                            <p className={cn('text-[8px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>{s.t}</p>
                           </div>
                         ))}
                       </div>
-                    );
-                  })()}
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => { setActiveTab('iot'); }}
+                        className="w-full py-3 rounded-2xl bg-emerald-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <CircuitBoard size={14} /> Go to Smart Box Tab
+                      </motion.button>
+                    </motion.div>
+                  );
+                }
 
-                  {/* Ã¢â€â‚¬Ã¢â€â‚¬ POND-WISE AERATOR CARDS Ã¢â€â‚¬Ã¢â€â‚¬ */}
-                  <div>
-                    <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/30' : 'text-slate-400')}>Pond Aerators</p>
-                    <div className="space-y-4">
-                      {ponds
-                        .filter(p => p.status === 'active' && (selectedPondId === 'all' || p.id === selectedPondId))
-                        .map((pond, pi) => {
-                          const doc         = calculateDOC(pond.stockingDate);
-                          const aerData     = pond.aerators;
-                          const hasData     = aerData && aerData.count > 0;
-                          const count       = aerData?.count ?? 0;
-                          const hp          = aerData?.hp ?? 0;
-                          const positions   = aerData?.positions ?? [];
-                          const lastDoc     = aerData?.lastDoc ?? null;
-                          const lastUpdated = aerData?.lastUpdated ? new Date(aerData.lastUpdated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : null;
-                          const log         = aerData?.log ?? [];
-                          const watt        = hp <= 1 ? 750 : hp <= 2 ? 1100 : hp <= 3 ? 2200 : 3700;
-                          const runtime     = doc > 40 ? 22 : doc > 20 ? 18 : 14;
-                          // SOP recommended count
-                          const recCount    = doc > 60 ? 5 : doc > 40 ? 3 : doc > 20 ? 2 : 1;
-                          const isSopMet    = hasData && count >= recCount;
-                          const isStale     = lastDoc !== null && (doc - lastDoc) > 20; // not updated in >20 DOC
+                // Group Smart Box slaves by pond
+                const byPond: Record<string, any[]> = {};
+                aeratorSlaves.forEach(d => {
+                  const pid = d.pondId || d.pond || 'unknown';
+                  if (!byPond[pid]) byPond[pid] = [];
+                  byPond[pid].push(d);
+                });
 
-                          return (
-                            <motion.div
-                              key={pond.id}
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: pi * 0.07 }}
-                              className={cn(
-                                'rounded-2xl border overflow-hidden',
-                                isDark ? 'bg-white/4 border-white/10' : 'bg-white border-slate-100 shadow-sm',
-                                isStale && hasData ? (isDark ? 'border-amber-500/30' : 'border-amber-300') : '',
-                              )}
-                            >
-                              {/* Pond header */}
-                              <div className={cn('flex items-center justify-between px-4 py-3 border-b', isDark ? 'border-white/8 bg-white/4' : 'border-slate-50 bg-slate-50')}>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm">🐟 </span>
-                                  <div>
-                                    <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{pond.name}</p>
-                                    <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
-                                      DOC {doc}
-                                      {hasData ? ` · ${count} aerator${count > 1 ? 's' : ''} · ${hp} HP each` : ' · No data recorded'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {hasData && (
-                                    <span className={cn(
-                                      'text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full',
-                                      isSopMet
-                                        ? (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700')
-                                        : (isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600')
-                                    )}>
-                                      {isSopMet ? '✅ SOP Met' : `Need ${recCount}`}
-                                    </span>
-                                  )}
-                                  {hasData && (
-                                    <div className="text-right">
-                                      <p className="text-[10px] font-black text-cyan-500">{(count * watt / 1000).toFixed(1)} kW</p>
-                                      <p className={cn('text-[6px] font-black', isDark ? 'text-white/25' : 'text-slate-400')}>load</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                return (
+                  <div className="space-y-4">
 
-                              {/* Stale warning */}
-                              {isStale && hasData && (
-                                <div className={cn('flex items-center gap-2 px-4 py-2', isDark ? 'bg-amber-500/8' : 'bg-amber-50')}>
-                                  <AlertTriangle size={10} className="text-amber-500 flex-shrink-0" />
-                                  <p className="text-[8px] font-black text-amber-500">
-                                    Last updated at DOC {lastDoc} —  {doc - (lastDoc ?? 0)} days ago. Update recommended.
+                    {/* Summary strip */}
+                    <div className={cn('rounded-2xl border px-4 py-3 flex items-center justify-between', isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-100')}>
+                      <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+                        Smart Box Aerator Control
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <span className={cn('text-[7px] font-black uppercase', isDark ? 'text-white/30' : 'text-slate-400')}>
+                          💨 {aeratorSlaves.reduce((s: number, d: any) => s + (d.aeratorLabels?.length ?? 0), 0)} aerators
+                        </span>
+                        <span className={cn('text-[7px] font-black uppercase', isDark ? 'text-white/30' : 'text-slate-400')}>
+                          📦 {aeratorSlaves.length} boxes · {aeratorSlaves.filter((d: any) => d.online).length} online
+                        </span>
+                      </div>
+                    </div>
+
+                    {Object.entries(byPond).map(([pid, slaves]) => {
+                      const pond = ponds.find(p => p.id === pid || p._id === pid);
+                      const pondName = pond?.name ?? 'Unknown Pond';
+                      const doc = pond ? calculateDOC(pond.stockingDate) : 0;
+                      const totalAerators: number = pond?.aerators?.count ?? 0;
+                      const pondStarterGroups: StarterGroup[] = (() => {
+                        const saved = pond?.aerators?.starterGroups;
+                        if (saved && saved.length > 0) return saved as StarterGroup[];
+                        return calcStarterGroups(totalAerators);
+                      })();
+                      const onlineCount = (slaves as any[]).filter(s => s.online).length;
+                      const totalRunning = (slaves as any[]).reduce((sum: number, s: any) => sum + (s.relayOn ? 1 : 0), 0);
+
+                      return (
+                        <motion.div
+                          key={pid}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={cn('rounded-2xl border overflow-hidden', isDark ? 'bg-white/4 border-white/10' : 'bg-white border-slate-100 shadow-sm')}
+                        >
+                          {/* Pond header */}
+                          <div className={cn('px-4 py-3 border-b', isDark ? 'border-white/8 bg-white/4' : 'border-slate-50 bg-slate-50')}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">🐟</span>
+                                <div>
+                                  <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>{pondName}</p>
+                                  <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+                                    DOC {doc} · {totalAerators} aerators · {pondStarterGroups.length} starter group{pondStarterGroups.length !== 1 ? 's' : ''}
                                   </p>
                                 </div>
-                              )}
-
-                              {/* NO DATA STATE */}
-                              {!hasData ? (
-                                <div className={cn('px-4 py-6 text-center space-y-3')}>
-                                  <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center mx-auto border', isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200')}>
-                                    <AlertTriangle size={20} className="text-amber-500" />
-                                  </div>
-                                  <div>
-                                    <p className={cn('text-[10px] font-black tracking-tight mb-1', isDark ? 'text-white/60' : 'text-slate-700')}>No Aerator Data Recorded</p>
-                                    <p className={cn('text-[8px] font-medium leading-relaxed', isDark ? 'text-white/30' : 'text-slate-400')}>
-                                      SOP recommends <strong>{recCount} aerator{recCount > 1 ? 's' : ''}</strong> for DOC {doc}.<br />
-                                      Go to Pond Details → Aerator Management to record your setup.
-                                    </p>
-                                  </div>
-                                  <div className={cn('rounded-xl p-3 border text-left', isDark ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-100')}>
-                                    <p className={cn('text-[7px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Recommended for DOC {doc}</p>
-                                    <p className={cn('text-[10px] font-black', isDark ? 'text-white' : 'text-slate-800')}>
-                                      {recCount} Aerator{recCount > 1 ? 's' : ''} · {doc > 40 ? '3–5 HP' : doc > 20 ? '2 HP' : '1 HP'} each
-                                    </p>
-                                  </div>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className={cn('flex items-center gap-1 text-[7px] font-black px-2 py-0.5 rounded-full border',
+                                  onlineCount === (slaves as any[]).length
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                    : onlineCount === 0
+                                      ? 'bg-red-500/10 border-red-500/15 text-red-400'
+                                      : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                )}>
+                                  <span className={cn('w-1.5 h-1.5 rounded-full', onlineCount === (slaves as any[]).length ? 'bg-emerald-400 animate-pulse' : onlineCount === 0 ? 'bg-red-400' : 'bg-amber-400')} />
+                                  {onlineCount}/{(slaves as any[]).length} online
                                 </div>
-                              ) : (
-                                <>
-                                  {/* Data summary row */}
-                                  <div className="grid grid-cols-3 divide-x" style={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }}>
-                                    {[
-                                      { label: 'Total HP', value: `${count * hp} HP` },
-                                      { label: 'Est. kWh/day', value: `${(count * watt * runtime / 1000).toFixed(1)}` },
-                                      { label: 'Updated', value: lastUpdated ?? 'Unknown' },
-                                    ].map((s, i) => (
-                                      <div key={i} className={cn('flex flex-col items-center py-2.5 gap-0.5', isDark ? 'bg-white/2' : 'bg-slate-50/80')}>
-                                        <span className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-800')}>{s.value}</span>
-                                        <span className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>{s.label}</span>
+                              </div>
+                            </div>
+
+                            {/* Pond summary stats */}
+                            <div className="grid grid-cols-4 gap-1.5">
+                              {[
+                                { label: 'Total Aerators', value: totalAerators, color: 'text-violet-400' },
+                                { label: 'Smart Boxes', value: (slaves as any[]).length, color: isDark ? 'text-white/50' : 'text-slate-700' },
+                                { label: 'Running', value: totalRunning, color: 'text-emerald-400' },
+                                { label: 'Stopped', value: totalAerators - totalRunning, color: totalAerators - totalRunning > 0 ? 'text-red-400' : isDark ? 'text-white/20' : 'text-slate-300' },
+                              ].map(s => (
+                                <div key={s.label} className={cn('rounded-xl px-2 py-1.5 text-center', isDark ? 'bg-white/3' : 'bg-white border border-slate-100')}>
+                                  <p className={cn('text-[11px] font-black tracking-tight', s.color)}>{s.value}</p>
+                                  <p className={cn('text-[5.5px] font-black uppercase tracking-widest leading-tight mt-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>{s.label}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Starter Groups */}
+                          <div className="divide-y" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }}>
+                            {pondStarterGroups.map(g => {
+                              const smartBox = (slaves as any[]).find(s => {
+                                if (s.starterGroup === g.groupNumber) return true;
+                                // fallback: match by aerator labels overlap
+                                return (s.aeratorLabels ?? []).some((l: string) => g.aeratorNames.includes(l));
+                              });
+                              const labels: string[] = smartBox?.aeratorLabels ?? g.aeratorNames;
+                              const hasPending = smartBox ? iotPendingCmds.some((c: any) => c.targetBoxId === smartBox.boxId) : false;
+
+                              return (
+                                <div key={g.groupNumber} className={cn('px-4 py-4', isDark ? 'bg-white/1' : 'bg-white')}>
+
+                                  {/* Starter Group header */}
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center text-[8px] font-black flex-shrink-0', isDark ? 'bg-violet-500/20 text-violet-400' : 'bg-violet-100 text-violet-700')}>
+                                      {g.groupNumber}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <p className={cn('text-[9px] font-black', isDark ? 'text-violet-300' : 'text-violet-700')}>
+                                          Starter Group {g.groupNumber}
+                                        </p>
+                                        <span className={cn('text-[6.5px] font-black uppercase px-1.5 py-0.5 rounded-full', isDark ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-50 text-violet-600')}>
+                                          Aerator{g.aeratorStart !== g.aeratorEnd ? `s ${g.aeratorStart}–${g.aeratorEnd}` : ` ${g.aeratorStart}`}
+                                        </span>
+                                        <span className={cn('text-[6.5px] font-black uppercase px-1.5 py-0.5 rounded-full border',
+                                          smartBox
+                                            ? smartBox.online ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/15 text-red-400'
+                                            : isDark ? 'bg-white/5 border-white/10 text-white/25' : 'bg-slate-100 border-slate-200 text-slate-400'
+                                        )}>
+                                          {smartBox
+                                            ? <><span className={cn('inline-block w-1 h-1 rounded-full mr-0.5 align-middle', smartBox.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />{smartBox.online ? 'Online' : 'Offline'}</>
+                                            : 'No Smart Box'
+                                          }
+                                        </span>
+                                      </div>
+                                      <p className={cn('text-[7px] font-medium mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
+                                        {smartBox
+                                          ? `${espnowService.getDeviceLabel(smartBox)} · ${smartBox.boxId} · ${g.aeratorCount} aerator${g.aeratorCount !== 1 ? 's' : ''}`
+                                          : `Awaiting Smart Box registration · ${g.aeratorCount} aerator${g.aeratorCount !== 1 ? 's' : ''} pending`
+                                        }
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Aerator cards grid */}
+                                  <div className="grid grid-cols-2 gap-2 mb-3">
+                                    {labels.slice(0, 4).map((aerName, ai) => {
+                                      const isRunning = smartBox?.relayOn === true;
+                                      const isOnline  = smartBox?.online === true;
+                                      return (
+                                        <div key={aerName} className={cn(
+                                          'rounded-2xl border px-3 py-2.5',
+                                          !smartBox
+                                            ? isDark ? 'bg-white/2 border-white/5 border-dashed' : 'bg-slate-50 border-slate-200 border-dashed'
+                                            : isRunning && isOnline
+                                              ? isDark ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
+                                              : isOnline
+                                                ? isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-100'
+                                                : isDark ? 'bg-white/2 border-white/5' : 'bg-slate-50 border-slate-100'
+                                        )}>
+                                          <div className="flex items-center gap-1.5 mb-1">
+                                            <span className={cn('w-4 h-4 rounded-full flex items-center justify-center text-[6px] font-black flex-shrink-0',
+                                              !smartBox
+                                                ? isDark ? 'bg-white/5 text-white/20' : 'bg-slate-200 text-slate-400'
+                                                : isRunning && isOnline ? 'bg-emerald-500 text-white' : isDark ? 'bg-white/10 text-white/30' : 'bg-slate-300 text-slate-600'
+                                            )}>
+                                              {g.aeratorStart + ai}
+                                            </span>
+                                            <p className={cn('text-[7.5px] font-black truncate flex-1',
+                                              !smartBox ? isDark ? 'text-white/20' : 'text-slate-300'
+                                              : isDark ? 'text-white/70' : 'text-slate-700'
+                                            )}>
+                                              💨 {aerName}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center justify-between">
+                                            <p className={cn('text-[6px] font-black uppercase tracking-widest',
+                                              !smartBox ? isDark ? 'text-white/15' : 'text-slate-300'
+                                              : isRunning && isOnline ? 'text-emerald-400'
+                                              : isOnline ? isDark ? 'text-white/25' : 'text-slate-400'
+                                              : 'text-red-400'
+                                            )}>
+                                              {!smartBox ? 'Unassigned' : isRunning && isOnline ? 'Running' : isOnline ? 'Stopped' : 'Offline'}
+                                            </p>
+                                            {smartBox?.voltage > 0 && (
+                                              <p className={cn('text-[6px] font-black', isDark ? 'text-white/20' : 'text-slate-400')}>
+                                                {smartBox.voltage}V
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                    {/* Empty slots if less than 4 */}
+                                    {Array.from({ length: Math.max(0, 4 - labels.length) }, (_, i) => (
+                                      <div key={`empty-${i}`} className={cn('rounded-2xl border px-3 py-2.5', isDark ? 'bg-white/1 border-white/4 border-dashed' : 'bg-slate-50 border-slate-100 border-dashed')}>
+                                        <p className={cn('text-[7px] font-black uppercase tracking-widest text-center', isDark ? 'text-white/10' : 'text-slate-200')}>Empty Slot</p>
                                       </div>
                                     ))}
                                   </div>
 
-                                  {/* Aerator rows */}
-                                  <div className="divide-y" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }}>
-                                    {Array.from({ length: count }).map((_, ai) => {
-                                      const posLabel = positions[ai] ?? `Position ${ai + 1}`;
-                                      const devId    = `aer-${pond.id}-${ai}`;
-                                      const dev      = devices.find(d => d.id === devId);
-                                      const isOn     = dev?.isOn ?? true;
-                                      return (
-                                        <div key={ai} className={cn('flex items-center gap-3 px-4 py-3', isDark ? 'bg-white/2' : 'bg-white')}>
-                                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                                            isOn ? (isDark ? 'bg-cyan-500/15 border border-cyan-500/25' : 'bg-cyan-50 border border-cyan-200') : (isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200')
-                                          )}>
-                                            <Wind size={13} className={isOn ? 'text-cyan-500' : isDark ? 'text-white/20' : 'text-slate-300'}
-                                              style={isOn ? { animation: 'spin 3s linear infinite' } : {}} />
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className={cn('text-[10px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-800')}>
-                                              Aerator {ai + 1} <span className={cn('font-medium', isDark ? 'text-white/30' : 'text-slate-400')}>—  {posLabel}</span>
-                                            </p>
-                                            <p className={cn('text-[7px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>
-                                              {hp} HP · {watt}W · {runtime}h/day · ~{(watt * runtime / 1000).toFixed(1)} kWh
-                                            </p>
-                                          </div>
-                                          <button onClick={() => dev && toggleDevice(dev.id)} className="flex-shrink-0">
-                                            {isOn
-                                              ? <ToggleRight size={24} className="text-emerald-500" />
-                                              : <ToggleLeft size={24} className={isDark ? 'text-white/20' : 'text-slate-300'} />}
-                                          </button>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                                  {/* Toggle control (only if Smart Box assigned) */}
+                                  {smartBox && (
+                                    <HubAeratorToggle device={smartBox} pondId={pid} hasPendingCmd={hasPending} onRefresh={() => fetchIotAll()} isDark={isDark} />
+                                  )}
 
-                                  {/* Aerator History log */}
-                                  {log.length > 1 && (
-                                    <div className={cn('px-4 py-3 border-t', isDark ? 'border-white/5' : 'border-slate-50')}>
-                                      <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/20' : 'text-slate-400')}>
-                                        Update History ({log.length} entries)
+                                  {/* No Smart Box yet */}
+                                  {!smartBox && (
+                                    <div className={cn('flex items-center gap-2 px-3 py-2 rounded-xl', isDark ? 'bg-white/3 border border-white/8' : 'bg-slate-50 border border-slate-100')}>
+                                      <CircuitBoard size={10} className={isDark ? 'text-white/20' : 'text-slate-300'} />
+                                      <p className={cn('text-[7.5px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>
+                                        Register a Smart Box and assign it to Starter Group {g.groupNumber} to control these aerators.
                                       </p>
-                                      <div className="space-y-1.5">
-                                        {log.slice(-3).reverse().map((entry, li) => (
-                                          <div key={li} className={cn('flex items-center justify-between py-1.5 px-2 rounded-lg', isDark ? 'bg-white/3' : 'bg-slate-50')}>
-                                            <div className="flex items-center gap-2">
-                                              <span className={cn('text-[7px] font-black px-1.5 py-0.5 rounded-full', isDark ? 'bg-cyan-500/15 text-cyan-400' : 'bg-cyan-50 text-cyan-700')}>DOC {entry.doc}</span>
-                                              <span className={cn('text-[8px] font-black', isDark ? 'text-white/60' : 'text-slate-700')}>{entry.count} aerator{entry.count > 1 ? 's' : ''} · {entry.hp} HP</span>
-                                              {entry.addedNew && <span className="text-[6px] font-black text-emerald-500 uppercase tracking-widest">+Added</span>}
-                                            </div>
-                                            <span className={cn('text-[6px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
-                                              {new Date(entry.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
                                     </div>
                                   )}
-                                </>
-                              )}
-                            </motion.div>
-                          );
-                        })
-                      }
+                                </div>
+                              );
+                            })}
+                          </div>
 
-                      {/* No active ponds under selected filter */}
-                      {ponds.filter(p => p.status === 'active' && (selectedPondId === 'all' || p.id === selectedPondId)).length === 0 && (
-                        <div className={cn('rounded-2xl p-8 border text-center', isDark ? 'bg-white/4 border-white/8' : 'bg-white border-slate-100')}>
-                          <Wind size={28} className={cn('mx-auto mb-2', isDark ? 'text-white/20' : 'text-slate-300')} />
-                          <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>No active ponds</p>
-                        </div>
-                      )}
-                    </div>
+                          {/* View mapping footer */}
+                          <div className={cn('px-4 py-2.5 border-t flex items-center justify-between', isDark ? 'border-white/5 bg-white/2' : 'border-slate-50 bg-slate-50')}>
+                            <p className={cn('text-[7px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+                              {(slaves as any[]).length}/{pondStarterGroups.length} groups assigned
+                            </p>
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => navigate(`/aerator-mapping/${pid}`)}
+                              className={cn('flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-violet-400' : 'text-violet-600')}
+                            >
+                              View Full Mapping <ChevronRight size={9} />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
+                );
+              })()}
+
 
                   {/* DOC STAGE GUIDE */}
                   <div>
@@ -1454,11 +1513,12 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                       Run aerators <strong>between 2 AM – 6 AM</strong> at full power. DO levels drop to critical (&lt;4 mg/L) just before sunrise. For every 1,000 kg biomass, a minimum of 1 HP aerator is recommended.
                     </p>
                   </div>
-                </>
-              )}
+
             </motion.div>
           )}
+
           {/* ELECTRICITY BILL TAB */}
+
           {activeTab === 'electricity' && (
             <motion.div key="electricity" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
 
@@ -2146,65 +2206,131 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 );
               })()}
 
+              {/* Master Box + Device Network — always shown when master exists */}
+              {iotMaster && (
+                <div>
+                  <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+                    Device Network
+                  </p>
+                  <div className={cn('rounded-[1.75rem] border p-4', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <GitBranch size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                      <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                        {iotSlaves.length > 0 ? `1 Master · ${iotSlaves.length} Smart Box${iotSlaves.length !== 1 ? 'es' : ''}` : '1 Master · No Smart Boxes yet'}
+                      </p>
+                    </div>
 
-              {/* Topology Tree — shows Master + all Smart Boxes network */}
-
-              {iotMaster && iotSlaves.length > 0 && (
-                <div className={cn('rounded-[1.75rem] border p-4', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <GitBranch size={11} className={isDark ? 'text-white/25' : 'text-slate-400'} />
-                    <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>Device Network</p>
-                  </div>
-                  {/* Master row */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-7 h-7 bg-emerald-500/15 border border-emerald-500/25 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Radio size={11} className="text-emerald-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={cn('text-[10px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(iotMaster)}</p>
-                      <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-emerald-400/60' : 'text-emerald-600')}>{iotMaster.boxId} · Master</p>
-                    </div>
-                    <div className={cn('flex items-center gap-1.5 rounded-full px-2 py-0.5 border', iotMaster.online ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400')}>
-                      <div className={cn('w-1 h-1 rounded-full', iotMaster.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />
-                      <span className="text-[6px] font-black uppercase">{iotMaster.online ? 'Online' : 'Offline'}</span>
-                    </div>
-                  </div>
-                  {/* Slaves */}
-                  {iotSlaves.map((slave, i) => {
-                    const isLast = i === iotSlaves.length - 1;
-                    const typeEmoji = espnowService.getDeviceTypeEmoji(slave.deviceType);
-                    return (
-                      <div key={slave._id} className="flex items-start gap-0">
-                        <div className="flex flex-col items-center mr-2 mt-1" style={{ width: 16 }}>
-                          <div className={cn('w-px flex-1 min-h-[8px]', isDark ? 'bg-white/10' : 'bg-slate-200')} />
-                          <div className={cn('w-3 h-px', isDark ? 'bg-white/10' : 'bg-slate-200')} />
-                          {!isLast && <div className={cn('w-px flex-1', isDark ? 'bg-white/10' : 'bg-slate-200')} />}
-                        </div>
-                        <div className={cn('flex-1 flex items-center gap-2 py-2 px-3 rounded-2xl mb-1.5', isDark ? 'bg-white/3' : 'bg-slate-50')}>
-                          <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0', slave.online ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/20')}>
-                            {typeEmoji}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={cn('text-[9px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(slave)}</p>
-                            <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{slave.boxId}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {slave.aeratorState === 'ON' && (
-                              <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
-                                <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
-                                <span className="text-emerald-400 text-[6px] font-black uppercase">ON</span>
-                              </div>
-                            )}
-                            {slave.aeratorState === 'OFF' && (
-                              <div className="bg-red-500/10 border border-red-500/15 rounded-full px-1.5 py-0.5">
-                                <span className="text-red-400 text-[6px] font-black uppercase">OFF</span>
-                              </div>
-                            )}
-                          </div>
+                    {/* Master row */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={cn(
+                        'w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0',
+                        iotMaster.online
+                          ? 'bg-emerald-500/15 border-emerald-500/25'
+                          : isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200',
+                      )}>
+                        <Radio size={14} className={iotMaster.online ? 'text-emerald-400' : isDark ? 'text-white/25' : 'text-slate-400'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn('text-[11px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                          {espnowService.getDeviceLabel(iotMaster)}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                            {iotMaster.boxId}
+                          </span>
+                          <span className={cn('text-[6.5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
+                            isDark ? 'bg-violet-500/10 border-violet-500/20 text-violet-400' : 'bg-violet-50 border-violet-200 text-violet-700'
+                          )}>Master Gateway</span>
+                          {iotMaster.heartbeatAgo && (
+                            <span className={cn('text-[6.5px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+                              · {iotMaster.heartbeatAgo}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className={cn('flex items-center gap-1.5 rounded-full px-2.5 py-1 border flex-shrink-0',
+                        iotMaster.online
+                          ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
+                          : 'bg-red-500/10 border-red-500/20 text-red-400'
+                      )}>
+                        <div className={cn('w-1.5 h-1.5 rounded-full', iotMaster.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />
+                        <span className="text-[7px] font-black uppercase tracking-widest">
+                          {iotMaster.online ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Slaves — shown only when present */}
+                    {iotSlaves.length > 0 && iotSlaves.map((slave, i) => {
+                      const isLast = i === iotSlaves.length - 1;
+                      const typeEmoji = espnowService.getDeviceTypeEmoji(slave.deviceType);
+                      return (
+                        <div key={slave._id} className="flex items-start gap-0">
+                          <div className="flex flex-col items-center mr-2 mt-1" style={{ width: 16 }}>
+                            <div className={cn('w-px flex-1 min-h-[8px]', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+                            <div className={cn('w-3 h-px', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+                            {!isLast && <div className={cn('w-px flex-1', isDark ? 'bg-white/10' : 'bg-slate-200')} />}
+                          </div>
+                          <div className={cn('flex-1 flex items-center gap-2 py-2 px-3 rounded-2xl mb-1.5', isDark ? 'bg-white/3' : 'bg-slate-50')}>
+                            <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0',
+                              slave.online ? 'bg-emerald-500/15 text-emerald-400' : isDark ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-400'
+                            )}>
+                              {typeEmoji}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn('text-[9px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(slave)}</p>
+                              <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{slave.boxId}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {slave.aeratorState === 'ON' && (
+                                <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
+                                  <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
+                                  <span className="text-emerald-400 text-[6px] font-black uppercase">ON</span>
+                                </div>
+                              )}
+                              {slave.aeratorState === 'OFF' && (
+                                <div className="bg-red-500/10 border border-red-500/15 rounded-full px-1.5 py-0.5">
+                                  <span className="text-red-400 text-[6px] font-black uppercase">OFF</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* No slaves yet — prompt to add Smart Box */}
+                    {iotSlaves.length === 0 && (
+                      <div className="flex items-start gap-0">
+                        <div className="flex flex-col items-center mr-2 mt-1" style={{ width: 16 }}>
+                          <div className={cn('w-px h-4', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+                          <div className={cn('w-3 h-px', isDark ? 'bg-white/10' : 'bg-slate-200')} />
+                        </div>
+                        <div className={cn('flex-1 flex items-center justify-between gap-3 py-3 px-3 rounded-2xl border border-dashed',
+                          isDark ? 'border-white/10 bg-white/2' : 'border-slate-300 bg-slate-50'
+                        )}>
+                          <div className="flex items-center gap-2">
+                            <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0',
+                              isDark ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-400'
+                            )}>⚡</div>
+                            <div>
+                              <p className={cn('text-[9px] font-black', isDark ? 'text-white/30' : 'text-slate-500')}>No Smart Boxes paired yet</p>
+                              <p className={cn('text-[7px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>Install Smart Box at aerator motor → tap Register</p>
+                            </div>
+                          </div>
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => navigate(`/ponds/${iotPondId}/iot/register`)}
+                            className={cn('flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border',
+                              isDark ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            )}
+                          >
+                            <Plus size={10} /> Register
+                          </motion.button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

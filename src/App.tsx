@@ -76,6 +76,7 @@ const LearningCenter    = lazy(() => import('./pages/tools/LearningCenter').then
 const Notifications     = lazy(() => import('./pages/tools/Notifications').then(m => ({ default: m.Notifications })));
 const AquaCalc          = lazy(() => import('./pages/tools/AquaCalc').then(m => ({ default: m.AquaCalc })));
 const SmartFarmHub      = lazy(() => import('./pages/tools/SmartFarmHub').then(m => ({ default: m.SmartFarmHub })));
+const AeratorMapping    = lazy(() => import('./pages/tools/AeratorMapping').then(m => ({ default: m.AeratorMapping })));
 
 const ProfitROI         = lazy(() => import('./pages/finance/ProfitROI').then(m => ({ default: m.ProfitROI })));
 const ROIOverview       = lazy(() => import('./pages/finance/ROIOverview').then(m => ({ default: m.ROIOverview })));
@@ -596,6 +597,7 @@ const AppContent = () => {
                 <Route path="/shop" element={<AquaShop />} />
                 <Route path="/orders" element={<FarmerOrders />} />
                 <Route path="/smart-farm" element={<SmartFarmHub t={t} />} />
+                <Route path="/aerator-mapping/:pondId" element={<AeratorMapping />} />
                 <Route path="/community" element={<FarmerCommunity />} />
                 <Route path="/admin" element={<AdminDashboard t={t} onMenuClick={() => navigate('/profile')} />} />
 
