@@ -398,18 +398,29 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     if (!boxId)       { res.status(400).json({ error: 'boxId is required' }); return; }
     if (!displayName) { res.status(400).json({ error: 'displayName is required' }); return; }
     if (!deviceType)  { res.status(400).json({ error: 'deviceType is required' }); return; }
-    if (!pondId)      { res.status(400).json({ error: 'pondId is required' }); return; }
 
     const validTypes = ['AERATOR', 'SENSOR', 'FEEDER', 'PUMP', 'CUSTOM', 'MASTER'];
     if (!validTypes.includes(deviceType)) {
       res.status(400).json({ error: `deviceType must be one of: ${validTypes.join(', ')}` }); return;
     }
 
-    // Determine the full list of pond IDs to associate (Master may cover many ponds)
-    const isMasterReq = deviceType === 'MASTER' || reqRole === 'master';
-    const allPondIds: string[] = isMasterReq && Array.isArray(reqPondIds) && reqPondIds.length > 0
-      ? [...new Set(reqPondIds.map(String))]         // deduplicate
-      : [pondId];                                     // slave or single-pond master
+    // Derive role
+    const isMaster = deviceType === 'MASTER' || reqRole === 'master';
+    const role     = isMaster ? 'master' : 'slave';
+
+    // ── Build the canonical pond list ────────────────────────────────────────
+    // Master: accepts pondIds[] (no pondId required in body)
+    // Slave:  requires pondId (single pond)
+    let allPondIds: string[];
+    if (isMaster) {
+      if (!Array.isArray(reqPondIds) || reqPondIds.length === 0) {
+        res.status(400).json({ error: 'pondIds (array) is required for Master Box' }); return;
+      }
+      allPondIds = [...new Set(reqPondIds.map(String))]; // deduplicate
+    } else {
+      if (!pondId) { res.status(400).json({ error: 'pondId is required' }); return; }
+      allPondIds = [String(pondId)];
+    }
 
     // Verify ownership for ALL selected ponds
     for (const pid of allPondIds) {
@@ -420,21 +431,18 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // Derive role — explicit body.role takes priority, then infer from deviceType
-    const isMaster = deviceType === 'MASTER' || reqRole === 'master';
-    const role     = isMaster ? 'master' : 'slave';
-
     // Check if this device already exists (previously discovered via ESP-NOW)
     const existing = await EspDevice.findOne({ boxId });
 
     // Always generate a fresh API key.
-    const freshApiKey = generateApiKey();
-    const apiKeyForMaster = freshApiKey; // always fresh for master
-    const apiKeyForSlave  = existing?.apiKey || freshApiKey; // keep existing for slave
+    const freshApiKey     = generateApiKey();
+    const apiKeyForMaster = freshApiKey;
+    const apiKeyForSlave  = existing?.apiKey || freshApiKey;
 
     let updated;
     if (isMaster) {
       // Master Box: store ALL pond IDs atomically in one DB write (no race conditions)
+      // pondId (singular) = first element, kept for firmware compat
       updated = await EspDevice.findOneAndUpdate(
         { boxId },
         {
@@ -442,7 +450,7 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
             displayName,
             label:         displayName,
             deviceType,
-            pondId:        allPondIds[0],  // primary pond (firmware uses this)
+            pondId:        allPondIds[0],  // primary pond (firmware provision API uses this)
             pondIds:       allPondIds,     // full multi-pond array
             userId,
             role,
@@ -458,7 +466,7 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
         { upsert: true, new: true }
       );
     } else {
-      // Slave Box: single pondId as before
+      // Slave Box: single pondId
       updated = await EspDevice.findOneAndUpdate(
         { boxId },
         {
@@ -466,7 +474,7 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
             displayName,
             label:         displayName,
             deviceType,
-            pondId,
+            pondId:        allPondIds[0],
             userId,
             role,
             pairingStatus: 'assigned',
@@ -486,7 +494,6 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     // Remove from discover queue if it was there
     await EspDiscoverQueue.deleteOne({ boxId });
 
-    // The key to show: master always gets the fresh rotated key; slave gets existing or fresh
     const apiKeyToShow = isMaster ? apiKeyForMaster : apiKeyForSlave;
 
     res.json({
@@ -499,12 +506,13 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
         displayName:   updated!.displayName,
         deviceType:    updated!.deviceType,
         role:          updated!.role,
-        pondId:        updated!.pondId,
+        // For Master: return the full pond array; for Slave: single pondId string
+        pondId:        isMaster ? allPondIds : updated!.pondId,
         isActive:      updated!.isActive,
         pairingStatus: updated!.pairingStatus,
         createdAt:     (updated as any).createdAt,
       },
-      // apiKey returned ONLY for Master Box reference — firmware gets it via provision API
+      // apiKey returned ONLY for Master Box
       ...(isMaster ? { apiKey: apiKeyToShow } : {}),
     });
   } catch (err: any) {

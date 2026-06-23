@@ -1644,11 +1644,10 @@ export const DeviceRegistration = () => {
     const primaryPondId = pondIds[0];
     try {
       if (role === 'master') {
-        // Single atomic call — pass ALL pond IDs at once to avoid race conditions
+        // Single atomic call — pondIds[] only, no pondId needed
         const result = await espnowService.assignDevice({
           boxId: device.boxId, displayName, deviceType,
-          pondId: primaryPondId,   // primary pond (required by backend)
-          pondIds,                  // full array stored atomically
+          pondIds,   // full array, backend derives pondId from pondIds[0]
           role, aeratorLabels,
         });
         setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: true, apiKey: result.apiKey, pondId: primaryPondId });

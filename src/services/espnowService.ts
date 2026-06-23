@@ -175,8 +175,8 @@ export interface AssignDevicePayload {
   boxId: string;
   displayName: string;
   deviceType: DeviceType;
-  pondId: string;           // primary pond (always required for backward compat)
-  pondIds?: string[];       // all ponds for Master Box (single atomic call)
+  pondId?: string;          // required for Slave; optional for Master (derived from pondIds[0])
+  pondIds?: string[];       // required for Master Box — full list of covered ponds
   role?: 'master' | 'slave';
   aeratorLabels?: string[];
 }
