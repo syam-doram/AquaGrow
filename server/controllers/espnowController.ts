@@ -393,7 +393,7 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
     const userId = (req as any).user?.id;
-    const { boxId, displayName, deviceType, pondId, role: reqRole, aeratorLabels } = req.body;
+    const { boxId, displayName, deviceType, pondId, pondIds: reqPondIds, role: reqRole, aeratorLabels } = req.body;
 
     if (!boxId)       { res.status(400).json({ error: 'boxId is required' }); return; }
     if (!displayName) { res.status(400).json({ error: 'displayName is required' }); return; }
@@ -405,11 +405,19 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
       res.status(400).json({ error: `deviceType must be one of: ${validTypes.join(', ')}` }); return;
     }
 
-    // Verify pond ownership
-    const pond = await PondMongo.findById(pondId);
-    if (!pond) { res.status(404).json({ error: 'Pond not found' }); return; }
-    if (String(pond.userId) !== userId) {
-      res.status(403).json({ error: 'Pond does not belong to your account' }); return;
+    // Determine the full list of pond IDs to associate (Master may cover many ponds)
+    const isMasterReq = deviceType === 'MASTER' || reqRole === 'master';
+    const allPondIds: string[] = isMasterReq && Array.isArray(reqPondIds) && reqPondIds.length > 0
+      ? [...new Set(reqPondIds.map(String))]         // deduplicate
+      : [pondId];                                     // slave or single-pond master
+
+    // Verify ownership for ALL selected ponds
+    for (const pid of allPondIds) {
+      const pond = await PondMongo.findById(pid);
+      if (!pond) { res.status(404).json({ error: `Pond ${pid} not found` }); return; }
+      if (String(pond.userId) !== userId) {
+        res.status(403).json({ error: `Pond ${pid} does not belong to your account` }); return;
+      }
     }
 
     // Derive role — explicit body.role takes priority, then infer from deviceType
@@ -426,57 +434,29 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
 
     let updated;
     if (isMaster) {
-      // Master Box: Store ALL pond IDs in pondIds[] array.
-      // We handle create vs update separately to avoid $setOnInsert + $addToSet conflict.
-      const existingMaster = await EspDevice.findOne({ boxId });
-
-      if (existingMaster) {
-        // Device already exists — just add this pondId to the array (no overwrite)
-        const existingPondIds: string[] = (existingMaster as any).pondIds || [(existingMaster as any).pondId].filter(Boolean);
-        const updatedPondIds = Array.from(new Set([...existingPondIds, pondId]));
-        updated = await EspDevice.findOneAndUpdate(
-          { boxId },
-          {
-            $set: {
-              displayName,
-              label:         displayName,
-              deviceType,
-              userId,
-              role,
-              pairingStatus: 'assigned',
-              isActive:      true,
-              aeratorState:  'UNKNOWN',
-              apiKey:        apiKeyForMaster,
-              pondIds:       updatedPondIds,        // full updated array
-              // Keep primary pondId as the first one ever registered
-              ...(!existingMaster.pondId ? { pondId } : {}),
-            },
+      // Master Box: store ALL pond IDs atomically in one DB write (no race conditions)
+      updated = await EspDevice.findOneAndUpdate(
+        { boxId },
+        {
+          $set: {
+            displayName,
+            label:         displayName,
+            deviceType,
+            pondId:        allPondIds[0],  // primary pond (firmware uses this)
+            pondIds:       allPondIds,     // full multi-pond array
+            userId,
+            role,
+            pairingStatus: 'assigned',
+            isActive:      true,
+            aeratorState:  'UNKNOWN',
+            apiKey:        apiKeyForMaster,
           },
-          { new: true }
-        );
-      } else {
-        // New device — create with pondIds array from the start
-        updated = await EspDevice.findOneAndUpdate(
-          { boxId },
-          {
-            $set: {
-              displayName,
-              label:         displayName,
-              deviceType,
-              pondId,                   // primary pond (legacy compat for firmware)
-              pondIds:       [pondId],  // multi-pond array
-              userId,
-              role,
-              pairingStatus: 'assigned',
-              isActive:      true,
-              aeratorState:  'UNKNOWN',
-              apiKey:        apiKeyForMaster,
-              mac:           `APP_REG_${boxId}`,
-            },
+          $setOnInsert: {
+            mac: `APP_REG_${boxId}`,
           },
-          { upsert: true, new: true }
-        );
-      }
+        },
+        { upsert: true, new: true }
+      );
     } else {
       // Slave Box: single pondId as before
       updated = await EspDevice.findOneAndUpdate(

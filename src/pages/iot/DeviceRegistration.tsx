@@ -1640,28 +1640,24 @@ export const DeviceRegistration = () => {
     aeratorLabels: string[] = [],
   ) => {
     if (!device) return;
-    // For master: pondIdOrIds may be an array of pond IDs (multi-pond support)
     const pondIds = Array.isArray(pondIdOrIds) ? pondIdOrIds : [pondIdOrIds];
     const primaryPondId = pondIds[0];
     try {
-      // Register the master for the first (primary) pond
-      const result = await espnowService.assignDevice({
-        boxId: device.boxId, displayName, deviceType, pondId: primaryPondId, role, aeratorLabels,
-      });
-      // For additional ponds, register the same Master Box ID with each pond
-      if (role === 'master' && pondIds.length > 1) {
-        await Promise.allSettled(
-          pondIds.slice(1).map(pid =>
-            espnowService.assignDevice({
-              boxId: device.boxId, displayName, deviceType, pondId: pid, role, aeratorLabels,
-            })
-          )
-        );
-      }
       if (role === 'master') {
+        // Single atomic call — pass ALL pond IDs at once to avoid race conditions
+        const result = await espnowService.assignDevice({
+          boxId: device.boxId, displayName, deviceType,
+          pondId: primaryPondId,   // primary pond (required by backend)
+          pondIds,                  // full array stored atomically
+          role, aeratorLabels,
+        });
         setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: true, apiKey: result.apiKey, pondId: primaryPondId });
         setStep('success');
       } else {
+        // Slave Box: single pond
+        const result = await espnowService.assignDevice({
+          boxId: device.boxId, displayName, deviceType, pondId: primaryPondId, role, aeratorLabels,
+        });
         setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: false });
         setStep('success');
       }
