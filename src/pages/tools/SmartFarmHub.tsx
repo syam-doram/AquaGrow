@@ -1115,7 +1115,10 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
     const activePonds = ponds.filter((p: any) => p.status === 'active' || p.status === 'planned');
     if (!activePonds.length) return;
     if (showSpinner) setIotSpinning(true);
-    setIotLoading(true);
+    // Only show loading skeleton on first load (no existing data)
+    // Background polls are fully silent to prevent card blinking
+    const isFirstLoad = !iotStatus;
+    if (isFirstLoad) setIotLoading(true);
     try {
       // Fetch ALL ponds in parallel so multi-pond Masters are visible
       const results = await Promise.allSettled(
@@ -1138,12 +1141,8 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
           }
         }
       });
-      // Merge with prev data — keeps old pond data visible while other ponds load
-      // This prevents the 1-second flicker during polling
-      setIotAllByPond(prev => {
-        const merged = { ...prev, ...allMap };
-        return merged;
-      });
+      // Merge with prev data — keeps old pond data visible between polls
+      setIotAllByPond(prev => ({ ...prev, ...allMap }));
       // Also set single-pond state for actions (command/assign) targeting iotPondId
       if (primaryStatus) {
         setIotStatus(primaryStatus);
@@ -1157,10 +1156,10 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
     } catch (err: any) {
       setIotError(err.message || 'Failed to fetch IoT status');
     } finally {
-      setIotLoading(false);
+      if (isFirstLoad) setIotLoading(false);
       if (showSpinner) setIotSpinning(false);
     }
-  }, [iotPondId, ponds]);
+  }, [iotPondId, ponds, iotStatus]);
 
   const fetchIotDiscoveries = useCallback(async () => {
     if (!iotPondId) return;
@@ -2513,8 +2512,8 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 )}
               </AnimatePresence>
 
-              {/* No devices yet — empty state */}
-              {!iotLoading && !iotError && (iotStatus?.devices.length === 0 || !iotStatus) && iotDiscoveries.length === 0 && (
+              {/* No devices yet — empty state (only before first data arrives) */}
+              {!iotStatus && !iotLoading && !iotError && Object.keys(iotAllByPond).length === 0 && iotDiscoveries.length === 0 && (
                 <div className="space-y-3">
                   <div className={cn('rounded-[1.75rem] border p-6 text-center', isDark ? 'bg-white/4 border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
                     <div className="w-14 h-14 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl">📡</div>
@@ -2611,164 +2610,204 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 );
               })()}
 
-              {/* Pond-wise Device Networks — one Master Box covers all ponds */}
+              {/* ═══ Device Network Tree: Master → Ponds → Smart Boxes ═══ */}
               {(() => {
                 const activePonds = ponds.filter((p: any) => p.status === 'active' || p.status === 'planned');
                 const pondsToShow = selectedPondId !== 'all'
                   ? activePonds.filter((p: any) => p.id === selectedPondId)
                   : activePonds;
 
-                // Find the single global Master Box from ANY pond (backend stores it under one pond only)
+                // Global master from ANY pond's status
                 const globalMaster = Object.values(iotAllByPond)
                   .flatMap((s: any) => (s?.devices || []))
                   .find((d: any) => d.role === 'master') ?? null;
 
-                // Only render when we have at least a master OR slaves in any pond
                 const hasAnyData = globalMaster || Object.values(iotAllByPond).some(
                   (s: any) => (s?.devices || []).some((d: any) => d.role === 'slave')
                 );
-
                 if (!hasAnyData) return null;
 
+                // Build pond list with their slaves
+                const pondBranches = pondsToShow.map((pond: any) => {
+                  const pondStatus = iotAllByPond[pond.id];
+                  const slaves = ((pondStatus?.devices || []) as any[]).filter((d: any) => d.role === 'slave');
+                  return { pond, slaves };
+                });
+
+                const lineColor = isDark ? 'bg-white/10' : 'bg-slate-200';
+                const cardBg    = isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm';
+
                 return (
-                  <div className="space-y-3">
-                    <p className={cn('text-[7px] font-black uppercase tracking-widest px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-                      Device Network · {pondsToShow.length} Pond{pondsToShow.length !== 1 ? 's' : ''}
-                    </p>
-                    {pondsToShow.map((pond: any) => {
-                      // Use pond-specific slaves, but show the GLOBAL master for every pond
-                      const pondStatus = iotAllByPond[pond.id];
-                      const slaves = ((pondStatus?.devices || []) as any[]).filter((d: any) => d.role === 'slave');
-                      // master = global master (same physical device for all ponds)
-                      const master = globalMaster;
-                      if (!master && slaves.length === 0) return null; // skip empty ponds
-                      return (
-                        <div key={pond.id} className={cn('rounded-[1.75rem] border p-4', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-                          {/* Pond label */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-base">🐟</span>
-                            <p className={cn('flex-1 text-[8.5px] font-black tracking-tight truncate', isDark ? 'text-white/60' : 'text-slate-700')}>{pond.name}</p>
-                            <div className="flex items-center gap-1.5">
-                              <GitBranch size={9} className={isDark ? 'text-white/20' : 'text-slate-400'} />
-                              <p className={cn('text-[6.5px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
-                                {slaves.length > 0 ? `1 Master · ${slaves.length} Smart Box${slaves.length !== 1 ? 'es' : ''}` : '1 Master'}
-                              </p>
-                            </div>
+                  <div className={cn('rounded-[1.75rem] border p-4', cardBg)}>
+                    {/* Header */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <GitBranch size={10} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+                      <p className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                        Device Network
+                      </p>
+                      <div className={cn('ml-auto text-[6px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                        isDark ? 'bg-white/5 border-white/10 text-white/30' : 'bg-slate-100 border-slate-200 text-slate-400'
+                      )}>
+                        {pondBranches.length} Pond{pondBranches.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+
+                    {/* ── ROOT: Master Box ── */}
+                    {globalMaster && (
+                      <div className="flex items-center gap-3 mb-1">
+                        <div className={cn('w-11 h-11 rounded-2xl border-2 flex items-center justify-center flex-shrink-0',
+                          globalMaster.online
+                            ? 'bg-violet-500/15 border-violet-500/30'
+                            : isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200',
+                        )}>
+                          <Radio size={15} className={globalMaster.online ? 'text-violet-400' : isDark ? 'text-white/25' : 'text-slate-400'} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-[12px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                            {espnowService.getDeviceLabel(globalMaster)}
+                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className={cn('text-[6.5px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>
+                              {globalMaster.boxId}
+                            </span>
+                            <span className={cn('text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
+                              isDark ? 'bg-violet-500/10 border-violet-500/20 text-violet-400' : 'bg-violet-50 border-violet-200 text-violet-700'
+                            )}>Master Gateway</span>
+                            {globalMaster.heartbeatAgo && (
+                              <span className={cn('text-[6px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+                                · {globalMaster.heartbeatAgo}
+                              </span>
+                            )}
                           </div>
+                        </div>
+                        <div className={cn('flex items-center gap-1 rounded-full px-2 py-1 border flex-shrink-0',
+                          globalMaster.online
+                            ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        )}>
+                          <div className={cn('w-1.5 h-1.5 rounded-full', globalMaster.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />
+                          <span className="text-[6.5px] font-black uppercase tracking-widest">
+                            {globalMaster.online ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-                          {/* Master row — same global Master for all ponds */}
-                          {master && (
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={cn('w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0',
-                              master.online ? 'bg-emerald-500/15 border-emerald-500/25' : isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200',
-                            )}>
-                              <Radio size={14} className={master.online ? 'text-emerald-400' : isDark ? 'text-white/25' : 'text-slate-400'} />
+                    {/* ── BRANCHES: Ponds ── */}
+                    <div className="mt-1 ml-5">
+                      {pondBranches.map(({ pond, slaves }: any, pondIdx: number) => {
+                        const isLastPond = pondIdx === pondBranches.length - 1;
+                        return (
+                          <div key={pond.id} className="flex items-start">
+                            {/* Pond connector line */}
+                            <div className="flex flex-col items-center mr-3 flex-shrink-0" style={{ width: 14 }}>
+                              <div className={cn('w-px', isDark ? 'bg-white/10' : 'bg-slate-200')}
+                                style={{ height: 14, marginTop: 4 }} />
+                              <div className={cn('w-3 h-px flex-shrink-0', lineColor)} />
+                              {!isLastPond && (
+                                <div className={cn('w-px flex-1 min-h-[20px]', lineColor)} />
+                              )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={cn('text-[11px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(master)}</p>
-                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/25' : 'text-slate-400')}>{master.boxId}</span>
-                                <span className={cn('text-[6.5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
-                                  isDark ? 'bg-violet-500/10 border-violet-500/20 text-violet-400' : 'bg-violet-50 border-violet-200 text-violet-700'
-                                )}>Master Gateway</span>
-                                {master.heartbeatAgo && (
-                                  <span className={cn('text-[6.5px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>· {master.heartbeatAgo}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className={cn('flex items-center gap-1.5 rounded-full px-2.5 py-1 border flex-shrink-0',
-                              master.online ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
-                            )}>
-                              <div className={cn('w-1.5 h-1.5 rounded-full', master.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />
-                              <span className="text-[7px] font-black uppercase tracking-widest">{master.online ? 'Online' : 'Offline'}</span>
-                            </div>
-                          </div>
-                          )}
 
-                          {/* Slave rows */}
-                          {slaves.length > 0 && slaves.map((slave, i) => {
-                            const isLast = i === slaves.length - 1;
-                            const typeEmoji = espnowService.getDeviceTypeEmoji(slave.deviceType);
-                            return (
-                              <div key={slave._id} className="flex items-start gap-0">
-                                <div className="flex flex-col items-center mr-2 mt-1" style={{ width: 16 }}>
-                                  <div className={cn('w-px flex-1 min-h-[8px]', isDark ? 'bg-white/10' : 'bg-slate-200')} />
-                                  <div className={cn('w-3 h-px', isDark ? 'bg-white/10' : 'bg-slate-200')} />
-                                  {!isLast && <div className={cn('w-px flex-1', isDark ? 'bg-white/10' : 'bg-slate-200')} />}
-                                </div>
-                                <div className={cn('flex-1 flex items-center gap-2 py-2 px-3 rounded-2xl mb-1.5', isDark ? 'bg-white/3' : 'bg-slate-50')}>
-                                  <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0',
-                                    slave.online ? 'bg-emerald-500/15 text-emerald-400' : isDark ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-400'
-                                  )}>
-                                    {typeEmoji}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className={cn('text-[9px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(slave)}</p>
-                                    <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{slave.boxId}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    {slave.aeratorState === 'ON' && (
-                                      <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
-                                        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
-                                        <span className="text-emerald-400 text-[6px] font-black uppercase">ON</span>
-                                      </div>
-                                    )}
-                                    {slave.aeratorState === 'OFF' && (
-                                      <div className="bg-red-500/10 border border-red-500/15 rounded-full px-1.5 py-0.5">
-                                        <span className="text-red-400 text-[6px] font-black uppercase">OFF</span>
-                                      </div>
-                                    )}
-                                    {/* Delete */}
-                                    <motion.button
-                                      whileTap={{ scale: 0.85 }}
-                                      onClick={() => setDeleteTarget(slave)}
-                                      className={cn('w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0',
-                                        isDark ? 'bg-red-500/8 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500'
-                                      )}
-                                      title="Delete Smart Box"
-                                    >
-                                      <Trash2 size={9} />
-                                    </motion.button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-
-                          {/* No slaves — prompt */}
-                          {slaves.length === 0 && (
-                            <div className="flex items-start gap-0">
-                              <div className="flex flex-col items-center mr-2 mt-1" style={{ width: 16 }}>
-                                <div className={cn('w-px h-4', isDark ? 'bg-white/10' : 'bg-slate-200')} />
-                                <div className={cn('w-3 h-px', isDark ? 'bg-white/10' : 'bg-slate-200')} />
-                              </div>
-                              <div className={cn('flex-1 flex items-center justify-between gap-3 py-3 px-3 rounded-2xl border border-dashed',
-                                isDark ? 'border-white/10 bg-white/2' : 'border-slate-300 bg-slate-50'
+                            {/* Pond + its slaves */}
+                            <div className="flex-1 mb-2">
+                              {/* Pond row */}
+                              <div className={cn('flex items-center gap-2 px-3 py-2 rounded-2xl border mb-1',
+                                isDark ? 'bg-white/4 border-white/8' : 'bg-slate-50 border-slate-200'
                               )}>
-                                <div className="flex items-center gap-2">
-                                  <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0',
-                                    isDark ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-400'
-                                  )}>⚡</div>
-                                  <p className={cn('text-[8px] font-black', isDark ? 'text-white/30' : 'text-slate-500')}>No Smart Boxes for this pond</p>
+                                <span className="text-sm flex-shrink-0">🐟</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className={cn('text-[9.5px] font-black truncate', isDark ? 'text-white/80' : 'text-slate-800')}>
+                                    {pond.name}
+                                  </p>
+                                  <p className={cn('text-[6.5px] font-bold uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
+                                    {slaves.length} Smart Box{slaves.length !== 1 ? 'es' : ''}
+                                  </p>
                                 </div>
                                 <motion.button
-                                  whileTap={{ scale: 0.95 }}
+                                  whileTap={{ scale: 0.92 }}
                                   onClick={() => navigate(`/ponds/${pond.id}/iot/register`)}
-                                  className={cn('flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border',
-                                    isDark ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  className={cn('flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center',
+                                    isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
                                   )}
+                                  title="Register Smart Box for this pond"
                                 >
-                                  <Plus size={10} /> Register
+                                  <Plus size={9} />
                                 </motion.button>
                               </div>
+
+                              {/* Slave leaves */}
+                              {slaves.length > 0 && (
+                                <div className="ml-4">
+                                  {slaves.map((slave: any, slaveIdx: number) => {
+                                    const isLastSlave = slaveIdx === slaves.length - 1;
+                                    const typeEmoji = espnowService.getDeviceTypeEmoji(slave.deviceType);
+                                    return (
+                                      <div key={slave._id} className="flex items-start">
+                                        {/* Slave connector */}
+                                        <div className="flex flex-col items-center mr-2 flex-shrink-0" style={{ width: 12 }}>
+                                          <div className={cn('w-px', lineColor)} style={{ height: 10, marginTop: 4 }} />
+                                          <div className={cn('w-2.5 h-px', lineColor)} />
+                                          {!isLastSlave && <div className={cn('w-px flex-1 min-h-[16px]', lineColor)} />}
+                                        </div>
+                                        {/* Slave row */}
+                                        <div className={cn('flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-xl mb-1',
+                                          isDark ? 'bg-white/3' : 'bg-slate-100/60'
+                                        )}>
+                                          <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0',
+                                            slave.online ? 'bg-emerald-500/15 text-emerald-400' : isDark ? 'bg-white/5 text-white/20' : 'bg-white text-slate-400'
+                                          )}>
+                                            {typeEmoji}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className={cn('text-[8.5px] font-black truncate', isDark ? 'text-white/90' : 'text-slate-800')}>
+                                              {espnowService.getDeviceLabel(slave)}
+                                            </p>
+                                            <p className={cn('text-[6px] font-bold uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>
+                                              {slave.boxId}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            {slave.aeratorState === 'ON' && (
+                                              <div className="flex items-center gap-0.5 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
+                                                <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
+                                                <span className="text-emerald-400 text-[5.5px] font-black uppercase">ON</span>
+                                              </div>
+                                            )}
+                                            {slave.aeratorState === 'OFF' && (
+                                              <div className="bg-red-500/10 border border-red-500/15 rounded-full px-1.5 py-0.5">
+                                                <span className="text-red-400 text-[5.5px] font-black uppercase">OFF</span>
+                                              </div>
+                                            )}
+                                            <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0',
+                                              slave.online ? 'bg-emerald-400' : 'bg-red-400/40'
+                                            )} />
+                                            <motion.button
+                                              whileTap={{ scale: 0.85 }}
+                                              onClick={() => setDeleteTarget(slave)}
+                                              className={cn('w-5 h-5 rounded-lg border flex items-center justify-center flex-shrink-0',
+                                                isDark ? 'bg-red-500/8 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500'
+                                              )}
+                                              title="Delete Smart Box"
+                                            >
+                                              <Trash2 size={8} />
+                                            </motion.button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
+
 
 
 
