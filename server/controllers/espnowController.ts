@@ -420,44 +420,88 @@ export const assignDevice = async (req: Request, res: Response): Promise<void> =
     const existing = await EspDevice.findOne({ boxId });
 
     // Always generate a fresh API key.
-    // - For Master Box: always rotate — ensures the key returned to the farmer
-    //   matches what /api/device/provision will serve to the firmware on first boot.
-    //   (Old key is invalidated; box must factory-reset NVS to re-provision.)
-    // - For Slave Box: if device was already discovered, keep its existing key
-    //   so any in-flight comms aren't broken.
     const freshApiKey = generateApiKey();
     const apiKeyForMaster = freshApiKey; // always fresh for master
     const apiKeyForSlave  = existing?.apiKey || freshApiKey; // keep existing for slave
 
-    const updated = await EspDevice.findOneAndUpdate(
-      { boxId },
-      {
-        $set: {
-          displayName,
-          label:         displayName,
-          deviceType,
-          pondId,
-          userId,
-          role,
-          pairingStatus: 'assigned',
-          isActive:      true,
-          aeratorState:  'UNKNOWN',
-          // Master Box: always rotate key so app + firmware stay in sync
-          ...(isMaster ? { apiKey: apiKeyForMaster } : {}),
-          // Store aerator labels if provided (which physical aerators this Smart Box controls)
-          ...(Array.isArray(aeratorLabels) && aeratorLabels.length > 0
-            ? { aeratorLabels }
-            : {}),
+    let updated;
+    if (isMaster) {
+      // Master Box: Store ALL pond IDs in pondIds[] array.
+      // We handle create vs update separately to avoid $setOnInsert + $addToSet conflict.
+      const existingMaster = await EspDevice.findOne({ boxId });
+
+      if (existingMaster) {
+        // Device already exists — just add this pondId to the array (no overwrite)
+        const existingPondIds: string[] = (existingMaster as any).pondIds || [(existingMaster as any).pondId].filter(Boolean);
+        const updatedPondIds = Array.from(new Set([...existingPondIds, pondId]));
+        updated = await EspDevice.findOneAndUpdate(
+          { boxId },
+          {
+            $set: {
+              displayName,
+              label:         displayName,
+              deviceType,
+              userId,
+              role,
+              pairingStatus: 'assigned',
+              isActive:      true,
+              aeratorState:  'UNKNOWN',
+              apiKey:        apiKeyForMaster,
+              pondIds:       updatedPondIds,        // full updated array
+              // Keep primary pondId as the first one ever registered
+              ...(!existingMaster.pondId ? { pondId } : {}),
+            },
+          },
+          { new: true }
+        );
+      } else {
+        // New device — create with pondIds array from the start
+        updated = await EspDevice.findOneAndUpdate(
+          { boxId },
+          {
+            $set: {
+              displayName,
+              label:         displayName,
+              deviceType,
+              pondId,                   // primary pond (legacy compat for firmware)
+              pondIds:       [pondId],  // multi-pond array
+              userId,
+              role,
+              pairingStatus: 'assigned',
+              isActive:      true,
+              aeratorState:  'UNKNOWN',
+              apiKey:        apiKeyForMaster,
+              mac:           `APP_REG_${boxId}`,
+            },
+          },
+          { upsert: true, new: true }
+        );
+      }
+    } else {
+      // Slave Box: single pondId as before
+      updated = await EspDevice.findOneAndUpdate(
+        { boxId },
+        {
+          $set: {
+            displayName,
+            label:         displayName,
+            deviceType,
+            pondId,
+            userId,
+            role,
+            pairingStatus: 'assigned',
+            isActive:      true,
+            aeratorState:  'UNKNOWN',
+            ...(Array.isArray(aeratorLabels) && aeratorLabels.length > 0 ? { aeratorLabels } : {}),
+          },
+          $setOnInsert: {
+            apiKey: apiKeyForSlave,
+            mac: `APP_REG_${boxId}`,
+          },
         },
-        // $setOnInsert only runs on upsert-create, not on update of existing doc
-        $setOnInsert: {
-          // Slave Box new creation: set initial key + placeholder MAC
-          ...(!isMaster ? { apiKey: apiKeyForSlave } : {}),
-          mac: `APP_REG_${boxId}`,
-        },
-      },
-      { upsert: true, new: true }
-    );
+        { upsert: true, new: true }
+      );
+    }
 
     // Remove from discover queue if it was there
     await EspDiscoverQueue.deleteOne({ boxId });
@@ -1106,11 +1150,15 @@ export const getPondIoTStatus = async (req: Request, res: Response): Promise<voi
     if (String(pond.userId) !== userId) { res.status(403).json({ error: 'Access denied' }); return; }
 
     const [devices, latestReading, pendingCommands] = await Promise.all([
-      EspDevice.find({ pondId }, { apiKey: 0, mac: 0, masterMac: 0 }), // strip internal fields
+      // Query by pondIds[] array (multi-pond Master) OR legacy single pondId field
+      EspDevice.find(
+        { $or: [{ pondId }, { pondIds: pondId }] },
+        { apiKey: 0, mac: 0, masterMac: 0 }
+      ),
       EspSensorReading.findOne({ pondId }).sort({ recordedAt: -1 }),
       EspAeratorCommand.find(
         { pondId, status: { $in: ['pending', 'sent'] } },
-        { masterMac: 0, targetMac: 0 } // strip internal fields
+        { masterMac: 0, targetMac: 0 }
       ).sort({ issuedAt: 1 }),
     ]);
 
