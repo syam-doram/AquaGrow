@@ -25,7 +25,7 @@ import {
   ChevronLeft, QrCode, Keyboard, CheckCircle2, AlertTriangle,
   Wind, Droplets, Waves, Settings, Fish, ChevronRight,
   Radio, X, ScanLine, Search, Cpu, Camera,
-  RotateCcw, Wifi, GitBranch, Zap, Shield, Info,
+  RotateCcw, Wifi, GitBranch, Zap, Shield, Info, Pencil, Check, Trash2,
 } from 'lucide-react';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
@@ -97,10 +97,12 @@ async function decodeQRFromBase64(base64: string): Promise<string | null> {
 const CategoryChooser = ({
   isDark,
   hasMaster,
+  masterCount,
   onChoose,
 }: {
   isDark: boolean;
-  hasMaster: boolean;   // true = a master already registered for this pond
+  hasMaster: boolean;
+  masterCount: number;  // number of master boxes already registered across all ponds
   onChoose: (cat: DeviceCategory) => void;
 }) => (
   <div className="px-4 pt-5 pb-4 space-y-3">
@@ -125,9 +127,9 @@ const CategoryChooser = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <p className={cn('font-black text-sm', isDark ? 'text-white' : 'text-slate-900')}>Master Box</p>
-            {hasMaster ? (
+            {masterCount > 0 ? (
               <span className="bg-emerald-500/15 border border-emerald-500/20 rounded-full px-2 py-0.5 text-emerald-400 text-[6.5px] font-black uppercase tracking-widest">
-                Already Added
+                {masterCount} registered
               </span>
             ) : (
               <span className="bg-violet-500/15 border border-violet-500/20 rounded-full px-2 py-0.5 text-violet-400 text-[6.5px] font-black uppercase tracking-widest">
@@ -136,11 +138,11 @@ const CategoryChooser = ({
             )}
           </div>
           <p className={cn('text-[9px] font-medium leading-relaxed', isDark ? 'text-white/40' : 'text-slate-500')}>
-            Gateway device that connects to WiFi and manages all Smart Boxes via ESP-NOW radio.
+            Central gateway that connects to WiFi and manages Smart Boxes across multiple ponds via ESP-NOW.
           </p>
           {/* Feature list */}
           <div className="mt-2 space-y-1">
-            {['Connects to internet & cloud', 'Controls up to 20 Smart Boxes', 'Must be registered before Smart Boxes'].map((f, i) => (
+            {['One Master Box serves all nearby ponds (~100m range)', 'Controls up to 20 Smart Boxes across ponds', 'Place centrally between ponds for best coverage'].map((f, i) => (
               <div key={i} className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
                 <span className="text-violet-400/80 text-[7.5px] font-bold">{f}</span>
@@ -562,22 +564,36 @@ const MasterConfigureStep = ({
   device: ScannedDevice;
   ponds: any[];
   isDark: boolean;
-  onRegister: (displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave') => Promise<void>;
+  onRegister: (displayName: string, deviceType: DeviceType, pondIds: string[], role: 'master' | 'slave') => Promise<void>;
   onBack: () => void;
 }) => {
-  const [displayName,  setDisplayName]  = useState('');
-  const [selectedPond, setSelectedPond] = useState(ponds[0]?.id || ponds[0]?._id || '');
-  const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
+  const [displayName,    setDisplayName]    = useState('');
+  const [selectedPonds,  setSelectedPonds]  = useState<string[]>(
+    ponds.length > 0 ? [ponds[0]?.id || ponds[0]?._id || ''] : []
+  );
+  const [loading,        setLoading]        = useState(false);
+  const [error,          setError]          = useState<string | null>(null);
+  const [regProgress,    setRegProgress]    = useState<string>('');
+
+  const togglePond = (pid: string) => {
+    setSelectedPonds(prev =>
+      prev.includes(pid) ? prev.filter(p => p !== pid) : [...prev, pid]
+    );
+  };
 
   const handleRegister = async () => {
-    if (!selectedPond) { setError('Please select a pond.'); return; }
+    if (selectedPonds.length === 0) { setError('Please select at least one pond.'); return; }
     setLoading(true); setError(null);
+    const name = displayName.trim() || 'Master Box';
     try {
-      await onRegister(displayName.trim() || 'Master Box', 'MASTER', selectedPond, 'master');
+      for (let i = 0; i < selectedPonds.length; i++) {
+        if (selectedPonds.length > 1) setRegProgress(`Registering pond ${i + 1} of ${selectedPonds.length}…`);
+        await onRegister(name, 'MASTER', selectedPonds, 'master');
+        break; // onRegister handles all ponds in the loop
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setRegProgress(''); }
   };
 
   return (
@@ -600,16 +616,16 @@ const MasterConfigureStep = ({
             Master Box
           </span>
         </div>
-        {/* Management capabilities */}
+        {/* Central gateway note */}
         <div className={cn('rounded-xl p-3 space-y-1.5', isDark ? 'bg-black/20' : 'bg-white/50')}>
-          <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
-            This device will manage:
+          <p className={cn('text-[7px] font-black uppercase tracking-widest mb-1.5', isDark ? 'text-white/30' : 'text-slate-400')}>
+            Central Gateway — covers all nearby ponds
           </p>
           {[
-            { icon: Wifi,       label: 'Cloud connection & data upload' },
-            { icon: GitBranch,  label: 'Up to 20 Smart Boxes via ESP-NOW' },
-            { icon: Zap,        label: 'Aerator commands from app' },
-            { icon: Shield,     label: 'Sensor data relay to dashboard' },
+            { icon: Wifi,       label: 'Connects to internet & uploads data' },
+            { icon: GitBranch,  label: 'ESP-NOW range ~100m — place between ponds' },
+            { icon: Zap,        label: 'Controls aerators across all selected ponds' },
+            { icon: Shield,     label: 'One Master Box = entire farm covered' },
           ].map(({ icon: Icon, label }, i) => (
             <div key={i} className="flex items-center gap-2">
               <Icon size={9} className="text-violet-400 flex-shrink-0" />
@@ -619,19 +635,29 @@ const MasterConfigureStep = ({
         </div>
       </div>
 
-      {/* Pond picker */}
+      {/* Multi-pond picker */}
       {ponds.length > 0 && (
         <div>
-          <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
-            Assign to Pond
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className={cn('text-[8px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Which ponds does this Master Box cover?
+            </p>
+            <span className={cn(
+              'text-[7px] font-black px-2 py-0.5 rounded-full border',
+              selectedPonds.length > 0
+                ? 'bg-violet-500/15 border-violet-500/25 text-violet-400'
+                : isDark ? 'bg-white/5 border-white/10 text-white/25' : 'bg-slate-100 border-slate-200 text-slate-400',
+            )}>
+              {selectedPonds.length}/{ponds.length} selected
+            </span>
+          </div>
           <div className="space-y-2">
             {ponds.map((pond: any) => {
               const pid = pond.id || pond._id;
-              const isActive = selectedPond === pid;
+              const isActive = selectedPonds.includes(pid);
               return (
                 <motion.button key={pid} id={`master-pond-select-${pid}`} whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedPond(pid)}
+                  onClick={() => togglePond(pid)}
                   className={cn('w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all',
                     isActive ? 'bg-violet-500/15 border-violet-500/30' : isDark ? 'bg-white/5 border-white/8' : 'bg-slate-50 border-slate-200',
                   )}
@@ -645,13 +671,28 @@ const MasterConfigureStep = ({
                       {pond.size ? `${pond.size} m²` : ''}{pond.species ? `  ·  ${pond.species}` : ''}
                     </p>
                   </div>
-                  <div className={cn('w-4 h-4 rounded-full border-2 flex-shrink-0',
-                    isActive ? 'bg-violet-400 border-violet-400' : isDark ? 'border-white/20' : 'border-slate-300',
-                  )} />
+                  {/* Checkbox */}
+                  <div className={cn(
+                    'w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                    isActive ? 'bg-violet-500 border-violet-500' : isDark ? 'border-white/20' : 'border-slate-300',
+                  )}>
+                    {isActive && <Check size={11} className="text-white" strokeWidth={3} />}
+                  </div>
                 </motion.button>
               );
             })}
           </div>
+          {/* Select all shortcut */}
+          <button
+            onClick={() => setSelectedPonds(
+              selectedPonds.length === ponds.length ? [] : ponds.map((p: any) => p.id || p._id)
+            )}
+            className={cn('mt-2 text-[7.5px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all',
+              isDark ? 'border-white/10 text-white/30 hover:text-violet-400 hover:border-violet-500/30' : 'border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-300',
+            )}
+          >
+            {selectedPonds.length === ponds.length ? 'Deselect All' : 'Select All Ponds'}
+          </button>
         </div>
       )}
 
@@ -669,7 +710,7 @@ const MasterConfigureStep = ({
             type="text"
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
-            placeholder="Master Box"
+            placeholder="Farm Master Box"
             maxLength={40}
             className={cn('flex-1 bg-transparent outline-none text-[11px] font-bold',
               isDark ? 'text-white placeholder:text-white/20' : 'text-slate-900 placeholder:text-slate-400',
@@ -677,7 +718,7 @@ const MasterConfigureStep = ({
           />
         </div>
         <p className={cn('text-[7px] font-medium mt-1.5 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-          E.g. "Pond 1 Gateway", "Farm Master". Leave blank for "Master Box".
+          E.g. "Farm Gateway", "Central Master". Leave blank for "Master Box".
         </p>
       </div>
 
@@ -696,16 +737,16 @@ const MasterConfigureStep = ({
           )}
         ><ChevronLeft size={18} /></motion.button>
         <motion.button id="register-master-submit-btn" whileTap={{ scale: 0.97 }} onClick={handleRegister}
-          disabled={loading || !selectedPond}
+          disabled={loading || selectedPonds.length === 0}
           className={cn('flex-1 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all',
-            loading || !selectedPond
+            loading || selectedPonds.length === 0
               ? isDark ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
               : 'bg-violet-500 text-white',
           )}
         >
           {loading
-            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Registering…</>
-            : <><Radio size={15} />Register Master Box</>
+            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{regProgress || 'Registering…'}</>
+            : <><Radio size={15} />Register for {selectedPonds.length} Pond{selectedPonds.length !== 1 ? 's' : ''}</>
           }
         </motion.button>
       </div>
@@ -727,6 +768,7 @@ const SmartBoxConfigureStep = ({
   onRegister: (displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave', aeratorLabels: string[]) => Promise<void>;
   onBack: () => void;
 }) => {
+  const { updatePond } = useData();
   const initialType: DeviceType = device.deviceClass != null ? (CLASS_TO_TYPE[device.deviceClass] || 'AERATOR') : 'AERATOR';
 
   const [displayName,      setDisplayName]      = useState('');
@@ -737,6 +779,11 @@ const SmartBoxConfigureStep = ({
   const [error,            setError]            = useState<string | null>(null);
   const [existingDevices,  setExistingDevices]  = useState<any[]>([]);
   const [loadingDevices,   setLoadingDevices]   = useState(false);
+  // Inline starter group editing
+  const [editingGroupNum,  setEditingGroupNum]  = useState<number | null>(null);
+  const [editGroupName,    setEditGroupName]    = useState('');
+  const [editGroupCount,   setEditGroupCount]   = useState(4);
+  const [savingGroup,      setSavingGroup]      = useState(false);
 
   const suggestedName = DEVICE_TYPE_OPTIONS.find(o => o.value === deviceType)?.label ?? 'Smart Box';
 
@@ -756,25 +803,38 @@ const SmartBoxConfigureStep = ({
   const masterForPond = masterDevices.find((m: any) => (m.pondId === selectedPond || m.pond === selectedPond));
 
   // Map: groupNumber → assigned Smart Box (from existing devices)
+  // NOTE: We intentionally do NOT filter by pairingStatus — any slave AERATOR device
+  // that has aeratorLabels or a starterGroup field is considered to own that group.
+  // This prevents already-assigned groups from appearing as available.
   const takenGroups: Record<number, string> = useMemo(() => {
     const map: Record<number, string> = {};
     existingDevices
-      .filter(d => d.role === 'slave' && d.deviceType === 'AERATOR' && d.pairingStatus === 'assigned')
+      .filter(d => d.role === 'slave' && d.deviceType === 'AERATOR')
       .forEach(d => {
-        // Match by aeratorLabels — group is identified by first label matching a group's aeratorNames
-        if (d.starterGroup) {
-          map[d.starterGroup] = d.displayName || d.label || d.boxId || 'Another Smart Box';
-        } else if (d.aeratorLabels?.length > 0) {
-          // Fallback: determine group from first aerator label
+        const ownerName = d.displayName || d.label || d.boxId || 'Another Smart Box';
+
+        // Primary: device explicitly stores its starterGroup number
+        if (d.starterGroup != null && Number.isFinite(Number(d.starterGroup))) {
+          map[Number(d.starterGroup)] = ownerName;
+          return;
+        }
+
+        // Fallback: match by aeratorLabels overlap with any starter group
+        const labels: string[] = d.aeratorLabels ?? [];
+        if (labels.length > 0) {
           starterGroups.forEach(g => {
-            if (g.aeratorNames.some((n: string) => d.aeratorLabels.includes(n))) {
-              map[g.groupNumber] = d.displayName || d.label || d.boxId || 'Another Smart Box';
+            const overlaps = g.aeratorNames.some((n: string) =>
+              labels.some(l => l.trim().toLowerCase() === n.trim().toLowerCase())
+            );
+            if (overlaps) {
+              map[g.groupNumber] = ownerName;
             }
           });
         }
       });
     return map;
   }, [existingDevices, starterGroups]);
+
 
   const availableGroups = starterGroups.filter(g => !takenGroups[g.groupNumber]);
   const totalGroups = starterGroups.length;
@@ -805,6 +865,28 @@ const SmartBoxConfigureStep = ({
     const group = starterGroups.find(g => g.groupNumber === selectedGroup);
     return group?.aeratorNames ?? [];
   }, [selectedGroup, starterGroups, deviceType]);
+
+  const handleSaveGroupEdit = async () => {
+    if (editingGroupNum === null) return;
+    const pond = ponds.find((p: any) => (p.id || p._id) === selectedPond);
+    if (!pond) return;
+    setSavingGroup(true);
+    const updatedGroups = starterGroups.map(g =>
+      g.groupNumber === editingGroupNum
+        ? { ...g, groupName: editGroupName.trim() || undefined, aeratorCount: editGroupCount,
+            aeratorStart: g.aeratorStart,
+            aeratorEnd: g.aeratorStart + editGroupCount - 1,
+            aeratorNames: Array.from({ length: editGroupCount }, (_, i) => `Aerator ${g.aeratorStart + i}`) }
+        : g
+    );
+    try {
+      await updatePond(pond.id || pond._id, {
+        aerators: { ...pond.aerators, starterGroups: updatedGroups },
+      });
+    } catch {}
+    setSavingGroup(false);
+    setEditingGroupNum(null);
+  };
 
   const handleRegister = async () => {
     if (!selectedPond) { setError('Please select a pond.'); return; }
@@ -1012,8 +1094,11 @@ const SmartBoxConfigureStep = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className={cn('text-[10px] font-black', isTaken ? isDark ? 'text-white/25' : 'text-slate-400' : isDark ? 'text-white' : 'text-slate-900')}>
-                            Starter Group {g.groupNumber}
+                            {(g as any).groupName || `Starter Group ${g.groupNumber}`}
                           </p>
+                          {(g as any).groupName && (
+                            <span className={cn('text-[6.5px] font-black uppercase px-1 py-0.5 rounded-full', isDark ? 'bg-violet-500/10 text-violet-400/60' : 'bg-violet-50 text-violet-400')}>Grp {g.groupNumber}</span>
+                          )}
                           {isTaken && (
                             <span className={cn('text-[7px] font-black', isDark ? 'text-white/20' : 'text-slate-400')}>
                               → {takenBy}
@@ -1036,6 +1121,25 @@ const SmartBoxConfigureStep = ({
                           )} />
                         ))}
                       </div>
+
+                      {/* Edit pencil (only available groups) */}
+                      {!isTaken && (
+                        <motion.button
+                          whileTap={{ scale: 0.85 }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            setEditingGroupNum(g.groupNumber);
+                            setEditGroupName((g as any).groupName || '');
+                            setEditGroupCount(g.aeratorCount);
+                          }}
+                          className={cn('w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 border transition-all',
+                            isDark ? 'bg-violet-500/10 border-violet-500/20 text-violet-400' : 'bg-violet-50 border-violet-200 text-violet-500',
+                          )}
+                          title="Edit group"
+                        >
+                          <Pencil size={9} />
+                        </motion.button>
+                      )}
 
                       {/* Radio */}
                       <div className={cn(
@@ -1085,6 +1189,65 @@ const SmartBoxConfigureStep = ({
               )}
             </div>
           )}
+
+          {/* Inline edit modal for starter group */}
+          <AnimatePresence>
+            {editingGroupNum !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                className={cn('rounded-2xl border p-4 space-y-3', isDark ? 'bg-violet-500/8 border-violet-500/25' : 'bg-violet-50 border-violet-200')}
+              >
+                <div className="flex items-center justify-between">
+                  <p className={cn('text-[9px] font-black uppercase tracking-widest', isDark ? 'text-violet-400' : 'text-violet-700')}>
+                    Edit Starter Group {editingGroupNum}
+                  </p>
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingGroupNum(null)}
+                    className={cn('w-6 h-6 rounded-lg flex items-center justify-center', isDark ? 'bg-white/10 text-white/40' : 'bg-violet-100 text-violet-500')}
+                  ><X size={11} /></motion.button>
+                </div>
+                {/* Group name */}
+                <div>
+                  <p className={cn('text-[7px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Group Name</p>
+                  <input
+                    type="text"
+                    value={editGroupName}
+                    onChange={e => setEditGroupName(e.target.value)}
+                    placeholder={`Starter Group ${editingGroupNum}`}
+                    maxLength={30}
+                    className={cn('w-full rounded-xl border px-3 py-2.5 text-[10px] font-black outline-none',
+                      isDark ? 'bg-white/5 border-white/15 text-white placeholder:text-white/20 focus:border-violet-500/40' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400',
+                    )}
+                  />
+                </div>
+                {/* Aerator count stepper */}
+                <div>
+                  <p className={cn('text-[7px] font-black uppercase tracking-widest mb-1', isDark ? 'text-white/25' : 'text-slate-400')}>Aerators in Group</p>
+                  <div className="flex items-center gap-3">
+                    <motion.button whileTap={{ scale: 0.88 }} onClick={() => setEditGroupCount(c => Math.max(1, c - 1))}
+                      className={cn('w-8 h-8 rounded-xl border flex items-center justify-center font-black text-sm',
+                        isDark ? 'bg-white/8 border-white/15 text-white' : 'bg-slate-100 border-slate-200 text-slate-700',
+                      )}
+                    >–</motion.button>
+                    <span className={cn('text-lg font-black w-8 text-center', isDark ? 'text-white' : 'text-slate-900')}>{editGroupCount}</span>
+                    <motion.button whileTap={{ scale: 0.88 }} onClick={() => setEditGroupCount(c => Math.min(4, c + 1))}
+                      className={cn('w-8 h-8 rounded-xl border flex items-center justify-center font-black text-sm',
+                        isDark ? 'bg-white/8 border-white/15 text-white' : 'bg-slate-100 border-slate-200 text-slate-700',
+                      )}
+                    >+</motion.button>
+                    <span className={cn('text-[7px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>max 4 aerators per starter</span>
+                  </div>
+                </div>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={handleSaveGroupEdit} disabled={savingGroup}
+                  className="w-full py-3 rounded-2xl bg-violet-500 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  {savingGroup
+                    ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</>
+                    : <><Check size={12} />Save Changes</>
+                  }
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* No aerators in pond */}
           {!loadingDevices && starterGroups.length === 0 && (
@@ -1473,24 +1636,37 @@ export const DeviceRegistration = () => {
   }, [isMasterFlow, mode]);
 
   const handleRegister = useCallback(async (
-    displayName: string, deviceType: DeviceType, pondId: string, role: 'master' | 'slave',
+    displayName: string, deviceType: DeviceType, pondIdOrIds: string | string[], role: 'master' | 'slave',
     aeratorLabels: string[] = [],
   ) => {
     if (!device) return;
+    // For master: pondIdOrIds may be an array of pond IDs (multi-pond support)
+    const pondIds = Array.isArray(pondIdOrIds) ? pondIdOrIds : [pondIdOrIds];
+    const primaryPondId = pondIds[0];
     try {
-      const result = await espnowService.assignDevice({ boxId: device.boxId, displayName, deviceType, pondId, role, aeratorLabels });
+      // Register the master for the first (primary) pond
+      const result = await espnowService.assignDevice({
+        boxId: device.boxId, displayName, deviceType, pondId: primaryPondId, role, aeratorLabels,
+      });
+      // For additional ponds, register the same Master Box ID with each pond
+      if (role === 'master' && pondIds.length > 1) {
+        await Promise.allSettled(
+          pondIds.slice(1).map(pid =>
+            espnowService.assignDevice({
+              boxId: device.boxId, displayName, deviceType, pondId: pid, role, aeratorLabels,
+            })
+          )
+        );
+      }
       if (role === 'master') {
-        // Master Box: go straight to success — box self-provisions from cloud on first boot
-        setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: true, apiKey: result.apiKey, pondId });
+        setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: true, apiKey: result.apiKey, pondId: primaryPondId });
         setStep('success');
       } else {
-        // Slave: go straight to success
         setSuccess({ deviceName: displayName, boxId: device.boxId, isMaster: false });
         setStep('success');
       }
     } catch (err: any) {
       const msg: string = err?.message || '';
-      // 409 = already registered to another user; 403 = ownership denied
       const isOwnershipError = msg.toLowerCase().includes('already registered') ||
                                msg.toLowerCase().includes('already claimed') ||
                                msg.toLowerCase().includes('belongs to another') ||
@@ -1503,7 +1679,6 @@ export const DeviceRegistration = () => {
         });
         setStep('reg_error');
       } else {
-        // Generic error — surface it to configure step (MasterConfigureStep / SmartBoxConfigureStep handles it)
         throw err;
       }
     }
@@ -1593,6 +1768,7 @@ export const DeviceRegistration = () => {
               <CategoryChooser
                 isDark={isDark}
                 hasMaster={hasMaster}
+                masterCount={masterDevices.length}
                 onChoose={cat => { setCategory(cat); setStep('method'); }}
               />
             </motion.div>

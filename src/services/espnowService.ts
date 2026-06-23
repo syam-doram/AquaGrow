@@ -420,6 +420,26 @@ export const espnowService = {
     return handleResponse<EspDevice>(res);
   },
 
+  /**
+   * DELETE /api/espnow/devices/:deviceId
+   * Permanently removes a Smart Box or Master Box from the farmer's account.
+   * Handles both 200 JSON and 204 No Content responses.
+   */
+  async deleteDevice(deviceId: string): Promise<{ message: string }> {
+    const res = await fetchWithAuth(`${API_BASE_URL}/espnow/devices/${deviceId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401) throw new Error('Session expired. Please log in again.');
+      throw new Error(body?.error || body?.message || `Delete failed: ${res.status}`);
+    }
+    // 204 No Content — success with no body
+    if (res.status === 204) return { message: 'Device deleted successfully' };
+    // 200 with JSON body
+    return res.json().catch(() => ({ message: 'Device deleted successfully' }));
+  },
+
   // ── Utility ────────────────────────────────────────────────────────────────
 
   /** True if lastSeen is within the last 30 seconds */

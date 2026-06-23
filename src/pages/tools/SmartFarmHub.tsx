@@ -45,6 +45,9 @@ import {
   Bell,
   QrCode,
   Timer,
+  Pencil,
+  Save,
+  Trash2,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { calculateDOC } from '../../utils/pondUtils';
@@ -519,12 +522,13 @@ const HubCommandItem = ({ cmd, isDark }: { cmd: any; isDark: boolean }) => {
 
 // ─ Main IotDeviceSyncPanel ────────────────────────────────────────────────────────────────
 const IotDeviceSyncPanel = ({
-  ponds, isDark, navigate, compact = false,
+  ponds, isDark, navigate, compact = false, onDeleteDevice,
 }: {
   ponds: any[];
   isDark: boolean;
   navigate: (path: string) => void;
   compact?: boolean;
+  onDeleteDevice?: (device: any) => void;
 }) => {
   const [byPond, setByPond]       = useState<Record<string, any>>({});
   const [cmdsByPond, setCmdsByPond] = useState<Record<string, any[]>>({});
@@ -783,36 +787,82 @@ const IotDeviceSyncPanel = ({
             )}
 
 
-            {/* SMART BOXES with aerator toggle */}
-            {pondSlaves.length > 0 && (
-              <div>
-                <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-                  Smart Boxes · {pondSlaves.length} unit{pondSlaves.length !== 1 ? 's' : ''}
-                </p>
-                <div className="space-y-3">
-                  {pondSlaves.map((slave: any, i: number) => (
-                    <HubSmartBoxCard
-                      key={slave._id}
-                      device={slave}
-                      pondId={pondId}
-                      pendingCmds={pendingCmds}
-                      onRefresh={fetchAll}
-                      isDark={isDark}
-                      index={i}
-                    />
-                  ))}
+            {/* DEVICE NETWORK — Smart Box topology */}
+            {(pondMaster || pondSlaves.length > 0) && (
+              <div className={cn('rounded-[1.75rem] border overflow-hidden', isDark ? 'bg-[#071010] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
+                <div className={cn('px-4 py-3 border-b flex items-center gap-2', isDark ? 'border-white/5' : 'border-slate-100')}>
+                  <GitBranch size={11} className={isDark ? 'text-violet-400' : 'text-violet-500'} />
+                  <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-violet-400' : 'text-violet-600')}>
+                    Device Network · {(pondMaster ? 1 : 0) + pondSlaves.length} device{((pondMaster ? 1 : 0) + pondSlaves.length) !== 1 ? 's' : ''}
+                  </p>
                 </div>
-              </div>
-            )}
-
-            {/* COMMAND HISTORY */}
-            {pondSlaves.length > 0 && cmds.length > 0 && (
-              <div>
-                <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>Command History</p>
-                <div className={cn('rounded-[1.75rem] border px-4 py-1', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-                  {cmds.map((cmd: any, i: number) => (
-                    <HubCommandItem key={cmd._id || i} cmd={cmd} isDark={isDark} />
-                  ))}
+                <div className="px-4 py-3 space-y-2">
+                  {/* Master row */}
+                  {pondMaster && (
+                    <div className={cn('rounded-2xl border px-3 py-2 flex items-center gap-2.5', isDark ? 'bg-violet-500/8 border-violet-500/20' : 'bg-violet-50 border-violet-200')}>
+                      <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0', isDark ? 'bg-violet-500/20' : 'bg-violet-100')}>
+                        <Radio size={12} className="text-violet-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn('text-[8.5px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(pondMaster)}</p>
+                        <p className={cn('text-[6.5px] font-medium', isDark ? 'text-white/25' : 'text-slate-400')}>{pondMaster.boxId} · Master Gateway</p>
+                      </div>
+                      <span className={cn('text-[6px] font-black uppercase px-1.5 py-0.5 rounded-full border flex items-center gap-0.5', pondMaster.online ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/15 text-red-400')}>
+                        <span className={cn('w-1 h-1 rounded-full', pondMaster.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400')} />
+                        {pondMaster.online ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
+                  )}
+                  {/* Slave rows */}
+                  {pondSlaves.map((slave: any, si: number) => {
+                    const isOn = slave.aeratorState === 'ON';
+                    const isOnline = slave.online === true;
+                    return (
+                      <div key={slave._id} className="flex items-start gap-2 pl-4">
+                        <div className="w-px self-stretch bg-violet-500/15 mx-1 flex-shrink-0" />
+                        <div className={cn('flex-1 rounded-2xl border px-3 py-2 flex items-center gap-2.5',
+                          isOnline && isOn ? isDark ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
+                          : isOnline ? isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-100'
+                          : isDark ? 'bg-red-500/5 border-red-500/10' : 'bg-red-50 border-red-100'
+                        )}>
+                          <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0',
+                            isOnline && isOn ? isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'
+                            : isOnline ? isDark ? 'bg-sky-500/10' : 'bg-sky-50'
+                            : isDark ? 'bg-white/5' : 'bg-slate-100'
+                          )}>
+                            <Cpu size={11} className={isOnline && isOn ? 'text-emerald-400' : isOnline ? 'text-sky-400' : isDark ? 'text-white/20' : 'text-slate-300'} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn('text-[8.5px] font-black truncate', isDark ? 'text-white/80' : 'text-slate-900')}>{espnowService.getDeviceLabel(slave)}</p>
+                            <p className={cn('text-[6.5px] font-medium', isDark ? 'text-white/20' : 'text-slate-400')}>
+                              {slave.boxId} · Smart Box {si + 1}{slave.signalStrength != null ? ' · ' + slave.signalStrength + 'dBm' : ''}
+                            </p>
+                          </div>
+                          <span className={cn('text-[6px] font-black uppercase px-1.5 py-0.5 rounded-full border flex items-center gap-0.5',
+                            isOnline && isOn ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : isOnline ? isDark ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'
+                            : 'bg-red-500/10 border-red-500/15 text-red-400'
+                          )}>
+                            <span className={cn('w-1 h-1 rounded-full', isOnline && isOn ? 'bg-emerald-400 animate-pulse' : isOnline ? 'bg-sky-400' : 'bg-red-400')} />
+                            {isOnline ? (isOn ? 'Running' : 'Stopped') : 'Offline'}
+                          </span>
+                          {/* Delete button */}
+                          {onDeleteDevice && (
+                            <motion.button
+                              whileTap={{ scale: 0.85 }}
+                              onClick={e => { e.stopPropagation(); onDeleteDevice(slave); }}
+                              className={cn('w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0 transition-all',
+                                isDark ? 'bg-red-500/8 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500',
+                              )}
+                              title="Delete Smart Box"
+                            >
+                              <Trash2 size={9} />
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -838,15 +888,162 @@ const IotDeviceSyncPanel = ({
 
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Main Component Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ─── STARTER GROUP EDIT MODAL ──────────────────────────────────────────────
+interface StarterGroupEditModalProps {
+  group: { groupNumber: number; groupName?: string; aeratorCount: number };
+  isDark: boolean;
+  onSave: (groupNumber: number, groupName: string, aeratorCount: number) => void;
+  onClose: () => void;
+}
+
+const StarterGroupEditModal = ({ group, isDark, onSave, onClose }: StarterGroupEditModalProps) => {
+  const [name, setName] = React.useState(group.groupName ?? '');
+  const [capacity, setCapacity] = React.useState(group.aeratorCount);
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(group.groupNumber, name.trim(), capacity);
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        onClick={e => e.stopPropagation()}
+        className={cn(
+          'w-full max-w-[420px] rounded-t-[2rem] border-t border-x px-5 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-5',
+          isDark ? 'bg-[#0B1A28] border-white/10' : 'bg-white border-slate-200',
+        )}
+      >
+        {/* Handle */}
+        <div className="w-10 h-1 rounded-full mx-auto" style={{ background: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1' }} />
+
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center border', isDark ? 'bg-violet-500/15 border-violet-500/25' : 'bg-violet-50 border-violet-200')}>
+            <Pencil size={16} className="text-violet-400" />
+          </div>
+          <div>
+            <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>
+              Edit Starter Group {group.groupNumber}
+            </p>
+            <p className={cn('text-[7px] font-bold uppercase tracking-widest mt-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>
+              Customise name &amp; aerator capacity
+            </p>
+          </div>
+        </div>
+
+        {/* Group Name */}
+        <div className="space-y-1.5">
+          <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+            Group Name
+          </p>
+          <div className={cn('flex items-center gap-2 rounded-2xl border px-3 py-3', isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')}>
+            <Pencil size={12} className={isDark ? 'text-white/25' : 'text-slate-400'} />
+            <input
+              id={`sg-name-${group.groupNumber}`}
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={`e.g. North Side, Group ${group.groupNumber}`}
+              maxLength={32}
+              className={cn('flex-1 bg-transparent text-[11px] font-black outline-none placeholder:font-normal', isDark ? 'text-white placeholder:text-white/20' : 'text-slate-900 placeholder:text-slate-300')}
+            />
+            {name && (
+              <button onClick={() => setName('')} className={isDark ? 'text-white/20' : 'text-slate-300'}>
+                <X size={11} />
+              </button>
+            )}
+          </div>
+          <p className={cn('text-[6.5px] font-medium px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+            Leave blank to use the default &ldquo;Starter Group {group.groupNumber}&rdquo;
+          </p>
+        </div>
+
+        {/* Aerator Capacity */}
+        <div className="space-y-1.5">
+          <p className={cn('text-[7.5px] font-black uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
+            Aerator Capacity (how many aerators this group controls)
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map(n => (
+              <motion.button
+                key={n}
+                id={`sg-cap-${group.groupNumber}-${n}`}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setCapacity(n)}
+                className={cn(
+                  'rounded-2xl border py-3 flex flex-col items-center gap-1 transition-all',
+                  capacity === n
+                    ? isDark
+                      ? 'bg-violet-500/20 border-violet-500/40'
+                      : 'bg-violet-50 border-violet-300'
+                    : isDark
+                      ? 'bg-white/3 border-white/8'
+                      : 'bg-slate-50 border-slate-200',
+                )}
+              >
+                <span className={cn('text-base font-black tracking-tight', capacity === n ? 'text-violet-400' : isDark ? 'text-white/40' : 'text-slate-500')}>{n}</span>
+                <span className={cn('text-[5.5px] font-black uppercase tracking-widest', capacity === n ? 'text-violet-400' : isDark ? 'text-white/20' : 'text-slate-400')}>
+                  {n === 1 ? 'unit' : 'units'}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+          <p className={cn('text-[6.5px] font-medium px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
+            Max 4 aerators per starter group (1 Smart Box controls up to 4 aerators)
+          </p>
+        </div>
+
+        {/* Save */}
+        <motion.button
+          id={`sg-save-${group.groupNumber}`}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            'w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest',
+            saving ? 'opacity-60 cursor-not-allowed' : '',
+            'bg-violet-500 text-white',
+          )}
+        >
+          {saving
+            ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            : <Save size={13} />
+          }
+          {saving ? 'Saving…' : 'Save Changes'}
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export const SmartFarmHub = ({ t }: { t: Translations }) => {
   const navigate = useNavigate();
-  const { ponds, theme } = useData();
+  const { ponds, theme, updatePond } = useData() as any;
   const isDark = theme === 'dark' || theme === 'midnight';
 
   const [activeTab, setActiveTab] = useState<'aerators' | 'electricity' | 'power' | 'load' | 'iot'>('aerators');
   const [analyticsView, setAnalyticsView] = useState<'pond' | 'month' | 'year'>('pond');
   const [selectedPondId, setSelectedPondId] = useState<string>('all');
   const [showIoTGuide, setShowIoTGuide] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<{ pondId: string; group: { groupNumber: number; groupName?: string; aeratorCount: number } } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ _id: string; displayName?: string; boxId?: string; role?: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [devices, setDevices] = useState<IoTDevice[]>(() => {
     // Seed devices from real pond aerator data recorded during pond creation
     const result: IoTDevice[] = [];
@@ -941,6 +1138,26 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
     } catch { /* non-critical */ }
   }, [iotPondId]);
 
+  const handleDeleteDevice = useCallback(async () => {
+    // Support both _id and id field (API may return either)
+    const deviceId = deleteTarget?._id || (deleteTarget as any)?.id;
+    if (!deviceId) {
+      setDeleteError('Device ID not found. Please refresh and try again.');
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await espnowService.deleteDevice(deviceId);
+      setDeleteTarget(null);
+      setDeleteError(null);
+      await fetchIotAll(false);
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Failed to delete device. Please try again.');
+    } finally { setDeleting(false); }
+  }, [deleteTarget, fetchIotAll]);
+
+
   useEffect(() => {
     if (activeTab !== 'iot' && activeTab !== 'aerators') return;
     fetchIotAll();
@@ -960,14 +1177,28 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
   const iotPendingCmds    = iotStatus?.pendingCommandDetails ?? [];
 
 
-  // Computed stats
-  const onlineCount = devices.filter(d => d.status === 'online').length;
-  const offlineCount = devices.filter(d => d.status === 'offline').length;
-  const warningCount = devices.filter(d => d.status === 'warning').length;
+  // Computed stats — from REAL IoT slave devices (not mock data)
+  const iotOnlineCount  = iotAssignedSlaves.filter(d => d.online).length;
+  const iotOfflineCount = iotAssignedSlaves.filter(d => !d.online).length;
+  const iotWarningCount = iotAssignedSlaves.filter(d => (d as any).motorStatus === 'FAULT' || (d as any).motorStatus === 'POWER_FAILURE' || (d as any).motorStatus === 'OVERCURRENT').length;
 
+  // Live Farm Load — count aerators actually running (relayOn=true + online) × 1.1 kW each
+  // + pumps running × 0.75 kW each. Falls back to pond-config estimate when no IoT data.
   const totalLoadKW = useMemo(() => {
-    return devices.filter(d => d.isOn).reduce((sum, d) => sum + d.power, 0) / 1000;
-  }, [devices]);
+    const runningAerators = iotAssignedSlaves.filter(d => d.online && (d as any).relayOn === true && d.deviceType === 'AERATOR').length;
+    const runningPumps    = iotAssignedSlaves.filter(d => d.online && (d as any).relayOn === true && d.deviceType === 'PUMP').length;
+    if (runningAerators + runningPumps > 0) {
+      // Real data: 1.1 kW per aerator, 0.75 kW per pump (standard shrimp farm ratings)
+      return (runningAerators * 1.1) + (runningPumps * 0.75);
+    }
+    // Fallback: estimate from pond configs
+    return ponds.filter((p: any) => p.status === 'active').reduce((sum: number, p: any) => {
+      const count = p.aerators?.count ?? 0;
+      const hp    = p.aerators?.hp ?? 1;
+      const watt  = hp <= 1 ? 750 : hp <= 2 ? 1100 : hp <= 3 ? 2200 : 3700;
+      return sum + (count * watt) / 1000;
+    }, 0);
+  }, [iotAssignedSlaves, ponds]);
 
   const todayUnitsEst = useMemo(() => {
     return devices.filter(d => d.isOn).reduce((sum, d) => sum + (d.power * d.runtime) / 1000, 0);
@@ -1053,9 +1284,9 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
         {/* Ã¢â€â‚¬Ã¢â€â‚¬ HERO STATS Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-4 gap-2">
           {[
-            { label: 'Online', value: onlineCount, icon: Wifi, color: '#10b981' },
-            { label: 'Offline', value: offlineCount, icon: WifiOff, color: '#ef4444' },
-            { label: 'Warning', value: warningCount, icon: AlertTriangle, color: '#f59e0b' },
+            { label: 'Online', value: iotOnlineCount, icon: Wifi, color: '#10b981' },
+            { label: 'Offline', value: iotOfflineCount, icon: WifiOff, color: '#ef4444' },
+            { label: 'Warning', value: iotWarningCount, icon: AlertTriangle, color: '#f59e0b' },
             { label: 'kW Load', value: totalLoadKW.toFixed(1), icon: Zap, color: '#8b5cf6' },
           ].map((stat, i) => (
             <motion.div
@@ -1118,28 +1349,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
         </motion.div>
 
         {/* Ã¢â€â‚¬Ã¢â€â‚¬ TABS Ã¢â€â‚¬Ã¢â€â‚¬ */}
-        {/* POND SELECTOR */}
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <div className={cn('flex items-center gap-3 rounded-2xl border p-3', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
-            <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', isDark ? 'bg-cyan-500/15 border border-cyan-500/25' : 'bg-cyan-50 border border-cyan-200')}>
-              <Waves size={14} className="text-cyan-500" />
-            </div>
-            <div className="flex-1">
-              <p className={cn('text-[7px] font-black uppercase tracking-widest mb-0.5', isDark ? 'text-white/30' : 'text-slate-400')}>Viewing Pond</p>
-              <select
-                value={selectedPondId}
-                onChange={e => setSelectedPondId(e.target.value)}
-                className={cn('w-full text-[11px] font-black bg-transparent outline-none appearance-none cursor-pointer', isDark ? 'text-white' : 'text-slate-900')}
-              >
-                <option value="all">All Active Ponds</option>
-                {ponds.filter(p => p.status === 'active').map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            <ChevronRight size={12} className={cn('flex-shrink-0 -rotate-90', isDark ? 'text-white/20' : 'text-slate-300')} />
-          </div>
-        </motion.div>
+
 
         {/* TABS */}
         <div className={cn('flex gap-1.5 p-1.5 rounded-2xl border', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
@@ -1165,6 +1375,109 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
           {/* ── AERATORS TAB ── */}
           {activeTab === 'aerators' && (
             <motion.div key="aerators" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
+
+              {/* ── POND SELECTOR DROPDOWN ── */}
+              {(() => {
+                const activePonds = ponds.filter((p: any) => p.status === 'active' || p.status === 'planned');
+                if (activePonds.length === 0) return null;
+                const selectedPond = activePonds.find((p: any) => p.id === selectedPondId);
+                return (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                    {/* Label */}
+                    <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/25' : 'text-slate-400')}>
+                      Select Pond
+                    </p>
+                    {/* Horizontal scroll pill selector */}
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                      {/* All Ponds pill */}
+                      <motion.button
+                        id="pond-filter-all"
+                        whileTap={{ scale: 0.93 }}
+                        onClick={() => setSelectedPondId('all')}
+                        className={cn(
+                          'flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border text-[8px] font-black uppercase tracking-widest transition-all',
+                          selectedPondId === 'all'
+                            ? isDark
+                              ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'
+                              : 'bg-cyan-500 border-cyan-500 text-white'
+                            : isDark
+                              ? 'bg-white/5 border-white/10 text-white/35'
+                              : 'bg-white border-slate-200 text-slate-500 shadow-sm',
+                        )}
+                      >
+                        <Wind size={10} />
+                        All Ponds
+                        <span className={cn(
+                          'text-[6px] font-black px-1.5 py-0.5 rounded-full',
+                          selectedPondId === 'all'
+                            ? isDark ? 'bg-cyan-500/25 text-cyan-300' : 'bg-white/25 text-white'
+                            : isDark ? 'bg-white/8 text-white/30' : 'bg-slate-100 text-slate-400',
+                        )}>
+                          {activePonds.length}
+                        </span>
+                      </motion.button>
+
+                      {/* Per-pond pills */}
+                      {activePonds.map((p: any) => {
+                        const isSelected = selectedPondId === p.id;
+                        const doc = calculateDOC(p.stockingDate);
+                        const aerCount = p.aerators?.count ?? 0;
+                        return (
+                          <motion.button
+                            key={p.id}
+                            id={`pond-filter-${p.id}`}
+                            whileTap={{ scale: 0.93 }}
+                            onClick={() => setSelectedPondId(p.id)}
+                            className={cn(
+                              'flex-shrink-0 flex flex-col items-start px-3.5 py-2 rounded-2xl border transition-all min-w-[110px]',
+                              isSelected
+                                ? isDark
+                                  ? 'bg-cyan-500/15 border-cyan-500/35 text-cyan-300'
+                                  : 'bg-cyan-500 border-cyan-500 text-white'
+                                : isDark
+                                  ? 'bg-white/5 border-white/10'
+                                  : 'bg-white border-slate-200 shadow-sm',
+                            )}
+                          >
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="text-[10px]">🐟</span>
+                              <p className={cn(
+                                'text-[8.5px] font-black truncate flex-1 text-left',
+                                isSelected
+                                  ? isDark ? 'text-cyan-200' : 'text-white'
+                                  : isDark ? 'text-white/70' : 'text-slate-800',
+                              )}>
+                                {p.name}
+                              </p>
+                              {isSelected && (
+                                <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', isDark ? 'bg-cyan-400' : 'bg-white')} />
+                              )}
+                            </div>
+                            <p className={cn(
+                              'text-[6px] font-bold uppercase tracking-widest mt-0.5',
+                              isSelected
+                                ? isDark ? 'text-cyan-400/60' : 'text-white/70'
+                                : isDark ? 'text-white/20' : 'text-slate-400',
+                            )}>
+                              DOC {doc} · {aerCount} aerator{aerCount !== 1 ? 's' : ''}
+                            </p>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Selected pond info bar */}
+                    {selectedPond && (
+                      <div className={cn('mt-2 rounded-2xl border px-3.5 py-2.5 flex items-center gap-2', isDark ? 'bg-cyan-500/8 border-cyan-500/20' : 'bg-cyan-50 border-cyan-200')}>
+                        <Wind size={11} className="text-cyan-400 flex-shrink-0" />
+                        <p className={cn('text-[7.5px] font-black', isDark ? 'text-cyan-300' : 'text-cyan-700')}>
+                          Showing {selectedPond.name} · {selectedPond.aerators?.count ?? 0} aerators · {(selectedPond.aerators?.starterGroups?.length ?? 0) || Math.ceil((selectedPond.aerators?.count ?? 0) / 4)} starter groups
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })()}
 
               {/* ── SMART BOX AERATOR CONTROL ── */}
               {(() => {
@@ -1331,8 +1644,13 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1.5 flex-wrap">
                                         <p className={cn('text-[9px] font-black', isDark ? 'text-violet-300' : 'text-violet-700')}>
-                                          Starter Group {g.groupNumber}
+                                          {(g as any).groupName || `Starter Group ${g.groupNumber}`}
                                         </p>
+                                        {(g as any).groupName && (
+                                          <span className={cn('text-[6px] font-black uppercase px-1 py-0.5 rounded-full', isDark ? 'bg-violet-500/10 text-violet-400/60' : 'bg-violet-50 text-violet-400')}>
+                                            Group {g.groupNumber}
+                                          </span>
+                                        )}
                                         <span className={cn('text-[6.5px] font-black uppercase px-1.5 py-0.5 rounded-full', isDark ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-50 text-violet-600')}>
                                           Aerator{g.aeratorStart !== g.aeratorEnd ? `s ${g.aeratorStart}–${g.aeratorEnd}` : ` ${g.aeratorStart}`}
                                         </span>
@@ -1354,11 +1672,23 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                         }
                                       </p>
                                     </div>
+                                    {/* Edit button */}
+                                    <motion.button
+                                      id={`sg-edit-${pid}-${g.groupNumber}`}
+                                      whileTap={{ scale: 0.88 }}
+                                      onClick={() => setEditingGroup({ pondId: pid, group: { groupNumber: g.groupNumber, groupName: (g as any).groupName, aeratorCount: g.aeratorCount } })}
+                                      className={cn('w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 border transition-all',
+                                        isDark ? 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20' : 'bg-violet-50 border-violet-200 text-violet-500 hover:bg-violet-100',
+                                      )}
+                                      title="Edit starter group"
+                                    >
+                                      <Pencil size={11} />
+                                    </motion.button>
                                   </div>
 
                                   {/* Aerator cards grid */}
                                   <div className="grid grid-cols-2 gap-2 mb-3">
-                                    {labels.slice(0, 4).map((aerName, ai) => {
+                                    {labels.slice(0, g.aeratorCount).map((aerName, ai) => {
                                       const isRunning = smartBox?.relayOn === true;
                                       const isOnline  = smartBox?.online === true;
                                       return (
@@ -1405,8 +1735,8 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                         </div>
                                       );
                                     })}
-                                    {/* Empty slots if less than 4 */}
-                                    {Array.from({ length: Math.max(0, 4 - labels.length) }, (_, i) => (
+                                    {/* Empty slots if fewer than aeratorCount */}
+                                    {Array.from({ length: Math.max(0, g.aeratorCount - labels.slice(0, g.aeratorCount).length) }, (_, i) => (
                                       <div key={`empty-${i}`} className={cn('rounded-2xl border px-3 py-2.5', isDark ? 'bg-white/1 border-white/4 border-dashed' : 'bg-slate-50 border-slate-100 border-dashed')}>
                                         <p className={cn('text-[7px] font-black uppercase tracking-widest text-center', isDark ? 'text-white/10' : 'text-slate-200')}>Empty Slot</p>
                                       </div>
@@ -2040,6 +2370,47 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
           {activeTab === 'iot' && (
             <motion.div key="iot" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-3">
 
+              {/* ── POND SELECTOR ── */}
+              {(() => {
+                const sbPonds = ponds.filter((p: any) => p.status === 'active' || p.status === 'planned');
+                if (sbPonds.length === 0) return null;
+                return (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                    <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/25' : 'text-slate-400')}>Select Pond</p>
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                      {sbPonds.map((p: any) => {
+                        const isSelected = iotPondId === p.id || selectedPondId === p.id;
+                        return (
+                          <motion.button
+                            key={p.id}
+                            id={`sb-pond-${p.id}`}
+                            whileTap={{ scale: 0.93 }}
+                            onClick={() => setSelectedPondId(p.id)}
+                            className={cn(
+                              'flex-shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border transition-all min-w-[120px]',
+                              isSelected
+                                ? isDark ? 'bg-violet-500/20 border-violet-500/40' : 'bg-violet-500 border-violet-500'
+                                : isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm',
+                            )}
+                          >
+                            <span className="text-[11px]">🐟</span>
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className={cn('text-[8.5px] font-black truncate', isSelected ? isDark ? 'text-violet-200' : 'text-white' : isDark ? 'text-white/70' : 'text-slate-800')}>
+                                {p.name}
+                              </p>
+                              <p className={cn('text-[6px] font-bold uppercase tracking-widest mt-0.5', isSelected ? isDark ? 'text-violet-400/60' : 'text-white/70' : isDark ? 'text-white/20' : 'text-slate-400')}>
+                                DOC {calculateDOC(p.stockingDate)} · {p.aerators?.count ?? 0} aer
+                              </p>
+                            </div>
+                            {isSelected && <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', isDark ? 'bg-violet-400' : 'bg-white')} />}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
               {/* Toolbar row: pond label + actions */}
               <div className="flex items-center justify-between">
                 <div>
@@ -2281,7 +2652,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                               <p className={cn('text-[9px] font-black truncate', isDark ? 'text-white' : 'text-slate-900')}>{espnowService.getDeviceLabel(slave)}</p>
                               <p className={cn('text-[6px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>{slave.boxId}</p>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5">
                               {slave.aeratorState === 'ON' && (
                                 <div className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
                                   <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
@@ -2293,6 +2664,17 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                   <span className="text-red-400 text-[6px] font-black uppercase">OFF</span>
                                 </div>
                               )}
+                              {/* Delete */}
+                              <motion.button
+                                whileTap={{ scale: 0.85 }}
+                                onClick={() => setDeleteTarget(slave)}
+                                className={cn('w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0',
+                                  isDark ? 'bg-red-500/8 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-500'
+                                )}
+                                title="Delete Smart Box"
+                              >
+                                <Trash2 size={9} />
+                              </motion.button>
                             </div>
                           </div>
                         </div>
@@ -2334,95 +2716,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 </div>
               )}
 
-              {/* Smart Box Cards — assigned slaves */}
-              {iotAssignedSlaves.length > 0 && (
-                <div>
-                  <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>
-                    Smart Boxes · {iotAssignedSlaves.length} unit{iotAssignedSlaves.length !== 1 ? 's' : ''}
-                  </p>
-                  <div className="space-y-3">
-                    {iotAssignedSlaves.map((slave, i) => {
-                      const hasPending = iotPendingCmds.some((c: any) => c.targetBoxId === slave.boxId);
-                      const DevTypeIcon: React.ElementType = slave.deviceType === 'AERATOR' ? Wind : slave.deviceType === 'SENSOR' ? Droplets : slave.deviceType === 'PUMP' ? Waves : Wind;
-                      const displayName = espnowService.getDeviceLabel(slave);
-                      const typeLabel = DEVICE_TYPE_OPTIONS.find(o => o.value === slave.deviceType)?.label || 'Smart Box';
-                      const isOnline = slave.online ?? false;
-                      const motorStatus = (slave as any).motorStatus as string | undefined;
-                      const msCfg: Record<string, { label: string; sublabel: string; color: string; bgDark: string; borderDark: string; bgLight: string; borderLight: string }> = {
-                        RUNNING:       { label: 'Aerator Running',   sublabel: 'Motor operating normally',        color: 'text-emerald-400', bgDark: 'bg-emerald-500/10', borderDark: 'border-emerald-500/20', bgLight: 'bg-emerald-50',  borderLight: 'border-emerald-200' },
-                        STOPPED:       { label: 'Aerator Stopped',   sublabel: 'Relay OFF — stopped by command',  color: 'text-slate-400',   bgDark: 'bg-white/5',       borderDark: 'border-white/10',        bgLight: 'bg-slate-100',  borderLight: 'border-slate-200'   },
-                        POWER_FAILURE: { label: 'Power Failure',     sublabel: 'Relay ON but no voltage — check EB / MCB', color: 'text-amber-400', bgDark: 'bg-amber-500/10', borderDark: 'border-amber-500/25', bgLight: 'bg-amber-50', borderLight: 'border-amber-200' },
-                        FAULT:         { label: 'Motor Fault',       sublabel: 'Relay ON + power OK but no current', color: 'text-red-400', bgDark: 'bg-red-500/10', borderDark: 'border-red-500/25', bgLight: 'bg-red-50', borderLight: 'border-red-200' },
-                        OVERCURRENT:   { label: 'Overcurrent Alert', sublabel: 'Motor drawing too much current',   color: 'text-orange-400', bgDark: 'bg-orange-500/10', borderDark: 'border-orange-500/25', bgLight: 'bg-orange-50', borderLight: 'border-orange-200' },
-                      };
-                      const cfg = (motorStatus && msCfg[motorStatus]) || msCfg.STOPPED;
-                      return (
-                        <React.Fragment key={slave._id}>
-                          <HubSmartBoxCard
-                            device={slave}
-                            pondId={iotPondId}
-                            pendingCmds={iotPendingCmds}
-                            onRefresh={() => fetchIotAll()}
-                            isDark={isDark}
-                            index={i}
-                          />
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
-              {/* Command History */}
-              {iotAssignedSlaves.length > 0 && iotCommands.length > 0 && (
-                <div>
-                  <p className={cn('text-[7px] font-black uppercase tracking-widest mb-2 px-1', isDark ? 'text-white/20' : 'text-slate-400')}>Command History</p>
-                  <div className={cn('rounded-[1.75rem] border overflow-hidden', isDark ? 'bg-[#0A1410] border-white/8' : 'bg-white border-slate-100 shadow-sm')}>
-                    <div className="px-4 py-2">
-                      {iotCommands.map((cmd, i) => {
-                        const actionColor: Record<string, string> = {
-                          ON: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-                          OFF: 'bg-red-500/10 text-red-400 border-red-500/20',
-                          SPEED: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-                          RESET: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-                        };
-                        const statusMap: Record<string, { cls: string; label: string }> = {
-                          pending:   { cls: 'bg-amber-500/15 border-amber-500/25 text-amber-400',   label: 'Pending' },
-                          sent:      { cls: 'bg-sky-500/15 border-sky-500/25 text-sky-400',         label: 'Sent' },
-                          confirmed: { cls: 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400', label: 'Confirmed' },
-                          failed:    { cls: 'bg-red-500/15 border-red-500/20 text-red-400',         label: 'Failed' },
-                          timeout:   { cls: 'bg-white/5 border-white/10 text-white/30',             label: 'Timeout' },
-                        };
-                        const sm = statusMap[cmd.status] || statusMap.timeout;
-                        return (
-                          <React.Fragment key={cmd._id}>
-                            <motion.div
-                              initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.04 }}
-                              className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-0"
-                            >
-                              <div className={cn('w-8 h-8 rounded-xl border flex items-center justify-center flex-shrink-0 text-[8px] font-black uppercase tracking-widest', actionColor[cmd.action] || 'bg-white/5 text-white/30 border-white/10')}>
-                                {cmd.action}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={cn('text-[9px] font-black truncate', isDark ? 'text-white/70' : 'text-slate-800')}>
-                                  {(cmd as any).targetDisplayName || (cmd as any).targetBoxId || 'Unknown Device'}
-                                </p>
-                                <p className={cn('text-[7px] mt-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>
-                                  {new Date(cmd.issuedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                </p>
-                              </div>
-                              <div className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 border text-[7px] font-black uppercase tracking-widest', sm.cls)}>
-                                {sm.label}
-                              </div>
-                            </motion.div>
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Last poll footer */}
               {iotLastPoll && (
@@ -2454,6 +2748,85 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
           />
         )}
       </AnimatePresence>
+
+      {/* DELETE CONFIRM MODAL */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            key="delete-confirm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[400] flex items-end"
+            onClick={() => !deleting && setDeleteTarget(null)}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className={cn('relative w-full rounded-t-3xl px-5 pt-5 pb-8', isDark ? 'bg-[#0D1510] border-t border-white/10' : 'bg-white')}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1 rounded-full bg-slate-500/30 mx-auto mb-5" />
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center flex-shrink-0">
+                  <Trash2 size={20} className="text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn('font-black text-sm', isDark ? 'text-white' : 'text-slate-900')}>Delete Smart Box?</p>
+                  <p className={cn('text-[9px] font-medium mt-0.5', isDark ? 'text-white/40' : 'text-slate-500')}>
+                    {espnowService.getDeviceLabel(deleteTarget as any)}
+                    {deleteTarget.boxId && <span className={cn('ml-1 font-mono', isDark ? 'text-white/25' : 'text-slate-400')}>({deleteTarget.boxId})</span>}
+                  </p>
+                </div>
+              </div>
+              <div className={cn('rounded-2xl border px-4 py-3 mb-5', isDark ? 'bg-red-500/5 border-red-500/15' : 'bg-red-50 border-red-200')}>
+                <p className={cn('text-[8.5px] font-bold leading-relaxed', isDark ? 'text-red-400/80' : 'text-red-700')}>
+                  This will permanently remove the Smart Box from your account. The physical device can be re-registered after deletion.
+                </p>
+              </div>
+              {/* Error message from failed delete */}
+              <AnimatePresence>
+                {deleteError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="mb-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 flex items-start gap-2"
+                  >
+                    <AlertTriangle size={13} className="text-orange-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-orange-400 text-[8px] font-bold leading-relaxed">{deleteError}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div className="flex gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
+                  disabled={deleting}
+                  className={cn('flex-1 py-3.5 rounded-2xl border font-black text-[11px] uppercase tracking-widest',
+                    isDark ? 'bg-white/5 border-white/10 text-white/60' : 'bg-slate-100 border-slate-200 text-slate-700'
+                  )}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleDeleteDevice}
+                  disabled={deleting}
+                  className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  {deleting
+                    ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting…</>
+                    : <><Trash2 size={14} />{deleteError ? 'Retry Delete' : 'Yes, Delete'}</>
+                  }
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* IoT GUIDE MODAL */}
 
@@ -2726,6 +3099,41 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
               </button>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+      {/* ── STARTER GROUP EDIT MODAL ── */}
+      <AnimatePresence>
+        {editingGroup && (
+          <StarterGroupEditModal
+            group={editingGroup.group}
+            isDark={isDark}
+            onClose={() => setEditingGroup(null)}
+            onSave={async (groupNumber, groupName, aeratorCount) => {
+              const pond = ponds.find((p: any) => p.id === editingGroup.pondId);
+              if (!pond || !pond.aerators) return;
+              const existingGroups: any[] = pond.aerators.starterGroups && pond.aerators.starterGroups.length > 0
+                ? pond.aerators.starterGroups
+                : calcStarterGroups(pond.aerators.count);
+              const updated = existingGroups.map((g: any) => {
+                if (g.groupNumber !== groupNumber) return g;
+                // Recalculate aeratorNames to match the new capacity
+                const newNames = Array.from(
+                  { length: aeratorCount },
+                  (_, i) => `Aerator ${g.aeratorStart + i}`
+                );
+                return {
+                  ...g,
+                  groupName: groupName || undefined,
+                  aeratorCount,
+                  aeratorEnd: g.aeratorStart + aeratorCount - 1,
+                  aeratorNames: newNames,
+                };
+              });
+              await updatePond(editingGroup.pondId, {
+                aerators: { ...pond.aerators, starterGroups: updated },
+              });
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

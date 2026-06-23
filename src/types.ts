@@ -91,6 +91,7 @@ export interface StarterGroupConfig {
   aeratorCount: number;  // aerators in this group (1–4)
   aeratorNames: string[];// ["Aerator 1", "Aerator 2", ...]
   smartBoxId?: string;   // boxId of assigned Smart Box (e.g. "SB001"), set after registration
+  groupName?: string;    // custom label set by the farmer (e.g. "North Side", "Pond A")
 }
 
 export interface PondLog {
