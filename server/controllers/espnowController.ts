@@ -202,17 +202,37 @@ export const deregisterDevice = async (req: Request, res: Response): Promise<voi
   try {
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
-    const userId = (req as any).user?.id;
-    const device = await EspDevice.findById(req.params.deviceId);
-    if (!device) { res.status(404).json({ error: 'Device not found' }); return; }
-    if (device.userId !== userId) { res.status(403).json({ error: 'Access denied' }); return; }
+    const userId  = (req as any).user?.id;
+    // Route is /devices/:boxId — but the frontend may pass either a MongoDB _id
+    // (24-char hex) or a boxId string like "SB001".
+    // Try both lookups so either format works.
+    const param = req.params.boxId;  // ← was wrongly named deviceId before
 
-    await EspDevice.findByIdAndUpdate(req.params.deviceId, { isActive: false, pairingStatus: 'unpaired' });
-    res.json({ success: true, message: 'Device deregistered' });
+    let device = mongoose.Types.ObjectId.isValid(param)
+      ? await EspDevice.findOne({ _id: param, userId })
+      : null;
+
+    if (!device) {
+      // Fallback: look up by boxId field (e.g. "SB001")
+      device = await EspDevice.findOne({ boxId: param, userId });
+    }
+
+    if (!device) { res.status(404).json({ error: 'Device not found' }); return; }
+    if (String(device.userId) !== String(userId)) { res.status(403).json({ error: 'Access denied' }); return; }
+
+    // Hard delete — remove from DB so the dashboard no longer shows it.
+    // Also clean up any discover queue entry for this boxId.
+    await Promise.all([
+      EspDevice.findByIdAndDelete(device._id),
+      mongoose.model('EspDiscoverQueue').deleteMany({ boxId: device.boxId }).catch(() => {}),
+    ]);
+
+    res.status(200).json({ success: true, message: `Device ${device.boxId || param} deleted` });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /**
  * POST /api/espnow/devices/:deviceId/rotate-key
@@ -223,12 +243,18 @@ export const rotateDeviceKey = async (req: Request, res: Response): Promise<void
     if (mongoose.connection.readyState !== 1) { dbOffline(res); return; }
 
     const userId = (req as any).user?.id;
-    const device = await EspDevice.findById(req.params.deviceId);
+    const param  = req.params.boxId;   // route is /devices/:boxId/rotate-key
+
+    let device = mongoose.Types.ObjectId.isValid(param)
+      ? await EspDevice.findOne({ _id: param, userId })
+      : null;
+    if (!device) device = await EspDevice.findOne({ boxId: param, userId });
+
     if (!device) { res.status(404).json({ error: 'Device not found' }); return; }
-    if (device.userId !== userId) { res.status(403).json({ error: 'Access denied' }); return; }
+    if (String(device.userId) !== String(userId)) { res.status(403).json({ error: 'Access denied' }); return; }
 
     const newApiKey = generateApiKey();
-    await EspDevice.findByIdAndUpdate(req.params.deviceId, { apiKey: newApiKey });
+    await EspDevice.findByIdAndUpdate(device._id, { apiKey: newApiKey });
 
     res.json({
       message: 'API key rotated. Flash the new apiKey to your device immediately.',
@@ -238,6 +264,7 @@ export const rotateDeviceKey = async (req: Request, res: Response): Promise<void
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  AUTO-PAIRING: DISCOVER FLOW  (farmer app + device endpoints)
