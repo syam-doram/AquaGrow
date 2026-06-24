@@ -64,6 +64,7 @@ export interface EspDevice {
   _id: string;
   userId: string;
   pondId: string;
+  pondIds?: string[];        // all ponds covered — Master Box only (multi-pond gateway)
   boxId?: string;            // e.g. 'SB001' — shown to farmer as device ID
   displayName?: string;      // e.g. 'Pond 1 Aerator' — farmer-assigned friendly name
   deviceType?: DeviceType;   // AERATOR | SENSOR | FEEDER | PUMP | CUSTOM | MASTER

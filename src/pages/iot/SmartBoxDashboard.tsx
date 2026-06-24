@@ -612,6 +612,18 @@ const MasterBoxCard = ({ device, isDark }: { device: EspDevice; isDark: boolean 
             <p className="text-white/60 font-bold">{device.firmwareVersion}</p>
           </div>
         )}
+        {/* Multi-pond gateway badge — shown when this Master covers more than one pond */}
+        {Array.isArray(device.pondIds) && device.pondIds.length > 1 && (
+          <div className="col-span-2 bg-violet-500/8 border border-violet-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
+            <GitBranch size={10} className="text-violet-400 flex-shrink-0" />
+            <div>
+              <p className="text-violet-400 text-[7px] font-black uppercase tracking-widest">Multi-Pond Gateway</p>
+              <p className="text-violet-300/60 text-[7px] font-medium">
+                Covers {device.pondIds.length} ponds — one Master Box for the whole farm
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   </div>

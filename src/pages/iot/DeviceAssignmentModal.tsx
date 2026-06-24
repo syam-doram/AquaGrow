@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Wind, Droplets, Fish, Waves, Settings, X, CheckCircle2, ChevronRight,
+  Wind, Droplets, Fish, Waves, Settings, X, CheckCircle2, ChevronRight, GitBranch,
 } from 'lucide-react';
 import {
   espnowService,
   type EspDiscoverEntry,
+  type EspDevice,
   type DeviceType,
   DEVICE_TYPE_OPTIONS,
 } from '../../services/espnowService';
+import { useData } from '../../context/DataContext';
 import { cn } from '../../utils/cn';
 
 // ─── Icon mapping per device type ────────────────────────────────────────────
@@ -25,7 +27,7 @@ const DEVICE_TYPE_ICONS: Record<DeviceType | string, React.ElementType> = {
 
 interface DeviceAssignmentModalProps {
   entry: EspDiscoverEntry;          // the discover queue item to assign
-  pondId: string;
+  pondId: string;                   // current pond (default target)
   isDark: boolean;
   onAssigned: () => void;           // called after successful assignment
   onDismiss: () => void;            // called when user closes without assigning
@@ -38,11 +40,45 @@ interface DeviceAssignmentModalProps {
 export const DeviceAssignmentModal = ({
   entry, pondId, isDark, onAssigned, onDismiss,
 }: DeviceAssignmentModalProps) => {
+  const { ponds } = useData();
+
   const [selectedType, setSelectedType] = useState<DeviceType>('AERATOR');
   const [displayName, setDisplayName]   = useState('');
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [success, setSuccess]           = useState(false);
+
+  // ── Multi-pond Master Box: fetch master device to know its pondIds ──────────
+  const [masterDevice, setMasterDevice] = useState<EspDevice | null>(null);
+  const [targetPondId, setTargetPondId] = useState<string>(pondId);
+
+  useEffect(() => {
+    // Try to fetch the master device that discovered this Smart Box.
+    // If the master covers multiple ponds, we need to show a pond picker.
+    if (!entry.masterId) return;
+    espnowService.getDevices().then(devices => {
+      const master = devices.find(d => d.boxId === entry.masterId && d.role === 'master');
+      if (master) {
+        setMasterDevice(master);
+        // Pre-select current pond if it's in the master's pond list, else use primary
+        const masterPonds = master.pondIds ?? [master.pondId];
+        setTargetPondId(masterPonds.includes(pondId) ? pondId : master.pondId);
+      }
+    }).catch(() => {
+      // Non-critical — fall back to the pondId from the discovery entry
+    });
+  }, [entry.masterId, pondId]);
+
+  // Determine which ponds this master covers (for the picker)
+  const masterPondIds = masterDevice?.pondIds && masterDevice.pondIds.length > 1
+    ? masterDevice.pondIds
+    : null; // null = single-pond or unknown → hide picker
+
+  const coveredPonds = masterPondIds
+    ? ponds.filter((p: any) => masterPondIds.includes(p.id ?? p._id))
+    : [];
+
+  const isMultiPond = coveredPonds.length > 1;
 
   // Auto-suggest a name based on selected type
   const suggestedName = DEVICE_TYPE_OPTIONS.find(o => o.value === selectedType)?.label ?? 'Smart Box';
@@ -56,7 +92,7 @@ export const DeviceAssignmentModal = ({
         boxId: entry.boxId,
         displayName: finalName,
         deviceType: selectedType,
-        pondId,
+        pondId: targetPondId,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -119,7 +155,7 @@ export const DeviceAssignmentModal = ({
           </button>
         </div>
 
-        <div className="px-5 pb-5 space-y-4">
+        <div className="px-5 pb-5 space-y-4 max-h-[80vh] overflow-y-auto">
           {/* Success state */}
           <AnimatePresence>
             {success && (
@@ -141,6 +177,79 @@ export const DeviceAssignmentModal = ({
 
           {!success && (
             <>
+              {/* ── Multi-Pond Picker ─────────────────────────────────────────
+                  Only shown when the Master Box that discovered this device
+                  covers more than one pond. Farmer picks which pond the
+                  Smart Box physically belongs to.
+              ──────────────────────────────────────────────────────────────── */}
+              {isMultiPond && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {/* Multi-pond info banner */}
+                  <div className={cn(
+                    'flex items-start gap-2 rounded-2xl border px-3 py-2.5 mb-3',
+                    isDark ? 'bg-violet-500/8 border-violet-500/20' : 'bg-violet-50 border-violet-200',
+                  )}>
+                    <GitBranch size={12} className="text-violet-400 flex-shrink-0 mt-0.5" />
+                    <p className={cn('text-[8px] font-bold leading-relaxed', isDark ? 'text-violet-300/70' : 'text-violet-700')}>
+                      <span className="font-black">Multi-Pond Master Box</span> — this gateway covers{' '}
+                      {coveredPonds.length} ponds. Select which pond this Smart Box is installed in.
+                    </p>
+                  </div>
+
+                  <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
+                    Which pond is this Smart Box in?
+                  </p>
+                  <div className="space-y-2">
+                    {coveredPonds.map((pond: any) => {
+                      const pid = pond.id ?? pond._id;
+                      const isSelected = targetPondId === pid;
+                      return (
+                        <motion.button
+                          key={pid}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setTargetPondId(pid)}
+                          className={cn(
+                            'w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all',
+                            isSelected
+                              ? 'bg-violet-500/15 border-violet-500/30'
+                              : isDark ? 'bg-white/5 border-white/8' : 'bg-slate-50 border-slate-200',
+                          )}
+                        >
+                          <div className={cn(
+                            'w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0',
+                            isSelected ? 'bg-violet-500/20' : isDark ? 'bg-white/8' : 'bg-white border border-slate-100',
+                          )}>🐠</div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn(
+                              'text-[11px] font-black truncate',
+                              isSelected ? (isDark ? 'text-white' : 'text-slate-900') : isDark ? 'text-white/70' : 'text-slate-700',
+                            )}>{pond.name}</p>
+                            {(pond.size || pond.species) && (
+                              <p className={cn('text-[7px] font-bold uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
+                                {pond.size ? `${pond.size} m²` : ''}{pond.species ? ` · ${pond.species}` : ''}
+                              </p>
+                            )}
+                          </div>
+                          <div className={cn(
+                            'w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                            isSelected ? 'bg-violet-500 border-violet-500' : isDark ? 'border-white/20' : 'border-slate-300',
+                          )}>
+                            {isSelected && (
+                              <svg viewBox="0 0 12 12" width="10" height="10" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Device Type Picker */}
               <div>
                 <p className={cn('text-[8px] font-black uppercase tracking-widest mb-2', isDark ? 'text-white/30' : 'text-slate-400')}>
@@ -238,6 +347,11 @@ export const DeviceAssignmentModal = ({
                   </p>
                   <p className={cn('text-[7px] font-black uppercase tracking-widest mt-0.5', isDark ? 'text-white/25' : 'text-slate-400')}>
                     {entry.boxId} · {DEVICE_TYPE_OPTIONS.find(o => o.value === selectedType)?.label}
+                    {isMultiPond && targetPondId && (
+                      <span className="ml-1.5 text-violet-400">
+                        {' → '}{coveredPonds.find((p: any) => (p.id ?? p._id) === targetPondId)?.name ?? 'Pond'}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <ChevronRight size={12} className={isDark ? 'text-white/15' : 'text-slate-300'} />

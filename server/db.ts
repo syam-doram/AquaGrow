@@ -347,7 +347,8 @@ export const AeratorLog = mongoose.model('AeratorLog', AeratorLogSchema);
  */
 const EspDeviceSchema = new mongoose.Schema({
   userId:      { type: String, required: true },          // owning farmer
-  pondId:      { type: String, required: true },          // associated pond
+  pondId:      { type: String, required: true },          // primary pond (first selected, used by firmware)
+  pondIds:     [{ type: String }],                        // all ponds covered (Master Box multi-pond array)
   mac:         { type: String, required: true, unique: true }, // internal MAC — never shown to farmers
   role:        { type: String, enum: ['master', 'slave'], required: true },
   masterMac:   { type: String },                          // internal: slave's master MAC for ESP-NOW routing
@@ -397,6 +398,8 @@ EspDeviceSchema.index({ boxId: 1 }, { unique: true, sparse: true });
 EspDeviceSchema.index({ masterMac: 1, role: 1 });
 EspDeviceSchema.index({ masterId: 1, role: 1 });
 EspDeviceSchema.index({ userId: 1, pondId: 1 });
+// Multi-pond Master Box: index pondIds array for fast $elemMatch / $in queries
+EspDeviceSchema.index({ pondIds: 1, role: 1 });
 
 /**
  * EspSensorReading — one record per sensor snapshot pushed by a Master.

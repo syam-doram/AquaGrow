@@ -1014,10 +1014,18 @@ export const sendCommandById = async (req: Request, res: Response): Promise<void
       master = await EspDevice.findOne({ boxId: slave.masterId, role: 'master', isActive: true });
     }
 
-    // Last resort: find any active master for the same pond
-    // (handles split-record case where slave.masterMac is a placeholder like APP_REG_MB001)
+    // Last resort: find any active master for the same pond.
+    // Search BOTH primary pondId (single-pond) AND pondIds[] array (multi-pond Master Box).
+    // This handles the common case where a farm has one Master Box covering all ponds:
+    //   MB001.pondId  = "pond1"  (primary, for firmware provision)
+    //   MB001.pondIds = ["pond1", "pond2", "pond3", "pond4"]
+    // A Smart Box in pond3 will be found via the pondIds[] match.
     if (!master && pondId) {
-      master = await EspDevice.findOne({ pondId, role: 'master', isActive: true });
+      master = await EspDevice.findOne({
+        $or: [{ pondId }, { pondIds: pondId }],
+        role: 'master',
+        isActive: true,
+      });
     }
 
     if (!master) {
