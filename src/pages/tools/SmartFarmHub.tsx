@@ -568,10 +568,19 @@ const IotDeviceSyncPanel = ({
     return () => clearInterval(t);
   }, [fetchAll]);
 
-  const allDevices  = Object.values(byPond).flatMap((d: any) => d?.devices ?? []);
-  const masters     = allDevices.filter((d: any) => d.role === 'master');
-  const slaves      = allDevices.filter((d: any) => d.role === 'slave' && d.pairingStatus === 'assigned');
-  const onlineAll   = allDevices.filter((d: any) => d.online).length;
+  // Deduplicate by _id — a multi-pond Master Box appears in every covered pond's
+  // API response, so without dedup it shows up N times in the flat list.
+  const _seenIds = new Set<string>();
+  const allDevices = Object.values(byPond)
+    .flatMap((d: any) => d?.devices ?? [])
+    .filter((d: any) => {
+      if (_seenIds.has(d._id)) return false;
+      _seenIds.add(d._id);
+      return true;
+    });
+  const masters   = allDevices.filter((d: any) => d.role === 'master');
+  const slaves    = allDevices.filter((d: any) => d.role === 'slave' && d.pairingStatus === 'assigned');
+  const onlineAll = allDevices.filter((d: any) => d.online).length;
   const hasPonds    = ponds.filter((p: any) => p.status === 'active' || p.status === 'planned').length > 0;
 
   // ─── COMPACT MODE: horizontal pill strip ─────────────────────────────────────

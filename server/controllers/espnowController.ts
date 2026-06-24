@@ -1146,9 +1146,18 @@ export const getPondIoTStatus = async (req: Request, res: Response): Promise<voi
     if (String(pond.userId) !== userId) { res.status(403).json({ error: 'Access denied' }); return; }
 
     const [devices, latestReading, pendingCommands] = await Promise.all([
-      // Query by pondIds[] array (multi-pond Master) OR legacy single pondId field
+      // ★ Multi-pond safe query:
+      //   - Slaves:      match by their own pondId (they each belong to exactly one pond)
+      //   - Master Box:  match by primary pondId OR by pondIds[] array
+      //     (a multi-pond Master covers several ponds but appears in each pond's dashboard)
+      // Using role filter on the pondIds clause prevents slaves from leaking across ponds.
       EspDevice.find(
-        { $or: [{ pondId }, { pondIds: pondId }] },
+        {
+          $or: [
+            { pondId },                                    // slaves + single-pond master
+            { pondIds: pondId, role: 'master' },           // multi-pond master only
+          ],
+        },
         { apiKey: 0, mac: 0, masterMac: 0 }
       ),
       EspSensorReading.findOne({ pondId }).sort({ recordedAt: -1 }),
