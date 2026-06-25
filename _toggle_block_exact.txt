@@ -1,0 +1,29 @@
+﻿{/* Status + Toggle */}
+                                     {smartBox ? (
+                                       <div className="flex items-center gap-2 flex-shrink-0">
+                                         {/* Online/Offline pill */}
+                                         <span className={cn("text-[6.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex items-center gap-1",
+                                           smartBox.online
+                                             ? "bg-emerald-500/12 border-emerald-500/20 text-emerald-400"
+                                             : "bg-red-500/10 border-red-500/20 text-red-400"
+                                         )}>
+                                           <span className={cn("w-1.5 h-1.5 rounded-full", smartBox.online ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+                                           {smartBox.online ? "Online" : "Offline"}
+                                         </span>
+                                         {/* ON/OFF Toggle � only when online */}
+                                         {smartBox.online ? (
+                                           <HubAeratorToggle device={smartBox} pondId={pid} hasPendingCmd={hasPending} onRefresh={() => fetchIotAll()} isDark={isDark} />
+                                         ) : (
+                                           <div className={cn("px-3 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "bg-white/5 border-white/10 text-white/20" : "bg-slate-100 border-slate-200 text-slate-400")}>
+                                             Offline
+                                           </div>
+                                         )}
+                                       </div>
+                                     ) : (
+                                       <span className={cn("text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-xl border", isDark ? "bg-white/5 border-white/8 text-white/20" : "bg-slate-100 border-slate-200 text-slate-400")}>
+                                         Not Assigned
+                                       </span>
+                                     )}
+                                   </div>
+
+                                   

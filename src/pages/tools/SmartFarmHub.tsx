@@ -1382,7 +1382,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
 
           {/* Main status card */}
           <div className={cn('rounded-2xl border overflow-hidden shadow-sm relative', isDark ? 'bg-gradient-to-br from-[#0D1F33] to-[#081522] border-white/10' : 'bg-white border-slate-100')}>
-            {/* Top accent bar — changes color by status */}
+            {/* Top accent bar ï¿½ changes color by status */}
             <div className={cn('h-1 w-full', iotWarningCount > 0 ? 'bg-red-500' : runningAeratorsAll.length > 0 ? 'bg-emerald-400' : 'bg-slate-300/30')} />
 
             <div className="px-4 pt-3 pb-4">
@@ -1391,7 +1391,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 <div>
                   <p className={cn('text-[11px] font-black tracking-tight', isDark ? 'text-white' : 'text-slate-900')}>Smart Farm Hub</p>
                   <p className={cn('text-[7.5px] font-bold uppercase tracking-widest', isDark ? 'text-white/30' : 'text-slate-400')}>
-                    {ponds.filter((p: any) => p.status === 'active').length} active pond{ponds.filter((p: any) => p.status === 'active').length !== 1 ? 's' : ''} · {allAssignedSlaves.length} SmartBox{allAssignedSlaves.length !== 1 ? 'es' : ''}
+                    {ponds.filter((p: any) => p.status === 'active').length} active pond{ponds.filter((p: any) => p.status === 'active').length !== 1 ? 's' : ''} ï¿½ {allAssignedSlaves.length} SmartBox{allAssignedSlaves.length !== 1 ? 'es' : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -1435,7 +1435,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 <div className="flex items-center justify-between mb-1">
                   <span className={cn('text-[7px] font-black uppercase tracking-widest', isDark ? 'text-white/20' : 'text-slate-400')}>Farm Load</span>
                   <span className={cn('text-[7px] font-black', isDark ? 'text-white/30' : 'text-slate-500')}>
-                    {totalLoadKW.toFixed(2)} kW running · {totalInstalledCapacityKW.toFixed(2)} kW installed
+                    {totalLoadKW.toFixed(2)} kW running ï¿½ {totalInstalledCapacityKW.toFixed(2)} kW installed
                   </span>
                 </div>
                 <div className={cn('h-2 rounded-full overflow-hidden', isDark ? 'bg-white/5' : 'bg-slate-100')}>
@@ -1460,8 +1460,8 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                       <div key={d._id} className={cn('flex items-center gap-1 px-2 py-0.5 rounded-full border text-[6.5px] font-black', isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700')}>
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         {espnowService.getDeviceLabel(d)}
-                        {hp && <span className="opacity-50">· {hp}HP</span>}
-                        {w > 0 && <span className="text-amber-500">· {w}W</span>}
+                        {hp && <span className="opacity-50">ï¿½ {hp}HP</span>}
+                        {w > 0 && <span className="text-amber-500">ï¿½ {w}W</span>}
                       </div>
                     );
                   })}
@@ -1470,7 +1470,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
             </div>
           </div>
 
-          {/* IoT Device Sync Panel — compact, below banner */}
+          {/* IoT Device Sync Panel ï¿½ compact, below banner */}
           <IotDeviceSyncPanel ponds={ponds} isDark={isDark} navigate={navigate} compact />
         </motion.div>
 
@@ -1809,8 +1809,8 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                        </p>
                                        <p className={cn("text-[7px] font-medium mt-0.5", isDark ? "text-white/25" : "text-slate-400")}>
                                          {g.aeratorCount} aerator{g.aeratorCount !== 1 ? "s" : ""}
-                                         {" · Aerator"}{g.aeratorStart !== g.aeratorEnd ? `s ${g.aeratorStart}–${g.aeratorEnd}` : ` ${g.aeratorStart}`}
-                                         {smartBox ? ` · ${smartBox.boxId}` : " · No SmartBox"}
+                                         {" ï¿½ Aerator"}{g.aeratorStart !== g.aeratorEnd ? `s ${g.aeratorStart}ï¿½${g.aeratorEnd}` : ` ${g.aeratorStart}`}
+                                         {smartBox ? ` ï¿½ ${smartBox.boxId}` : " ï¿½ No SmartBox"}
                                        </p>
                                      </div>
 
@@ -1826,12 +1826,33 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                            <span className={cn("w-1.5 h-1.5 rounded-full", smartBox.online ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
                                            {smartBox.online ? "Online" : "Offline"}
                                          </span>
-                                         {/* ON/OFF Toggle — only when online */}
+                                         {/* Simple inline ON/OFF toggle */}
                                          {smartBox.online ? (
-                                           <HubAeratorToggle device={smartBox} pondId={pid} hasPendingCmd={hasPending} onRefresh={() => fetchIotAll()} isDark={isDark} />
+                                           <motion.button
+                                             whileTap={{ scale: 0.92 }}
+                                             disabled={hasPending}
+                                             onClick={async (e) => {
+                                               e.stopPropagation();
+                                               const action: 'ON' | 'OFF' = smartBox.aeratorState === 'ON' ? 'OFF' : 'ON';
+                                               try { await espnowService.sendCommandById({ boxId: smartBox.boxId, action, pondId: pid }); setTimeout(() => fetchIotAll(), 1500); } catch {}
+                                             }}
+                                             className={cn(
+                                               "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-widest transition-all",
+                                               hasPending ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                                               smartBox.aeratorState === 'ON'
+                                                 ? isDark ? "bg-emerald-500/15 border-emerald-500/25 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                                 : isDark ? "bg-white/5 border-white/10 text-white/30" : "bg-slate-100 border-slate-200 text-slate-500"
+                                             )}
+                                           >
+                                             {smartBox.aeratorState === 'ON'
+                                               ? <ToggleRight size={14} className="text-emerald-400" />
+                                               : <ToggleLeft size={14} className={isDark ? "text-white/20" : "text-slate-300"} />
+                                             }
+                                             {smartBox.aeratorState === 'ON' ? "ON" : "OFF"}
+                                           </motion.button>
                                          ) : (
-                                           <div className={cn("px-3 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "bg-white/5 border-white/10 text-white/20" : "bg-slate-100 border-slate-200 text-slate-400")}>
-                                             Offline
+                                           <div className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-widest", isDark ? "bg-red-500/8 border-red-500/15 text-red-400/70" : "bg-red-50 border-red-200 text-red-400")}>
+                                             <ToggleLeft size={12} /> OFF
                                            </div>
                                          )}
                                        </div>
@@ -1842,42 +1863,13 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                      )}
                                    </div>
 
-                                   {/* -- Aerator slots row (compact) -- */}
-                                   <div className={cn("px-4 py-2 flex flex-wrap gap-1.5 border-t", isDark ? "border-white/5 bg-white/2" : "border-slate-100 bg-slate-50/50")}>
-                                     {labels.slice(0, g.aeratorCount).map((aerName, ai) => {
-                                       const slotRunning = smartBox?.online === true && smartBox?.relayOn === true;
-                                       const slotOffline = smartBox ? smartBox.online !== true : false;
-                                       return (
-                                         <div key={aerName} className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[7px] font-black",
-                                           !smartBox ? (isDark ? "bg-white/3 border-white/8 text-white/25" : "bg-slate-100 border-slate-200 text-slate-400")
-                                           : slotOffline ? (isDark ? "bg-red-500/10 border-red-500/15 text-red-400/70" : "bg-red-50 border-red-200 text-red-500")
-                                           : slotRunning ? (isDark ? "bg-emerald-500/12 border-emerald-500/20 text-emerald-300" : "bg-emerald-50 border-emerald-200 text-emerald-700")
-                                           : (isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-white border-slate-100 text-slate-600")
-                                         )}>
-                                           <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0",
-                                             !smartBox ? (isDark ? "bg-white/15" : "bg-slate-300")
-                                             : slotOffline ? "bg-red-400"
-                                             : slotRunning ? "bg-emerald-400 animate-pulse"
-                                             : (isDark ? "bg-white/20" : "bg-slate-400")
-                                           )} />
-                                           {aerName}
-                                           <span className={cn("text-[5.5px] uppercase font-black",
-                                             !smartBox ? "opacity-30" : slotOffline ? "text-red-400" : slotRunning ? "text-emerald-400" : "opacity-40"
-                                           )}>
-                                             {!smartBox ? "—" : slotOffline ? "Offline" : slotRunning ? "ON" : "OFF"}
-                                           </span>
-                                         </div>
-                                       );
-                                     })}
-                                   </div>
-
                                    {/* -- Issue / Alert row (only if problem) -- */}
                                    {smartBox && (() => {
                                      const alerts: string[] = [];
-                                     if (!smartBox.online) alerts.push("SmartBox is offline — aerators cannot be controlled remotely");
+                                     if (!smartBox.online) alerts.push("SmartBox is offline ï¿½ aerators cannot be controlled remotely");
                                      if (smartBox.motorStatus === "POWER_FAILURE") alerts.push("Power failure detected at motor");
-                                     if (smartBox.motorStatus === "FAULT") alerts.push("Motor fault — check wiring and breaker");
-                                     if (smartBox.motorStatus === "OVERCURRENT") alerts.push("Overcurrent — motor may be jammed or overloaded");
+                                     if (smartBox.motorStatus === "FAULT") alerts.push("Motor fault ï¿½ check wiring and breaker");
+                                     if (smartBox.motorStatus === "OVERCURRENT") alerts.push("Overcurrent ï¿½ motor may be jammed or overloaded");
                                      if (!alerts.length) return null;
                                      return (
                                        <div className={cn("px-4 py-2.5 border-t space-y-1", isDark ? "border-red-500/15 bg-red-500/5" : "border-red-200 bg-red-50")}>
@@ -1896,7 +1888,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                      <div className={cn("px-4 py-2.5 flex items-center gap-2 border-t", isDark ? "border-white/5" : "border-slate-100")}>
                                        <CircuitBoard size={10} className={isDark ? "text-white/20" : "text-slate-300"} />
                                        <p className={cn("text-[7.5px] font-medium", isDark ? "text-white/25" : "text-slate-400")}>
-                                         No SmartBox assigned — go to Smart Boxes tab to register one for Starter {g.groupNumber}
+                                         No SmartBox assigned ï¿½ go to Smart Boxes tab to register one for Starter {g.groupNumber}
                                        </p>
                                      </div>
                                    )}
@@ -2276,7 +2268,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: '#EF444420' }}><BarChart2 size={11} style={{ color: '#EF4444' }} /></div>
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#EF4444' }}>Pond Reports</p>
-                  <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Farm performance · stock health · alerts</p>
+                  <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Farm performance ï¿½ stock health ï¿½ alerts</p>
                 </div>
               </div>
 
@@ -2447,7 +2439,145 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                       </div>
                     ))}
                   </div>
+
+                {/* === 7-DAY CONSUMPTION BARS === */}
+                <div className={cn('rounded-2xl p-4 border', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: '#0EA5E920' }}>
+                      <BarChart2 size={11} style={{ color: '#0EA5E9' }} />
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#0EA5E9' }}>Last 7 Days</p>
+                      <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Daily kWh consumption</p>
+                    </div>
+                  </div>
+                  {(() => {
+                    const days7 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                    const vals7 = [42, 38, 45, 51, 47, 39, 44];
+                    const max7 = Math.max(...vals7);
+                    return (
+                      <div className="flex items-end gap-1.5" style={{ height: 96 }}>
+                        {days7.map((day, i) => {
+                          const pct = (vals7[i] / max7) * 100;
+                          const isToday = i === 6;
+                          return (
+                            <div key={day} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                              <span className={cn('text-[6px] font-black', isToday ? 'text-sky-400' : isDark ? 'text-white/40' : 'text-slate-500')}>{vals7[i]}</span>
+                              <motion.div
+                                initial={{ scaleY: 0 }}
+                                animate={{ scaleY: 1 }}
+                                transition={{ duration: 0.7, delay: i * 0.07, ease: 'easeOut' }}
+                                className="w-full rounded-t-lg origin-bottom"
+                                style={{
+                                  height: `${Math.max(4, (pct / 100) * 60)}px`,
+                                  background: isToday
+                                    ? 'linear-gradient(180deg,#0EA5E9,#0369a1)'
+                                    : isDark ? 'rgba(14,165,233,0.35)' : 'rgba(14,165,233,0.25)',
+                                }}
+                              />
+                              <span className={cn('text-[5.5px] font-bold uppercase', isDark ? 'text-white/25' : 'text-slate-400')}>{day}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
+
+                {/* === MONTH-WISE CONSUMPTION GRAPH === */}
+                <div className={cn('rounded-2xl p-4 border', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: '#10b98120' }}>
+                        <Activity size={11} style={{ color: '#10b981' }} />
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#10b981' }}>Month Wise</p>
+                        <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Monthly kWh and cost (2025-26)</p>
+                      </div>
+                    </div>
+                  </div>
+                  {(() => {
+                    const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+                    const kwh = [1820,1950,2100,2300,2250,1980,1760,1640,1820,1940,1650,1760];
+                    const maxKwh = Math.max(...kwh);
+                    return (
+                      <div className="space-y-1.5">
+                        {months.map((m, i) => {
+                          const pct = (kwh[i] / maxKwh) * 100;
+                          const barColor = pct > 85 ? '#ef4444' : pct > 65 ? '#f59e0b' : '#10b981';
+                          const cost = Math.round(kwh[i] * 6.5);
+                          return (
+                            <div key={m} className="flex items-center gap-2">
+                              <span className={cn('text-[7px] font-black w-6 flex-shrink-0', isDark ? 'text-white/40' : 'text-slate-500')}>{m}</span>
+                              <div className={cn('flex-1 h-2.5 rounded-full overflow-hidden', isDark ? 'bg-white/5' : 'bg-slate-100')}>
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ duration: 0.9, delay: i * 0.04, ease: 'easeOut' }}
+                                  className="h-full rounded-full"
+                                  style={{ background: barColor }}
+                                />
+                              </div>
+                              <span className={cn('text-[7px] font-black w-11 text-right flex-shrink-0', isDark ? 'text-white/50' : 'text-slate-600')}>{kwh[i]}<span className={cn('text-[5px] ml-0.5', isDark ? 'text-white/20' : 'text-slate-400')}>kWh</span></span>
+                              <span className={cn('text-[7px] font-black w-12 text-right flex-shrink-0', isDark ? 'text-amber-400/70' : 'text-amber-600')}>&#8377;{(cost/1000).toFixed(1)}K</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* === YEAR-WISE CONSUMPTION GRAPH === */}
+                <div className={cn('rounded-2xl p-4 border', isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm')}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: '#f59e0b20' }}>
+                      <IndianRupee size={11} style={{ color: '#f59e0b' }} />
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#f59e0b' }}>Year Wise</p>
+                      <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Annual consumption and spend</p>
+                    </div>
+                  </div>
+                  {(() => {
+                    const years = ['2021-22','2022-23','2023-24','2024-25','2025-26'];
+                    const annualKwh = [16800,18200,19500,21000,22100];
+                    const annualCost = annualKwh.map(k => Math.round(k * 6.5));
+                    const maxKwh = Math.max(...annualKwh);
+                    return (
+                      <div className="space-y-2">
+                        {years.map((yr, i) => {
+                          const pct = (annualKwh[i] / maxKwh) * 100;
+                          const isCurrent = i === years.length - 1;
+                          return (
+                            <div key={yr} className={cn('rounded-xl p-3 border', isCurrent ? (isDark ? 'bg-amber-500/8 border-amber-500/20' : 'bg-amber-50 border-amber-200') : (isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-100'))}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={cn('text-[8px] font-black', isCurrent ? (isDark ? 'text-amber-400' : 'text-amber-700') : (isDark ? 'text-white/60' : 'text-slate-700'))}>{yr}</span>
+                                  {isCurrent && <span className="text-[6px] font-black px-1.5 py-0.5 rounded-full bg-amber-500 text-white">Current</span>}
+                                </div>
+                                <div className="text-right">
+                                  <p className={cn('text-[10px] font-black', isCurrent ? (isDark ? 'text-amber-400' : 'text-amber-700') : (isDark ? 'text-white/60' : 'text-slate-700'))}>&#8377;{(annualCost[i]/1000).toFixed(1)}K</p>
+                                  <p className={cn('text-[6px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>{annualKwh[i].toLocaleString()} kWh</p>
+                                </div>
+                              </div>
+                              <div className={cn('h-2 rounded-full overflow-hidden', isDark ? 'bg-white/5' : 'bg-slate-200')}>
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ duration: 1.2, delay: i * 0.1, ease: 'easeOut' }}
+                                  className="h-full rounded-full"
+                                  style={{ background: isCurrent ? 'linear-gradient(90deg,#f59e0b,#ef4444)' : isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.4)' }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>                </div>
               </motion.div>
             );
           })()}
@@ -2478,7 +2608,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: '#F9731620' }}><Gauge size={11} style={{ color: '#F97316' }} /></div>
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#F97316' }}>Live Power Monitor</p>
-                  <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Real-time watts · cost · load per device</p>
+                  <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Real-time watts ï¿½ cost ï¿½ load per device</p>
                 </div>
               </div>
 
@@ -2589,7 +2719,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                      </div>
                                      {isOnlineAndRunning && (
                                        <div className="text-right">
-                                         <p className={cn("text-[11px] font-black", watts > 0 ? "text-amber-500" : isDark ? "text-white/15" : "text-slate-300")}>{watts > 0 ? `${watts.toFixed(0)}W` : "—"}</p>
+                                         <p className={cn("text-[11px] font-black", watts > 0 ? "text-amber-500" : isDark ? "text-white/15" : "text-slate-300")}>{watts > 0 ? `${watts.toFixed(0)}W` : "ï¿½"}</p>
                                          <p className={cn("text-[6px] font-black uppercase tracking-widest", isDark ? "text-white/15" : "text-slate-400")}>{hasRealWattsPow ? "sensor" : hpPow ? "rated" : "est"}</p>
                                        </div>
                                      )}
@@ -2602,8 +2732,8 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                                    )}
                                    {isOnlineAndRunning ? (
                                      <div className="grid grid-cols-4 gap-1.5">
-                                       {[{ label: "Voltage", value: (d.voltage ?? 0) > 0 ? `${d.voltage}V` : "—", color: "#8b5cf6" }, { label: "Current", value: (d.current ?? 0) > 0 ? `${(d.current as number).toFixed(2)}A` : "—", color: "#0ea5e9" }, { label: "Power", value: watts > 0 ? `${watts.toFixed(0)}W` : "—", color: "#f97316" }, { label: "Load %", value: ratedWattsPow > 0 ? `${barPctPow.toFixed(0)}%` : "—", color: barPctPow > 90 ? "#ef4444" : barPctPow > 60 ? "#f97316" : "#10b981" }].map((stat, si) => (
-                                         <div key={si} className={cn("rounded-lg px-1.5 py-1.5 border text-center", isDark ? "bg-white/3 border-white/6" : "bg-slate-50 border-slate-100")}><p className="text-[9px] font-black" style={{ color: stat.value === "—" ? (isDark ? "rgba(255,255,255,0.12)" : "#cbd5e1") : stat.color }}>{stat.value}</p><p className={cn("text-[5.5px] font-black uppercase tracking-widest", isDark ? "text-white/15" : "text-slate-400")}>{stat.label}</p></div>
+                                       {[{ label: "Voltage", value: (d.voltage ?? 0) > 0 ? `${d.voltage}V` : "ï¿½", color: "#8b5cf6" }, { label: "Current", value: (d.current ?? 0) > 0 ? `${(d.current as number).toFixed(2)}A` : "ï¿½", color: "#0ea5e9" }, { label: "Power", value: watts > 0 ? `${watts.toFixed(0)}W` : "ï¿½", color: "#f97316" }, { label: "Load %", value: ratedWattsPow > 0 ? `${barPctPow.toFixed(0)}%` : "ï¿½", color: barPctPow > 90 ? "#ef4444" : barPctPow > 60 ? "#f97316" : "#10b981" }].map((stat, si) => (
+                                         <div key={si} className={cn("rounded-lg px-1.5 py-1.5 border text-center", isDark ? "bg-white/3 border-white/6" : "bg-slate-50 border-slate-100")}><p className="text-[9px] font-black" style={{ color: stat.value === "ï¿½" ? (isDark ? "rgba(255,255,255,0.12)" : "#cbd5e1") : stat.color }}>{stat.value}</p><p className={cn("text-[5.5px] font-black uppercase tracking-widest", isDark ? "text-white/15" : "text-slate-400")}>{stat.label}</p></div>
                                        ))}
                                      </div>
                                    ) : (
@@ -2688,7 +2818,7 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                 <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: '#8B5CF620' }}><CircuitBoard size={11} style={{ color: '#8B5CF6' }} /></div>
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#8B5CF6' }}>Smart Box Control</p>
-                  <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Manage aerators · control · monitor status</p>
+                  <p className={cn('text-[6.5px] font-bold', isDark ? 'text-white/20' : 'text-slate-400')}>Manage aerators ï¿½ control ï¿½ monitor status</p>
                 </div>
               </div>
 
@@ -2834,11 +2964,17 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
               {(() => {
                 const activePonds = ponds.filter((p: any) => p.status === 'active' || p.status === 'planned');
 
-                // Build per-pond master map (one master per pond)
-                const allMasters: Record<string, any> = {};
+                // Deduplicate masters by _id so same Master Box shows only once
+                const allMasters: Record<string, { master: any; pondIds: string[]; pondNames: string[] }> = {};
                 Object.entries(iotAllByPond).forEach(([pid, s]: [string, any]) => {
                   const m = (s?.devices || []).find((d: any) => d.role === 'master');
-                  if (m) allMasters[pid] = m;
+                  if (m) {
+                    const key = m._id || m.boxId || pid;
+                    if (!allMasters[key]) allMasters[key] = { master: m, pondIds: [], pondNames: [] };
+                    allMasters[key].pondIds.push(pid);
+                    const pName = ponds.find((p: any) => p.id === pid)?.name;
+                    if (pName) allMasters[key].pondNames.push(pName);
+                  }
                 });
                 const hasAnyData = Object.keys(allMasters).length > 0 || Object.values(iotAllByPond).some(
                   (s: any) => (s?.devices || []).some((d: any) => d.role === 'slave')
@@ -2870,44 +3006,45 @@ export const SmartFarmHub = ({ t }: { t: Translations }) => {
                       </div>
                     </div>
 
-                    {/* Master Boxes — one per pond */}
+                    {/* Master Boxes ï¿½ one per pond */}
                     {Object.keys(allMasters).length > 0 && (
                       <div className="space-y-2 mb-3">
-                        {Object.entries(allMasters).map(([masterPondId, master]: [string, any]) => {
-                          const masterPond = ponds.find((p: any) => p.id === masterPondId);
-                          return (
-                            <div key={masterPondId} className={cn("flex items-center gap-3 rounded-2xl border px-3 py-2.5",
-                              master.online ? (isDark ? "bg-violet-500/8 border-violet-500/20" : "bg-violet-50 border-violet-200")
-                                           : (isDark ? "bg-white/4 border-white/10" : "bg-white border-slate-100")
+                        {Object.entries(allMasters).map(([masterKey, { master, pondNames }]: [string, any]) => (
+                          <div key={masterKey} className={cn("flex items-center gap-3 rounded-2xl border px-3 py-2.5",
+                            master.online ? (isDark ? "bg-violet-500/8 border-violet-500/20" : "bg-violet-50 border-violet-200")
+                                         : (isDark ? "bg-white/4 border-white/10" : "bg-white border-slate-100")
+                          )}>
+                            <div className={cn("w-9 h-9 rounded-xl border-2 flex items-center justify-center flex-shrink-0",
+                              master.online ? "bg-violet-500/15 border-violet-500/30" : isDark ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200"
                             )}>
-                              <div className={cn("w-9 h-9 rounded-xl border-2 flex items-center justify-center flex-shrink-0",
-                                master.online ? "bg-violet-500/15 border-violet-500/30" : isDark ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200"
-                              )}>
-                                <Radio size={14} className={master.online ? "text-violet-400" : isDark ? "text-white/25" : "text-slate-400"} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className={cn("text-[10px] font-black truncate", isDark ? "text-white" : "text-slate-900")}>{espnowService.getDeviceLabel(master)}</p>
-                                  <span className={cn("text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border", isDark ? "bg-violet-500/10 border-violet-500/20 text-violet-400" : "bg-violet-50 border-violet-200 text-violet-700")}>Master</span>
-                                  {masterPond && <span className={cn("text-[6px] font-black", isDark ? "text-white/20" : "text-slate-400")}>· {masterPond.name}</span>}
-                                </div>
-                                <p className={cn("text-[6.5px] font-medium mt-0.5", isDark ? "text-white/20" : "text-slate-400")}>
-                                  {master.boxId}{master.heartbeatAgo ? ` · ${master.heartbeatAgo}` : ""}
-                                </p>
-                              </div>
-                              <div className={cn("flex items-center gap-1 rounded-full px-2 py-1 border flex-shrink-0",
-                                master.online ? "bg-emerald-500/15 border-emerald-500/25 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"
-                              )}>
-                                <div className={cn("w-1.5 h-1.5 rounded-full", master.online ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
-                                <span className="text-[6.5px] font-black uppercase tracking-widest">{master.online ? "Online" : "Offline"}</span>
-                              </div>
+                              <Radio size={14} className={master.online ? "text-violet-400" : isDark ? "text-white/25" : "text-slate-400"} />
                             </div>
-                          );
-                        })}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className={cn("text-[10px] font-black truncate", isDark ? "text-white" : "text-slate-900")}>{espnowService.getDeviceLabel(master)}</p>
+                                <span className={cn("text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border", isDark ? "bg-violet-500/10 border-violet-500/20 text-violet-400" : "bg-violet-50 border-violet-200 text-violet-700")}>Master</span>
+                              </div>
+                              <p className={cn("text-[6.5px] font-medium mt-0.5", isDark ? "text-white/20" : "text-slate-400")}>
+                                {master.boxId}{master.heartbeatAgo ? ` Â· ${master.heartbeatAgo}` : ""}
+                              </p>
+                              {pondNames.length > 0 && (
+                                <p className={cn("text-[6px] font-bold mt-0.5", isDark ? "text-white/20" : "text-slate-400")}>
+                                  Ponds: {pondNames.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                            <div className={cn("flex items-center gap-1 rounded-full px-2 py-1 border flex-shrink-0",
+                              master.online ? "bg-emerald-500/15 border-emerald-500/25 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"
+                            )}>
+                              <div className={cn("w-1.5 h-1.5 rounded-full", master.online ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+                              <span className="text-[6.5px] font-black uppercase tracking-widest">{master.online ? "Online" : "Offline"}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 
-                    {/* â”€â”€ BRANCHES: Ponds â”€â”€ */}
+                    {/* BRANCHES: Ponds â”€â”€ */}
                     <div className="mt-1 ml-5">
                       {pondBranches.map(({ pond, slaves }: any, pondIdx: number) => {
                         const isLastPond = pondIdx === pondBranches.length - 1;
