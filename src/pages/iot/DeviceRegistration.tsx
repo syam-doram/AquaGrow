@@ -1575,6 +1575,10 @@ export const DeviceRegistration = () => {
   const navigate = useNavigate();
   const { theme, ponds } = useData();
   const isDark = theme === 'dark' || theme === 'midnight';
+
+  // Exclude harvested ponds from the SmartBox registration flow
+  const activePonds = ponds.filter((p: any) => p.status !== 'harvested');
+
   const [searchParams] = useSearchParams();
 
   const [category, setCategory] = useState<DeviceCategory>('choose_category');
@@ -1857,7 +1861,7 @@ export const DeviceRegistration = () => {
               className="pt-4"
             >
               <MasterConfigureStep
-                device={device} ponds={ponds} isDark={isDark}
+                device={device} ponds={activePonds} isDark={isDark}
                 onRegister={handleRegister}
                 onBack={() => { setStep('method'); setDevice(null); }}
               />
@@ -1871,7 +1875,7 @@ export const DeviceRegistration = () => {
               className="pt-4"
             >
               <SmartBoxConfigureStep
-                device={device} ponds={ponds} masterDevices={masterDevices} isDark={isDark}
+                device={device} ponds={activePonds} masterDevices={masterDevices} isDark={isDark}
                 onRegister={handleRegister}
                 onBack={() => { setStep('method'); setDevice(null); }}
               />

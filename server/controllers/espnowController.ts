@@ -307,7 +307,7 @@ export const forwardDiscover = async (req: Request, res: Response): Promise<void
       }
       // Make sure the discover queue has NO entry for this assigned device
       await EspDiscoverQueue.deleteOne({ boxId });
-      return res.json({ status: 'already_assigned', message: `${boxId} is already assigned — skipping discover queue` });
+      res.json({ status: 'already_assigned', message: `${boxId} is already assigned — skipping discover queue` }); return;
     }
 
     // ── Upsert discover queue (only for unassigned devices) ──────────────────
