@@ -32,9 +32,10 @@ function computeStatus(totalAmount: number, paidAmount: number): string {
 router.get('/summary', requireAnyAdmin, async (req, res) => {
   try {
     const dateStr = req.query.date as string || new Date().toISOString().slice(0, 10);
-    const start = new Date(dateStr);
-    const end = new Date(dateStr);
-    end.setDate(end.getDate() + 1);
+    // IST midnight → UTC: subtract 330 min
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const start = new Date(new Date(dateStr).getTime() - IST_OFFSET_MS);
+    const end   = new Date(start.getTime() + 24 * 60 * 60 * 1000);
 
     const invoices = await Invoice.find({
       createdAt: { $gte: start, $lt: end },
@@ -66,9 +67,11 @@ router.get('/', async (req, res) => {
     if (req.query.farmerId) filter.farmerId = req.query.farmerId;
     if (req.query.status)   filter.status = req.query.status;
     if (req.query.date) {
-      const start = new Date(req.query.date as string);
-      const end   = new Date(req.query.date as string);
-      end.setDate(end.getDate() + 1);
+      // IST = UTC+5:30 (330 min). Backend stores UTC, frontend sends IST date.
+      // Convert IST midnight → UTC: subtract 330 min from start, add 24h-330min to end.
+      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+      const start = new Date(new Date(req.query.date as string).getTime() - IST_OFFSET_MS);
+      const end   = new Date(start.getTime() + 24 * 60 * 60 * 1000);
       filter.createdAt = { $gte: start, $lt: end };
     }
     if (req.query.from || req.query.to) {
