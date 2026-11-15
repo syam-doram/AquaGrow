@@ -22,7 +22,6 @@ import espnowRoutes from './routes/espnow.js';
 import deviceRoutes from './routes/device.js';
 import masterboxRoutes from './routes/masterbox.js';
 import { startIoTAlertJob } from './jobs/iotAlertJob.js';
-
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
 
 const app = express();
@@ -38,13 +37,6 @@ const ALLOWED_ORIGINS = [
   'https://aquagrow-admin.vercel.app',
   'https://aquagrowadmin.vercel.app',
   'https://aquagrowcompanyportal.vercel.app',   // ✅ Employee portal (Vercel)
-  'http://localhost:3000',
-  'http://localhost:3005',
-  'http://localhost:4173',
-  'http://localhost:5173',
-  'http://localhost:5174',   // Employee portal (Vite dev)
-  'http://localhost:5175',   // Employee portal (Vite dev — alt port)
-  'http://localhost:5176',   // Employee portal (Vite dev — alt port)
 ];
 
 app.use(cors({
@@ -75,7 +67,10 @@ app.use('/api/provider', providerRoutes);
 app.use('/api/hrms', hrmsRoutes);           // ← HRMS Employee Portal routes
 app.use('/api/espnow', espnowRoutes);       // ← ESP-NOW IoT Device Bridge
 app.use('/api/masterbox', masterboxRoutes); // ← Master Box provisioning (firmware-facing)
-app.use('/api/device', deviceRoutes);       // ← Legacy provisioning alias (kept for compat)
+app.use('/api/device', deviceRoutes);
+// Staff management (owner only)
+import staffRoutes from './routes/staff.js';
+app.use('/api/staff', staffRoutes);       // ← Legacy provisioning alias (kept for compat)
 
 
 // ─── Health ───────────────────────────────────────────────────────────────────
@@ -2072,9 +2067,9 @@ const runPushEngine = async () => {
         else if (!alertTitle && doc > 0) {
           const stageLabel =
             doc <= 20 ? 'Nursery Stage' :
-            doc <= 40 ? 'Early Growth Stage' :
-            doc <= 60 ? 'Mid Growth Stage' :
-            doc <= 80 ? 'Pre-Harvest Stage' : 'Harvest Ready Stage';
+              doc <= 40 ? 'Early Growth Stage' :
+                doc <= 60 ? 'Mid Growth Stage' :
+                  doc <= 80 ? 'Pre-Harvest Stage' : 'Harvest Ready Stage';
           alertTitle = `🌊 Daily Update — ${p.name} | DOC ${doc}`;
           alertBody = `${stageLabel}: Check trays, log water quality & verify aerators. Tap to open pond.`;
         }

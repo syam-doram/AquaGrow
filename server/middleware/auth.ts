@@ -1,3 +1,4 @@
+// Updated authenticate middleware – add tenantId extraction
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { JWT_SECRET } from '../utils/auth.js';
@@ -26,7 +27,15 @@ export const authenticate = (req: any, res: any, next: any) => {
   if (!header || !header.startsWith('Bearer '))
     return res.status(401).json({ error: 'Missing Authorization header' });
   try {
-    req.user = jwt.verify(header.split(' ')[1], JWT_SECRET);
+    const payload: any = jwt.verify(header.split(' ')[1], JWT_SECRET);
+    // Attach full payload
+    req.user = payload;
+    // Derive tenantId (shop/branch) from JWT if present; field name may vary.
+    // Prefer "shopId" then "branchId" then "tenantId".
+    if (payload.shopId) req.user.tenantId = payload.shopId;
+    else if (payload.branchId) req.user.tenantId = payload.branchId;
+    else if (payload.tenantId) req.user.tenantId = payload.tenantId;
+    // Do NOT trust client‑supplied tenant fields.
     next();
   } catch (e) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -59,6 +68,13 @@ export const requireSuperAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
+// Owner role – full privileges across the system
+export const requireOwner = (req: any, res: any, next: any) => {
+  if (!req.user || req.user.role !== 'owner')
+    return res.status(403).json({ error: 'Owner access required.' });
+  next();
+};
+
 export const requireSelf = (req: any, res: any, next: any) => {
   const id = req.params.userId || req.body?.userId;
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
@@ -74,4 +90,3 @@ export const checkFeature = (feature: string) => async (req: any, res: any, next
     return res.status(403).json({ error: 'Feature requires higher plan: ' + feature });
   next();
 };
-

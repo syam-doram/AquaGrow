@@ -538,3 +538,164 @@ export const connectDB = async () => {
     process.exit(1); // Let Render/PM2 restart automatically
   }
 };
+
+// ===================== New ERP Schemas =====================
+
+// Product schema: represents a catalog item.
+const ProductSchema = new mongoose.Schema({
+  company: { type: String, required: true }, // brand/company
+  name: { type: String, required: true },
+  code: { type: String, unique: true, required: true },
+  category: { type: String, enum: ['Feed', 'Medicine', 'Mineral', 'Equipment', 'Other'], required: true },
+  packSize: { type: Number }, // e.g., 25 for 25kg bag
+  unit: { type: String }, // e.g., 'kg', 'bag', 'bottle'
+  baseStockUnit: { type: String, required: true }, // unit used for stock accounting, e.g., 'kg'
+  batchTracking: { type: Boolean, default: false },
+  expiryTracking: { type: Boolean, default: false },
+  mrp: { type: Number }, // Manufacturer Retail Price
+  approvedSellingRate: { type: Number }, // Owner approved rate
+  sellingDiscountPercent: { type: Number, default: 0 }, // % discount for farmer
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+
+// Batch schema: specific batch of a product.
+const BatchSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  batchNumber: { type: String, required: true },
+  expiryDate: { type: Date },
+  quantity: { type: Number, required: true }, // stored in baseStockUnit
+  unitCost: { type: Number }, // purchase cost per base unit
+}, { timestamps: true });
+BatchSchema.index({ productId: 1, batchNumber: 1 }, { unique: true });
+
+// Receipt schema: staff inward stock entry.
+const ReceiptSchema = new mongoose.Schema({
+  supplier: { type: String, required: true },
+  invoiceNumber: { type: String, required: true },
+  receiptDate: { type: Date, default: Date.now },
+  items: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
+    quantity: { type: Number, required: true }, // in baseStockUnit
+    packSize: { type: Number }, // if applicable (e.g., 25kg bag)
+    unit: { type: String },
+    // staff does NOT see purchaseCost fields
+  }],
+  // Owner will fill these later.
+  purchaseCostPending: { type: Boolean, default: true },
+  purchaseCostDetails: {
+    purchaseDiscountPercent: { type: Number },
+    purchaseCost: { type: Number }, // actual cost after discount and taxes
+    taxAmount: { type: Number },
+    transportCharges: { type: Number },
+    totalEffectiveCost: { type: Number },
+  },
+  attachmentUrl: { type: String },
+  createdBy: { type: String, required: true }, // admin user id
+}, { timestamps: true });
+ReceiptSchema.index({ invoiceNumber: 1 }, { unique: true });
+
+// Invoice schema: farmer billing.
+const InvoiceSchema = new mongoose.Schema({
+  farmerId: { type: String, required: true },
+  pondId: { type: String },
+  items: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
+    quantity: { type: Number, required: true }, // baseStockUnit
+    unitPrice: { type: Number, required: true }, // approved selling rate
+    discountPercent: { type: Number, default: 0 },
+    total: { type: Number, required: true },
+  }],
+  totalAmount: { type: Number, required: true },
+  status: { type: String, enum: ['draft', 'finalized', 'paid', 'cancelled'], default: 'draft' },
+  idempotencyKey: { type: String, sparse: true, unique: true },
+  createdBy: { type: String, required: true },
+}, { timestamps: true });
+
+// Payment schema: allocation against invoice.
+const PaymentSchema = new mongoose.Schema({
+  invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', required: true },
+  amount: { type: Number, required: true },
+  method: { type: String, enum: ['Cash', 'UPI', 'Bank', 'Credit', 'Mixed'], required: true },
+  details: { type: Map, of: String }, // optional key/value e.g., transactionId
+  idempotencyKey: { type: String, sparse: true, unique: true },
+  createdBy: { type: String, required: true },
+}, { timestamps: true });
+
+// Day close / stock reconciliation.
+const DayCloseSchema = new mongoose.Schema({
+  date: { type: Date, required: true },
+  openingSnapshot: { type: Map, of: Number }, // productId -> quantity
+  receiptSnapshot: { type: Map, of: Number },
+  salesSnapshot: { type: Map, of: Number },
+  physicalCount: { type: Map, of: Number },
+  variances: { type: Map, of: Number }, // positive = excess, negative = shortage
+  approvedBy: { type: String }, // owner admin id
+  isApproved: { type: Boolean, default: false },
+  idempotencyKey: { type: String, sparse: true, unique: true },
+}, { timestamps: true });
+DayCloseSchema.index({ date: 1 }, { unique: true });
+
+// Ledger entry for culture lifecycle.
+const LedgerEntrySchema = new mongoose.Schema({
+  cultureId: { type: mongoose.Schema.Types.ObjectId, ref: 'Culture', required: true },
+  type: { type: String, enum: ['Purchase', 'Sale', 'Payment', 'Discount', 'Harvest', 'Adjustment'], required: true },
+  amount: { type: Number, required: true },
+  relatedId: { type: mongoose.Schema.Types.ObjectId }, // e.g., invoice, payment, receipt
+  notes: { type: String },
+}, { timestamps: true });
+
+// Culture schema linking farmer, pond and crop.
+const CultureSchema = new mongoose.Schema({
+  farmerId: { type: String, required: true },
+  pondId: { type: String, required: true },
+  crop: { type: String, required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date },
+  status: { type: String, enum: ['active', 'harvest_pending', 'closed'], default: 'active' },
+}, { timestamps: true });
+
+// Harvest schema – partial or final.
+const HarvestSchema = new mongoose.Schema({
+  cultureId: { type: mongoose.Schema.Types.ObjectId, ref: 'Culture', required: true },
+  quantityKg: { type: Number, required: true },
+  date: { type: Date, default: Date.now },
+  isFinal: { type: Boolean, default: false },
+  draftSettlement: { type: Boolean, default: true },
+  notes: { type: String },
+}, { timestamps: true });
+HarvestSchema.index({ cultureId: 1, date: 1 });
+
+// Discount note – owner‑only additional discounts.
+const DiscountNoteSchema = new mongoose.Schema({
+  cultureId: { type: mongoose.Schema.Types.ObjectId, ref: 'Culture', required: true },
+  amount: { type: Number, required: true },
+  type: { type: String, enum: ['percentage', 'fixed'], required: true },
+  baseReference: { type: String }, // e.g., 'sellingRate' or 'totalDue'
+  createdBy: { type: String, required: true },
+  notes: { type: String },
+}, { timestamps: true });
+DiscountNoteSchema.index({ cultureId: 1, createdBy: 1 }, { unique: true, partialFilterExpression: { isFinal: true } });
+
+// WhatsApp job for PDF delivery.
+const WhatsAppJobSchema = new mongoose.Schema({
+  farmerId: { type: String, required: true },
+  pdfPath: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'sent', 'failed'], default: 'pending' },
+  attempts: { type: Number, default: 0 },
+  lastError: { type: String },
+}, { timestamps: true });
+
+// Export new models
+export const Product = mongoose.model('Product', ProductSchema);
+export const Batch = mongoose.model('Batch', BatchSchema);
+export const Receipt = mongoose.model('Receipt', ReceiptSchema);
+export const Invoice = mongoose.model('Invoice', InvoiceSchema);
+export const Payment = mongoose.model('Payment', PaymentSchema);
+export const DayClose = mongoose.model('DayClose', DayCloseSchema);
+export const LedgerEntry = mongoose.model('LedgerEntry', LedgerEntrySchema);
+export const Culture = mongoose.model('Culture', CultureSchema);
+export const Harvest = mongoose.model('Harvest', HarvestSchema);
+export const DiscountNote = mongoose.model('DiscountNote', DiscountNoteSchema);
+export const WhatsAppJob = mongoose.model('WhatsAppJob', WhatsAppJobSchema);
