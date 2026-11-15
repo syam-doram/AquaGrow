@@ -23,6 +23,13 @@ import deviceRoutes from './routes/device.js';
 import masterboxRoutes from './routes/masterbox.js';
 import { startIoTAlertJob } from './jobs/iotAlertJob.js';
 import { connectProviderDB, isProviderDbReady } from './providerDb.js';
+import staffRoutes from './routes/staff.js';
+import receiptsRoutes from './routes/receipts.js';
+import productsRoutes from './routes/products.js';
+import invoicesRoutes from './routes/invoices.js';
+import daycloseRoutes from './routes/dayclose.js';
+import ledgerRoutes from './routes/ledger.js';
+import farmersRoutes from './routes/farmers.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -37,6 +44,7 @@ const ALLOWED_ORIGINS = [
   'https://aquagrow-admin.vercel.app',
   'https://aquagrowadmin.vercel.app',
   'https://aquagrowcompanyportal.vercel.app',   // ✅ Employee portal (Vercel)
+  'https://aquagrow-staff.vercel.app',          // ✅ Staff portal (Vercel)
 ];
 
 app.use(cors({
@@ -68,9 +76,14 @@ app.use('/api/hrms', hrmsRoutes);           // ← HRMS Employee Portal routes
 app.use('/api/espnow', espnowRoutes);       // ← ESP-NOW IoT Device Bridge
 app.use('/api/masterbox', masterboxRoutes); // ← Master Box provisioning (firmware-facing)
 app.use('/api/device', deviceRoutes);
-// Staff management (owner only)
-import staffRoutes from './routes/staff.js';
-app.use('/api/staff', staffRoutes);       // ← Legacy provisioning alias (kept for compat)
+// ── ERP Routes ────────────────────────────────────────────────────────────────
+app.use('/api/staff',    staffRoutes);    // staff CRUD + login + /me
+app.use('/api/receipts', receiptsRoutes); // stock inward receipts
+app.use('/api/products', productsRoutes); // product catalog + selling price
+app.use('/api/invoices', invoicesRoutes); // farmer billing
+app.use('/api/dayclose', daycloseRoutes); // day-close reconciliation
+app.use('/api/ledger',   ledgerRoutes);   // farmer ledger entries
+app.use('/api/farmers',  farmersRoutes);  // list farmers (staff access)
 
 
 // ─── Health ───────────────────────────────────────────────────────────────────

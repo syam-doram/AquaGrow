@@ -1,14 +1,30 @@
 import express from 'express';
-import { authenticate, requireOwner } from '../middleware/auth.js';
-import { createStaff, listStaff, getStaff, updateStaff, deactivateStaff } from '../controllers/staffController.js';
+import { authenticate, requireAnyAdmin } from '../middleware/auth.js';
+import {
+  staffLogin,
+  getStaffMe,
+  createStaff,
+  listStaff,
+  getStaff,
+  updateStaff,
+  deactivateStaff,
+  resetStaffPassword,
+} from '../controllers/staffController.js';
 
 const router = express.Router();
 
-// All staff management endpoints require owner privileges
-router.post('/', authenticate, requireOwner, createStaff);
-router.get('/', authenticate, requireOwner, listStaff);
-router.get('/:id', authenticate, requireOwner, getStaff);
-router.put('/:id', authenticate, requireOwner, updateStaff);
-router.delete('/:id', authenticate, requireOwner, deactivateStaff); // soft delete
+// ── Public: staff portal login (no token required) ───────────────────────────
+router.post('/login', staffLogin);
+
+// ── Authenticated: get own profile ───────────────────────────────────────────
+router.get('/me', authenticate, getStaffMe);
+
+// ── Admin CRUD — any admin role may manage staff ─────────────────────────────
+router.post('/',             authenticate, requireAnyAdmin, createStaff);
+router.get('/',              authenticate, requireAnyAdmin, listStaff);
+router.get('/:id',           authenticate, requireAnyAdmin, getStaff);
+router.put('/:id',           authenticate, requireAnyAdmin, updateStaff);
+router.delete('/:id',        authenticate, requireAnyAdmin, deactivateStaff);
+router.post('/:id/reset-password', authenticate, requireAnyAdmin, resetStaffPassword);
 
 export default router;
