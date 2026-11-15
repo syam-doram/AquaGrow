@@ -1,39 +1,34 @@
+/**
+ * AdminUser model for ERP staff portal.
+ * Stored in 'staffusers' collection to avoid conflict with the main 'adminusers' collection
+ * in db.ts (which uses phoneNumber for farmer-side admin login).
+ *
+ * ERP staff log in with email + password.
+ */
 import mongoose from 'mongoose';
 
-// AdminUser collection – holds owner/admin accounts and staff accounts with elevated roles
-// Do NOT duplicate existing User schema (farmers/providers). This model is separate.
-// Fields are intentionally minimal – authentication uses JWT with password hash.
-
-export const AdminUserSchema = new mongoose.Schema(
+const StaffUserSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    // Password stored as bcrypt hash
+    name:     { type: String, required: true },
+    email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    // Role determines permission set (owner, inventory_admin, sales_admin, etc.)
     role: {
       type: String,
       enum: [
-        'owner',
-        'inventory_admin',
-        'sales_admin',
-        'finance_admin',
-        'operations_admin',
-        'support_admin',
-        'hr_admin',
-        'technical_admin',
-        'stock_staff',
-        'billing_staff',
-        'shop_manager',
+        'owner', 'stock_staff', 'billing_staff', 'shop_manager',
+        'inventory_admin', 'sales_admin', 'finance_admin',
+        'operations_admin', 'support_admin', 'hr_admin', 'technical_admin',
+        'super_admin',
       ],
       required: true,
     },
-    // tenantId (= shop/branch) the admin belongs to – owners may be global (null)
-    tenantId: { type: String },
-    // Active flag – can be deactivated without deletion
-    active: { type: Boolean, default: true },
+    tenantId: { type: String },     // shop / branch
+    active:   { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true, collection: 'staffusers' }
 );
 
-export const AdminUser = mongoose.model('AdminUser', AdminUserSchema);
+// Avoid OverwriteModelError in hot-reload / tsx environments
+export const AdminUser =
+  (mongoose.models['StaffUser'] as mongoose.Model<any>) ||
+  mongoose.model('StaffUser', StaffUserSchema);
