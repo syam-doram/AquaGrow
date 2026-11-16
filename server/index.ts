@@ -30,6 +30,7 @@ import invoicesRoutes from './routes/invoices.js';
 import daycloseRoutes from './routes/dayclose.js';
 import ledgerRoutes from './routes/ledger.js';
 import farmersRoutes from './routes/farmers.js';
+import harvestsRoutes from './routes/harvests.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -84,6 +85,7 @@ app.use('/api/invoices', invoicesRoutes); // farmer billing
 app.use('/api/dayclose', daycloseRoutes); // day-close reconciliation
 app.use('/api/ledger',   ledgerRoutes);   // farmer ledger entries
 app.use('/api/farmers',  farmersRoutes);  // list farmers (staff access)
+app.use('/api/harvests', harvestsRoutes); // ERP harvest drafts (staff → owner)
 
 
 // ─── Health ───────────────────────────────────────────────────────────────────

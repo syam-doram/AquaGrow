@@ -633,6 +633,11 @@ const DayCloseSchema = new mongoose.Schema({
   variances: { type: Map, of: Number }, // positive = excess, negative = shortage
   approvedBy: { type: String }, // owner admin id
   isApproved: { type: Boolean, default: false },
+  isRejected: { type: Boolean, default: false },
+  staffNotes: { type: String },
+  ownerNotes: { type: String },
+  submittedBy: { type: String }, // staff user id
+  submittedByName: { type: String },
   idempotencyKey: { type: String, sparse: true, unique: true },
 }, { timestamps: true });
 DayCloseSchema.index({ date: 1 }, { unique: true });
@@ -687,6 +692,23 @@ const WhatsAppJobSchema = new mongoose.Schema({
   lastError: { type: String },
 }, { timestamps: true });
 
+// ERP Harvest Draft — staff submits without culture linking.
+// Owner reviews in admin panel; can be linked to a Culture later.
+const HarvestDraftSchema = new mongoose.Schema({
+  farmerId:   { type: String, required: true },      // AquaGrow users collection id
+  farmerName: { type: String },
+  pondId:     { type: String, required: true },
+  weightKg:   { type: Number, required: true, min: 0 },
+  date:       { type: Date,   default: Date.now },
+  notes:      { type: String },
+  status:     { type: String, enum: ['draft', 'reviewed', 'settled'], default: 'draft' },
+  submittedBy:   { type: String },  // staff user id
+  submittedByName: { type: String },
+  reviewedBy:    { type: String },  // owner admin id
+  reviewNotes:   { type: String },
+  cultureId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Culture' }, // optional linkage
+}, { timestamps: true });
+
 // Export new models
 export const Product = mongoose.model('Product', ProductSchema);
 export const Batch = mongoose.model('Batch', BatchSchema);
@@ -697,5 +719,6 @@ export const DayClose = mongoose.model('DayClose', DayCloseSchema);
 export const LedgerEntry = mongoose.model('LedgerEntry', LedgerEntrySchema);
 export const Culture = mongoose.model('Culture', CultureSchema);
 export const Harvest = mongoose.model('Harvest', HarvestSchema);
+export const HarvestDraft = mongoose.model('HarvestDraft', HarvestDraftSchema);
 export const DiscountNote = mongoose.model('DiscountNote', DiscountNoteSchema);
 export const WhatsAppJob = mongoose.model('WhatsAppJob', WhatsAppJobSchema);
