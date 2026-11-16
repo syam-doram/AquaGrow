@@ -8,7 +8,7 @@
  * PUT  /api/farmers/:id     — update farmer details (admin only)
  */
 import express from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { User as UserMongo } from '../db.js';
 import { authenticate, requireAnyAdmin } from '../middleware/auth.js';
 
