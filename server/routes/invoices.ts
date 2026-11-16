@@ -28,8 +28,8 @@ function computeStatus(totalAmount: number, paidAmount: number): string {
   return 'finalized'; // partial
 }
 
-// ── GET /summary — owner daily totals ─────────────────────────────────────────
-router.get('/summary', requireAnyAdmin, async (req, res) => {
+// ── GET /summary — daily totals (accessible by staff + admin) ────────────────
+router.get('/summary', async (req, res) => {
   try {
     const dateStr = req.query.date as string || new Date().toISOString().slice(0, 10);
     // IST midnight → UTC: subtract 330 min
