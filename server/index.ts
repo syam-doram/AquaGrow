@@ -46,6 +46,8 @@ const ALLOWED_ORIGINS = [
   'https://aquagrowadmin.vercel.app',
   'https://aquagrowcompanyportal.vercel.app',   // ✅ Employee portal (Vercel)
   'https://aquagrow-staff.vercel.app',          // ✅ Staff portal (Vercel)
+  'https://aqua-grow-staff.vercel.app',         // ✅ Staff portal alternate URL
+  'https://aquagrow-admin-p6msac1fo-syamkdoram-7863s-projects.vercel.app', // preview
 ];
 
 app.use(cors({
@@ -63,6 +65,10 @@ app.use(cors({
     ) return callback(null, true);
     // Allow known production domains
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // Allow all Vercel preview deployments for aquagrow projects
+    if (origin.endsWith('.vercel.app') && (
+      origin.includes('aquagrow') || origin.includes('aqua-grow')
+    )) return callback(null, true);
     // Block everything else
     callback(new Error(`CORS blocked: ${origin}`));
   },
