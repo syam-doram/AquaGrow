@@ -62,7 +62,7 @@ export const getStaffMe = async (req: any, res: any) => {
 /** Create a new shop staff user – owner/admin only */
 export const createStaff = async (req: any, res: any) => {
   try {
-    const { name, email, password, role, tenantId, active } = req.body;
+    const { name, email, password, role, tenantId, active, phoneNumber } = req.body;
     if (!name || !email || !password || !role)
       return res.status(400).json({ error: 'name, email, password, role are required' });
     if (!Object.values(ROLES).includes(role as any))
@@ -75,6 +75,7 @@ export const createStaff = async (req: any, res: any) => {
     const newUser = await AdminUser.create({
       name,
       email: email.toLowerCase().trim(),
+      phoneNumber: phoneNumber?.trim() || undefined,
       password: hashed,
       role,
       tenantId,

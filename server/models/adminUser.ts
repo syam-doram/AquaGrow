@@ -11,6 +11,7 @@ const StaffUserSchema = new mongoose.Schema(
   {
     name:     { type: String, required: true },
     email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
+    phoneNumber: { type: String, trim: true },   // optional mobile contact number
     password: { type: String, required: true },
     role: {
       type: String,
